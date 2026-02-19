@@ -127,8 +127,10 @@ export function ModelsPage() {
       await api.models.delete(id);
       toast.success("Model deleted successfully");
       fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Delete failed");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Delete failed";
+      toast.error(message);
+      fetchData();
     }
   };
 
