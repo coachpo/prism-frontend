@@ -241,7 +241,7 @@ export function StatisticsPage() {
                     </TableCell>
                     <TableCell>{log.response_time_ms}ms</TableCell>
                     <TableCell>
-                      {log.total_tokens ? log.total_tokens.toLocaleString() : "-"}
+                      {(log.total_tokens ?? log.input_tokens) ? (log.total_tokens ?? log.input_tokens)!.toLocaleString() : "-"}
                     </TableCell>
                     <TableCell>
                       {log.is_stream ? (
