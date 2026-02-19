@@ -31,6 +31,8 @@ export function ModelDetailPage() {
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
   const [endpointSearch, setEndpointSearch] = useState("");
   const [healthCheckingIds, setHealthCheckingIds] = useState<Set<number>>(new Set());
+  const [dialogTestingConnection, setDialogTestingConnection] = useState(false);
+  const [dialogTestResult, setDialogTestResult] = useState<{ status: string; detail: string } | null>(null);
 
   // Endpoint Form State
   const [endpointForm, setEndpointForm] = useState<EndpointCreate>({
@@ -80,6 +82,22 @@ export function ModelDetailPage() {
       });
     }
     setIsEndpointDialogOpen(true);
+    setDialogTestResult(null);
+  };
+
+  const handleDialogTestConnection = async () => {
+    if (!editingEndpoint) return;
+    setDialogTestingConnection(true);
+    setDialogTestResult(null);
+    try {
+      const result = await api.endpoints.healthCheck(editingEndpoint.id);
+      setDialogTestResult({ status: result.health_status, detail: result.detail });
+      fetchModel();
+    } catch (error: any) {
+      setDialogTestResult({ status: "error", detail: error.message || "Test failed" });
+    } finally {
+      setDialogTestingConnection(false);
+    }
   };
 
   const handleEndpointSubmit = async (e: React.FormEvent) => {
@@ -407,7 +425,35 @@ export function ModelDetailPage() {
               />
             </div>
 
-            <DialogFooter>
+            {dialogTestResult && (
+              <div className={`flex items-center gap-2 rounded-md border p-3 text-sm ${
+                dialogTestResult.status === "healthy" ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400" :
+                "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400"
+              }`}>
+                <span className={`inline-block h-2.5 w-2.5 rounded-full ${
+                  dialogTestResult.status === "healthy" ? "bg-green-500" : "bg-red-500"
+                }`} />
+                {dialogTestResult.detail}
+              </div>
+            )}
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              {editingEndpoint && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDialogTestConnection}
+                  disabled={dialogTestingConnection}
+                  className="mr-auto"
+                >
+                  {dialogTestingConnection ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Activity className="mr-2 h-4 w-4" />
+                  )}
+                  Test Connection
+                </Button>
+              )}
               <Button type="button" variant="outline" onClick={() => setIsEndpointDialogOpen(false)}>
                 Cancel
               </Button>
