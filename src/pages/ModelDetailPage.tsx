@@ -298,10 +298,17 @@ export function ModelDetailPage() {
                               <span className="text-xs capitalize">{endpoint.health_status}</span>
                             </div>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            {endpoint.last_health_check
-                              ? `Last checked: ${new Date(endpoint.last_health_check).toLocaleString()}`
-                              : "Never checked"}
+                          <TooltipContent className="max-w-xs">
+                            <div className="space-y-1">
+                              {endpoint.health_detail && (
+                                <div className="text-xs">{endpoint.health_detail}</div>
+                              )}
+                              <div className="text-xs text-muted-foreground">
+                                {endpoint.last_health_check
+                                  ? `Checked: ${new Date(endpoint.last_health_check).toLocaleString()}`
+                                  : "Never checked"}
+                              </div>
+                            </div>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

@@ -20,6 +20,7 @@ export interface Endpoint {
   priority: number;
   description: string | null;
   health_status: string;
+  health_detail: string | null;
   last_health_check: string | null;
   created_at: string;
   updated_at: string;
