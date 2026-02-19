@@ -100,7 +100,7 @@ export function ModelsPage() {
           model_id: formData.model_id,
           display_name: formData.display_name,
           model_type: formData.model_type,
-          redirect_to: formData.model_type === "redirect" ? formData.redirect_to : null,
+          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
           lb_strategy: formData.lb_strategy,
           is_enabled: formData.is_enabled,
         };
@@ -109,7 +109,7 @@ export function ModelsPage() {
       } else {
         const createData: ModelConfigCreate = {
           ...formData,
-          redirect_to: formData.model_type === "redirect" ? formData.redirect_to : null,
+          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
         };
         await api.models.create(createData);
         toast.success("Model created successfully");
@@ -143,7 +143,7 @@ export function ModelsPage() {
     return matchesSearch && matchesProvider && matchesStatus && matchesType;
   });
 
-  // Get native models for the currently selected provider (for redirect_to selector)
+  // Get native models for the currently selected provider (for proxy target selector)
   const selectedProvider = providers.find(p => p.id === formData.provider_id);
   const nativeModelsForProvider = models.filter(
     m => m.model_type === "native" && m.provider_id === formData.provider_id && (!editingModel || m.model_id !== formData.model_id)
@@ -183,7 +183,7 @@ export function ModelsPage() {
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="native">Native</SelectItem>
-            <SelectItem value="redirect">Redirect</SelectItem>
+            <SelectItem value="proxy">Proxy</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -217,7 +217,7 @@ export function ModelsPage() {
                     {model.display_name && (
                       <div className="text-xs text-muted-foreground">{model.model_id}</div>
                     )}
-                    {model.model_type === "redirect" && model.redirect_to && (
+                    {model.model_type === "proxy" && model.redirect_to && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <ArrowRight className="h-3 w-3" /> {model.redirect_to}
                       </div>
@@ -225,7 +225,7 @@ export function ModelsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={model.model_type === "native" ? "default" : "outline"} className={model.model_type === "native" ? "bg-primary/90" : ""}>
-                      {model.model_type === "native" ? "Native" : "Redirect"}
+                      {model.model_type === "native" ? "Native" : "Proxy"}
                     </Badge>
                   </TableCell>
                   <TableCell>{model.provider.name}</TableCell>
@@ -335,14 +335,14 @@ export function ModelsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="native">Native</SelectItem>
-                  <SelectItem value="redirect">Redirect</SelectItem>
+                  <SelectItem value="proxy">Proxy</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {formData.model_type === "redirect" && (
+            {formData.model_type === "proxy" && (
               <div className="grid gap-2">
-                <Label>Redirect To</Label>
+                <Label>Proxy To</Label>
                 {nativeModelsForProvider.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No native models available for {selectedProvider?.name || "this provider"}. Create a native model first.
@@ -368,6 +368,7 @@ export function ModelsPage() {
               </div>
             )}
 
+            {formData.model_type === "native" && (
             <div className="grid gap-2">
               <Label htmlFor="lb_strategy">Load Balancing Strategy</Label>
               <Select
@@ -384,6 +385,7 @@ export function ModelsPage() {
                 </SelectContent>
               </Select>
             </div>
+            )}
 
             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
               <div className="space-y-0.5">

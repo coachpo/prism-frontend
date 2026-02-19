@@ -199,13 +199,13 @@ export function ModelDetailPage() {
               <div className="flex items-center gap-2">
                 <CardTitle>{model.display_name || model.model_id}</CardTitle>
                 <Badge variant={model.model_type === "native" ? "default" : "outline"} className={model.model_type === "native" ? "bg-primary/90" : ""}>
-                  {model.model_type === "native" ? "Native" : "Redirect"}
+                  {model.model_type === "native" ? "Native" : "Proxy"}
                 </Badge>
               </div>
               <CardDescription>{model.provider.name} • {model.model_id}</CardDescription>
-              {model.model_type === "redirect" && model.redirect_to && (
+              {model.model_type === "proxy" && model.redirect_to && (
                 <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
-                  <ArrowRight className="h-3 w-3" /> Redirects to: <span className="font-medium text-foreground">{model.redirect_to}</span>
+                  <ArrowRight className="h-3 w-3" /> Proxies to: <span className="font-medium text-foreground">{model.redirect_to}</span>
                 </div>
               )}
             </div>
@@ -249,8 +249,8 @@ export function ModelDetailPage() {
               <Plus className="mr-2 h-4 w-4" /> Add Endpoint
             </Button>
           )}
-          {model.model_type === "redirect" && (
-            <p className="text-sm text-muted-foreground italic">Redirect models use the target model's endpoints</p>
+          {model.model_type === "proxy" && (
+            <p className="text-sm text-muted-foreground italic">Proxy models use the target model's endpoints</p>
           )}
         </div>
 

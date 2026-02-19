@@ -102,7 +102,7 @@ export function DashboardPage() {
                     {model.display_name && (
                       <div className="text-xs text-muted-foreground">{model.model_id}</div>
                     )}
-                    {model.model_type === "redirect" && model.redirect_to && (
+                    {model.model_type === "proxy" && model.redirect_to && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <ArrowRight className="h-3 w-3" /> {model.redirect_to}
                       </div>
@@ -110,7 +110,7 @@ export function DashboardPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={model.model_type === "native" ? "default" : "outline"} className={model.model_type === "native" ? "bg-primary/90" : ""}>
-                      {model.model_type === "native" ? "Native" : "Redirect"}
+                      {model.model_type === "native" ? "Native" : "Proxy"}
                     </Badge>
                   </TableCell>
                   <TableCell>{model.provider.name}</TableCell>
