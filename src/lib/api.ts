@@ -8,6 +8,10 @@ import type {
   EndpointCreate,
   EndpointUpdate,
   HealthCheckResponse,
+  RequestLogListResponse,
+  StatsSummary,
+  StatsRequestParams,
+  StatsSummaryParams,
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -71,5 +75,32 @@ export const api = {
       request<HealthCheckResponse>(`/api/endpoints/${id}/health-check`, {
         method: "POST",
       }),
+  },
+
+  stats: {
+    requests: (params?: StatsRequestParams) => {
+      const qs = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+        });
+      }
+      const query = qs.toString();
+      return request<RequestLogListResponse>(
+        `/api/stats/requests${query ? `?${query}` : ""}`
+      );
+    },
+    summary: (params?: StatsSummaryParams) => {
+      const qs = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+        });
+      }
+      const query = qs.toString();
+      return request<StatsSummary>(
+        `/api/stats/summary${query ? `?${query}` : ""}`
+      );
+    },
   },
 };

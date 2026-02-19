@@ -46,6 +46,7 @@ export interface HealthCheckResponse {
   health_status: string;
   checked_at: string;
   detail: string;
+  response_time_ms: number;
 }
 
 // --- Model Config ---
@@ -98,4 +99,67 @@ export interface ModelConfigUpdate {
   redirect_to?: string | null;
   lb_strategy?: string;
   is_enabled?: boolean;
+}
+
+export interface RequestLogEntry {
+  id: number;
+  model_id: string;
+  provider_type: string;
+  endpoint_id: number | null;
+  endpoint_base_url: string | null;
+  status_code: number;
+  response_time_ms: number;
+  is_stream: boolean;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
+  request_path: string;
+  error_detail: string | null;
+  created_at: string;
+}
+
+export interface RequestLogListResponse {
+  items: RequestLogEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface StatGroup {
+  key: string;
+  total_requests: number;
+  success_count: number;
+  error_count: number;
+  avg_response_time_ms: number;
+  total_tokens: number;
+}
+
+export interface StatsSummary {
+  total_requests: number;
+  success_count: number;
+  error_count: number;
+  success_rate: number;
+  avg_response_time_ms: number;
+  p95_response_time_ms: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_tokens: number;
+  groups: StatGroup[];
+}
+
+export interface StatsRequestParams {
+  model_id?: string;
+  provider_type?: string;
+  status_code?: number;
+  success?: boolean;
+  from_time?: string;
+  to_time?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface StatsSummaryParams {
+  from_time?: string;
+  to_time?: string;
+  group_by?: "model" | "provider" | "endpoint";
 }

@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Server, Zap } from "lucide-react";
+import { LayoutDashboard, Server, Zap, BarChart3 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function AppLayout() {
@@ -45,6 +45,20 @@ export function AppLayout() {
           >
             <Server className="h-4 w-4" />
             Models
+          </NavLink>
+          <NavLink
+            to="/statistics"
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+              )
+            }
+          >
+            <BarChart3 className="h-4 w-4" />
+            Statistics
           </NavLink>
         </nav>
 

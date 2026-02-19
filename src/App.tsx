@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { ModelsPage } from "@/pages/ModelsPage";
 import { ModelDetailPage } from "@/pages/ModelDetailPage";
+import { StatisticsPage } from "@/pages/StatisticsPage";
 import "./App.css";
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/models" element={<ModelsPage />} />
           <Route path="/models/:id" element={<ModelDetailPage />} />
+          <Route path="/statistics" element={<StatisticsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
