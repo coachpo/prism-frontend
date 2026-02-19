@@ -12,6 +12,7 @@ import type {
   StatsSummary,
   StatsRequestParams,
   StatsSummaryParams,
+  EndpointSuccessRate,
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -102,5 +103,7 @@ export const api = {
         `/api/stats/summary${query ? `?${query}` : ""}`
       );
     },
+    endpointSuccessRates: () =>
+      request<EndpointSuccessRate[]>("/api/stats/endpoint-success-rates"),
   },
 };

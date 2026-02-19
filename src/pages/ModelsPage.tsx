@@ -198,6 +198,7 @@ export function ModelsPage() {
                 <TableHead>Provider</TableHead>
                 <TableHead>Strategy</TableHead>
                 <TableHead>Endpoints</TableHead>
+                <TableHead>Health</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -236,6 +237,29 @@ export function ModelsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    {(() => {
+                      if (model.health_total_requests === 0 || model.health_success_rate === null) {
+                        return (
+                          <Badge variant="secondary" className="text-xs">
+                            N/A
+                          </Badge>
+                        );
+                      }
+                      const pct = model.health_success_rate;
+                      const color =
+                        pct >= 98
+                          ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30"
+                          : pct >= 75
+                            ? "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30"
+                            : "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
+                      return (
+                        <Badge variant="outline" className={`text-xs ${color}`}>
+                          {pct.toFixed(1)}%
+                        </Badge>
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell>
                     <Badge
                       variant={model.is_enabled ? "default" : "secondary"}
                       className={model.is_enabled ? "bg-primary/90" : ""}
@@ -268,7 +292,7 @@ export function ModelsPage() {
               ))}
               {filteredModels.length === 0 && (
                 <TableRow>
-                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     {models.length === 0 ? "No models found. Create one to get started." : "No models match your filters."}
                   </TableCell>
                 </TableRow>

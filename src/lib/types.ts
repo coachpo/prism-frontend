@@ -78,6 +78,8 @@ export interface ModelConfigListItem {
   is_enabled: boolean;
   endpoint_count: number;
   active_endpoint_count: number;
+  health_success_rate: number | null;
+  health_total_requests: number;
   created_at: string;
   updated_at: string;
 }
@@ -163,4 +165,12 @@ export interface StatsSummaryParams {
   from_time?: string;
   to_time?: string;
   group_by?: "model" | "provider" | "endpoint";
+}
+
+export interface EndpointSuccessRate {
+  endpoint_id: number;
+  total_requests: number;
+  success_count: number;
+  error_count: number;
+  success_rate: number | null;
 }

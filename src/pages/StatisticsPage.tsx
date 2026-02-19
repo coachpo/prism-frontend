@@ -129,8 +129,6 @@ export function StatisticsPage() {
               <SelectItem value="openai">OpenAI</SelectItem>
               <SelectItem value="anthropic">Anthropic</SelectItem>
               <SelectItem value="gemini">Gemini</SelectItem>
-              <SelectItem value="ollama">Ollama</SelectItem>
-              <SelectItem value="vllm">vLLM</SelectItem>
             </SelectContent>
           </Select>
         </div>

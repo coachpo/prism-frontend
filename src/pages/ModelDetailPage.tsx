@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { formatProviderType } from "@/lib/utils";
-import type { ModelConfig, Endpoint, EndpointCreate, EndpointUpdate } from "@/lib/types";
+import type { ModelConfig, Endpoint, EndpointCreate, EndpointUpdate, EndpointSuccessRate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -33,6 +33,7 @@ export function ModelDetailPage() {
   const [healthCheckingIds, setHealthCheckingIds] = useState<Set<number>>(new Set());
   const [dialogTestingConnection, setDialogTestingConnection] = useState(false);
   const [dialogTestResult, setDialogTestResult] = useState<{ status: string; detail: string } | null>(null);
+  const [successRates, setSuccessRates] = useState<Map<number, EndpointSuccessRate>>(new Map());
 
   // Endpoint Form State
   const [endpointForm, setEndpointForm] = useState<EndpointCreate>({
@@ -46,8 +47,16 @@ export function ModelDetailPage() {
   const fetchModel = async () => {
     if (!id) return;
     try {
-      const data = await api.models.get(parseInt(id));
+      const [data, rates] = await Promise.all([
+        api.models.get(parseInt(id)),
+        api.stats.endpointSuccessRates(),
+      ]);
       setModel(data);
+      const rateMap = new Map<number, EndpointSuccessRate>();
+      for (const r of rates) {
+        rateMap.set(r.endpoint_id, r);
+      }
+      setSuccessRates(rateMap);
     } catch (error) {
       toast.error("Failed to fetch model details");
       console.error(error);
@@ -289,25 +298,55 @@ export function ModelDetailPage() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="flex items-center gap-2">
-                              <span className={`inline-block h-2.5 w-2.5 rounded-full ${
-                                endpoint.health_status === "healthy" ? "bg-green-500" :
-                                endpoint.health_status === "unhealthy" ? "bg-red-500" :
-                                "bg-yellow-500"
-                              }`} />
-                              <span className="text-xs capitalize">{endpoint.health_status}</span>
-                            </div>
+                            {(() => {
+                              const rate = successRates.get(endpoint.id);
+                              if (!rate || rate.total_requests === 0) {
+                                return (
+                                  <Badge variant="secondary" className="text-xs">
+                                    N/A
+                                  </Badge>
+                                );
+                              }
+                              const pct = rate.success_rate ?? 0;
+                              const color =
+                                pct >= 98
+                                  ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30"
+                                  : pct >= 75
+                                    ? "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30"
+                                    : "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
+                              return (
+                                <Badge variant="outline" className={`text-xs ${color}`}>
+                                  {pct.toFixed(1)}%
+                                </Badge>
+                              );
+                            })()}
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             <div className="space-y-1">
+                              {(() => {
+                                const rate = successRates.get(endpoint.id);
+                                if (!rate || rate.total_requests === 0) {
+                                  return <div className="text-xs">No requests recorded (last 24h)</div>;
+                                }
+                                return (
+                                  <>
+                                    <div className="text-xs">
+                                      {rate.success_count}/{rate.total_requests} successful ({rate.success_rate?.toFixed(1)}%)
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {rate.error_count} errors (last 24h)
+                                    </div>
+                                  </>
+                                );
+                              })()}
                               {endpoint.health_detail && (
-                                <div className="text-xs">{endpoint.health_detail}</div>
+                                <div className="text-xs text-muted-foreground">{endpoint.health_detail}</div>
                               )}
-                              <div className="text-xs text-muted-foreground">
-                                {endpoint.last_health_check
-                                  ? `Checked: ${new Date(endpoint.last_health_check).toLocaleString()}`
-                                  : "Never checked"}
-                              </div>
+                              {endpoint.last_health_check && (
+                                <div className="text-xs text-muted-foreground">
+                                  Last check: {new Date(endpoint.last_health_check).toLocaleString()}
+                                </div>
+                              )}
                             </div>
                           </TooltipContent>
                         </Tooltip>
