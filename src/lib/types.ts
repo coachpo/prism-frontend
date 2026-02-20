@@ -123,6 +123,7 @@ export interface RequestLogEntry {
   provider_type: string;
   endpoint_id: number | null;
   endpoint_base_url: string | null;
+  endpoint_description: string | null;
   status_code: number;
   response_time_ms: number;
   is_stream: boolean;
@@ -170,6 +171,7 @@ export interface StatsRequestParams {
   success?: boolean;
   from_time?: string;
   to_time?: string;
+  endpoint_id?: number;
   limit?: number;
   offset?: number;
 }
@@ -178,6 +180,9 @@ export interface StatsSummaryParams {
   from_time?: string;
   to_time?: string;
   group_by?: "model" | "provider" | "endpoint";
+  model_id?: string;
+  provider_type?: string;
+  endpoint_id?: number;
 }
 
 export interface EndpointSuccessRate {
@@ -242,6 +247,9 @@ export interface AuditLogListItem {
   request_log_id: number | null;
   provider_id: number;
   model_id: string;
+  endpoint_id: number | null;
+  endpoint_base_url: string | null;
+  endpoint_description: string | null;
   request_method: string;
   request_url: string;
   request_headers: string;
@@ -257,6 +265,9 @@ export interface AuditLogDetail {
   request_log_id: number | null;
   provider_id: number;
   model_id: string;
+  endpoint_id: number | null;
+  endpoint_base_url: string | null;
+  endpoint_description: string | null;
   request_method: string;
   request_url: string;
   request_headers: string;
@@ -280,6 +291,7 @@ export interface AuditLogParams {
   provider_id?: number;
   model_id?: string;
   status_code?: number;
+  endpoint_id?: number;
   from_time?: string;
   to_time?: string;
   limit?: number;
