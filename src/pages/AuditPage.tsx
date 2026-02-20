@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,9 +24,12 @@ export function AuditPage() {
 
   const [providerId, setProviderId] = useState<string>("all");
   const [modelId, setModelId] = useState("");
+  const [endpointId, setEndpointId] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const [activeTab, setActiveTab] = useState<"request" | "response">("request");
 
   const [limit] = useState(50);
   const [offset, setOffset] = useState(0);
@@ -47,6 +51,7 @@ export function AuditPage() {
 
         if (providerId !== "all") params.provider_id = parseInt(providerId);
         if (modelId) params.model_id = modelId;
+        if (endpointId) params.endpoint_id = parseInt(endpointId);
         if (dateFrom) params.from_time = new Date(dateFrom).toISOString();
         if (dateTo) params.to_time = new Date(dateTo).toISOString();
 
@@ -69,12 +74,13 @@ export function AuditPage() {
 
     const timeoutId = setTimeout(fetchLogs, 300);
     return () => clearTimeout(timeoutId);
-  }, [limit, offset, providerId, modelId, statusFilter, dateFrom, dateTo]);
+  }, [limit, offset, providerId, modelId, endpointId, statusFilter, dateFrom, dateTo]);
 
   const handleViewDetail = async (id: number) => {
     setIsDialogOpen(true);
     setDetailLoading(true);
     setSelectedLog(null);
+    setActiveTab("request");
     try {
       const detail = await api.audit.get(id);
       setSelectedLog(detail);
@@ -114,7 +120,7 @@ export function AuditPage() {
         <h2 className="text-3xl font-bold tracking-tight">Audit Logs</h2>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Select value={providerId} onValueChange={setProviderId}>
           <SelectTrigger>
             <SelectValue placeholder="Provider" />
@@ -131,6 +137,12 @@ export function AuditPage() {
           placeholder="Model ID" 
           value={modelId} 
           onChange={(e) => setModelId(e.target.value)} 
+        />
+
+        <Input 
+          placeholder="Endpoint ID" 
+          value={endpointId} 
+          onChange={(e) => setEndpointId(e.target.value)} 
         />
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -173,6 +185,7 @@ export function AuditPage() {
                   <TableHead>Time</TableHead>
                   <TableHead>Model</TableHead>
                   <TableHead>Provider</TableHead>
+                  <TableHead>Endpoint</TableHead>
                   <TableHead>Method</TableHead>
                   <TableHead>URL</TableHead>
                   <TableHead>Status</TableHead>
@@ -184,14 +197,14 @@ export function AuditPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center">
+                    <TableCell colSpan={10} className="h-24 text-center">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : logs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                       No logs found.
                     </TableCell>
                   </TableRow>
@@ -203,6 +216,17 @@ export function AuditPage() {
                       </TableCell>
                       <TableCell className="font-medium">{log.model_id}</TableCell>
                       <TableCell>{getProviderName(log.provider_id)}</TableCell>
+                      <TableCell className="max-w-[150px] truncate text-xs text-muted-foreground">
+                        {log.endpoint_description ? (
+                          <span>{log.endpoint_description} <span className="opacity-50">#{log.endpoint_id}</span></span>
+                        ) : log.endpoint_base_url ? (
+                          <span>{log.endpoint_base_url.replace(/^https?:\/\//, '').substring(0, 20)}... <span className="opacity-50">#{log.endpoint_id}</span></span>
+                        ) : log.endpoint_id ? (
+                          <span>#{log.endpoint_id}</span>
+                        ) : (
+                          <span className="opacity-50">Legacy</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">{log.request_method}</Badge>
                       </TableCell>
@@ -260,7 +284,7 @@ export function AuditPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-5xl max-h-[90vh] w-[96vw] sm:w-auto overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Audit Log Detail #{selectedLog?.id}</DialogTitle>
             <DialogDescription>
@@ -273,8 +297,8 @@ export function AuditPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : selectedLog ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div className="flex flex-col h-full overflow-hidden gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-muted/50 rounded-lg shrink-0">
                 <div>
                   <div className="text-xs text-muted-foreground font-medium">Status</div>
                   <Badge variant={getStatusColor(selectedLog.response_status)} className="mt-1">
@@ -293,64 +317,88 @@ export function AuditPage() {
                   <div className="text-xs text-muted-foreground font-medium">Provider</div>
                   <div className="mt-1 text-sm">{getProviderName(selectedLog.provider_id)}</div>
                 </div>
+                <div>
+                  <div className="text-xs text-muted-foreground font-medium">Endpoint</div>
+                  <div className="mt-1 text-sm truncate" title={selectedLog.endpoint_description || selectedLog.endpoint_base_url || `Endpoint #${selectedLog.endpoint_id}`}>
+                    {selectedLog.endpoint_description ? (
+                      <span>{selectedLog.endpoint_description} <span className="opacity-50">#{selectedLog.endpoint_id}</span></span>
+                    ) : selectedLog.endpoint_base_url ? (
+                      <span>{selectedLog.endpoint_base_url.replace(/^https?:\/\//, '').substring(0, 20)}... <span className="opacity-50">#{selectedLog.endpoint_id}</span></span>
+                    ) : selectedLog.endpoint_id ? (
+                      <span>#{selectedLog.endpoint_id}</span>
+                    ) : (
+                      <span className="opacity-50">N/A</span>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Badge variant="outline">Request</Badge>
-                  <span className="font-mono text-xs text-muted-foreground">{selectedLog.request_method} {selectedLog.request_url}</span>
-                </h3>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "request" | "response")} className="min-h-0 flex-1 overflow-hidden flex flex-col">
+                <TabsList className="grid w-full grid-cols-2 shrink-0">
+                  <TabsTrigger value="request">Request</TabsTrigger>
+                  <TabsTrigger value="response">Response</TabsTrigger>
+                </TabsList>
                 
-                <div className="space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground">Headers</div>
-                  <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto">
-                    {formatJson(selectedLog.request_headers)}
-                  </pre>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground">Body</div>
-                  {selectedLog.request_body ? (
-                    <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
-                      {formatJson(selectedLog.request_body)}
+                <TabsContent value="request" className="mt-0 h-full overflow-y-auto p-1 space-y-4">
+                  <div className="flex items-center gap-2 pt-2">
+                    <Badge variant="outline">{selectedLog.request_method}</Badge>
+                    <span className="font-mono text-xs text-muted-foreground break-all">{selectedLog.request_url}</span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground">Headers</div>
+                    <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-auto max-h-[40vh]">
+                      {formatJson(selectedLog.request_headers)}
                     </pre>
-                  ) : (
-                    <div className="p-3 border border-dashed rounded-md text-xs text-muted-foreground italic">
-                      Body capture disabled for this provider.
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Badge variant="outline">Response</Badge>
-                </h3>
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground">Body</div>
+                    {selectedLog.request_body ? (
+                      <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-auto max-h-[40vh] whitespace-pre-wrap">
+                        {formatJson(selectedLog.request_body)}
+                      </pre>
+                    ) : (
+                      <div className="p-3 border border-dashed rounded-md text-xs text-muted-foreground italic">
+                        Body capture disabled for this provider.
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
 
-                <div className="space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground">Headers</div>
-                  <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto">
-                    {formatJson(selectedLog.response_headers)}
-                  </pre>
-                </div>
+                <TabsContent value="response" className="mt-0 h-full overflow-y-auto p-1 space-y-4">
+                  <div className="flex items-center gap-2 pt-2">
+                    <Badge variant={getStatusColor(selectedLog.response_status)}>
+                      {selectedLog.response_status}
+                    </Badge>
+                    {selectedLog.is_stream && <Badge variant="secondary">Stream</Badge>}
+                  </div>
 
-                <div className="space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground">Body</div>
-                  {selectedLog.is_stream ? (
-                    <div className="p-3 border border-dashed rounded-md text-xs text-muted-foreground italic">
-                      Response body not recorded for streaming requests.
-                    </div>
-                  ) : selectedLog.response_body ? (
-                    <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-x-auto whitespace-pre-wrap">
-                      {formatJson(selectedLog.response_body)}
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground">Headers</div>
+                    <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-auto max-h-[40vh]">
+                      {formatJson(selectedLog.response_headers)}
                     </pre>
-                  ) : (
-                    <div className="p-3 border border-dashed rounded-md text-xs text-muted-foreground italic">
-                      Body capture disabled for this provider.
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground">Body</div>
+                    {selectedLog.is_stream ? (
+                      <div className="p-3 border border-dashed rounded-md text-xs text-muted-foreground italic">
+                        Response body not recorded for streaming requests.
+                      </div>
+                    ) : selectedLog.response_body ? (
+                      <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-auto max-h-[40vh] whitespace-pre-wrap">
+                        {formatJson(selectedLog.response_body)}
+                      </pre>
+                    ) : (
+                      <div className="p-3 border border-dashed rounded-md text-xs text-muted-foreground italic">
+                        Body capture disabled for this provider.
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
