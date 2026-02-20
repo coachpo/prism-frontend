@@ -13,6 +13,9 @@ import type {
   StatsRequestParams,
   StatsSummaryParams,
   EndpointSuccessRate,
+  ConfigExportResponse,
+  ConfigImportRequest,
+  ConfigImportResponse,
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -105,5 +108,14 @@ export const api = {
     },
     endpointSuccessRates: () =>
       request<EndpointSuccessRate[]>("/api/stats/endpoint-success-rates"),
+  },
+
+  config: {
+    export: () => request<ConfigExportResponse>("/api/config/export"),
+    import: (data: ConfigImportRequest) =>
+      request<ConfigImportResponse>("/api/config/import", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 };

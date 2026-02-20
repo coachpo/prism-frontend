@@ -4,6 +4,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { ModelsPage } from "@/pages/ModelsPage";
 import { ModelDetailPage } from "@/pages/ModelDetailPage";
 import { StatisticsPage } from "@/pages/StatisticsPage";
+import { SettingsPage } from "@/pages/SettingsPage";
 import "./App.css";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Route path="/models" element={<ModelsPage />} />
           <Route path="/models/:id" element={<ModelDetailPage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

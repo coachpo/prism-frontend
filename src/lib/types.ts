@@ -174,3 +174,49 @@ export interface EndpointSuccessRate {
   error_count: number;
   success_rate: number | null;
 }
+
+export interface ConfigEndpointExport {
+  base_url: string;
+  api_key: string;
+  is_active: boolean;
+  priority: number;
+  description: string | null;
+  auth_type: string | null;
+}
+
+export interface ConfigModelExport {
+  provider_type: string;
+  model_id: string;
+  display_name: string | null;
+  model_type: string;
+  redirect_to: string | null;
+  lb_strategy: string;
+  is_enabled: boolean;
+  endpoints: ConfigEndpointExport[];
+}
+
+export interface ConfigProviderExport {
+  name: string;
+  provider_type: string;
+  description: string | null;
+}
+
+export interface ConfigExportResponse {
+  version: number;
+  exported_at: string;
+  providers: ConfigProviderExport[];
+  models: ConfigModelExport[];
+}
+
+export interface ConfigImportRequest {
+  version: number;
+  exported_at?: string;
+  providers: ConfigProviderExport[];
+  models: ConfigModelExport[];
+}
+
+export interface ConfigImportResponse {
+  providers_imported: number;
+  models_imported: number;
+  endpoints_imported: number;
+}
