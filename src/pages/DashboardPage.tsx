@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Server, Zap, Globe, ArrowRight } from "lucide-react";
+import { ProviderIcon } from "@/components/ProviderIcon";
 
 export function DashboardPage() {
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
@@ -92,7 +93,7 @@ export function DashboardPage() {
                   <TableHead>Provider</TableHead>
                   <TableHead>Strategy</TableHead>
                   <TableHead>Endpoints</TableHead>
-                  <TableHead>Health</TableHead>
+                  <TableHead>Success Rate</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -115,7 +116,12 @@ export function DashboardPage() {
                         {model.model_type === "native" ? "Native" : "Proxy"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{model.provider.name}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5">
+                        <ProviderIcon providerType={model.provider.provider_type} size={14} />
+                        {model.provider.name}
+                      </span>
+                    </TableCell>
                     <TableCell className="capitalize">{model.lb_strategy.replace("_", " ")}</TableCell>
                     <TableCell>
                       {model.active_endpoint_count} / {model.endpoint_count} active

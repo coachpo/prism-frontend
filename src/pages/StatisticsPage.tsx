@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Activity, Clock, CheckCircle, Coins, AlertCircle } from "lucide-react";
+import { ProviderIcon } from "@/components/ProviderIcon";
 
 function formatErrorDetail(detail: string | null): string | null {
   if (!detail) return null;
@@ -147,9 +148,9 @@ export function StatisticsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Providers</SelectItem>
-              <SelectItem value="openai">OpenAI</SelectItem>
-              <SelectItem value="anthropic">Anthropic</SelectItem>
-              <SelectItem value="gemini">Gemini</SelectItem>
+              <SelectItem value="openai"><span className="inline-flex items-center gap-1.5"><ProviderIcon providerType="openai" size={14} />OpenAI</span></SelectItem>
+              <SelectItem value="anthropic"><span className="inline-flex items-center gap-1.5"><ProviderIcon providerType="anthropic" size={14} />Anthropic</span></SelectItem>
+              <SelectItem value="gemini"><span className="inline-flex items-center gap-1.5"><ProviderIcon providerType="gemini" size={14} />Gemini</span></SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -270,7 +271,12 @@ export function StatisticsPage() {
                           {formatTime(log.created_at)}
                         </TableCell>
                         <TableCell className="font-medium">{log.model_id}</TableCell>
-                        <TableCell className="capitalize">{log.provider_type}</TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center gap-1.5 capitalize">
+                            <ProviderIcon providerType={log.provider_type} size={14} />
+                            {log.provider_type}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate">
                           {log.endpoint_id ? (
                             <button

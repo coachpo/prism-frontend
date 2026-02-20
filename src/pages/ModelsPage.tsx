@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, MoreHorizontal, Search, ArrowRight } from "lucide-react";
+import { ProviderIcon } from "@/components/ProviderIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -169,7 +170,17 @@ export function ModelsPage() {
           <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Providers" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Providers</SelectItem>
-            {uniqueProviders.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            {uniqueProviders.map(p => {
+              const pt = models.find(m => m.provider.name === p)?.provider.provider_type || "";
+              return (
+                <SelectItem key={p} value={p}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <ProviderIcon providerType={pt} size={14} />
+                    {p}
+                  </span>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -201,7 +212,7 @@ export function ModelsPage() {
                   <TableHead>Provider</TableHead>
                   <TableHead>Strategy</TableHead>
                   <TableHead>Endpoints</TableHead>
-                  <TableHead>Health</TableHead>
+                  <TableHead>Success Rate</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -232,7 +243,12 @@ export function ModelsPage() {
                         {model.model_type === "native" ? "Native" : "Proxy"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{model.provider.name}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5">
+                        <ProviderIcon providerType={model.provider.provider_type} size={14} />
+                        {model.provider.name}
+                      </span>
+                    </TableCell>
                     <TableCell className="capitalize">{model.lb_strategy.replace("_", " ")}</TableCell>
                     <TableCell>
                       <Badge variant="outline">
@@ -324,7 +340,10 @@ export function ModelsPage() {
                 <SelectContent>
                   {providers.map((p) => (
                     <SelectItem key={p.id} value={p.id.toString()}>
-                      {p.name} ({formatProviderType(p.provider_type)})
+                      <span className="inline-flex items-center gap-1.5">
+                        <ProviderIcon providerType={p.provider_type} size={14} />
+                        {p.name} ({formatProviderType(p.provider_type)})
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Download, Upload, AlertTriangle, Shield, Trash2, MoreHorizontal } from "lucide-react";
+import { ProviderIcon } from "@/components/ProviderIcon";
 import {
   Dialog,
   DialogContent,
@@ -246,7 +247,10 @@ export function SettingsPage() {
             <div className="space-y-4">
               {providers.map((provider) => (
                 <div key={provider.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                  <div className="font-medium">{provider.name}</div>
+                  <div className="font-medium inline-flex items-center gap-1.5">
+                    <ProviderIcon providerType={provider.provider_type} size={16} />
+                    {provider.name}
+                  </div>
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
                       <Switch

@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Eye, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ProviderIcon } from "@/components/ProviderIcon";
 import { toast } from "sonner";
 
 export function AuditPage() {
@@ -100,6 +101,10 @@ export function AuditPage() {
     return providers.find(p => p.id === id)?.name || `ID: ${id}`;
   };
 
+  const getProviderType = (id: number) => {
+    return providers.find(p => p.id === id)?.provider_type || "";
+  };
+
   const getStatusColor = (status: number) => {
     if (status >= 200 && status < 300) return "default";
     if (status >= 400 && status < 500) return "secondary";
@@ -131,7 +136,12 @@ export function AuditPage() {
           <SelectContent>
             <SelectItem value="all">All Providers</SelectItem>
             {providers.map(p => (
-              <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+              <SelectItem key={p.id} value={String(p.id)}>
+                <span className="inline-flex items-center gap-1.5">
+                  <ProviderIcon providerType={p.provider_type} size={14} />
+                  {p.name}
+                </span>
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -218,7 +228,12 @@ export function AuditPage() {
                         {new Date(log.created_at).toLocaleString()}
                       </TableCell>
                       <TableCell className="font-medium">{log.model_id}</TableCell>
-                      <TableCell>{getProviderName(log.provider_id)}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1.5">
+                          <ProviderIcon providerType={getProviderType(log.provider_id)} size={14} />
+                          {getProviderName(log.provider_id)}
+                        </span>
+                      </TableCell>
                       <TableCell className="max-w-[150px] truncate text-xs text-muted-foreground">
                         {log.endpoint_id ? (
                           <button
@@ -335,7 +350,10 @@ export function AuditPage() {
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground font-medium">Provider</div>
-                  <div className="mt-1 text-sm">{getProviderName(selectedLog.provider_id)}</div>
+                  <div className="mt-1 text-sm inline-flex items-center gap-1.5">
+                    <ProviderIcon providerType={getProviderType(selectedLog.provider_id)} size={14} />
+                    {getProviderName(selectedLog.provider_id)}
+                  </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground font-medium">Endpoint</div>

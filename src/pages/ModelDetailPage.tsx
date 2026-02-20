@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, ArrowRight, Activity, Loader2, X } from "lucide-react";
+import { ProviderIcon } from "@/components/ProviderIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -304,7 +305,13 @@ export function ModelDetailPage() {
                   {model.model_type === "native" ? "Native" : "Proxy"}
                 </Badge>
               </div>
-              <CardDescription>{model.provider.name} • {model.model_id}</CardDescription>
+              <CardDescription>
+                <span className="inline-flex items-center gap-1.5">
+                  <ProviderIcon providerType={model.provider.provider_type} size={14} />
+                  {model.provider.name}
+                </span>
+                {" • "}{model.model_id}
+              </CardDescription>
               {model.model_type === "proxy" && model.redirect_to && (
                 <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
                   <ArrowRight className="h-3 w-3" /> Proxies to: <span className="font-medium text-foreground">{model.redirect_to}</span>
@@ -342,7 +349,10 @@ export function ModelDetailPage() {
           <div>
             <h3 className="text-xl font-semibold tracking-tight">Endpoints</h3>
             <p className="text-sm text-muted-foreground">
-              {model.provider.name}
+              <span className="inline-flex items-center gap-1.5">
+                <ProviderIcon providerType={model.provider.provider_type} size={14} />
+                {model.provider.name}
+              </span>
               {model.provider.description && ` — ${model.provider.description}`}
             </p>
           </div>
@@ -381,7 +391,7 @@ export function ModelDetailPage() {
                        </Tooltip>
                      </TooltipProvider>
                    </TableHead>
-                   <TableHead>Health</TableHead>
+                   <TableHead>Success Rate</TableHead>
                    <TableHead>Active</TableHead>
                    <TableHead className="text-right">Actions</TableHead>
                  </TableRow>
