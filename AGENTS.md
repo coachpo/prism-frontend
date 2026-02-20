@@ -2,26 +2,28 @@
 
 ## OVERVIEW
 
-React 19 SPA dashboard for managing LLM proxy configuration — models, endpoints, health, and request statistics. Built with Vite, TypeScript, TailwindCSS 4, and shadcn/ui.
+React 19 SPA dashboard for managing LLM proxy configuration — models, endpoints, health, request statistics, audit logs, and settings. Built with Vite 7, TypeScript 5.9, TailwindCSS 4, and shadcn/ui.
 
 ## STRUCTURE
 
 ```
 src/
-├── main.tsx                    # Entry: ThemeProvider + App
-├── App.tsx                     # BrowserRouter with 4 routes inside AppLayout
+├── main.tsx                    # Entry: ThemeProvider + TooltipProvider + Toaster + App
+├── App.tsx                     # BrowserRouter with 6 routes inside AppLayout
 ├── pages/
 │   ├── DashboardPage.tsx       # Overview of all models with health badges
-│   ├── ModelsPage.tsx          # Model CRUD list
-│   ├── ModelDetailPage.tsx     # Single model: endpoints, health checks, config
-│   └── StatisticsPage.tsx      # Request logs + aggregated stats
+│   ├── ModelsPage.tsx          # Model CRUD list (442 lines)
+│   ├── ModelDetailPage.tsx     # Single model: endpoints, health checks, config (591 lines)
+│   ├── StatisticsPage.tsx      # Request logs + aggregated stats (312 lines)
+│   ├── AuditPage.tsx           # Audit log viewer with detail modal (364 lines)
+│   └── SettingsPage.tsx        # Provider audit toggles + config export/import (336 lines)
 ├── components/
-│   ├── layout/AppLayout.tsx    # Sidebar nav + Outlet
+│   ├── layout/AppLayout.tsx    # Responsive sidebar nav (collapsible on mobile) + Outlet
 │   ├── ThemeToggle.tsx         # Dark/light mode toggle (next-themes)
 │   └── ui/                     # shadcn/ui primitives (15 components)
 ├── lib/
-│   ├── api.ts                  # Typed fetch wrapper — all backend API calls
-│   ├── types.ts                # TypeScript interfaces mirroring backend schemas
+│   ├── api.ts                  # Typed fetch wrapper — all backend API calls (6 namespaces)
+│   ├── types.ts                # TypeScript interfaces mirroring backend schemas (295 lines)
 │   └── utils.ts                # cn() helper (clsx + tailwind-merge)
 └── assets/                     # Static assets
 ```
@@ -36,6 +38,8 @@ src/
 | Add UI component | `npx shadcn add <name>` | Installs to `components/ui/` |
 | Change API base URL | `VITE_API_BASE` env var | Default: `http://localhost:8000` |
 | Theming | `index.css` + `next-themes` | CSS variables for light/dark |
+| Audit UI | `pages/AuditPage.tsx` | Log list + detail modal with request/response bodies |
+| Provider settings | `pages/SettingsPage.tsx` | Audit toggles + config export/import |
 
 ## CONVENTIONS
 
@@ -45,6 +49,7 @@ src/
 - Forms use `react-hook-form` + `zod` for validation
 - Toast notifications via `sonner`
 - Icons from `lucide-react`
+- Responsive layout: collapsible sidebar drawer on mobile, fixed on lg+
 - No test framework configured — lint only (`npm run lint`)
 
 ## ANTI-PATTERNS
