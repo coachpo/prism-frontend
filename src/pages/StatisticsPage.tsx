@@ -32,6 +32,7 @@ export function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   
   const [modelId, setModelId] = useState("");
+  const [endpointId, setEndpointId] = useState("");
   const [providerType, setProviderType] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d" | "all">("24h");
 
@@ -53,6 +54,7 @@ export function StatisticsPage() {
         const params = {
           model_id: modelId || undefined,
           provider_type: providerType === "all" ? undefined : providerType,
+          endpoint_id: endpointId ? parseInt(endpointId) : undefined,
           from_time: fromTime,
           limit: 100
         };
@@ -76,7 +78,7 @@ export function StatisticsPage() {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [modelId, providerType, timeRange]);
+  }, [modelId, providerType, timeRange, endpointId]);
 
   const getStatusColor = (status: number) => {
     if (status >= 200 && status < 300) return "default";
@@ -149,6 +151,15 @@ export function StatisticsPage() {
             </SelectContent>
           </Select>
         </div>
+        <div className="w-full md:w-1/3 lg:w-1/4">
+          <Input 
+            placeholder="Endpoint ID" 
+            value={endpointId} 
+            onChange={(e) => setEndpointId(e.target.value)}
+            type="number"
+            min="1"
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
@@ -219,12 +230,13 @@ export function StatisticsPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table className="min-w-[1000px]">
+            <Table className="min-w-[1100px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Time</TableHead>
                   <TableHead>Model</TableHead>
                   <TableHead>Provider</TableHead>
+                  <TableHead>Endpoint</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Latency</TableHead>
                   <TableHead>In Tokens</TableHead>
@@ -237,13 +249,13 @@ export function StatisticsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       Loading data...
                     </TableCell>
                   </TableRow>
                 ) : logs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       No requests found for the selected period.
                     </TableCell>
                   </TableRow>
@@ -257,6 +269,17 @@ export function StatisticsPage() {
                         </TableCell>
                         <TableCell className="font-medium">{log.model_id}</TableCell>
                         <TableCell className="capitalize">{log.provider_type}</TableCell>
+                        <TableCell className="text-xs max-w-[150px] truncate">
+                          {log.endpoint_description ? (
+                            `${log.endpoint_description} #${log.endpoint_id}`
+                          ) : log.endpoint_base_url ? (
+                            `${log.endpoint_base_url.length > 20 ? log.endpoint_base_url.substring(0, 20) + '...' : log.endpoint_base_url} #${log.endpoint_id}`
+                          ) : log.endpoint_id ? (
+                            `#${log.endpoint_id}`
+                          ) : (
+                            <span className="text-muted-foreground">Legacy</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={getStatusColor(log.status_code)}>
                             {log.status_code}
