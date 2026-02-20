@@ -7,7 +7,24 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Activity, Clock, CheckCircle, Coins } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Activity, Clock, CheckCircle, Coins, AlertCircle } from "lucide-react";
+
+function formatErrorDetail(detail: string | null): string | null {
+  if (!detail) return null;
+  try {
+    const parsed = JSON.parse(detail);
+    const msg =
+      parsed?.error?.message ||
+      parsed?.error?.msg ||
+      parsed?.detail ||
+      parsed?.message;
+    if (msg) return String(msg);
+    return detail;
+  } catch {
+    return detail;
+  }
+}
 
 export function StatisticsPage() {
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
@@ -112,14 +129,14 @@ export function StatisticsPage() {
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row">
-        <div className="w-full md:w-1/3">
+        <div className="w-full md:w-1/2 lg:w-1/3">
           <Input 
             placeholder="Filter by Model ID..." 
             value={modelId} 
             onChange={(e) => setModelId(e.target.value)}
           />
         </div>
-        <div className="w-full md:w-1/4">
+        <div className="w-full md:w-1/3 lg:w-1/4">
           <Select value={providerType} onValueChange={setProviderType}>
             <SelectTrigger>
               <SelectValue placeholder="Provider Type" />
@@ -134,7 +151,7 @@ export function StatisticsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
@@ -201,60 +218,93 @@ export function StatisticsPage() {
           <CardTitle>Request Logs</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>Model</TableHead>
-                <TableHead>Provider</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Latency</TableHead>
-                <TableHead>Tokens</TableHead>
-                <TableHead>Stream</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[1000px]">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    Loading data...
-                  </TableCell>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Model</TableHead>
+                  <TableHead>Provider</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Latency</TableHead>
+                  <TableHead>In Tokens</TableHead>
+                  <TableHead>Out Tokens</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Stream</TableHead>
+                  <TableHead>Error</TableHead>
                 </TableRow>
-              ) : logs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No requests found for the selected period.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                logs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {formatTime(log.created_at)}
-                    </TableCell>
-                    <TableCell className="font-medium">{log.model_id}</TableCell>
-                    <TableCell className="capitalize">{log.provider_type}</TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusColor(log.status_code)}>
-                        {log.status_code}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{log.response_time_ms}ms</TableCell>
-                    <TableCell>
-                      {(log.total_tokens ?? log.input_tokens) ? (log.total_tokens ?? log.input_tokens)!.toLocaleString() : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {log.is_stream ? (
-                        <Badge variant="outline" className="text-xs">Stream</Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8">
+                      Loading data...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      No requests found for the selected period.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  logs.map((log) => {
+                    const errorMsg = formatErrorDetail(log.error_detail);
+                    return (
+                      <TableRow key={log.id}>
+                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                          {formatTime(log.created_at)}
+                        </TableCell>
+                        <TableCell className="font-medium">{log.model_id}</TableCell>
+                        <TableCell className="capitalize">{log.provider_type}</TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusColor(log.status_code)}>
+                            {log.status_code}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{log.response_time_ms}ms</TableCell>
+                        <TableCell className="text-xs">
+                          {log.input_tokens != null ? log.input_tokens.toLocaleString() : "-"}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {log.output_tokens != null ? log.output_tokens.toLocaleString() : "-"}
+                        </TableCell>
+                        <TableCell className="text-xs font-medium">
+                          {log.total_tokens != null ? log.total_tokens.toLocaleString() : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {log.is_stream ? (
+                            <Badge variant="outline" className="text-xs">Stream</Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-[200px]">
+                          {errorMsg ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1 text-destructive cursor-help">
+                                    <AlertCircle className="h-3 w-3 shrink-0" />
+                                    <span className="truncate text-xs">{errorMsg}</span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-sm">
+                                  <pre className="whitespace-pre-wrap text-xs">{log.error_detail}</pre>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

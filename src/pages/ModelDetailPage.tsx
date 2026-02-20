@@ -203,9 +203,9 @@ export function ModelDetailPage() {
 
       <Card className="border-l-4 border-l-primary">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle>{model.display_name || model.model_id}</CardTitle>
                 <Badge variant={model.model_type === "native" ? "default" : "outline"} className={model.model_type === "native" ? "bg-primary/90" : ""}>
                   {model.model_type === "native" ? "Native" : "Proxy"}
@@ -227,7 +227,7 @@ export function ModelDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-6 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-sm">
             <div>
               <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Load Balancing</div>
               <div className="mt-1 capitalize">{model.lb_strategy.replace("_", " ")}</div>
@@ -245,7 +245,7 @@ export function ModelDetailPage() {
       </Card>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-xl font-semibold tracking-tight">Endpoints</h3>
             <p className="text-sm text-muted-foreground">
@@ -254,7 +254,7 @@ export function ModelDetailPage() {
             </p>
           </div>
           {model.model_type === "native" && (
-            <Button onClick={() => handleOpenEndpointDialog()}>
+            <Button onClick={() => handleOpenEndpointDialog()} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" /> Add Endpoint
             </Button>
           )}
@@ -269,8 +269,8 @@ export function ModelDetailPage() {
         </div>
 
         <Card>
-          <CardContent className="p-0">
-            <Table>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
                    <TableHead>Base URL</TableHead>

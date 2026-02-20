@@ -37,7 +37,7 @@ export function DashboardPage() {
     <div className="space-y-8">
       <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="transition-shadow hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Models</CardTitle>
@@ -83,84 +83,86 @@ export function DashboardPage() {
           <CardTitle>Model Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Model</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Provider</TableHead>
-                <TableHead>Strategy</TableHead>
-                <TableHead>Endpoints</TableHead>
-                <TableHead>Health</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {models.map((model) => (
-                <TableRow key={model.id}>
-                  <TableCell className="font-medium">
-                    {model.display_name || model.model_id}
-                    {model.display_name && (
-                      <div className="text-xs text-muted-foreground">{model.model_id}</div>
-                    )}
-                    {model.model_type === "proxy" && model.redirect_to && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <ArrowRight className="h-3 w-3" /> {model.redirect_to}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={model.model_type === "native" ? "default" : "outline"} className={model.model_type === "native" ? "bg-primary/90" : ""}>
-                      {model.model_type === "native" ? "Native" : "Proxy"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{model.provider.name}</TableCell>
-                  <TableCell className="capitalize">{model.lb_strategy.replace("_", " ")}</TableCell>
-                  <TableCell>
-                    {model.active_endpoint_count} / {model.endpoint_count} active
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      if (model.health_total_requests === 0 || model.health_success_rate === null) {
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Model</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Provider</TableHead>
+                  <TableHead>Strategy</TableHead>
+                  <TableHead>Endpoints</TableHead>
+                  <TableHead>Health</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {models.map((model) => (
+                  <TableRow key={model.id}>
+                    <TableCell className="font-medium">
+                      {model.display_name || model.model_id}
+                      {model.display_name && (
+                        <div className="text-xs text-muted-foreground">{model.model_id}</div>
+                      )}
+                      {model.model_type === "proxy" && model.redirect_to && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ArrowRight className="h-3 w-3" /> {model.redirect_to}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={model.model_type === "native" ? "default" : "outline"} className={model.model_type === "native" ? "bg-primary/90" : ""}>
+                        {model.model_type === "native" ? "Native" : "Proxy"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{model.provider.name}</TableCell>
+                    <TableCell className="capitalize">{model.lb_strategy.replace("_", " ")}</TableCell>
+                    <TableCell>
+                      {model.active_endpoint_count} / {model.endpoint_count} active
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        if (model.health_total_requests === 0 || model.health_success_rate === null) {
+                          return (
+                            <Badge variant="secondary" className="text-xs">
+                              N/A
+                            </Badge>
+                          );
+                        }
+                        const pct = model.health_success_rate;
+                        const color =
+                          pct >= 98
+                            ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30"
+                            : pct >= 75
+                              ? "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30"
+                              : "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
                         return (
-                          <Badge variant="secondary" className="text-xs">
-                            N/A
+                          <Badge variant="outline" className={`text-xs ${color}`}>
+                            {pct.toFixed(1)}%
                           </Badge>
                         );
-                      }
-                      const pct = model.health_success_rate;
-                      const color =
-                        pct >= 98
-                          ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30"
-                          : pct >= 75
-                            ? "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30"
-                            : "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
-                      return (
-                        <Badge variant="outline" className={`text-xs ${color}`}>
-                          {pct.toFixed(1)}%
-                        </Badge>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={model.is_enabled ? "default" : "secondary"}
-                      className={model.is_enabled ? "bg-primary/90" : ""}
-                    >
-                      {model.is_enabled ? "Enabled" : "Disabled"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {models.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    No models configured.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                      })()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={model.is_enabled ? "default" : "secondary"}
+                        className={model.is_enabled ? "bg-primary/90" : ""}
+                      >
+                        {model.is_enabled ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {models.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                      No models configured.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
