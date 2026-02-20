@@ -1,5 +1,6 @@
 import type {
   Provider,
+  ProviderUpdate,
   ModelConfig,
   ModelConfigListItem,
   ModelConfigCreate,
@@ -16,6 +17,11 @@ import type {
   ConfigExportResponse,
   ConfigImportRequest,
   ConfigImportResponse,
+  AuditLogListResponse,
+  AuditLogDetail,
+  AuditLogParams,
+  AuditLogDeleteResponse,
+  BatchDeleteResponse,
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -41,6 +47,11 @@ export const api = {
   providers: {
     list: () => request<Provider[]>("/api/providers"),
     get: (id: number) => request<Provider>(`/api/providers/${id}`),
+    update: (id: number, data: ProviderUpdate) =>
+      request<Provider>(`/api/providers/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
   },
 
   models: {
@@ -108,6 +119,11 @@ export const api = {
     },
     endpointSuccessRates: () =>
       request<EndpointSuccessRate[]>("/api/stats/endpoint-success-rates"),
+    delete: (olderThanDays: number) =>
+      request<BatchDeleteResponse>(
+        `/api/stats/requests?older_than_days=${olderThanDays}`,
+        { method: "DELETE" }
+      ),
   },
 
   config: {
@@ -117,5 +133,31 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+  },
+
+  audit: {
+    list: (params?: AuditLogParams) => {
+      const qs = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+        });
+      }
+      const query = qs.toString();
+      return request<AuditLogListResponse>(
+        `/api/audit/logs${query ? `?${query}` : ""}`
+      );
+    },
+    get: (id: number) => request<AuditLogDetail>(`/api/audit/logs/${id}`),
+    delete: (params: { before?: string; older_than_days?: number }) => {
+      const qs = new URLSearchParams();
+      if (params.before) qs.set("before", params.before);
+      if (params.older_than_days !== undefined)
+        qs.set("older_than_days", String(params.older_than_days));
+      return request<AuditLogDeleteResponse>(
+        `/api/audit/logs?${qs.toString()}`,
+        { method: "DELETE" }
+      );
+    },
   },
 };

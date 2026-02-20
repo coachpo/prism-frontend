@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Server, Zap, BarChart3, Settings, Menu, X } from "lucide-react";
+import { LayoutDashboard, Server, Zap, BarChart3, FileSearch, Settings, Menu, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/models", icon: Server, label: "Models" },
   { to: "/statistics", icon: BarChart3, label: "Statistics" },
+  { to: "/audit", icon: FileSearch, label: "Audit" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, ArrowRight, Activity, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, ArrowRight, Activity, Loader2, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +42,9 @@ export function ModelDetailPage() {
     priority: 0,
     description: "",
     is_active: true,
+    custom_headers: null,
   });
+  const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
 
   const fetchModel = async () => {
     if (!id) return;
@@ -79,7 +81,13 @@ export function ModelDetailPage() {
         priority: endpoint.priority,
         description: endpoint.description || "",
         is_active: endpoint.is_active,
+        custom_headers: endpoint.custom_headers,
       });
+      if (endpoint.custom_headers) {
+        setHeaderRows(Object.entries(endpoint.custom_headers).map(([key, value]) => ({ key, value })));
+      } else {
+        setHeaderRows([]);
+      }
     } else {
       setEditingEndpoint(null);
       setEndpointForm({
@@ -88,10 +96,28 @@ export function ModelDetailPage() {
         priority: 0,
         description: "",
         is_active: true,
+        custom_headers: null,
       });
+      setHeaderRows([]);
     }
     setIsEndpointDialogOpen(true);
     setDialogTestResult(null);
+  };
+
+  const handleAddHeaderRow = () => {
+    setHeaderRows([...headerRows, { key: "", value: "" }]);
+  };
+
+  const handleRemoveHeaderRow = (index: number) => {
+    const newRows = [...headerRows];
+    newRows.splice(index, 1);
+    setHeaderRows(newRows);
+  };
+
+  const handleHeaderRowChange = (index: number, field: "key" | "value", value: string) => {
+    const newRows = [...headerRows];
+    newRows[index][field] = value;
+    setHeaderRows(newRows);
   };
 
   const handleDialogTestConnection = async () => {
@@ -113,6 +139,14 @@ export function ModelDetailPage() {
     e.preventDefault();
     if (!model) return;
 
+    const headers: Record<string, string> = {};
+    headerRows.forEach(row => {
+      if (row.key.trim()) {
+        headers[row.key.trim()] = row.value;
+      }
+    });
+    const hasHeaders = Object.keys(headers).length > 0;
+
     try {
       if (editingEndpoint) {
         const updateData: EndpointUpdate = {
@@ -120,6 +154,7 @@ export function ModelDetailPage() {
           priority: endpointForm.priority,
           description: endpointForm.description,
           is_active: endpointForm.is_active,
+          custom_headers: hasHeaders ? headers : null,
         };
         if (endpointForm.api_key) {
           updateData.api_key = endpointForm.api_key;
@@ -128,7 +163,10 @@ export function ModelDetailPage() {
         await api.endpoints.update(editingEndpoint.id, updateData);
         toast.success("Endpoint updated");
       } else {
-        await api.endpoints.create(model.id, endpointForm);
+        await api.endpoints.create(model.id, {
+          ...endpointForm,
+          custom_headers: hasHeaders ? headers : null,
+        });
         toast.success("Endpoint added");
       }
       setIsEndpointDialogOpen(false);
@@ -469,6 +507,46 @@ export function ModelDetailPage() {
                 onChange={(e) => setEndpointForm({ ...endpointForm, description: e.target.value })}
                 placeholder="Optional notes"
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Custom Headers</Label>
+              <div className="space-y-2">
+                {headerRows.map((row, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      placeholder="Key"
+                      value={row.key}
+                      onChange={(e) => handleHeaderRowChange(index, "key", e.target.value)}
+                      className="flex-1"
+                    />
+                    <Input
+                      placeholder="Value"
+                      value={row.value}
+                      onChange={(e) => handleHeaderRowChange(index, "value", e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveHeaderRow(index)}
+                      className="h-10 w-10 text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddHeaderRow}
+                  className="w-full border-dashed"
+                >
+                  <Plus className="mr-2 h-3 w-3" /> Add Header
+                </Button>
+              </div>
             </div>
 
             {dialogTestResult && (

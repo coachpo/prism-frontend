@@ -1,11 +1,13 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { api } from "@/lib/api";
-import type { ConfigImportRequest } from "@/lib/types";
+import type { ConfigImportRequest, Provider } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Download, Upload, AlertTriangle } from "lucide-react";
+import { Download, Upload, AlertTriangle, Shield, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,60 @@ export function SettingsPage() {
   const [parsedConfig, setParsedConfig] = useState<ConfigImportRequest | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: "requests" | "audits"; days: number } | null>(null);
+
+  useEffect(() => {
+    api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
+  }, []);
+
+  const toggleAudit = async (providerId: number, checked: boolean) => {
+    setProviders((prev) =>
+      prev.map((p) => (p.id === providerId ? { ...p, audit_enabled: checked } : p))
+    );
+    try {
+      await api.providers.update(providerId, { audit_enabled: checked });
+    } catch {
+      setProviders((prev) =>
+        prev.map((p) => (p.id === providerId ? { ...p, audit_enabled: !checked } : p))
+      );
+      toast.error("Failed to update provider");
+    }
+  };
+
+  const toggleBodies = async (providerId: number, checked: boolean) => {
+    setProviders((prev) =>
+      prev.map((p) => (p.id === providerId ? { ...p, audit_capture_bodies: checked } : p))
+    );
+    try {
+      await api.providers.update(providerId, { audit_capture_bodies: checked });
+    } catch {
+      setProviders((prev) =>
+        prev.map((p) => (p.id === providerId ? { ...p, audit_capture_bodies: !checked } : p))
+      );
+      toast.error("Failed to update provider");
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (!deleteConfirm) return;
+    const { type, days } = deleteConfirm;
+    setDeleteConfirm(null);
+    try {
+      let count = 0;
+      if (type === "requests") {
+        const res = await api.stats.delete(days);
+        count = res.deleted_count;
+        toast.success(`Deleted ${count} request logs`);
+      } else {
+        const res = await api.audit.delete({ older_than_days: days });
+        count = res.deleted_count;
+        toast.success(`Deleted ${count} audit logs`);
+      }
+    } catch {
+      toast.error("Deletion failed");
+    }
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -151,6 +207,90 @@ export function SettingsPage() {
         </Card>
       </div>
 
+      <div className="grid gap-6 sm:grid-cols-1">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Audit Configuration
+            </CardTitle>
+            <CardDescription>
+              Configure audit logging settings for each provider.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {providers.map((provider) => (
+                <div key={provider.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                  <div className="font-medium">{provider.name}</div>
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id={`audit-${provider.id}`}
+                        checked={provider.audit_enabled}
+                        onCheckedChange={(checked) => toggleAudit(provider.id, checked)}
+                      />
+                      <Label htmlFor={`audit-${provider.id}`}>Audit</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id={`bodies-${provider.id}`}
+                        checked={provider.audit_capture_bodies}
+                        onCheckedChange={(checked) => toggleBodies(provider.id, checked)}
+                        disabled={!provider.audit_enabled}
+                      />
+                      <Label htmlFor={`bodies-${provider.id}`}>Bodies</Label>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Data Management
+            </CardTitle>
+            <CardDescription>
+              Batch delete old logs to free up space.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Request Logs</h4>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "requests", days: 7 })}>
+                  Older than 7 days
+                </Button>
+                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "requests", days: 15 })}>
+                  Older than 15 days
+                </Button>
+                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "requests", days: 30 })}>
+                  Older than 30 days
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Audit Logs</h4>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "audits", days: 7 })}>
+                  Older than 7 days
+                </Button>
+                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "audits", days: 15 })}>
+                  Older than 15 days
+                </Button>
+                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "audits", days: 30 })}>
+                  Older than 30 days
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
@@ -167,6 +307,26 @@ export function SettingsPage() {
             </Button>
             <Button variant="destructive" onClick={handleImport}>
               Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {deleteConfirm?.type === "requests" ? "request" : "audit"} logs older than {deleteConfirm?.days} days?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleBatchDelete}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -6,8 +6,15 @@ export interface Provider {
   name: string;
   provider_type: string;
   description: string | null;
+  audit_enabled: boolean;
+  audit_capture_bodies: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProviderUpdate {
+  audit_enabled?: boolean;
+  audit_capture_bodies?: boolean;
 }
 
 // --- Endpoint ---
@@ -19,6 +26,8 @@ export interface Endpoint {
   is_active: boolean;
   priority: number;
   description: string | null;
+  auth_type: string | null;
+  custom_headers: Record<string, string> | null;
   health_status: string;
   health_detail: string | null;
   last_health_check: string | null;
@@ -32,6 +41,8 @@ export interface EndpointCreate {
   is_active?: boolean;
   priority?: number;
   description?: string | null;
+  auth_type?: string | null;
+  custom_headers?: Record<string, string> | null;
 }
 
 export interface EndpointUpdate {
@@ -40,6 +51,8 @@ export interface EndpointUpdate {
   is_active?: boolean;
   priority?: number;
   description?: string | null;
+  auth_type?: string | null;
+  custom_headers?: Record<string, string> | null;
 }
 
 export interface HealthCheckResponse {
@@ -182,6 +195,7 @@ export interface ConfigEndpointExport {
   priority: number;
   description: string | null;
   auth_type: string | null;
+  custom_headers: Record<string, string> | null;
 }
 
 export interface ConfigModelExport {
@@ -199,6 +213,8 @@ export interface ConfigProviderExport {
   name: string;
   provider_type: string;
   description: string | null;
+  audit_enabled: boolean;
+  audit_capture_bodies: boolean;
 }
 
 export interface ConfigExportResponse {
@@ -219,4 +235,61 @@ export interface ConfigImportResponse {
   providers_imported: number;
   models_imported: number;
   endpoints_imported: number;
+}
+
+export interface AuditLogListItem {
+  id: number;
+  request_log_id: number | null;
+  provider_id: number;
+  model_id: string;
+  request_method: string;
+  request_url: string;
+  request_headers: string;
+  request_body_preview: string | null;
+  response_status: number;
+  is_stream: boolean;
+  duration_ms: number;
+  created_at: string;
+}
+
+export interface AuditLogDetail {
+  id: number;
+  request_log_id: number | null;
+  provider_id: number;
+  model_id: string;
+  request_method: string;
+  request_url: string;
+  request_headers: string;
+  request_body: string | null;
+  response_status: number;
+  response_headers: string | null;
+  response_body: string | null;
+  is_stream: boolean;
+  duration_ms: number;
+  created_at: string;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface AuditLogParams {
+  provider_id?: number;
+  model_id?: string;
+  status_code?: number;
+  from_time?: string;
+  to_time?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AuditLogDeleteResponse {
+  deleted_count: number;
+}
+
+export interface BatchDeleteResponse {
+  deleted_count: number;
 }
