@@ -119,11 +119,16 @@ export const api = {
     },
     endpointSuccessRates: () =>
       request<EndpointSuccessRate[]>("/api/stats/endpoint-success-rates"),
-    delete: (olderThanDays: number) =>
-      request<BatchDeleteResponse>(
-        `/api/stats/requests?older_than_days=${olderThanDays}`,
+    delete: (params: { older_than_days?: number; delete_all?: boolean }) => {
+      const qs = new URLSearchParams();
+      if (params.older_than_days !== undefined)
+        qs.set("older_than_days", String(params.older_than_days));
+      if (params.delete_all) qs.set("delete_all", "true");
+      return request<BatchDeleteResponse>(
+        `/api/stats/requests?${qs.toString()}`,
         { method: "DELETE" }
-      ),
+      );
+    },
   },
 
   config: {
@@ -149,11 +154,12 @@ export const api = {
       );
     },
     get: (id: number) => request<AuditLogDetail>(`/api/audit/logs/${id}`),
-    delete: (params: { before?: string; older_than_days?: number }) => {
+    delete: (params: { before?: string; older_than_days?: number; delete_all?: boolean }) => {
       const qs = new URLSearchParams();
       if (params.before) qs.set("before", params.before);
       if (params.older_than_days !== undefined)
         qs.set("older_than_days", String(params.older_than_days));
+      if (params.delete_all) qs.set("delete_all", "true");
       return request<AuditLogDeleteResponse>(
         `/api/audit/logs?${qs.toString()}`,
         { method: "DELETE" }

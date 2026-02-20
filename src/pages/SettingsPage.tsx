@@ -25,7 +25,10 @@ export function SettingsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: "requests" | "audits"; days: number } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: "requests" | "audits"; days: number | null; deleteAll: boolean } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [customRequestDays, setCustomRequestDays] = useState("");
+  const [customAuditDays, setCustomAuditDays] = useState("");
 
   useEffect(() => {
     api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
@@ -61,21 +64,28 @@ export function SettingsPage() {
 
   const handleBatchDelete = async () => {
     if (!deleteConfirm) return;
-    const { type, days } = deleteConfirm;
+    const { type, days, deleteAll } = deleteConfirm;
     setDeleteConfirm(null);
+    setDeleting(true);
     try {
       let count = 0;
       if (type === "requests") {
-        const res = await api.stats.delete(days);
+        const res = deleteAll
+          ? await api.stats.delete({ delete_all: true })
+          : await api.stats.delete({ older_than_days: days! });
         count = res.deleted_count;
         toast.success(`Deleted ${count} request logs`);
       } else {
-        const res = await api.audit.delete({ older_than_days: days });
+        const res = deleteAll
+          ? await api.audit.delete({ delete_all: true })
+          : await api.audit.delete({ older_than_days: days! });
         count = res.deleted_count;
         toast.success(`Deleted ${count} audit logs`);
       }
     } catch {
       toast.error("Deletion failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -261,29 +271,75 @@ export function SettingsPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Request Logs</h4>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "requests", days: 7 })}>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" disabled={deleting} onClick={() => setDeleteConfirm({ type: "requests", days: 7, deleteAll: false })}>
                   Older than 7 days
                 </Button>
-                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "requests", days: 15 })}>
+                <Button variant="outline" disabled={deleting} onClick={() => setDeleteConfirm({ type: "requests", days: 15, deleteAll: false })}>
                   Older than 15 days
                 </Button>
-                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "requests", days: 30 })}>
+                <Button variant="outline" disabled={deleting} onClick={() => setDeleteConfirm({ type: "requests", days: 30, deleteAll: false })}>
                   Older than 30 days
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="Custom days"
+                  className="w-32"
+                  value={customRequestDays}
+                  onChange={(e) => setCustomRequestDays(e.target.value)}
+                />
+                <Button
+                  variant="outline"
+                  disabled={deleting || !customRequestDays || Number(customRequestDays) < 1 || !Number.isInteger(Number(customRequestDays))}
+                  onClick={() => setDeleteConfirm({ type: "requests", days: Number(customRequestDays), deleteAll: false })}
+                >
+                  Delete older than custom days
+                </Button>
+              </div>
+              <div>
+                <Button variant="destructive" disabled={deleting} onClick={() => setDeleteConfirm({ type: "requests", days: null, deleteAll: true })}>
+                  Delete all request logs
                 </Button>
               </div>
             </div>
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Audit Logs</h4>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "audits", days: 7 })}>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" disabled={deleting} onClick={() => setDeleteConfirm({ type: "audits", days: 7, deleteAll: false })}>
                   Older than 7 days
                 </Button>
-                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "audits", days: 15 })}>
+                <Button variant="outline" disabled={deleting} onClick={() => setDeleteConfirm({ type: "audits", days: 15, deleteAll: false })}>
                   Older than 15 days
                 </Button>
-                <Button variant="outline" onClick={() => setDeleteConfirm({ type: "audits", days: 30 })}>
+                <Button variant="outline" disabled={deleting} onClick={() => setDeleteConfirm({ type: "audits", days: 30, deleteAll: false })}>
                   Older than 30 days
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="Custom days"
+                  className="w-32"
+                  value={customAuditDays}
+                  onChange={(e) => setCustomAuditDays(e.target.value)}
+                />
+                <Button
+                  variant="outline"
+                  disabled={deleting || !customAuditDays || Number(customAuditDays) < 1 || !Number.isInteger(Number(customAuditDays))}
+                  onClick={() => setDeleteConfirm({ type: "audits", days: Number(customAuditDays), deleteAll: false })}
+                >
+                  Delete older than custom days
+                </Button>
+              </div>
+              <div>
+                <Button variant="destructive" disabled={deleting} onClick={() => setDeleteConfirm({ type: "audits", days: null, deleteAll: true })}>
+                  Delete all audit logs
                 </Button>
               </div>
             </div>
@@ -317,8 +373,9 @@ export function SettingsPage() {
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {deleteConfirm?.type === "requests" ? "request" : "audit"} logs older than {deleteConfirm?.days} days?
-              This action cannot be undone.
+              {deleteConfirm?.deleteAll
+                ? `Are you sure you want to delete ALL ${deleteConfirm?.type === "requests" ? "request" : "audit"} logs? This action cannot be undone.`
+                : `Are you sure you want to delete ${deleteConfirm?.type === "requests" ? "request" : "audit"} logs older than ${deleteConfirm?.days} days? This action cannot be undone.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
