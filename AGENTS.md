@@ -19,6 +19,7 @@ src/
 │   └── SettingsPage.tsx        # Provider audit toggles + config export/import (336 lines)
 ├── components/
 │   ├── layout/AppLayout.tsx    # Responsive sidebar nav (collapsible on mobile) + Outlet
+│   ├── ProviderIcon.tsx        # SVG brand icons for OpenAI, Anthropic, Gemini
 │   ├── ThemeToggle.tsx         # Dark/light mode toggle (next-themes)
 │   └── ui/                     # shadcn/ui primitives (15 components)
 ├── lib/
@@ -48,7 +49,7 @@ src/
 - Types in `lib/types.ts` use `snake_case` field names to match backend JSON responses
 - Forms use `react-hook-form` + `zod` for validation
 - Toast notifications via `sonner`
-- Icons from `lucide-react`
+- Icons from `lucide-react`; provider brand icons via `components/ProviderIcon.tsx`
 - Responsive layout: collapsible sidebar drawer on mobile, fixed on lg+
 - No test framework configured — lint only (`npm run lint`)
 
