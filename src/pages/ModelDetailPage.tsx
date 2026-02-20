@@ -223,11 +223,13 @@ export function ModelDetailPage() {
   if (loading) return <div className="p-8">Loading model details...</div>;
   if (!model) return <div className="p-8">Model not found</div>;
 
-  const filteredEndpoints = model.endpoints.filter(ep => {
-    if (!endpointSearch) return true;
-    const q = endpointSearch.toLowerCase();
-    return ep.base_url.toLowerCase().includes(q) || (ep.description?.toLowerCase().includes(q));
-  });
+  const filteredEndpoints = model.endpoints
+    .filter(ep => {
+      if (!endpointSearch) return true;
+      const q = endpointSearch.toLowerCase();
+      return ep.base_url.toLowerCase().includes(q) || (ep.description?.toLowerCase().includes(q));
+    })
+    .sort((a, b) => a.priority - b.priority || a.id - b.id);
   const activeCount = model.endpoints.filter(e => e.is_active).length;
 
   return (
@@ -313,7 +315,18 @@ export function ModelDetailPage() {
                 <TableRow>
                    <TableHead>Base URL</TableHead>
                    <TableHead>API Key</TableHead>
-                   <TableHead>Priority</TableHead>
+                   <TableHead>
+                     <TooltipProvider>
+                       <Tooltip>
+                         <TooltipTrigger asChild>
+                           <span className="cursor-help border-b border-dotted border-muted-foreground/50">Priority</span>
+                         </TooltipTrigger>
+                         <TooltipContent>
+                           <p className="text-xs">Lower numbers are tried first</p>
+                         </TooltipContent>
+                       </Tooltip>
+                     </TooltipProvider>
+                   </TableHead>
                    <TableHead>Health</TableHead>
                    <TableHead>Active</TableHead>
                    <TableHead className="text-right">Actions</TableHead>
@@ -483,6 +496,7 @@ export function ModelDetailPage() {
                   value={endpointForm.priority}
                   onChange={(e) => setEndpointForm({ ...endpointForm, priority: parseInt(e.target.value) || 0 })}
                 />
+                <p className="text-xs text-muted-foreground">Lower numbers are tried first</p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="is_active" className="mb-2 block">Active Status</Label>
