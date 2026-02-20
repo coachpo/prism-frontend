@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { formatProviderType } from "@/lib/utils";
 import type { ModelConfig, Endpoint, EndpointCreate, EndpointUpdate, EndpointSuccessRate } from "@/lib/types";
@@ -25,6 +25,7 @@ import {
 export function ModelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [model, setModel] = useState<ModelConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEndpointDialogOpen, setIsEndpointDialogOpen] = useState(false);
@@ -34,6 +35,9 @@ export function ModelDetailPage() {
   const [dialogTestingConnection, setDialogTestingConnection] = useState(false);
   const [dialogTestResult, setDialogTestResult] = useState<{ status: string; detail: string } | null>(null);
   const [successRates, setSuccessRates] = useState<Map<number, EndpointSuccessRate>>(new Map());
+  const [focusedEndpointId, setFocusedEndpointId] = useState<number | null>(null);
+  const endpointRowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
+  const focusHandled = useRef(false);
 
   // Endpoint Form State
   const [endpointForm, setEndpointForm] = useState<EndpointCreate>({
@@ -71,6 +75,50 @@ export function ModelDetailPage() {
   useEffect(() => {
     fetchModel();
   }, [id]);
+
+  // Handle focus_endpoint_id query param: scroll + highlight
+  useEffect(() => {
+    if (!model || loading || focusHandled.current) return;
+
+    const focusParam = searchParams.get("focus_endpoint_id");
+    if (!focusParam) return;
+
+    const targetId = parseInt(focusParam);
+    if (isNaN(targetId)) return;
+
+    focusHandled.current = true;
+    setSearchParams({}, { replace: true });
+
+    const endpoint = model.endpoints.find(ep => ep.id === targetId);
+    if (!endpoint) {
+      toast.error(`Endpoint #${targetId} not found in this model`);
+      return;
+    }
+
+    if (endpointSearch) {
+      const q = endpointSearch.toLowerCase();
+      const matchesSearch =
+        endpoint.base_url.toLowerCase().includes(q) ||
+        (endpoint.description?.toLowerCase().includes(q)) ||
+        String(endpoint.id).includes(q) ||
+        `#${endpoint.id}`.includes(q);
+      if (!matchesSearch) {
+        setEndpointSearch("");
+      }
+    }
+
+    setFocusedEndpointId(targetId);
+
+    requestAnimationFrame(() => {
+      const row = endpointRowRefs.current.get(targetId);
+      if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+
+    const timer = setTimeout(() => setFocusedEndpointId(null), 5000);
+    return () => clearTimeout(timer);
+  }, [model, loading, searchParams]);
 
   const handleOpenEndpointDialog = (endpoint?: Endpoint) => {
     if (endpoint) {
@@ -227,7 +275,12 @@ export function ModelDetailPage() {
     .filter(ep => {
       if (!endpointSearch) return true;
       const q = endpointSearch.toLowerCase();
-      return ep.base_url.toLowerCase().includes(q) || (ep.description?.toLowerCase().includes(q));
+      return (
+        ep.base_url.toLowerCase().includes(q) ||
+        (ep.description?.toLowerCase().includes(q)) ||
+        String(ep.id).includes(q) ||
+        `#${ep.id}`.includes(q)
+      );
     })
     .sort((a, b) => a.priority - b.priority || a.id - b.id);
   const activeCount = model.endpoints.filter(e => e.is_active).length;
@@ -313,6 +366,7 @@ export function ModelDetailPage() {
             <Table className="min-w-[600px]">
               <TableHeader>
                 <TableRow>
+                   <TableHead className="w-[80px]">ID</TableHead>
                    <TableHead>Base URL</TableHead>
                    <TableHead>API Key</TableHead>
                    <TableHead>
@@ -334,7 +388,15 @@ export function ModelDetailPage() {
               </TableHeader>
               <TableBody>
                 {filteredEndpoints.map((endpoint) => (
-                  <TableRow key={endpoint.id}>
+                  <TableRow
+                    key={endpoint.id}
+                    ref={(el) => {
+                      if (el) endpointRowRefs.current.set(endpoint.id, el);
+                      else endpointRowRefs.current.delete(endpoint.id);
+                    }}
+                    className={focusedEndpointId === endpoint.id ? "bg-primary/10 transition-colors duration-1000" : ""}
+                  >
+                     <TableCell className="font-mono text-xs text-muted-foreground">#{endpoint.id}</TableCell>
                      <TableCell className="font-medium max-w-[200px] truncate" title={endpoint.base_url}>
                        {endpoint.base_url}
                        {endpoint.description && (
@@ -447,7 +509,7 @@ export function ModelDetailPage() {
                 ))}
                 {filteredEndpoints.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       {model.endpoints.length === 0 ? "No endpoints configured. Add one to start routing requests." : "No endpoints match your search."}
                     </TableCell>
                   </TableRow>

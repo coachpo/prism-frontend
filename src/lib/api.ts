@@ -9,6 +9,7 @@ import type {
   EndpointCreate,
   EndpointUpdate,
   HealthCheckResponse,
+  EndpointOwnerResponse,
   RequestLogListResponse,
   StatsSummary,
   StatsRequestParams,
@@ -90,6 +91,8 @@ export const api = {
       request<HealthCheckResponse>(`/api/endpoints/${id}/health-check`, {
         method: "POST",
       }),
+    owner: (id: number) =>
+      request<EndpointOwnerResponse>(`/api/endpoints/${id}/owner`),
   },
 
   stats: {

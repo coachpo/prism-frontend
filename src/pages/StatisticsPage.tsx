@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useEndpointNavigation } from "@/hooks/useEndpointNavigation";
 import type { RequestLogEntry, StatsSummary } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,6 +31,7 @@ export function StatisticsPage() {
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const { navigateToEndpoint } = useEndpointNavigation();
   
   const [modelId, setModelId] = useState("");
   const [endpointId, setEndpointId] = useState("");
@@ -270,14 +272,31 @@ export function StatisticsPage() {
                         <TableCell className="font-medium">{log.model_id}</TableCell>
                         <TableCell className="capitalize">{log.provider_type}</TableCell>
                         <TableCell className="text-xs max-w-[150px] truncate">
-                          {log.endpoint_description ? (
-                            `${log.endpoint_description} #${log.endpoint_id}`
-                          ) : log.endpoint_base_url ? (
-                            `${log.endpoint_base_url.length > 20 ? log.endpoint_base_url.substring(0, 20) + '...' : log.endpoint_base_url} #${log.endpoint_id}`
-                          ) : log.endpoint_id ? (
-                            `#${log.endpoint_id}`
+                          {log.endpoint_id ? (
+                            <button
+                              type="button"
+                              className="text-left hover:underline cursor-pointer text-primary"
+                              onClick={() => navigateToEndpoint(log.endpoint_id!)}
+                            >
+                              {log.endpoint_description ? (
+                                `${log.endpoint_description} #${log.endpoint_id}`
+                              ) : log.endpoint_base_url ? (
+                                `${log.endpoint_base_url.length > 20 ? log.endpoint_base_url.substring(0, 20) + '...' : log.endpoint_base_url} #${log.endpoint_id}`
+                              ) : (
+                                `#${log.endpoint_id}`
+                              )}
+                            </button>
                           ) : (
-                            <span className="text-muted-foreground">Legacy</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-muted-foreground cursor-help">Legacy</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Legacy log: endpoint link unavailable</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
                         </TableCell>
                         <TableCell>

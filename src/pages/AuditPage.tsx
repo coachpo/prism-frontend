@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useEndpointNavigation } from "@/hooks/useEndpointNavigation";
 import type { AuditLogListItem, AuditLogDetail, AuditLogParams, Provider } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Eye, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,6 +19,7 @@ export function AuditPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const { navigateToEndpoint } = useEndpointNavigation();
   
   const [selectedLog, setSelectedLog] = useState<AuditLogDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -217,14 +220,31 @@ export function AuditPage() {
                       <TableCell className="font-medium">{log.model_id}</TableCell>
                       <TableCell>{getProviderName(log.provider_id)}</TableCell>
                       <TableCell className="max-w-[150px] truncate text-xs text-muted-foreground">
-                        {log.endpoint_description ? (
-                          <span>{log.endpoint_description} <span className="opacity-50">#{log.endpoint_id}</span></span>
-                        ) : log.endpoint_base_url ? (
-                          <span>{log.endpoint_base_url.replace(/^https?:\/\//, '').substring(0, 20)}... <span className="opacity-50">#{log.endpoint_id}</span></span>
-                        ) : log.endpoint_id ? (
-                          <span>#{log.endpoint_id}</span>
+                        {log.endpoint_id ? (
+                          <button
+                            type="button"
+                            className="text-left hover:underline cursor-pointer text-primary"
+                            onClick={() => navigateToEndpoint(log.endpoint_id!)}
+                          >
+                            {log.endpoint_description ? (
+                              <span>{log.endpoint_description} <span className="opacity-50">#{log.endpoint_id}</span></span>
+                            ) : log.endpoint_base_url ? (
+                              <span>{log.endpoint_base_url.replace(/^https?:\/\//, '').substring(0, 20)}... <span className="opacity-50">#{log.endpoint_id}</span></span>
+                            ) : (
+                              <span>#{log.endpoint_id}</span>
+                            )}
+                          </button>
                         ) : (
-                          <span className="opacity-50">Legacy</span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="opacity-50 cursor-help">Legacy</span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">Legacy log: endpoint link unavailable</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                       </TableCell>
                       <TableCell>
@@ -320,12 +340,20 @@ export function AuditPage() {
                 <div>
                   <div className="text-xs text-muted-foreground font-medium">Endpoint</div>
                   <div className="mt-1 text-sm truncate" title={selectedLog.endpoint_description || selectedLog.endpoint_base_url || `Endpoint #${selectedLog.endpoint_id}`}>
-                    {selectedLog.endpoint_description ? (
-                      <span>{selectedLog.endpoint_description} <span className="opacity-50">#{selectedLog.endpoint_id}</span></span>
-                    ) : selectedLog.endpoint_base_url ? (
-                      <span>{selectedLog.endpoint_base_url.replace(/^https?:\/\//, '').substring(0, 20)}... <span className="opacity-50">#{selectedLog.endpoint_id}</span></span>
-                    ) : selectedLog.endpoint_id ? (
-                      <span>#{selectedLog.endpoint_id}</span>
+                    {selectedLog.endpoint_id ? (
+                      <button
+                        type="button"
+                        className="text-left hover:underline cursor-pointer text-primary"
+                        onClick={() => navigateToEndpoint(selectedLog.endpoint_id!)}
+                      >
+                        {selectedLog.endpoint_description ? (
+                          <span>{selectedLog.endpoint_description} <span className="opacity-50">#{selectedLog.endpoint_id}</span></span>
+                        ) : selectedLog.endpoint_base_url ? (
+                          <span>{selectedLog.endpoint_base_url.replace(/^https?:\/\//, '').substring(0, 20)}... <span className="opacity-50">#{selectedLog.endpoint_id}</span></span>
+                        ) : (
+                          <span>#{selectedLog.endpoint_id}</span>
+                        )}
+                      </button>
                     ) : (
                       <span className="opacity-50">N/A</span>
                     )}

@@ -63,6 +63,14 @@ export interface HealthCheckResponse {
   response_time_ms: number;
 }
 
+export interface EndpointOwnerResponse {
+  endpoint_id: number;
+  model_config_id: number;
+  model_id: string;
+  endpoint_description: string | null;
+  endpoint_base_url: string;
+}
+
 // --- Model Config ---
 export interface ModelConfig {
   id: number;
