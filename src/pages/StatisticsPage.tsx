@@ -4,7 +4,7 @@ import { useEndpointNavigation } from "@/hooks/useEndpointNavigation";
 import type { RequestLogEntry, StatsSummary } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/StatusBadge";
+import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -377,7 +377,7 @@ export function StatisticsPage() {
                           )}
                         </TableCell>
                         <TableCell className="py-2">
-                          <StatusBadge
+                          <ValueBadge
                             label={String(log.status_code)}
                             intent={log.status_code < 300 ? "success" : log.status_code < 500 ? "warning" : "danger"}
                             className="tabular-nums"
@@ -391,7 +391,7 @@ export function StatisticsPage() {
                         </TableCell>
                         <TableCell className="py-2 hidden md:table-cell">
                           {log.is_stream ? (
-                            <StatusBadge label="Stream" />
+                            <TypeBadge label="Stream" />
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}

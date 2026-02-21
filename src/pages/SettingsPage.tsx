@@ -1,15 +1,30 @@
 import { useRef, useState, useEffect } from "react";
 import { api } from "@/lib/api";
-import type { ConfigImportRequest, Provider } from "@/lib/types";
+import type { ConfigImportRequest, Provider, HeaderBlocklistRule, HeaderBlocklistRuleCreate } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Download, Upload, AlertTriangle, Shield, Trash2 } from "lucide-react";
+import { Download, Upload, AlertTriangle, Shield, Trash2, Ban, Lock, Plus, Pencil, ChevronRight } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { PageHeader } from "@/components/PageHeader";
+import { SwitchController } from "@/components/SwitchController";
+import { TypeBadge } from "@/components/StatusBadge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -39,10 +54,36 @@ export function SettingsPage() {
   const [cleanupType, setCleanupType] = useState<"requests" | "audits">("requests");
   const [retentionPreset, setRetentionPreset] = useState("");
   const [customDays, setCustomDays] = useState("");
+  const [blocklistRules, setBlocklistRules] = useState<HeaderBlocklistRule[]>([]);
+  const [loadingRules, setLoadingRules] = useState(false);
+  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<HeaderBlocklistRule | null>(null);
+  const [ruleForm, setRuleForm] = useState<HeaderBlocklistRuleCreate>({
+    name: "",
+    match_type: "exact",
+    pattern: "",
+    enabled: true,
+  });
+  const [deleteRuleConfirm, setDeleteRuleConfirm] = useState<HeaderBlocklistRule | null>(null);
+  const [systemRulesOpen, setSystemRulesOpen] = useState(false);
+  const [userRulesOpen, setUserRulesOpen] = useState(true);
 
   useEffect(() => {
     api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
+    fetchRules();
   }, []);
+
+  const fetchRules = async () => {
+    setLoadingRules(true);
+    try {
+      const rules = await api.config.headerBlocklistRules.list(true);
+      setBlocklistRules(rules);
+    } catch {
+      toast.error("Failed to load header blocklist rules");
+    } finally {
+      setLoadingRules(false);
+    }
+  };
 
   const toggleAudit = async (providerId: number, checked: boolean) => {
     setProviders((prev) =>
@@ -154,6 +195,75 @@ export function SettingsPage() {
     }
   };
 
+  const handleToggleRule = async (rule: HeaderBlocklistRule, checked: boolean) => {
+    setBlocklistRules((prev) =>
+      prev.map((r) => (r.id === rule.id ? { ...r, enabled: checked } : r))
+    );
+    try {
+      await api.config.headerBlocklistRules.update(rule.id, { enabled: checked });
+    } catch {
+      setBlocklistRules((prev) =>
+        prev.map((r) => (r.id === rule.id ? { ...r, enabled: !checked } : r))
+      );
+      toast.error("Failed to update rule");
+    }
+  };
+
+  const openAddRuleDialog = () => {
+    setEditingRule(null);
+    setRuleForm({ name: "", match_type: "exact", pattern: "", enabled: true });
+    setRuleDialogOpen(true);
+  };
+
+  const openEditRuleDialog = (rule: HeaderBlocklistRule) => {
+    setEditingRule(rule);
+    setRuleForm({
+      name: rule.name,
+      match_type: rule.match_type,
+      pattern: rule.pattern,
+      enabled: rule.enabled,
+    });
+    setRuleDialogOpen(true);
+  };
+
+  const handleSaveRule = async () => {
+    if (!ruleForm.name || !ruleForm.pattern) {
+      toast.error("Name and pattern are required");
+      return;
+    }
+
+    if (ruleForm.match_type === "prefix" && !ruleForm.pattern.endsWith("-")) {
+      toast.error("Prefix patterns must end with a hyphen (-)");
+      return;
+    }
+
+    try {
+      if (editingRule) {
+        await api.config.headerBlocklistRules.update(editingRule.id, ruleForm);
+        toast.success("Rule updated successfully");
+      } else {
+        await api.config.headerBlocklistRules.create(ruleForm);
+        toast.success("Rule created successfully");
+      }
+      setRuleDialogOpen(false);
+      fetchRules();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save rule");
+    }
+  };
+
+  const handleDeleteRule = async () => {
+    if (!deleteRuleConfirm) return;
+    try {
+      await api.config.headerBlocklistRules.delete(deleteRuleConfirm.id);
+      toast.success("Rule deleted successfully");
+      setDeleteRuleConfirm(null);
+      fetchRules();
+    } catch {
+      toast.error("Failed to delete rule");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title="Settings" description="Manage providers, configuration backups, and data retention" />
@@ -245,28 +355,218 @@ export function SettingsPage() {
                     <ProviderIcon providerType={provider.provider_type} size={14} />
                     {provider.name}
                   </div>
-                  <div className="flex items-center gap-5">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id={`audit-${provider.id}`}
-                        checked={provider.audit_enabled}
-                        onCheckedChange={(checked) => toggleAudit(provider.id, checked)}
-                      />
-                      <Label htmlFor={`audit-${provider.id}`} className="text-xs">Audit</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id={`bodies-${provider.id}`}
-                        checked={provider.audit_capture_bodies}
-                        onCheckedChange={(checked) => toggleBodies(provider.id, checked)}
-                        disabled={!provider.audit_enabled}
-                      />
-                      <Label htmlFor={`bodies-${provider.id}`} className="text-xs">Bodies</Label>
-                    </div>
-                  </div>
+                    <div className="flex items-center gap-5">
+                     <div className="flex items-center gap-2">
+                       <Switch
+                         id={`audit-${provider.id}`}
+                         checked={provider.audit_enabled}
+                         onCheckedChange={(checked) => toggleAudit(provider.id, checked)}
+                         className="data-[state=checked]:bg-emerald-500"
+                       />
+                       <Label htmlFor={`audit-${provider.id}`} className="text-xs">Audit</Label>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <Switch
+                         id={`bodies-${provider.id}`}
+                         checked={provider.audit_capture_bodies}
+                         onCheckedChange={(checked) => toggleBodies(provider.id, checked)}
+                         disabled={!provider.audit_enabled}
+                         className="data-[state=checked]:bg-emerald-500"
+                       />
+                       <Label htmlFor={`bodies-${provider.id}`} className="text-xs">Bodies</Label>
+                     </div>
+                   </div>
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Ban className="h-4 w-4" />
+                  Header Blocklist
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Manage headers stripped from upstream requests. System rules protect against Cloudflare tunnel metadata leaking to providers.
+                </CardDescription>
+              </div>
+              <Button size="sm" variant="outline" onClick={openAddRuleDialog}>
+                <Plus className="mr-2 h-3.5 w-3.5" />
+                Add Rule
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loadingRules ? (
+              <div className="h-24 flex items-center justify-center text-sm text-muted-foreground">
+                Loading rules...
+              </div>
+            ) : blocklistRules.length === 0 ? (
+              <div className="h-24 flex items-center justify-center text-sm text-muted-foreground">
+                No rules found.
+              </div>
+            ) : (
+              <>
+                {blocklistRules.filter((r) => r.is_system).length > 0 && (
+                  <Collapsible open={systemRulesOpen} onOpenChange={setSystemRulesOpen}>
+                    <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted/50 transition-colors">
+                      <ChevronRight className={`h-4 w-4 transition-transform ${systemRulesOpen ? "rotate-90" : ""}`} />
+                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                      System Rules
+                      <span className="text-xs text-muted-foreground">
+                        ({blocklistRules.filter((r) => r.is_system).length})
+                      </span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="rounded-md border mt-1.5">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[80px]">Enabled</TableHead>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Pattern</TableHead>
+                              <TableHead className="w-[100px] text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {blocklistRules.filter((r) => r.is_system).map((rule) => (
+                              <TableRow key={rule.id}>
+                                <TableCell>
+                                  <Switch
+                                    checked={rule.enabled}
+                                    onCheckedChange={(checked) => handleToggleRule(rule, checked)}
+                                    className="data-[state=checked]:bg-emerald-500"
+                                  />
+                                </TableCell>
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-2">
+                                    {rule.name}
+                                    <Lock className="h-3 w-3 text-muted-foreground" />
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <TypeBadge
+                                    label={rule.match_type}
+                                    intent={rule.match_type === "exact" ? "info" : "accent"}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <code className="rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
+                                    {rule.pattern}
+                                  </code>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => openEditRuleDialog(rule)}
+                                      disabled
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive hover:text-destructive"
+                                      onClick={() => setDeleteRuleConfirm(rule)}
+                                      disabled
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+
+                {blocklistRules.filter((r) => !r.is_system).length > 0 && (
+                  <Collapsible open={userRulesOpen} onOpenChange={setUserRulesOpen}>
+                    <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted/50 transition-colors">
+                      <ChevronRight className={`h-4 w-4 transition-transform ${userRulesOpen ? "rotate-90" : ""}`} />
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                      User Rules
+                      <span className="text-xs text-muted-foreground">
+                        ({blocklistRules.filter((r) => !r.is_system).length})
+                      </span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="rounded-md border mt-1.5">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-[80px]">Enabled</TableHead>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Pattern</TableHead>
+                              <TableHead className="w-[100px] text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {blocklistRules.filter((r) => !r.is_system).map((rule) => (
+                              <TableRow key={rule.id}>
+                                <TableCell>
+                                  <Switch
+                                    checked={rule.enabled}
+                                    onCheckedChange={(checked) => handleToggleRule(rule, checked)}
+                                    className="data-[state=checked]:bg-emerald-500"
+                                  />
+                                </TableCell>
+                                <TableCell className="font-medium">
+                                  {rule.name}
+                                </TableCell>
+                                <TableCell>
+                                  <TypeBadge
+                                    label={rule.match_type}
+                                    intent={rule.match_type === "exact" ? "info" : "accent"}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <code className="rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
+                                    {rule.pattern}
+                                  </code>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => openEditRuleDialog(rule)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive hover:text-destructive"
+                                      onClick={() => setDeleteRuleConfirm(rule)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -385,6 +685,106 @@ export function SettingsPage() {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleBatchDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingRule ? "Edit Rule" : "Add Rule"}</DialogTitle>
+            <DialogDescription>
+              {editingRule
+                ? "Modify an existing header blocklist rule."
+                : "Create a new rule to block specific headers from being sent upstream."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="rule-name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="rule-name"
+                value={ruleForm.name}
+                onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
+                className="col-span-3"
+                placeholder="e.g. Cloudflare Headers"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="rule-type" className="text-right">
+                Type
+              </Label>
+              <Select
+                value={ruleForm.match_type}
+                onValueChange={(v) =>
+                  setRuleForm({ ...ruleForm, match_type: v as "exact" | "prefix" })
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="exact">Exact Match</SelectItem>
+                  <SelectItem value="prefix">Prefix Match</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="rule-pattern" className="text-right">
+                Pattern
+              </Label>
+              <div className="col-span-3 space-y-1">
+                <Input
+                  id="rule-pattern"
+                  value={ruleForm.pattern}
+                  onChange={(e) => setRuleForm({ ...ruleForm, pattern: e.target.value })}
+                  className="font-mono"
+                  placeholder={ruleForm.match_type === "prefix" ? "cf-" : "x-custom-header"}
+                />
+                {ruleForm.match_type === "prefix" && (
+                  <p className="text-[0.8rem] text-muted-foreground">
+                    Prefix patterns must end with a hyphen (-).
+                  </p>
+                )}
+              </div>
+            </div>
+            <SwitchController
+              label="Enabled"
+              description="Activate this rule immediately"
+              checked={ruleForm.enabled}
+              onCheckedChange={(checked) => setRuleForm({ ...ruleForm, enabled: checked })}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveRule}>Save Rule</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!deleteRuleConfirm}
+        onOpenChange={(open) => !open && setDeleteRuleConfirm(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Rule</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the rule "{deleteRuleConfirm?.name}"? This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteRuleConfirm(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteRule}>
               Delete
             </Button>
           </DialogFooter>

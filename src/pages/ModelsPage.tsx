@@ -6,12 +6,12 @@ import type { ModelConfigListItem, Provider, ModelConfigCreate, ModelConfigUpdat
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { SwitchController } from "@/components/SwitchController";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, MoreHorizontal, Search, Server } from "lucide-react";
@@ -269,10 +269,10 @@ export function ModelsPage() {
                     <TableCell className="hidden md:table-cell">
                       {model.model_type === "proxy" ? (
                         <div className="flex items-center">
-                          <StatusBadge label="Proxy" intent="accent" />
+                      <TypeBadge label="Proxy" intent="accent" />
                         </div>
                       ) : (
-                        <StatusBadge label="Native" intent="info" />
+                        <TypeBadge label="Native" intent="info" />
                       )}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
@@ -431,17 +431,12 @@ export function ModelsPage() {
               </div>
             )}
 
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <Label>Active</Label>
-                <p className="text-xs text-muted-foreground">Turn this model on or off</p>
-              </div>
-              <Switch
-                checked={formData.is_enabled}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_enabled: checked })}
-                className="data-[state=checked]:bg-emerald-500"
-              />
-            </div>
+            <SwitchController
+              label="Active"
+              description="Turn this model on or off"
+              checked={formData.is_enabled}
+              onCheckedChange={(checked) => setFormData({ ...formData, is_enabled: checked })}
+            />
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>

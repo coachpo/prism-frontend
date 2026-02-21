@@ -12,21 +12,49 @@ const INTENT_CLASSES = {
   default: "",
 } as const;
 
-export type StatusBadgeIntent = keyof typeof INTENT_CLASSES;
+export type BadgeIntent = keyof typeof INTENT_CLASSES;
 
-interface StatusBadgeProps {
+/** @deprecated Use BadgeIntent instead */
+export type StatusBadgeIntent = BadgeIntent;
+
+interface BaseBadgeProps {
   label: string;
-  intent?: StatusBadgeIntent;
+  intent?: BadgeIntent;
   className?: string;
 }
 
-export function StatusBadge({ label, intent = "default", className }: StatusBadgeProps) {
+/** Boolean state indicators: On/Off, Enabled/Disabled, Active/Inactive */
+export function StatusBadge({ label, intent = "default", className }: BaseBadgeProps) {
   return (
     <Badge
       variant="outline"
       className={cn("text-[10px] shrink-0", INTENT_CLASSES[intent], className)}
     >
       {formatLabel(label)}
+    </Badge>
+  );
+}
+
+/** Category/classification labels: Proxy/Native, Exact/Prefix, Stream */
+export function TypeBadge({ label, intent = "default", className }: BaseBadgeProps) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn("text-[10px] shrink-0", INTENT_CLASSES[intent], className)}
+    >
+      {formatLabel(label)}
+    </Badge>
+  );
+}
+
+/** Raw data values displayed as-is: HTTP codes, percentages, priorities, methods */
+export function ValueBadge({ label, intent = "default", className }: BaseBadgeProps) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn("text-[10px] shrink-0 font-mono", INTENT_CLASSES[intent], className)}
+    >
+      {label}
     </Badge>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import type { ModelConfigListItem } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge, TypeBadge, ValueBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Server, Zap, Globe, ArrowRight } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
@@ -101,9 +101,9 @@ export function DashboardPage() {
                           {model.display_name || model.model_id}
                         </span>
                         {model.model_type === "proxy" ? (
-                          <StatusBadge label="Proxy" intent="accent" />
+                          <TypeBadge label="Proxy" intent="accent" />
                         ) : (
-                          <StatusBadge label="Native" intent="info" />
+                          <TypeBadge label="Native" intent="info" />
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
@@ -122,7 +122,7 @@ export function DashboardPage() {
                       </div>
 
                       {model.endpoint_count > 0 && (
-                        <StatusBadge
+                        <ValueBadge
                           label={`${successRate.toFixed(0)}%`}
                           intent={successRate >= 90 ? "success" : successRate >= 50 ? "warning" : "danger"}
                           className="text-xs tabular-nums"

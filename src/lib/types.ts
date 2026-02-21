@@ -235,6 +235,7 @@ export interface ConfigExportResponse {
   exported_at: string;
   providers: ConfigProviderExport[];
   models: ConfigModelExport[];
+  header_blocklist_rules: HeaderBlocklistRuleExport[];
 }
 
 export interface ConfigImportRequest {
@@ -242,6 +243,7 @@ export interface ConfigImportRequest {
   exported_at?: string;
   providers: ConfigProviderExport[];
   models: ConfigModelExport[];
+  header_blocklist_rules?: HeaderBlocklistRuleExport[];
 }
 
 export interface ConfigImportResponse {
@@ -312,4 +314,37 @@ export interface AuditLogDeleteResponse {
 
 export interface BatchDeleteResponse {
   deleted_count: number;
+}
+
+export interface HeaderBlocklistRule {
+  id: number;
+  name: string;
+  match_type: "exact" | "prefix";
+  pattern: string;
+  enabled: boolean;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HeaderBlocklistRuleCreate {
+  name: string;
+  match_type: "exact" | "prefix";
+  pattern: string;
+  enabled?: boolean;
+}
+
+export interface HeaderBlocklistRuleUpdate {
+  name?: string;
+  match_type?: "exact" | "prefix";
+  pattern?: string;
+  enabled?: boolean;
+}
+
+export interface HeaderBlocklistRuleExport {
+  name: string;
+  match_type: "exact" | "prefix";
+  pattern: string;
+  enabled: boolean;
+  is_system: boolean;
 }

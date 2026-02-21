@@ -23,6 +23,9 @@ import type {
   AuditLogParams,
   AuditLogDeleteResponse,
   BatchDeleteResponse,
+  HeaderBlocklistRule,
+  HeaderBlocklistRuleCreate,
+  HeaderBlocklistRuleUpdate,
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -141,6 +144,28 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    headerBlocklistRules: {
+      list: (includeDisabled = true) =>
+        request<HeaderBlocklistRule[]>(
+          `/api/config/header-blocklist-rules?include_disabled=${includeDisabled}`
+        ),
+      get: (id: number) =>
+        request<HeaderBlocklistRule>(`/api/config/header-blocklist-rules/${id}`),
+      create: (data: HeaderBlocklistRuleCreate) =>
+        request<HeaderBlocklistRule>("/api/config/header-blocklist-rules", {
+          method: "POST",
+          body: JSON.stringify(data),
+        }),
+      update: (id: number, data: HeaderBlocklistRuleUpdate) =>
+        request<HeaderBlocklistRule>(`/api/config/header-blocklist-rules/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        }),
+      delete: (id: number) =>
+        request<void>(`/api/config/header-blocklist-rules/${id}`, {
+          method: "DELETE",
+        }),
+    },
   },
 
   audit: {

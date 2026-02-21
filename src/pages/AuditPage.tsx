@@ -4,7 +4,7 @@ import { useEndpointNavigation } from "@/hooks/useEndpointNavigation";
 import type { AuditLogListItem, AuditLogDetail, AuditLogParams, Provider } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge, type StatusBadgeIntent } from "@/components/StatusBadge";
+import { TypeBadge, ValueBadge, type BadgeIntent } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,14 +30,14 @@ function formatJson(raw: string | null): string {
   }
 }
 
-function statusIntent(status: number): StatusBadgeIntent {
+function statusIntent(status: number): BadgeIntent {
   if (status >= 200 && status < 300) return "success";
   if (status >= 400 && status < 500) return "warning";
   if (status >= 500) return "danger";
   return "muted";
 }
 
-function methodIntent(method: string): StatusBadgeIntent {
+function methodIntent(method: string): BadgeIntent {
   switch (method.toUpperCase()) {
     case "GET": return "blue";
     case "POST": return "success";
@@ -313,17 +313,16 @@ export function AuditPage() {
                         onClick={() => openDetail(log.id)}
                       >
                         <TableCell>
-                          <StatusBadge
+                          <ValueBadge
                             label={String(log.response_status)}
                             intent={statusIntent(log.response_status)}
-                            className="text-xs tabular-nums font-mono"
+                            className="text-xs tabular-nums"
                           />
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          <StatusBadge
+                          <ValueBadge
                             label={log.request_method}
                             intent={methodIntent(log.request_method)}
-                            className="font-mono"
                           />
                         </TableCell>
                         <TableCell>
@@ -430,18 +429,18 @@ export function AuditPage() {
           ) : selectedLog ? (
             <div className="flex-1 overflow-hidden">
               <div className="flex items-center gap-2 px-6 py-3 border-b bg-muted/30">
-                <StatusBadge
+                <ValueBadge
                   label={selectedLog.request_method}
                   intent={methodIntent(selectedLog.request_method)}
-                  className="text-xs font-mono"
+                  className="text-xs"
                 />
-                <StatusBadge
+                <ValueBadge
                   label={String(selectedLog.response_status)}
                   intent={statusIntent(selectedLog.response_status)}
-                  className="text-xs font-mono"
+                  className="text-xs"
                 />
                 <span className="text-xs text-muted-foreground font-mono truncate flex-1">{selectedLog.request_url}</span>
-                {selectedLog.is_stream && <StatusBadge label="Stream" />}
+                {selectedLog.is_stream && <TypeBadge label="Stream" />}
               </div>
 
               <Tabs defaultValue="request" className="flex-1 flex flex-col h-[calc(100%-48px)]">

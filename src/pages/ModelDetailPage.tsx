@@ -5,11 +5,12 @@ import { cn, formatProviderType, formatLabel } from "@/lib/utils";
 import type { ModelConfig, Endpoint, EndpointCreate, EndpointUpdate, EndpointSuccessRate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge, TypeBadge, ValueBadge } from "@/components/StatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { SwitchController } from "@/components/SwitchController";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -219,7 +220,7 @@ export function ModelDetailPage() {
             <h1 className="text-xl font-semibold tracking-tight truncate">
               {model.display_name || model.model_id}
             </h1>
-            <StatusBadge
+            <TypeBadge
               label={model.model_type}
               intent={model.model_type === "proxy" ? "accent" : "info"}
             />
@@ -344,7 +345,7 @@ export function ModelDetailPage() {
                         <span className="text-sm font-medium truncate">
                           {ep.description || `Endpoint #${ep.id}`}
                         </span>
-                        <StatusBadge
+                        <ValueBadge
                           label={`P${ep.priority}`}
                           intent={ep.priority >= 10 ? "warning" : ep.priority >= 1 ? "info" : "muted"}
                         />
@@ -482,17 +483,12 @@ export function ModelDetailPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <Label>Active</Label>
-                <p className="text-xs text-muted-foreground">Include in load balancing</p>
-              </div>
-              <Switch
-                checked={endpointForm.is_active}
-                onCheckedChange={(checked) => setEndpointForm({ ...endpointForm, is_active: checked })}
-                className="data-[state=checked]:bg-emerald-500"
-              />
-            </div>
+            <SwitchController
+              label="Active"
+              description="Include in load balancing"
+              checked={endpointForm.is_active}
+              onCheckedChange={(checked) => setEndpointForm({ ...endpointForm, is_active: checked })}
+            />
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
