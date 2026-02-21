@@ -2,24 +2,26 @@ FROM node:20-alpine AS base
 
 WORKDIR /app
 
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat \
+    && corepack enable \
+    && corepack prepare pnpm@10.30.1 --activate
 
 FROM base AS deps
 
-COPY package.json package-lock.json ./
-RUN npm ci --only=production
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
 
 FROM base AS build
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
 ARG VITE_API_BASE=http://localhost:8000
 ENV VITE_API_BASE=${VITE_API_BASE}
 
-RUN npm run build
+RUN pnpm run build
 
 FROM nginx:alpine AS runner
 
@@ -43,4 +45,3 @@ RUN echo 'server { \
 EXPOSE 3000
 
 CMD ["nginx", "-g", "daemon off;"]
-

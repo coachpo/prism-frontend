@@ -59,29 +59,33 @@ frontend/
 
 ### Prerequisites
 - Node.js 18+
-- npm
+- pnpm 10.30.1
 
 ### Installation
 
 ```bash
+# Enable pinned pnpm version
+corepack enable
+corepack prepare pnpm@10.30.1 --activate
+
 # Install dependencies
-npm install
+pnpm install
 ```
 
 ### Running
 
 ```bash
 # Development server with HMR
-npm run dev
+pnpm run dev
 
 # Build for production
-npm run build
+pnpm run build
 
 # Preview production build
-npm run preview
+pnpm run preview
 
 # Lint
-npm run lint
+pnpm run lint
 ```
 
 The dev server will be available at http://localhost:5173.
@@ -153,9 +157,9 @@ import { Button } from "@/components/ui/button";
 Use shadcn/ui CLI to add components:
 
 ```bash
-npx shadcn add button
-npx shadcn add dialog
-npx shadcn add table
+pnpm dlx shadcn add button
+pnpm dlx shadcn add dialog
+pnpm dlx shadcn add table
 ```
 
 Components are installed to `src/components/ui/`.
@@ -176,7 +180,7 @@ TypeScript types in `lib/types.ts` must match backend Pydantic schemas exactly. 
 
 ```bash
 # Build
-npm run build
+pnpm run build
 
 # Output is in dist/
 # Serve with any static file server
@@ -201,13 +205,13 @@ Clear the cache and rebuild:
 
 ```bash
 rm -rf node_modules dist
-npm install
-npm run build
+pnpm install
+pnpm run build
 ```
 
 ### Type Errors
 
-Ensure `lib/types.ts` matches the backend schemas. Run `npm run build` to catch type errors.
+Ensure `lib/types.ts` matches the backend schemas. Run `pnpm run build` to catch type errors.
 
 ---
 
