@@ -396,20 +396,11 @@ export function ModelDetailPage() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex">
-                              <Switch
-                                checked={ep.is_active}
-                                onCheckedChange={() => handleToggleActive(ep)}
-                                className="scale-90 data-[state=checked]:bg-emerald-500"
-                              />
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent><p className="text-xs">{ep.is_active ? "Deactivate" : "Activate"}</p></TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Switch
+                        checked={ep.is_active}
+                        onCheckedChange={() => handleToggleActive(ep)}
+                        className="scale-90 data-[state=checked]:bg-emerald-500"
+                      />
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
