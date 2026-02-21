@@ -342,6 +342,7 @@ export function StatisticsPage() {
                 <TableBody>
                   {logs.map((log) => {
                     const errorMsg = formatErrorDetail(log.error_detail);
+                    const endpointId = log.endpoint_id;
                     return (
                       <TableRow key={log.id} className="text-xs">
                         <TableCell className="whitespace-nowrap py-2 text-muted-foreground">
@@ -357,19 +358,21 @@ export function StatisticsPage() {
                           </div>
                         </TableCell>
                         <TableCell className="py-2 hidden lg:table-cell">
-                          {log.endpoint_description ? (
+                          {endpointId === null ? (
+                            <span className="text-muted-foreground">{log.endpoint_description || "-"}</span>
+                          ) : log.endpoint_description ? (
                             <button
-                              onClick={() => navigateToEndpoint(log.endpoint_id)}
+                              onClick={() => navigateToEndpoint(endpointId)}
                               className="text-primary hover:underline cursor-pointer"
                             >
                               {log.endpoint_description}
                             </button>
                           ) : (
                             <button
-                              onClick={() => navigateToEndpoint(log.endpoint_id)}
+                              onClick={() => navigateToEndpoint(endpointId)}
                               className="text-muted-foreground hover:text-primary cursor-pointer"
                             >
-                              #{log.endpoint_id}
+                              #{endpointId}
                             </button>
                           )}
                         </TableCell>

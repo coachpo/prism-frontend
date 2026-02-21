@@ -360,7 +360,7 @@ export function ModelsPage() {
             <div className="space-y-2">
               <Label>Display Name</Label>
               <Input
-                value={formData.display_name}
+                value={formData.display_name ?? ""}
                 onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                 placeholder="Optional friendly name"
               />

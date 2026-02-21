@@ -200,13 +200,13 @@ export function ModelDetailPage() {
   if (!model) return null;
 
   const endpoints = model.endpoints || [];
-  const filteredEndpoints = (endpointSearch
+  const filteredEndpoints = [...(endpointSearch
     ? endpoints.filter(ep =>
         (ep.description || "").toLowerCase().includes(endpointSearch.toLowerCase()) ||
         ep.base_url.toLowerCase().includes(endpointSearch.toLowerCase())
       )
     : endpoints
-  ).toSorted((a, b) => a.priority - b.priority);
+  )].sort((a, b) => a.priority - b.priority);
 
   return (
     <div className="space-y-6">

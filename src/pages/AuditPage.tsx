@@ -47,6 +47,15 @@ function methodIntent(method: string): StatusBadgeIntent {
   }
 }
 
+function formatRequestPath(requestUrl: string): string {
+  try {
+    const url = new URL(requestUrl);
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return requestUrl;
+  }
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
@@ -126,6 +135,10 @@ export function AuditPage() {
     };
   }, [logs]);
 
+  const providersById = useMemo(() => {
+    return new Map(providers.map((provider) => [provider.id, provider]));
+  }, [providers]);
+
   const openDetail = async (id: number) => {
     setIsSheetOpen(true);
     setDetailLoading(true);
@@ -153,6 +166,7 @@ export function AuditPage() {
   const hasFilters = providerId !== "all" || modelId || endpointId || statusFilter !== "all" || dateFrom || dateTo;
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
+  const selectedEndpointId = selectedLog?.endpoint_id ?? null;
 
   if (loading && logs.length === 0) {
     return (
@@ -287,62 +301,68 @@ export function AuditPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log) => (
-                    <TableRow
-                      key={log.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => openDetail(log.id)}
-                    >
-                      <TableCell>
-                        <StatusBadge
-                          label={String(log.response_status)}
-                          intent={statusIntent(log.response_status)}
-                          className="text-xs tabular-nums font-mono"
-                        />
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <StatusBadge
-                          label={log.request_method}
-                          intent={methodIntent(log.request_method)}
-                          className="font-mono"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-sm truncate block max-w-[200px] sm:max-w-[300px]">{log.request_path}</span>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="max-w-md">
-                              <p className="font-mono text-xs break-all">{log.request_path}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <span className="text-xs text-muted-foreground font-mono">{log.model_id}</span>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="flex items-center gap-1.5">
-                          <ProviderIcon providerType={log.provider_type} size={12} />
-                          <span className="text-xs capitalize">{log.provider_type}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-right">
-                        <span className="text-xs tabular-nums text-muted-foreground">{log.duration_ms}ms</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {new Date(log.created_at).toLocaleTimeString()}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openDetail(log.id); }}>
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {logs.map((log) => {
+                    const requestPath = formatRequestPath(log.request_url);
+                    const provider = providersById.get(log.provider_id);
+                    const providerType = provider?.provider_type;
+
+                    return (
+                      <TableRow
+                        key={log.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => openDetail(log.id)}
+                      >
+                        <TableCell>
+                          <StatusBadge
+                            label={String(log.response_status)}
+                            intent={statusIntent(log.response_status)}
+                            className="text-xs tabular-nums font-mono"
+                          />
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <StatusBadge
+                            label={log.request_method}
+                            intent={methodIntent(log.request_method)}
+                            className="font-mono"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-sm truncate block max-w-[200px] sm:max-w-[300px]">{requestPath}</span>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="max-w-md">
+                                <p className="font-mono text-xs break-all">{requestPath}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <span className="text-xs text-muted-foreground font-mono">{log.model_id}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            {providerType && <ProviderIcon providerType={providerType} size={12} />}
+                            <span className="text-xs text-muted-foreground">{provider?.name ?? `Provider #${log.provider_id}`}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-right">
+                          <span className="text-xs tabular-nums text-muted-foreground">{log.duration_ms}ms</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(log.created_at).toLocaleTimeString()}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openDetail(log.id); }}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
 
@@ -385,13 +405,20 @@ export function AuditPage() {
             </SheetTitle>
             {selectedLog && (
               <SheetDescription className="text-xs">
-                {new Date(selectedLog.created_at).toLocaleString()} · {selectedLog.duration_ms}ms ·{" "}
-                <button
-                  className="text-primary hover:underline"
-                  onClick={() => navigateToEndpoint(selectedLog.endpoint_id)}
-                >
-                  Endpoint #{selectedLog.endpoint_id}
-                </button>
+                {new Date(selectedLog.created_at).toLocaleString()} · {selectedLog.duration_ms}ms
+                {selectedEndpointId === null ? (
+                  <span> · Endpoint unavailable</span>
+                ) : (
+                  <>
+                    {" · "}
+                    <button
+                      className="text-primary hover:underline"
+                      onClick={() => navigateToEndpoint(selectedEndpointId)}
+                    >
+                      Endpoint #{selectedEndpointId}
+                    </button>
+                  </>
+                )}
               </SheetDescription>
             )}
           </SheetHeader>
