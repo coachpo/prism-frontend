@@ -263,11 +263,8 @@ export function ModelsPage() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {model.model_type === "proxy" ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center">
                           <StatusBadge label="Proxy" intent="accent" />
-                          {model.redirect_to && (
-                            <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]">{model.redirect_to}</span>
-                          )}
                         </div>
                       ) : (
                         <StatusBadge label="Native" intent="info" />
