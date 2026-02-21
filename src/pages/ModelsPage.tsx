@@ -1,20 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
-import { formatProviderType } from "@/lib/utils";
+import { formatProviderType, formatLabel } from "@/lib/utils";
 import type { ModelConfigListItem, Provider, ModelConfigCreate, ModelConfigUpdate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreHorizontal, Search, ArrowRight } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreHorizontal, Search, Server } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,12 +32,12 @@ export function ModelsPage() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<ModelConfigListItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ModelConfigListItem | null>(null);
   const [search, setSearch] = useState("");
   const [providerFilter, setProviderFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
-  // Form state
   const [formData, setFormData] = useState<ModelConfigCreate>({
     provider_id: 0,
     model_id: "",
@@ -61,9 +64,7 @@ export function ModelsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleOpenDialog = (model?: ModelConfigListItem) => {
     if (model) {
@@ -80,7 +81,7 @@ export function ModelsPage() {
     } else {
       setEditingModel(null);
       setFormData({
-        provider_id: providers.length > 0 ? providers[0].id : 0,
+        provider_id: providers[0]?.id ?? 0,
         model_id: "",
         display_name: "",
         model_type: "native",
@@ -97,102 +98,107 @@ export function ModelsPage() {
     try {
       if (editingModel) {
         const updateData: ModelConfigUpdate = {
-          provider_id: formData.provider_id,
-          model_id: formData.model_id,
-          display_name: formData.display_name,
+          display_name: formData.display_name || null,
           model_type: formData.model_type,
           redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
-          lb_strategy: formData.lb_strategy,
+          lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
           is_enabled: formData.is_enabled,
         };
         await api.models.update(editingModel.id, updateData);
-        toast.success("Model updated successfully");
+        toast.success("Model updated");
       } else {
-        const createData: ModelConfigCreate = {
-          ...formData,
-          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
-        };
-        await api.models.create(createData);
-        toast.success("Model created successfully");
+        await api.models.create(formData);
+        toast.success("Model created");
       }
       setIsDialogOpen(false);
       fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Operation failed");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save model");
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this model?")) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.models.delete(id);
-      toast.success("Model deleted successfully");
+      await api.models.delete(deleteTarget.id);
+      toast.success("Model deleted");
+      setDeleteTarget(null);
       fetchData();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Delete failed";
-      toast.error(message);
-      fetchData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete model");
     }
   };
 
-  if (loading) return <div className="p-8">Loading models...</div>;
-
-  const uniqueProviders = [...new Set(models.map(m => m.provider.name))];
-  const filteredModels = models.filter(m => {
-    const matchesSearch = !search || m.model_id.toLowerCase().includes(search.toLowerCase()) || (m.display_name?.toLowerCase().includes(search.toLowerCase()));
-    const matchesProvider = providerFilter === "all" || m.provider.name === providerFilter;
-    const matchesStatus = statusFilter === "all" || (statusFilter === "enabled" ? m.is_enabled : !m.is_enabled);
-    const matchesType = typeFilter === "all" || m.model_type === typeFilter;
-    return matchesSearch && matchesProvider && matchesStatus && matchesType;
+  const filtered = models.filter((m) => {
+    if (search) {
+      const q = search.toLowerCase();
+      if (!m.model_id.toLowerCase().includes(q) && !(m.display_name || "").toLowerCase().includes(q)) return false;
+    }
+    if (providerFilter !== "all" && m.provider.provider_type !== providerFilter) return false;
+    if (statusFilter === "enabled" && !m.is_enabled) return false;
+    if (statusFilter === "disabled" && m.is_enabled) return false;
+    if (typeFilter !== "all" && m.model_type !== typeFilter) return false;
+    return true;
   });
 
-  // Get native models for the currently selected provider (for proxy target selector)
-  const selectedProvider = providers.find(p => p.id === formData.provider_id);
-  const nativeModelsForProvider = models.filter(
-    m => m.model_type === "native" && m.provider_id === formData.provider_id && (!editingModel || m.model_id !== formData.model_id)
-  );
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-40" />
+        <div className="flex gap-3">
+          <Skeleton className="h-9 flex-1 max-w-sm" />
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <Skeleton className="h-[500px] rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Models</h2>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="mr-2 h-4 w-4" /> Add Model
+      <PageHeader title="Models" description={`${models.length} model configurations`}>
+        <Button size="sm" onClick={() => handleOpenDialog()}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          New Model
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative w-full sm:flex-1 sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search models..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search models..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
         </div>
         <Select value={providerFilter} onValueChange={setProviderFilter}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Providers" /></SelectTrigger>
+          <SelectTrigger className="w-auto min-w-[130px] h-9">
+            <SelectValue placeholder="Provider" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Providers</SelectItem>
-            {uniqueProviders.map(p => {
-              const pt = models.find(m => m.provider.name === p)?.provider.provider_type || "";
-              return (
-                <SelectItem key={p} value={p}>
-                  <span className="inline-flex items-center gap-1.5">
-                    <ProviderIcon providerType={pt} size={14} />
-                    {p}
-                  </span>
-                </SelectItem>
-              );
-            })}
+            <SelectItem value="openai">OpenAI</SelectItem>
+            <SelectItem value="anthropic">Anthropic</SelectItem>
+            <SelectItem value="gemini">Gemini</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="All Status" /></SelectTrigger>
+          <SelectTrigger className="w-auto min-w-[110px] h-9">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="enabled">Enabled</SelectItem>
-            <SelectItem value="disabled">Disabled</SelectItem>
+            <SelectItem value="enabled">On</SelectItem>
+            <SelectItem value="disabled">Off</SelectItem>
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="All Types" /></SelectTrigger>
+          <SelectTrigger className="w-auto min-w-[110px] h-9">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="native">Native</SelectItem>
@@ -203,186 +209,168 @@ export function ModelsPage() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {filtered.length === 0 ? (
+            <EmptyState
+              icon={<Server className="h-6 w-6" />}
+              title={search || providerFilter !== "all" || statusFilter !== "all" || typeFilter !== "all" ? "No models match filters" : "No models configured"}
+              description={search ? "Try adjusting your search or filters" : "Create your first model to get started"}
+              action={!search ? <Button size="sm" onClick={() => handleOpenDialog()}><Plus className="mr-1.5 h-4 w-4" />New Model</Button> : undefined}
+            />
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Model</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Strategy</TableHead>
-                  <TableHead>Endpoints</TableHead>
-                  <TableHead>Success Rate</TableHead>
+                  <TableHead className="hidden sm:table-cell">Provider</TableHead>
+                  <TableHead className="hidden md:table-cell">Type</TableHead>
+                  <TableHead className="hidden lg:table-cell">Strategy</TableHead>
+                  <TableHead className="hidden md:table-cell text-center">Endpoints</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredModels.map((model) => (
-                  <TableRow 
-                    key={model.id} 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={(e) => {
-                      if ((e.target as HTMLElement).closest("button")) return;
-                      navigate(`/models/${model.id}`);
-                    }}
+                {filtered.map((model) => (
+                  <TableRow
+                    key={model.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/models/${model.id}`)}
                   >
-                    <TableCell className="font-medium">
-                      {model.display_name || model.model_id}
-                      {model.display_name && (
-                        <div className="text-xs text-muted-foreground">{model.model_id}</div>
-                      )}
-                      {model.model_type === "proxy" && model.redirect_to && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <ArrowRight className="h-3 w-3" /> {model.redirect_to}
+                    <TableCell>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="sm:hidden">
+                            <ProviderIcon providerType={model.provider.provider_type} size={14} />
+                          </span>
+                          <span className="text-sm font-medium truncate">
+                            {model.display_name || model.model_id}
+                          </span>
                         </div>
+                        {(model.display_name || (model.model_type === "proxy" && model.redirect_to)) && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {model.model_type === "proxy" && model.redirect_to
+                              ? `${model.model_id} → ${model.redirect_to}`
+                              : model.model_id}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="flex items-center gap-1.5">
+                        <ProviderIcon providerType={model.provider.provider_type} size={14} />
+                        <span className="text-sm">{formatProviderType(model.provider.provider_type)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {model.model_type === "proxy" ? (
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge label="Proxy" intent="accent" />
+                          {model.redirect_to && (
+                            <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]">{model.redirect_to}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <StatusBadge label="Native" intent="info" />
                       )}
                     </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="outline"
-                        className={model.model_type === "native" 
-                          ? "bg-teal-500/15 text-teal-700 border-teal-500/30 dark:text-teal-400 dark:border-teal-400/30"
-                          : "bg-violet-500/15 text-violet-700 border-violet-500/30 dark:text-violet-400 dark:border-violet-400/30"}
-                      >
-                        {model.model_type === "native" ? "Native" : "Proxy"}
-                      </Badge>
+                    <TableCell className="hidden lg:table-cell">
+                      <span className="text-xs text-muted-foreground">{formatLabel(model.lb_strategy)}</span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-center">
+                      <span className="text-sm tabular-nums">{model.active_endpoint_count}/{model.endpoint_count}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center gap-1.5">
-                        <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                        {model.provider.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="capitalize">{model.lb_strategy.replace("_", " ")}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {model.active_endpoint_count} / {model.endpoint_count}
-                      </Badge>
+                      <StatusBadge
+                        label={model.is_enabled ? "On" : "Off"}
+                        intent={model.is_enabled ? "success" : "muted"}
+                      />
                     </TableCell>
                     <TableCell>
-                      {(() => {
-                        if (model.health_total_requests === 0 || model.health_success_rate === null) {
-                          return (
-                            <Badge variant="secondary" className="text-xs">
-                              N/A
-                            </Badge>
-                          );
-                        }
-                        const pct = model.health_success_rate;
-                        const color =
-                          pct >= 98
-                            ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30"
-                            : pct >= 75
-                              ? "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30"
-                              : "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
-                        return (
-                          <Badge variant="outline" className={`text-xs ${color}`}>
-                            {pct.toFixed(1)}%
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={model.is_enabled 
-                          ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400 dark:border-emerald-400/30"
-                          : "bg-gray-500/15 text-gray-500 border-gray-500/30 dark:text-gray-400 dark:border-gray-400/30"}
-                      >
-                        {model.is_enabled ? "Enabled" : "Disabled"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenuItem onClick={() => handleOpenDialog(model)}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onClick={() => handleDelete(model.id)}
+                            onClick={() => setDeleteTarget(model)}
                           >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredModels.length === 0 && (
-                  <TableRow>
-                     <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      {models.length === 0 ? "No models found. Create one to get started." : "No models match your filters."}
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
-          </div>
+          )}
         </CardContent>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingModel ? "Edit Model" : "Add New Model"}</DialogTitle>
+            <DialogTitle>{editingModel ? "Edit Model" : "New Model"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="provider">Provider</Label>
-              <Select
-                value={formData.provider_id.toString()}
-                onValueChange={(val) => setFormData({ ...formData, provider_id: parseInt(val), redirect_to: null })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  {providers.map((p) => (
-                    <SelectItem key={p.id} value={p.id.toString()}>
-                      <span className="inline-flex items-center gap-1.5">
-                        <ProviderIcon providerType={p.provider_type} size={14} />
-                        {p.name} ({formatProviderType(p.provider_type)})
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!editingModel && (
+              <div className="space-y-2">
+                <Label>Provider</Label>
+                <Select
+                  value={String(formData.provider_id)}
+                  onValueChange={(v) => setFormData({ ...formData, provider_id: parseInt(v) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {providers.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        <div className="flex items-center gap-2">
+                          <ProviderIcon providerType={p.provider_type} size={14} />
+                          {p.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            <div className="grid gap-2">
-              <Label htmlFor="model_id">Model ID</Label>
-              <Input
-                id="model_id"
-                value={formData.model_id}
-                onChange={(e) => setFormData({ ...formData, model_id: e.target.value })}
-                placeholder="e.g. gpt-4-turbo"
-                required
-              />
-            </div>
+            {!editingModel && (
+              <div className="space-y-2">
+                <Label>Model ID</Label>
+                <Input
+                  value={formData.model_id}
+                  onChange={(e) => setFormData({ ...formData, model_id: e.target.value })}
+                  placeholder="e.g. gpt-4o"
+                  required
+                />
+              </div>
+            )}
 
-            <div className="grid gap-2">
-              <Label htmlFor="display_name">Display Name</Label>
+            <div className="space-y-2">
+              <Label>Display Name</Label>
               <Input
-                id="display_name"
-                value={formData.display_name || ""}
+                value={formData.display_name}
                 onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                 placeholder="Optional friendly name"
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label>Model Type</Label>
+            <div className="space-y-2">
+              <Label>Type</Label>
               <Select
-                value={formData.model_type || "native"}
-                onValueChange={(val) => setFormData({ ...formData, model_type: val, redirect_to: val === "native" ? null : formData.redirect_to })}
+                value={formData.model_type}
+                onValueChange={(v) => setFormData({ ...formData, model_type: v as "native" | "proxy" })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -395,72 +383,68 @@ export function ModelsPage() {
             </div>
 
             {formData.model_type === "proxy" && (
-              <div className="grid gap-2">
-                <Label>Proxy To</Label>
-                {nativeModelsForProvider.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No native models available for {selectedProvider?.name || "this provider"}. Create a native model first.
-                  </p>
-                ) : (
-                  <Select
-                    value={formData.redirect_to || ""}
-                    onValueChange={(val) => setFormData({ ...formData, redirect_to: val })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select target model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {nativeModelsForProvider.map((m) => (
-                        <SelectItem key={m.model_id} value={m.model_id}>
-                          {m.display_name || m.model_id}
-                          {m.display_name && ` (${m.model_id})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+              <div className="space-y-2">
+                <Label>Redirect To</Label>
+                <Input
+                  value={formData.redirect_to || ""}
+                  onChange={(e) => setFormData({ ...formData, redirect_to: e.target.value || null })}
+                  placeholder="Target model ID"
+                  required
+                />
               </div>
             )}
 
             {formData.model_type === "native" && (
-            <div className="grid gap-2">
-              <Label htmlFor="lb_strategy">Load Balancing Strategy</Label>
-              <Select
-                value={formData.lb_strategy}
-                onValueChange={(val) => setFormData({ ...formData, lb_strategy: val })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="single">Single</SelectItem>
-                  <SelectItem value="round_robin">Round Robin</SelectItem>
-                  <SelectItem value="failover">Failover</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <Label>Load Balancing</Label>
+                <Select
+                  value={formData.lb_strategy}
+                  onValueChange={(v) => setFormData({ ...formData, lb_strategy: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">Single</SelectItem>
+                    <SelectItem value="round_robin">Round Robin</SelectItem>
+                    <SelectItem value="failover">Failover</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             )}
 
-            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-              <div className="space-y-0.5">
-                <Label>Enabled</Label>
-                <div className="text-sm text-muted-foreground">
-                  Enable or disable this model configuration
-                </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label>Active</Label>
+                <p className="text-xs text-muted-foreground">Turn this model on or off</p>
               </div>
               <Switch
                 checked={formData.is_enabled}
                 onCheckedChange={(checked) => setFormData({ ...formData, is_enabled: checked })}
+                className="data-[state=checked]:bg-emerald-500"
               />
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
               <Button type="submit">Save</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Model</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deleteTarget?.display_name || deleteTarget?.model_id}"? This will also delete all associated endpoints.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

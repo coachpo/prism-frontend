@@ -1,183 +1,149 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import type { ModelConfigListItem } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Server, Zap, Globe, ArrowRight } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
+import { MetricCard } from "@/components/MetricCard";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+
 
 export function DashboardPage() {
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const modelsData = await api.models.list();
-        setModels(modelsData);
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    api.models.list()
+      .then(setModels)
+      .catch((err) => console.error("Failed to fetch dashboard data:", err))
+      .finally(() => setLoading(false));
   }, []);
 
   const totalModels = models.length;
-  const activeEndpoints = models.reduce((sum, model) => sum + model.active_endpoint_count, 0);
-  const activeProviders = new Set(models.map((m) => m.provider.name)).size;
+  const activeEndpoints = models.reduce((sum, m) => sum + m.active_endpoint_count, 0);
+  const activeProviders = new Set(models.map((m) => m.provider.provider_type)).size;
 
   if (loading) {
-    return <div className="p-8">Loading dashboard...</div>;
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-[104px] rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-[400px] rounded-xl" />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8">
-      <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+    <div className="space-y-6">
+      <PageHeader title="Dashboard" description="Overview of your LLM proxy configuration" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="transition-shadow hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Models</CardTitle>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-              <Server className="h-4 w-4 text-primary" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalModels}</div>
-            <p className="text-xs text-muted-foreground">Configured models</p>
-          </CardContent>
-        </Card>
-
-        <Card className="transition-shadow hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Endpoints</CardTitle>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-chart-2/15">
-              <Zap className="h-4 w-4 text-chart-2" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeEndpoints}</div>
-            <p className="text-xs text-muted-foreground">Across all models</p>
-          </CardContent>
-        </Card>
-
-        <Card className="transition-shadow hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Providers</CardTitle>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-chart-3/15">
-              <Globe className="h-4 w-4 text-chart-3" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeProviders}</div>
-            <p className="text-xs text-muted-foreground">Unique providers</p>
-          </CardContent>
-        </Card>
+        <MetricCard
+          label="Total Models"
+          value={totalModels}
+          detail="Configured models"
+          icon={<Server className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Active Endpoints"
+          value={activeEndpoints}
+          detail="Across all models"
+          icon={<Zap className="h-4 w-4" />}
+          className="[&_[data-slot=icon]]:bg-chart-2/15 [&_[data-slot=icon]]:text-chart-2"
+        />
+        <MetricCard
+          label="Providers"
+          value={activeProviders}
+          detail="Unique providers"
+          icon={<Globe className="h-4 w-4" />}
+          className="[&_[data-slot=icon]]:bg-chart-3/15 [&_[data-slot=icon]]:text-chart-3"
+        />
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Model Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Strategy</TableHead>
-                  <TableHead>Endpoints</TableHead>
-                  <TableHead>Success Rate</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {models.map((model) => (
-                  <TableRow key={model.id}>
-                    <TableCell className="font-medium">
-                      {model.display_name || model.model_id}
-                      {model.display_name && (
-                        <div className="text-xs text-muted-foreground">{model.model_id}</div>
+        <CardContent className="p-0">
+          {models.length === 0 ? (
+            <EmptyState
+              icon={<Server className="h-6 w-6" />}
+              title="No models configured"
+              description="Add your first model to get started with the proxy gateway."
+            />
+          ) : (
+            <div className="divide-y">
+              {models.map((model) => {
+                const successRate = model.health_success_rate ?? 0;
+
+                return (
+                  <div
+                    key={model.id}
+                    className="flex items-center gap-4 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/models/${model.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Enter" && navigate(`/models/${model.id}`)}
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <ProviderIcon providerType={model.provider.provider_type} size={16} />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">
+                          {model.display_name || model.model_id}
+                        </span>
+                        {model.model_type === "proxy" ? (
+                          <StatusBadge label="Proxy" intent="accent" />
+                        ) : (
+                          <StatusBadge label="Native" intent="info" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {model.model_type === "proxy" && model.redirect_to
+                          ? `${model.model_id} → ${model.redirect_to}`
+                          : model.model_id}
+                      </p>
+                    </div>
+
+                    <div className="hidden sm:flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">Endpoints</p>
+                        <p className="text-sm font-medium">
+                          {model.active_endpoint_count}/{model.endpoint_count}
+                        </p>
+                      </div>
+
+                      {model.endpoint_count > 0 && (
+                        <StatusBadge
+                          label={`${successRate.toFixed(0)}%`}
+                          intent={successRate >= 90 ? "success" : successRate >= 50 ? "warning" : "danger"}
+                          className="text-xs tabular-nums"
+                        />
                       )}
-                      {model.model_type === "proxy" && model.redirect_to && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <ArrowRight className="h-3 w-3" /> {model.redirect_to}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="outline"
-                        className={model.model_type === "native" 
-                          ? "bg-teal-500/15 text-teal-700 border-teal-500/30 dark:text-teal-400 dark:border-teal-400/30"
-                          : "bg-violet-500/15 text-violet-700 border-violet-500/30 dark:text-violet-400 dark:border-violet-400/30"}
-                      >
-                        {model.model_type === "native" ? "Native" : "Proxy"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center gap-1.5">
-                        <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                        {model.provider.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="capitalize">{model.lb_strategy.replace("_", " ")}</TableCell>
-                    <TableCell>
-                      {model.active_endpoint_count} / {model.endpoint_count} active
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        if (model.health_total_requests === 0 || model.health_success_rate === null) {
-                          return (
-                            <Badge variant="secondary" className="text-xs">
-                              N/A
-                            </Badge>
-                          );
-                        }
-                        const pct = model.health_success_rate;
-                        const color =
-                          pct >= 98
-                            ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30"
-                            : pct >= 75
-                              ? "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30"
-                              : "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
-                        return (
-                          <Badge variant="outline" className={`text-xs ${color}`}>
-                            {pct.toFixed(1)}%
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={model.is_enabled 
-                          ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400 dark:border-emerald-400/30"
-                          : "bg-gray-500/15 text-gray-500 border-gray-500/30 dark:text-gray-400 dark:border-gray-400/30"}
-                      >
-                        {model.is_enabled ? "Enabled" : "Disabled"}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {models.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
-                      No models configured.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                    </div>
+
+                    <StatusBadge
+                      label={model.is_enabled ? "On" : "Off"}
+                      intent={model.is_enabled ? "success" : "muted"}
+                    />
+
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
+

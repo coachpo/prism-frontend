@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Download, Upload, AlertTriangle, Shield, Trash2, MoreHorizontal } from "lucide-react";
+import { Download, Upload, AlertTriangle, Shield, Trash2 } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
+import { PageHeader } from "@/components/PageHeader";
 import {
   Dialog,
   DialogContent,
@@ -17,12 +18,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -160,31 +155,30 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+    <div className="space-y-6">
+      <PageHeader title="Settings" description="Manage providers, configuration backups, and data retention" />
 
-      <div className="space-y-2">
-        <h3 className="text-xl font-semibold">Configuration Backup</h3>
-        <p className="text-muted-foreground">
-          Manage your gateway configuration. Export all providers, models, and endpoints as a single
-          JSON file, or import a previously exported backup.
+      <div className="space-y-1">
+        <h3 className="text-base font-semibold">Configuration Backup</h3>
+        <p className="text-sm text-muted-foreground">
+          Export or import your gateway configuration as JSON.
         </p>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Download className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Download className="h-4 w-4" />
               Export
             </CardTitle>
-            <CardDescription>
-              Download a JSON file containing all providers, models, and endpoint configurations.
+            <CardDescription className="text-xs">
+              Download all providers, models, and endpoint configurations as JSON.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-600 dark:text-yellow-400">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-2 rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
               API keys are included in plaintext.
             </div>
             <Button onClick={handleExport} disabled={exporting} className="w-full">
@@ -194,13 +188,13 @@ export function SettingsPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Upload className="h-4 w-4" />
               Import
             </CardTitle>
-            <CardDescription>
-              Upload a JSON backup file to replace all current configuration. This will DELETE all
+            <CardDescription className="text-xs">
+              Upload a JSON backup to replace all current configuration. This will DELETE all
               existing providers, models, and endpoints.
             </CardDescription>
           </CardHeader>
@@ -232,33 +226,33 @@ export function SettingsPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-1">
+      <div className="space-y-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Shield className="h-4 w-4" />
               Audit Configuration
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs">
               Configure audit logging settings for each provider.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {providers.map((provider) => (
-                <div key={provider.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                  <div className="font-medium inline-flex items-center gap-1.5">
-                    <ProviderIcon providerType={provider.provider_type} size={16} />
+                <div key={provider.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="text-sm font-medium inline-flex items-center gap-2">
+                    <ProviderIcon providerType={provider.provider_type} size={14} />
                     {provider.name}
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-5">
                     <div className="flex items-center gap-2">
                       <Switch
                         id={`audit-${provider.id}`}
                         checked={provider.audit_enabled}
                         onCheckedChange={(checked) => toggleAudit(provider.id, checked)}
                       />
-                      <Label htmlFor={`audit-${provider.id}`}>Audit</Label>
+                      <Label htmlFor={`audit-${provider.id}`} className="text-xs">Audit</Label>
                     </div>
                     <div className="flex items-center gap-2">
                       <Switch
@@ -267,7 +261,7 @@ export function SettingsPage() {
                         onCheckedChange={(checked) => toggleBodies(provider.id, checked)}
                         disabled={!provider.audit_enabled}
                       />
-                      <Label htmlFor={`bodies-${provider.id}`}>Bodies</Label>
+                      <Label htmlFor={`bodies-${provider.id}`} className="text-xs">Bodies</Label>
                     </div>
                   </div>
                 </div>
@@ -277,12 +271,12 @@ export function SettingsPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trash2 className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Trash2 className="h-4 w-4" />
               Data Management
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs">
               Batch delete old logs to free up space.
             </CardDescription>
           </CardHeader>
@@ -316,6 +310,7 @@ export function SettingsPage() {
                   <SelectItem value="15">Older than 15 days</SelectItem>
                   <SelectItem value="30">Older than 30 days</SelectItem>
                   <SelectItem value="custom">Custom days</SelectItem>
+                  <SelectItem value="all" className="text-destructive">Delete all</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -338,31 +333,17 @@ export function SettingsPage() {
                   (retentionPreset === "custom" && (!customDays || parseInt(customDays) < 1))
                 }
                 onClick={() => {
-                  const days =
-                    retentionPreset === "custom" ? parseInt(customDays) : parseInt(retentionPreset);
-                  setDeleteConfirm({ type: cleanupType, days, deleteAll: false });
+                  if (retentionPreset === "all") {
+                    setDeleteConfirm({ type: cleanupType, days: null, deleteAll: true });
+                  } else {
+                    const days =
+                      retentionPreset === "custom" ? parseInt(customDays) : parseInt(retentionPreset);
+                    setDeleteConfirm({ type: cleanupType, days, deleteAll: false });
+                  }
                 }}
               >
                 Delete
               </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" disabled={deleting}>
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() =>
-                      setDeleteConfirm({ type: cleanupType, days: null, deleteAll: true })
-                    }
-                  >
-                    Delete all {cleanupType === "requests" ? "request" : "audit"} logs
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </CardContent>
         </Card>

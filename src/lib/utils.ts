@@ -5,6 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function formatLabel(value: string): string {
+  return value
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 const PROVIDER_TYPE_LABELS: Record<string, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",

@@ -1,19 +1,66 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 import { useEndpointNavigation } from "@/hooks/useEndpointNavigation";
 import type { AuditLogListItem, AuditLogDetail, AuditLogParams, Provider } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, type StatusBadgeIntent } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Eye, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Eye, ArrowLeft, ArrowRight, Loader2, Copy, Check, X, Clock, AlertTriangle, FileSearch } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
+import { MetricCard } from "@/components/MetricCard";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+
 import { toast } from "sonner";
+
+function formatJson(raw: string | null): string {
+  if (!raw) return "";
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
+}
+
+function statusIntent(status: number): StatusBadgeIntent {
+  if (status >= 200 && status < 300) return "success";
+  if (status >= 400 && status < 500) return "warning";
+  if (status >= 500) return "danger";
+  return "muted";
+}
+
+function methodIntent(method: string): StatusBadgeIntent {
+  switch (method.toUpperCase()) {
+    case "GET": return "blue";
+    case "POST": return "success";
+    case "PUT": return "warning";
+    case "DELETE": return "danger";
+    default: return "muted";
+  }
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCopy}>
+      {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+    </Button>
+  );
+}
 
 export function AuditPage() {
   const [logs, setLogs] = useState<AuditLogListItem[]>([]);
@@ -21,10 +68,10 @@ export function AuditPage() {
   const [loading, setLoading] = useState(true);
   const [providers, setProviders] = useState<Provider[]>([]);
   const { navigateToEndpoint } = useEndpointNavigation();
-  
+
   const [selectedLog, setSelectedLog] = useState<AuditLogDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const [providerId, setProviderId] = useState<string>("all");
   const [modelId, setModelId] = useState("");
@@ -33,26 +80,18 @@ export function AuditPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  const [activeTab, setActiveTab] = useState<"request" | "response">("request");
-
   const [limit] = useState(50);
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
-    api.providers.list()
-      .then(setProviders)
-      .catch(() => toast.error("Failed to load providers"));
+    api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
   }, []);
 
   useEffect(() => {
     const fetchLogs = async () => {
       setLoading(true);
       try {
-        const params: AuditLogParams = {
-          limit,
-          offset,
-        };
-
+        const params: AuditLogParams = { limit, offset };
         if (providerId !== "all") params.provider_id = parseInt(providerId);
         if (modelId) params.model_id = modelId;
         if (endpointId) params.endpoint_id = parseInt(endpointId);
@@ -60,7 +99,6 @@ export function AuditPage() {
         if (dateTo) params.to_time = new Date(dateTo).toISOString();
 
         const response = await api.audit.list(params);
-        
         let items = response.items;
         if (statusFilter === "2xx") items = items.filter(i => i.response_status >= 200 && i.response_status < 300);
         if (statusFilter === "4xx") items = items.filter(i => i.response_status >= 400 && i.response_status < 500);
@@ -75,394 +113,390 @@ export function AuditPage() {
         setLoading(false);
       }
     };
+    fetchLogs();
+  }, [providerId, modelId, endpointId, statusFilter, dateFrom, dateTo, limit, offset]);
 
-    const timeoutId = setTimeout(fetchLogs, 300);
-    return () => clearTimeout(timeoutId);
-  }, [limit, offset, providerId, modelId, endpointId, statusFilter, dateFrom, dateTo]);
+  const metrics = useMemo(() => {
+    if (logs.length === 0) return { avgDuration: 0, errorRate: 0 };
+    const totalDuration = logs.reduce((sum, l) => sum + l.duration_ms, 0);
+    const errors = logs.filter(l => l.response_status >= 400).length;
+    return {
+      avgDuration: Math.round(totalDuration / logs.length),
+      errorRate: ((errors / logs.length) * 100),
+    };
+  }, [logs]);
 
-  const handleViewDetail = async (id: number) => {
-    setIsDialogOpen(true);
+  const openDetail = async (id: number) => {
+    setIsSheetOpen(true);
     setDetailLoading(true);
     setSelectedLog(null);
-    setActiveTab("request");
     try {
       const detail = await api.audit.get(id);
       setSelectedLog(detail);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to load log details");
-      setIsDialogOpen(false);
+    } catch {
+      toast.error("Failed to load audit detail");
     } finally {
       setDetailLoading(false);
     }
   };
 
-  const getProviderName = (id: number) => {
-    return providers.find(p => p.id === id)?.name || `ID: ${id}`;
+  const clearFilters = () => {
+    setProviderId("all");
+    setModelId("");
+    setEndpointId("");
+    setStatusFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setOffset(0);
   };
 
-  const getProviderType = (id: number) => {
-    return providers.find(p => p.id === id)?.provider_type || "";
-  };
+  const hasFilters = providerId !== "all" || modelId || endpointId || statusFilter !== "all" || dateFrom || dateTo;
+  const currentPage = Math.floor(offset / limit) + 1;
+  const totalPages = Math.ceil(total / limit);
 
-  const getStatusColor = (status: number): { variant: "outline"; className: string } => {
-    if (status >= 200 && status < 300) 
-      return { variant: "outline", className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400 dark:border-emerald-400/30" };
-    if (status >= 400 && status < 500) 
-      return { variant: "outline", className: "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400 dark:border-amber-400/30" };
-    return { variant: "outline", className: "bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400 dark:border-red-400/30" };
-  };
-
-  const formatJson = (str: string | null) => {
-    if (!str) return null;
-    try {
-      const parsed = JSON.parse(str);
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      return str;
-    }
-  };
+  if (loading && logs.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-[100px] rounded-xl" />)}
+        </div>
+        <Skeleton className="h-[500px] rounded-xl" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 p-6 pb-16">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Audit Logs</h2>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title="Audit Logs" description="Inspect request and response details for debugging and compliance" />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-        <Select value={providerId} onValueChange={setProviderId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Provider" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Providers</SelectItem>
-            {providers.map(p => (
-              <SelectItem key={p.id} value={String(p.id)}>
-                <span className="inline-flex items-center gap-1.5">
-                  <ProviderIcon providerType={p.provider_type} size={14} />
-                  {p.name}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Input 
-          placeholder="Model ID" 
-          value={modelId} 
-          onChange={(e) => setModelId(e.target.value)} 
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MetricCard
+          label="Total Logs"
+          value={total.toLocaleString()}
+          detail={`${logs.length} shown`}
+          icon={<FileSearch className="h-4 w-4" />}
         />
-
-        <Input 
-          placeholder="Endpoint ID" 
-          value={endpointId} 
-          onChange={(e) => setEndpointId(e.target.value)} 
+        <MetricCard
+          label="Avg Duration"
+          value={`${metrics.avgDuration}ms`}
+          detail="Across visible logs"
+          icon={<Clock className="h-4 w-4" />}
         />
-
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="2xx">2xx (Success)</SelectItem>
-            <SelectItem value="4xx">4xx (Client Error)</SelectItem>
-            <SelectItem value="5xx">5xx (Server Error)</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Input 
-          type="datetime-local" 
-          value={dateFrom} 
-          onChange={(e) => setDateFrom(e.target.value)}
-          className="w-full"
-        />
-        <Input 
-          type="datetime-local" 
-          value={dateTo} 
-          onChange={(e) => setDateTo(e.target.value)}
-          className="w-full"
+        <MetricCard
+          label="Error Rate"
+          value={`${metrics.errorRate.toFixed(1)}%`}
+          detail={`${logs.filter(l => l.response_status >= 400).length} errors`}
+          icon={<AlertTriangle className="h-4 w-4" />}
+          className={metrics.errorRate > 10 ? "[&_span.text-2xl]:text-destructive" : ""}
         />
       </div>
 
       <Card>
-        <CardHeader className="p-4">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Showing {logs.length} records
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Endpoint</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>URL</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Stream</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="h-24 text-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : logs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
-                      No logs found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="whitespace-nowrap text-xs">
-                        {new Date(log.created_at).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="font-medium">{log.model_id}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center gap-1.5">
-                          <ProviderIcon providerType={getProviderType(log.provider_id)} size={14} />
-                          {getProviderName(log.provider_id)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-[150px] truncate text-xs text-muted-foreground">
-                        {log.endpoint_id ? (
-                          <button
-                            type="button"
-                            className="text-left hover:underline cursor-pointer text-primary"
-                            onClick={() => navigateToEndpoint(log.endpoint_id!)}
-                          >
-                            {log.endpoint_description ? (
-                              <span>{log.endpoint_description} <span className="opacity-50">#{log.endpoint_id}</span></span>
-                            ) : log.endpoint_base_url ? (
-                              <span>{log.endpoint_base_url.replace(/^https?:\/\//, '').substring(0, 20)}... <span className="opacity-50">#{log.endpoint_id}</span></span>
-                            ) : (
-                              <span>#{log.endpoint_id}</span>
-                            )}
-                          </button>
-                        ) : (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="opacity-50 cursor-help">Legacy</span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Legacy log: endpoint link unavailable</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{log.request_method}</Badge>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={log.request_url}>
-                        {log.request_url}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={getStatusColor(log.response_status).variant}
-                          className={getStatusColor(log.response_status).className}
-                        >
-                          {log.response_status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{log.duration_ms}ms</TableCell>
-                      <TableCell>
-                        {log.is_stream && <Badge variant="secondary">Stream</Badge>}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleViewDetail(log.id)}>
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={providerId} onValueChange={(v) => { setProviderId(v); setOffset(0); }}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Providers</SelectItem>
+                {providers.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    <span className="flex items-center gap-2">
+                      <ProviderIcon providerType={p.provider_type} size={14} />
+                      {p.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              placeholder="Model ID"
+              value={modelId}
+              onChange={(e) => { setModelId(e.target.value); setOffset(0); }}
+              className="w-full sm:w-[140px]"
+            />
+
+            <Input
+              placeholder="Endpoint ID"
+              type="number"
+              value={endpointId}
+              onChange={(e) => { setEndpointId(e.target.value); setOffset(0); }}
+              className="w-full sm:w-[120px]"
+            />
+
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setOffset(0); }}>
+              <SelectTrigger className="w-full sm:w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="2xx">2xx</SelectItem>
+                <SelectItem value="4xx">4xx</SelectItem>
+                <SelectItem value="5xx">5xx</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Input
+              type="datetime-local"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setOffset(0); }}
+              className="w-full sm:w-auto"
+              aria-label="From date"
+            />
+            <Input
+              type="datetime-local"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setOffset(0); }}
+              className="w-full sm:w-auto"
+              aria-label="To date"
+            />
+
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+                <X className="h-3.5 w-3.5" /> Clear
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Showing {Math.min(offset + 1, total)}-{Math.min(offset + logs.length, total)} of {total}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setOffset(Math.max(0, offset - limit))}
-            disabled={offset === 0 || loading}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Previous
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setOffset(offset + limit)}
-            disabled={offset + logs.length >= total || loading}
-          >
-            Next
-            <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="p-0">
+          {logs.length === 0 ? (
+            <EmptyState
+              icon={<FileSearch className="h-6 w-6" />}
+              title="No audit logs found"
+              description={hasFilters ? "Try adjusting your filters" : "Audit logs will appear here when requests are proxied"}
+            />
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[70px]">Status</TableHead>
+                    <TableHead className="hidden md:table-cell w-[70px]">Method</TableHead>
+                    <TableHead>Path</TableHead>
+                    <TableHead className="hidden lg:table-cell">Model</TableHead>
+                    <TableHead className="hidden md:table-cell">Provider</TableHead>
+                    <TableHead className="hidden lg:table-cell text-right">Duration</TableHead>
+                    <TableHead className="text-right">Time</TableHead>
+                    <TableHead className="w-[50px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log) => (
+                    <TableRow
+                      key={log.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => openDetail(log.id)}
+                    >
+                      <TableCell>
+                        <StatusBadge
+                          label={String(log.response_status)}
+                          intent={statusIntent(log.response_status)}
+                          className="text-xs tabular-nums font-mono"
+                        />
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <StatusBadge
+                          label={log.request_method}
+                          intent={methodIntent(log.request_method)}
+                          className="font-mono"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm truncate block max-w-[200px] sm:max-w-[300px]">{log.request_path}</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="max-w-md">
+                              <p className="font-mono text-xs break-all">{log.request_path}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <span className="text-xs text-muted-foreground font-mono">{log.model_id}</span>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="flex items-center gap-1.5">
+                          <ProviderIcon providerType={log.provider_type} size={12} />
+                          <span className="text-xs capitalize">{log.provider_type}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-right">
+                        <span className="text-xs tabular-nums text-muted-foreground">{log.duration_ms}ms</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleTimeString()}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openDetail(log.id); }}>
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-5xl max-h-[90vh] w-[96vw] sm:w-auto overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Audit Log Detail #{selectedLog?.id}</DialogTitle>
-            <DialogDescription>
-              {selectedLog && new Date(selectedLog.created_at).toLocaleString()}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {detailLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : selectedLog ? (
-            <div className="flex flex-col h-full overflow-hidden gap-4">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-muted/50 rounded-lg shrink-0">
-                <div>
-                  <div className="text-xs text-muted-foreground font-medium">Status</div>
-                  <Badge 
-                    variant={getStatusColor(selectedLog.response_status).variant}
-                    className={`mt-1 ${getStatusColor(selectedLog.response_status).className}`}
+              <div className="flex items-center justify-between border-t px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  {offset + 1}–{Math.min(offset + limit, total)} of {total}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={offset === 0}
+                    onClick={() => setOffset(Math.max(0, offset - limit))}
                   >
-                    {selectedLog.response_status}
-                  </Badge>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground font-medium">Duration</div>
-                  <div className="mt-1 font-mono text-sm">{selectedLog.duration_ms}ms</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground font-medium">Model</div>
-                  <div className="mt-1 text-sm font-medium">{selectedLog.model_id}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground font-medium">Provider</div>
-                  <div className="mt-1 text-sm inline-flex items-center gap-1.5">
-                    <ProviderIcon providerType={getProviderType(selectedLog.provider_id)} size={14} />
-                    {getProviderName(selectedLog.provider_id)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground font-medium">Endpoint</div>
-                  <div className="mt-1 text-sm truncate" title={selectedLog.endpoint_description || selectedLog.endpoint_base_url || `Endpoint #${selectedLog.endpoint_id}`}>
-                    {selectedLog.endpoint_id ? (
-                      <button
-                        type="button"
-                        className="text-left hover:underline cursor-pointer text-primary"
-                        onClick={() => navigateToEndpoint(selectedLog.endpoint_id!)}
-                      >
-                        {selectedLog.endpoint_description ? (
-                          <span>{selectedLog.endpoint_description} <span className="opacity-50">#{selectedLog.endpoint_id}</span></span>
-                        ) : selectedLog.endpoint_base_url ? (
-                          <span>{selectedLog.endpoint_base_url.replace(/^https?:\/\//, '').substring(0, 20)}... <span className="opacity-50">#{selectedLog.endpoint_id}</span></span>
-                        ) : (
-                          <span>#{selectedLog.endpoint_id}</span>
-                        )}
-                      </button>
-                    ) : (
-                      <span className="opacity-50">N/A</span>
-                    )}
-                  </div>
+                    <ArrowLeft className="h-3.5 w-3.5 mr-1" /> Prev
+                  </Button>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {currentPage} / {totalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={offset + limit >= total}
+                    onClick={() => setOffset(offset + limit)}
+                  >
+                    Next <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
                 </div>
               </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "request" | "response")} className="min-h-0 flex-1 overflow-hidden flex flex-col">
-                <TabsList className="grid w-full grid-cols-2 shrink-0">
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="w-full sm:max-w-xl p-0 flex flex-col">
+          <SheetHeader className="px-6 py-4 border-b shrink-0">
+            <SheetTitle className="text-base">
+              {selectedLog ? `Audit Log #${selectedLog.id}` : "Loading..."}
+            </SheetTitle>
+            {selectedLog && (
+              <SheetDescription className="text-xs">
+                {new Date(selectedLog.created_at).toLocaleString()} · {selectedLog.duration_ms}ms ·{" "}
+                <button
+                  className="text-primary hover:underline"
+                  onClick={() => navigateToEndpoint(selectedLog.endpoint_id)}
+                >
+                  Endpoint #{selectedLog.endpoint_id}
+                </button>
+              </SheetDescription>
+            )}
+          </SheetHeader>
+
+          {detailLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : selectedLog ? (
+            <div className="flex-1 overflow-hidden">
+              <div className="flex items-center gap-2 px-6 py-3 border-b bg-muted/30">
+                <StatusBadge
+                  label={selectedLog.request_method}
+                  intent={methodIntent(selectedLog.request_method)}
+                  className="text-xs font-mono"
+                />
+                <StatusBadge
+                  label={String(selectedLog.response_status)}
+                  intent={statusIntent(selectedLog.response_status)}
+                  className="text-xs font-mono"
+                />
+                <span className="text-xs text-muted-foreground font-mono truncate flex-1">{selectedLog.request_url}</span>
+                {selectedLog.is_stream && <StatusBadge label="Stream" />}
+              </div>
+
+              <Tabs defaultValue="request" className="flex-1 flex flex-col h-[calc(100%-48px)]">
+                <TabsList className="mx-6 mt-3 w-fit">
                   <TabsTrigger value="request">Request</TabsTrigger>
                   <TabsTrigger value="response">Response</TabsTrigger>
                 </TabsList>
-                
-                <TabsContent value="request" className="mt-0 h-full overflow-y-auto p-1 space-y-4">
-                  <div className="flex items-center gap-2 pt-2">
-                    <Badge variant="outline">{selectedLog.request_method}</Badge>
-                    <span className="font-mono text-xs text-muted-foreground break-all">{selectedLog.request_url}</span>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Headers</div>
-                    <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-auto max-h-[40vh]">
-                      {formatJson(selectedLog.request_headers)}
-                    </pre>
-                  </div>
 
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Body</div>
-                    {selectedLog.request_body ? (
-                      <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-auto max-h-[40vh] whitespace-pre-wrap">
-                        {formatJson(selectedLog.request_body)}
-                      </pre>
-                    ) : (
-                      <div className="p-3 border border-dashed rounded-md text-xs text-muted-foreground italic">
-                        Body capture disabled for this provider.
+                <TabsContent value="request" className="flex-1 overflow-hidden mt-0 px-6 pb-6">
+                  <ScrollArea className="h-full">
+                    <div className="space-y-4 pt-3">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Headers</span>
+                          <CopyButton text={formatJson(selectedLog.request_headers)} />
+                        </div>
+                        <pre className="bg-muted p-3 rounded-lg text-xs font-mono overflow-auto max-h-[30vh] scrollbar-thin whitespace-pre-wrap break-all">
+                          {formatJson(selectedLog.request_headers)}
+                        </pre>
                       </div>
-                    )}
-                  </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Body</span>
+                          {selectedLog.request_body && <CopyButton text={formatJson(selectedLog.request_body)} />}
+                        </div>
+                        {selectedLog.request_body ? (
+                          <pre className="bg-muted p-3 rounded-lg text-xs font-mono overflow-auto max-h-[40vh] scrollbar-thin whitespace-pre-wrap break-all">
+                            {formatJson(selectedLog.request_body)}
+                          </pre>
+                        ) : (
+                          <div className="p-3 border border-dashed rounded-lg text-xs text-muted-foreground italic">
+                            Body capture disabled for this provider.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </ScrollArea>
                 </TabsContent>
 
-                <TabsContent value="response" className="mt-0 h-full overflow-y-auto p-1 space-y-4">
-                  <div className="flex items-center gap-2 pt-2">
-                    <Badge 
-                      variant={getStatusColor(selectedLog.response_status).variant}
-                      className={getStatusColor(selectedLog.response_status).className}
-                    >
-                      {selectedLog.response_status}
-                    </Badge>
-                    {selectedLog.is_stream && <Badge variant="secondary">Stream</Badge>}
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Headers</div>
-                    <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-auto max-h-[40vh]">
-                      {formatJson(selectedLog.response_headers)}
-                    </pre>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Body</div>
-                    {selectedLog.is_stream ? (
-                      <div className="p-3 border border-dashed rounded-md text-xs text-muted-foreground italic">
-                        Response body not recorded for streaming requests.
+                <TabsContent value="response" className="flex-1 overflow-hidden mt-0 px-6 pb-6">
+                  <ScrollArea className="h-full">
+                    <div className="space-y-4 pt-3">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Headers</span>
+                          {selectedLog.response_headers && <CopyButton text={formatJson(selectedLog.response_headers)} />}
+                        </div>
+                        <pre className="bg-muted p-3 rounded-lg text-xs font-mono overflow-auto max-h-[30vh] scrollbar-thin whitespace-pre-wrap break-all">
+                          {formatJson(selectedLog.response_headers)}
+                        </pre>
                       </div>
-                    ) : selectedLog.response_body ? (
-                      <pre className="bg-muted p-3 rounded-md text-xs font-mono overflow-auto max-h-[40vh] whitespace-pre-wrap">
-                        {formatJson(selectedLog.response_body)}
-                      </pre>
-                    ) : (
-                      <div className="p-3 border border-dashed rounded-md text-xs text-muted-foreground italic">
-                        Body capture disabled for this provider.
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">Body</span>
+                          {selectedLog.response_body && <CopyButton text={formatJson(selectedLog.response_body)} />}
+                        </div>
+                        {selectedLog.is_stream ? (
+                          <div className="p-3 border border-dashed rounded-lg text-xs text-muted-foreground italic">
+                            Response body not recorded for streaming requests.
+                          </div>
+                        ) : selectedLog.response_body ? (
+                          <pre className="bg-muted p-3 rounded-lg text-xs font-mono overflow-auto max-h-[40vh] scrollbar-thin whitespace-pre-wrap break-all">
+                            {formatJson(selectedLog.response_body)}
+                          </pre>
+                        ) : (
+                          <div className="p-3 border border-dashed rounded-lg text-xs text-muted-foreground italic">
+                            Body capture disabled for this provider.
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  </ScrollArea>
                 </TabsContent>
               </Tabs>
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
               Failed to load details.
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

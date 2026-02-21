@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Server, Zap, BarChart3, FileSearch, Settings, Menu, X } from "lucide-react";
+import { LayoutDashboard, Server, BarChart3, FileSearch, Settings, Menu, X, Zap } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
@@ -16,7 +16,6 @@ export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
-  // Close mobile sidebar on navigation
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
@@ -26,46 +25,46 @@ export function AppLayout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar — drawer on mobile, fixed on lg+ */}
+      {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-full w-[240px] flex-col bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-in-out",
+          "fixed left-0 top-0 z-50 flex h-full w-[220px] flex-col bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-in-out",
           "lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand */}
-        <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sidebar-primary">
-            <Zap className="h-4 w-4 text-sidebar-primary-foreground" />
+        <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-sidebar-primary to-sidebar-primary/70">
+            <Zap className="h-3.5 w-3.5 text-sidebar-primary-foreground" />
           </div>
-          <h1 className="text-base font-semibold tracking-tight">LLM Gateway</h1>
+          <span className="text-sm font-semibold tracking-tight">Prism Gateway</span>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="ml-auto lg:hidden text-sidebar-foreground/60 hover:text-sidebar-foreground"
+            className="ml-auto lg:hidden text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
             <span className="sr-only">Close sidebar</span>
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex-1 space-y-0.5 px-2 py-3">
           {navLinks.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                    : "text-sidebar-foreground/55 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )
               }
             >
@@ -76,31 +75,31 @@ export function AppLayout() {
         </nav>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-sidebar-border px-4 py-3">
-          <span className="text-xs text-sidebar-foreground/40">v1.0</span>
+        <div className="flex items-center justify-between border-t border-sidebar-border px-3 py-2.5">
+          <span className="text-[11px] text-sidebar-foreground/35 font-medium">v1.0</span>
           <ThemeToggle />
         </div>
       </aside>
 
-      {/* Main wrapper — offset for sidebar on lg+ */}
-      <div className="flex flex-1 flex-col lg:ml-[240px]">
+      {/* Main */}
+      <div className="flex flex-1 flex-col lg:ml-[220px]">
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4 lg:hidden">
-          <button onClick={() => setSidebarOpen(true)}>
+        <header className="sticky top-0 z-30 flex h-12 items-center gap-3 border-b bg-background/95 backdrop-blur-sm px-4 lg:hidden">
+          <button onClick={() => setSidebarOpen(true)} className="text-muted-foreground hover:text-foreground transition-colors">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Open sidebar</span>
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-              <Zap className="h-4 w-4 text-primary-foreground" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
+              <Zap className="h-3 w-3 text-primary-foreground" />
             </div>
-            <span className="text-base font-semibold tracking-tight">LLM Gateway</span>
+            <span className="text-sm font-semibold tracking-tight">Prism</span>
           </div>
         </header>
 
-        {/* Page content — full width, responsive padding */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto scrollbar-thin">
+          <div className="mx-auto max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8">
             <Outlet />
           </div>
         </main>

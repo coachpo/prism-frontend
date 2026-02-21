@@ -1,20 +1,22 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
-import { formatProviderType } from "@/lib/utils";
+import { cn, formatProviderType, formatLabel } from "@/lib/utils";
 import type { ModelConfig, Endpoint, EndpointCreate, EndpointUpdate, EndpointSuccessRate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, ArrowRight, Activity, Loader2, X } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, Activity, Loader2, X, ChevronRight, Shield } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
+import { EmptyState } from "@/components/EmptyState";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,10 +39,9 @@ export function ModelDetailPage() {
   const [dialogTestResult, setDialogTestResult] = useState<{ status: string; detail: string } | null>(null);
   const [successRates, setSuccessRates] = useState<Map<number, EndpointSuccessRate>>(new Map());
   const [focusedEndpointId, setFocusedEndpointId] = useState<number | null>(null);
-  const endpointRowRefs = useRef<Map<number, HTMLTableRowElement>>(new Map());
+  const endpointCardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const focusHandled = useRef(false);
 
-  // Endpoint Form State
   const [endpointForm, setEndpointForm] = useState<EndpointCreate>({
     base_url: "",
     api_key: "",
@@ -60,9 +61,7 @@ export function ModelDetailPage() {
       ]);
       setModel(data);
       const rateMap = new Map<number, EndpointSuccessRate>();
-      for (const r of rates) {
-        rateMap.set(r.endpoint_id, r);
-      }
+      for (const r of rates) rateMap.set(r.endpoint_id, r);
       setSuccessRates(rateMap);
     } catch (error) {
       toast.error("Failed to fetch model details");
@@ -73,100 +72,93 @@ export function ModelDetailPage() {
     }
   };
 
+  useEffect(() => { fetchModel(); }, [id]);
+
   useEffect(() => {
-    fetchModel();
-  }, [id]);
-
-  // Handle focus_endpoint_id query param: scroll + highlight
-  useEffect(() => {
-    if (!model || loading || focusHandled.current) return;
-
-    const focusParam = searchParams.get("focus_endpoint_id");
-    if (!focusParam) return;
-
-    const targetId = parseInt(focusParam);
-    if (isNaN(targetId)) return;
-
+    if (!model || focusHandled.current) return;
+    const focusId = searchParams.get("focus_endpoint_id");
+    if (!focusId) return;
+    const eid = parseInt(focusId);
+    setFocusedEndpointId(eid);
     focusHandled.current = true;
     setSearchParams({}, { replace: true });
-
-    const endpoint = model.endpoints.find(ep => ep.id === targetId);
-    if (!endpoint) {
-      toast.error(`Endpoint #${targetId} not found in this model`);
-      return;
-    }
-
-    if (endpointSearch) {
-      const q = endpointSearch.toLowerCase();
-      const matchesSearch =
-        endpoint.base_url.toLowerCase().includes(q) ||
-        (endpoint.description?.toLowerCase().includes(q)) ||
-        String(endpoint.id).includes(q) ||
-        `#${endpoint.id}`.includes(q);
-      if (!matchesSearch) {
-        setEndpointSearch("");
+    setTimeout(() => {
+      const el = endpointCardRefs.current.get(eid);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => setFocusedEndpointId(null), 3000);
       }
-    }
+    }, 200);
+  }, [model, searchParams, setSearchParams]);
 
-    setFocusedEndpointId(targetId);
-
-    requestAnimationFrame(() => {
-      const row = endpointRowRefs.current.get(targetId);
-      if (row) {
-        row.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    });
-
-    const timer = setTimeout(() => setFocusedEndpointId(null), 5000);
-    return () => clearTimeout(timer);
-  }, [model, loading, searchParams]);
-
-  const handleOpenEndpointDialog = (endpoint?: Endpoint) => {
+  const openEndpointDialog = (endpoint?: Endpoint) => {
     if (endpoint) {
       setEditingEndpoint(endpoint);
+      const headers = endpoint.custom_headers
+        ? Object.entries(endpoint.custom_headers).map(([key, value]) => ({ key, value }))
+        : [];
+      setHeaderRows(headers);
       setEndpointForm({
         base_url: endpoint.base_url,
-        api_key: "",
+        api_key: endpoint.api_key,
         priority: endpoint.priority,
         description: endpoint.description || "",
         is_active: endpoint.is_active,
         custom_headers: endpoint.custom_headers,
       });
-      if (endpoint.custom_headers) {
-        setHeaderRows(Object.entries(endpoint.custom_headers).map(([key, value]) => ({ key, value })));
-      } else {
-        setHeaderRows([]);
-      }
     } else {
       setEditingEndpoint(null);
-      setEndpointForm({
-        base_url: "",
-        api_key: "",
-        priority: 0,
-        description: "",
-        is_active: true,
-        custom_headers: null,
-      });
       setHeaderRows([]);
+      setEndpointForm({ base_url: "", api_key: "", priority: 0, description: "", is_active: true, custom_headers: null });
     }
-    setIsEndpointDialogOpen(true);
     setDialogTestResult(null);
+    setIsEndpointDialogOpen(true);
   };
 
-  const handleAddHeaderRow = () => {
-    setHeaderRows([...headerRows, { key: "", value: "" }]);
+  const handleEndpointSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const customHeaders = headerRows.length > 0
+      ? Object.fromEntries(headerRows.filter(r => r.key.trim()).map(r => [r.key.trim(), r.value]))
+      : null;
+    const payload = { ...endpointForm, custom_headers: customHeaders };
+
+    try {
+      if (editingEndpoint) {
+        const updateData: EndpointUpdate = { ...payload };
+        await api.endpoints.update(editingEndpoint.id, updateData);
+        toast.success("Endpoint updated");
+      } else {
+        await api.endpoints.create(parseInt(id!), payload);
+        toast.success("Endpoint created");
+      }
+      setIsEndpointDialogOpen(false);
+      fetchModel();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save endpoint");
+    }
   };
 
-  const handleRemoveHeaderRow = (index: number) => {
-    const newRows = [...headerRows];
-    newRows.splice(index, 1);
-    setHeaderRows(newRows);
+  const handleDeleteEndpoint = async (endpointId: number) => {
+    try {
+      await api.endpoints.delete(endpointId);
+      toast.success("Endpoint deleted");
+      fetchModel();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete endpoint");
+    }
   };
 
-  const handleHeaderRowChange = (index: number, field: "key" | "value", value: string) => {
-    const newRows = [...headerRows];
-    newRows[index][field] = value;
-    setHeaderRows(newRows);
+  const handleHealthCheck = async (endpointId: number) => {
+    setHealthCheckingIds(prev => new Set(prev).add(endpointId));
+    try {
+      const result = await api.endpoints.healthCheck(endpointId);
+      toast.success(`Health: ${result.health_status} (${result.response_time_ms}ms)`);
+      fetchModel();
+    } catch {
+      toast.error("Health check failed");
+    } finally {
+      setHealthCheckingIds(prev => { const s = new Set(prev); s.delete(endpointId); return s; });
+    }
   };
 
   const handleDialogTestConnection = async () => {
@@ -176,176 +168,108 @@ export function ModelDetailPage() {
     try {
       const result = await api.endpoints.healthCheck(editingEndpoint.id);
       setDialogTestResult({ status: result.health_status, detail: result.detail });
-      fetchModel();
-    } catch (error: any) {
-      setDialogTestResult({ status: "error", detail: error.message || "Test failed" });
+    } catch {
+      setDialogTestResult({ status: "error", detail: "Connection test failed" });
     } finally {
       setDialogTestingConnection(false);
     }
   };
 
-  const handleEndpointSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!model) return;
-
-    const headers: Record<string, string> = {};
-    headerRows.forEach(row => {
-      if (row.key.trim()) {
-        headers[row.key.trim()] = row.value;
-      }
-    });
-    const hasHeaders = Object.keys(headers).length > 0;
-
+  const handleToggleActive = async (endpoint: Endpoint) => {
     try {
-      if (editingEndpoint) {
-        const updateData: EndpointUpdate = {
-          base_url: endpointForm.base_url,
-          priority: endpointForm.priority,
-          description: endpointForm.description,
-          is_active: endpointForm.is_active,
-          custom_headers: hasHeaders ? headers : null,
-        };
-        if (endpointForm.api_key) {
-          updateData.api_key = endpointForm.api_key;
-        }
-
-        await api.endpoints.update(editingEndpoint.id, updateData);
-        toast.success("Endpoint updated");
-      } else {
-        await api.endpoints.create(model.id, {
-          ...endpointForm,
-          custom_headers: hasHeaders ? headers : null,
-        });
-        toast.success("Endpoint added");
-      }
-      setIsEndpointDialogOpen(false);
+      await api.endpoints.update(endpoint.id, { is_active: !endpoint.is_active });
       fetchModel();
-    } catch (error: any) {
-      toast.error(error.message || "Operation failed");
+    } catch {
+      toast.error("Failed to toggle endpoint");
     }
   };
 
-  const handleDeleteEndpoint = async (endpointId: number) => {
-    if (!confirm("Delete this endpoint?")) return;
-    try {
-      await api.endpoints.delete(endpointId);
-      toast.success("Endpoint deleted");
-      fetchModel();
-    } catch (error: any) {
-      toast.error(error.message || "Delete failed");
-    }
-  };
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded" />
+          <Skeleton className="h-7 w-48" />
+        </div>
+        <Skeleton className="h-[120px] rounded-xl" />
+        <Skeleton className="h-[400px] rounded-xl" />
+      </div>
+    );
+  }
 
-  const handleToggleActive = async (endpoint: Endpoint, checked: boolean) => {
-    try {
-      await api.endpoints.update(endpoint.id, { is_active: checked });
-      toast.success(`Endpoint ${checked ? "enabled" : "disabled"}`);
-      fetchModel();
-    } catch (error: any) {
-      toast.error(error.message || "Update failed");
-    }
-  };
+  if (!model) return null;
 
-  const handleHealthCheck = async (endpointId: number) => {
-    setHealthCheckingIds(prev => new Set(prev).add(endpointId));
-    try {
-      const result = await api.endpoints.healthCheck(endpointId);
-      toast.success(`Health check: ${result.health_status} — ${result.detail}`);
-      fetchModel();
-    } catch (error: any) {
-      toast.error(error.message || "Health check failed");
-    } finally {
-      setHealthCheckingIds(prev => {
-        const next = new Set(prev);
-        next.delete(endpointId);
-        return next;
-      });
-    }
-  };
-
-  const maskApiKey = (key: string) => {
-    if (!key) return "";
-    if (key.length <= 4) return key;
-    return `••••${key.slice(-4)}`;
-  };
-
-  if (loading) return <div className="p-8">Loading model details...</div>;
-  if (!model) return <div className="p-8">Model not found</div>;
-
-  const filteredEndpoints = model.endpoints
-    .filter(ep => {
-      if (!endpointSearch) return true;
-      const q = endpointSearch.toLowerCase();
-      return (
-        ep.base_url.toLowerCase().includes(q) ||
-        (ep.description?.toLowerCase().includes(q)) ||
-        String(ep.id).includes(q) ||
-        `#${ep.id}`.includes(q)
-      );
-    })
-    .sort((a, b) => a.priority - b.priority || a.id - b.id);
-  const activeCount = model.endpoints.filter(e => e.is_active).length;
+  const endpoints = model.endpoints || [];
+  const filteredEndpoints = (endpointSearch
+    ? endpoints.filter(ep =>
+        (ep.description || "").toLowerCase().includes(endpointSearch.toLowerCase()) ||
+        ep.base_url.toLowerCase().includes(endpointSearch.toLowerCase())
+      )
+    : endpoints
+  ).toSorted((a, b) => a.priority - b.priority);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/models")}>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate("/models")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-3xl font-bold tracking-tight">Model Details</h2>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-semibold tracking-tight truncate">
+              {model.display_name || model.model_id}
+            </h1>
+            <StatusBadge
+              label={model.model_type}
+              intent={model.model_type === "proxy" ? "accent" : "info"}
+            />
+            <StatusBadge
+              label={model.is_enabled ? "Enabled" : "Disabled"}
+              intent={model.is_enabled ? "success" : "muted"}
+            />
+          </div>
+          {model.display_name && (
+            <p className="text-xs text-muted-foreground mt-0.5 font-mono">{model.model_id}</p>
+          )}
+        </div>
       </div>
 
-      <Card className="border-l-4 border-l-primary">
-        <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle>{model.display_name || model.model_id}</CardTitle>
-                <Badge 
-                  variant="outline"
-                  className={model.model_type === "native" 
-                    ? "bg-teal-500/15 text-teal-700 border-teal-500/30 dark:text-teal-400 dark:border-teal-400/30"
-                    : "bg-violet-500/15 text-violet-700 border-violet-500/30 dark:text-violet-400 dark:border-violet-400/30"}
-                >
-                  {model.model_type === "native" ? "Native" : "Proxy"}
-                </Badge>
+              <p className="text-xs text-muted-foreground mb-1">Provider</p>
+              <div className="flex items-center gap-2">
+                <ProviderIcon providerType={model.provider.provider_type} size={14} />
+                <span className="text-sm font-medium">{formatProviderType(model.provider.provider_type)}</span>
               </div>
-              <CardDescription>
-                <span className="inline-flex items-center gap-1.5">
-                  <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                  {model.provider.name}
-                </span>
-                {" • "}{model.model_id}
-              </CardDescription>
-              {model.model_type === "proxy" && model.redirect_to && (
-                <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
-                  <ArrowRight className="h-3 w-3" /> Proxies to: <span className="font-medium text-foreground">{model.redirect_to}</span>
-                </div>
-              )}
-            </div>
-            <Badge
-              variant="outline"
-              className={model.is_enabled 
-                ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400 dark:border-emerald-400/30"
-                : "bg-gray-500/15 text-gray-500 border-gray-500/30 dark:text-gray-400 dark:border-gray-400/30"}
-            >
-              {model.is_enabled ? "Enabled" : "Disabled"}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-sm">
-            <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Load Balancing</div>
-              <div className="mt-1 capitalize">{model.lb_strategy.replace("_", " ")}</div>
             </div>
             <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Provider Type</div>
-              <div className="mt-1">{formatProviderType(model.provider.provider_type)}</div>
+              <p className="text-xs text-muted-foreground mb-1">
+                {model.model_type === "proxy" ? "Redirects To" : "Load Balancing"}
+              </p>
+              <span className="text-sm font-medium">
+                {model.model_type === "proxy" ? (
+                  <span className="flex items-center gap-1">
+                    <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                    <span className="font-mono text-xs">{model.redirect_to}</span>
+                  </span>
+                ) : (
+                  formatLabel(model.lb_strategy)
+                )}
+              </span>
             </div>
             <div>
-              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Endpoints</div>
-              <div className="mt-1">{model.endpoints.length} total, {activeCount} active</div>
+              <p className="text-xs text-muted-foreground mb-1">Endpoints</p>
+              <span className="text-sm font-medium">
+                {endpoints.filter(e => e.is_active).length} active / {endpoints.length} total
+              </span>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Created</p>
+              <span className="text-sm font-medium">
+                {new Date(model.created_at).toLocaleDateString()}
+              </span>
             </div>
           </div>
         </CardContent>
@@ -353,303 +277,292 @@ export function ModelDetailPage() {
 
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-xl font-semibold tracking-tight">Endpoints</h3>
-            <p className="text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                {model.provider.name}
-              </span>
-              {model.provider.description && ` — ${model.provider.description}`}
-            </p>
-          </div>
-          {model.model_type === "native" && (
-            <Button onClick={() => handleOpenEndpointDialog()} className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" /> Add Endpoint
+          <h2 className="text-base font-semibold">
+            Endpoints
+            <span className="ml-2 text-xs font-normal text-muted-foreground">({endpoints.length})</span>
+          </h2>
+          <div className="flex items-center gap-2">
+            {endpoints.length > 3 && (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Filter endpoints..."
+                  value={endpointSearch}
+                  onChange={(e) => setEndpointSearch(e.target.value)}
+                  className="h-8 w-48 pl-8 text-xs"
+                />
+              </div>
+            )}
+            <Button size="sm" onClick={() => openEndpointDialog()}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Add Endpoint
             </Button>
-          )}
-          {model.model_type === "proxy" && (
-            <p className="text-sm text-muted-foreground italic">Proxy models use the target model's endpoints</p>
-          )}
+          </div>
         </div>
 
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search endpoints..." value={endpointSearch} onChange={e => setEndpointSearch(e.target.value)} className="pl-9" />
-        </div>
+        {filteredEndpoints.length === 0 ? (
+          <EmptyState
+            icon={<Shield className="h-6 w-6" />}
+            title={endpointSearch ? "No endpoints match your filter" : "No endpoints configured"}
+            description={endpointSearch ? "Try a different search term" : "Add an endpoint to start routing requests"}
+            action={!endpointSearch ? (
+              <Button size="sm" onClick={() => openEndpointDialog()}>
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Endpoint
+              </Button>
+            ) : undefined}
+          />
+        ) : (
+          <div className="space-y-2">
+            {filteredEndpoints.map((ep) => {
+              const rate = successRates.get(ep.id);
+              const isChecking = healthCheckingIds.has(ep.id);
+              const isFocused = focusedEndpointId === ep.id;
+              const successRate = rate?.success_rate ?? 0;
+              const maskedKey = ep.api_key.length > 8
+                ? `${ep.api_key.slice(0, 4)}••••••${ep.api_key.slice(-4)}`
+                : "••••••";
 
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
-            <Table className="min-w-[600px]">
-              <TableHeader>
-                <TableRow>
-                   <TableHead className="w-[80px]">ID</TableHead>
-                   <TableHead>Base URL</TableHead>
-                   <TableHead>API Key</TableHead>
-                   <TableHead>
-                     <TooltipProvider>
-                       <Tooltip>
-                         <TooltipTrigger asChild>
-                           <span className="cursor-help border-b border-dotted border-muted-foreground/50">Priority</span>
-                         </TooltipTrigger>
-                         <TooltipContent>
-                           <p className="text-xs">Lower numbers are tried first</p>
-                         </TooltipContent>
-                       </Tooltip>
-                     </TooltipProvider>
-                   </TableHead>
-                   <TableHead>Success Rate</TableHead>
-                   <TableHead>Active</TableHead>
-                   <TableHead className="text-right">Actions</TableHead>
-                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEndpoints.map((endpoint) => (
-                  <TableRow
-                    key={endpoint.id}
-                    ref={(el) => {
-                      if (el) endpointRowRefs.current.set(endpoint.id, el);
-                      else endpointRowRefs.current.delete(endpoint.id);
-                    }}
-                    className={focusedEndpointId === endpoint.id ? "bg-primary/10 transition-colors duration-1000" : ""}
-                  >
-                     <TableCell className="font-mono text-xs text-muted-foreground">#{endpoint.id}</TableCell>
-                     <TableCell className="font-medium max-w-[200px] truncate" title={endpoint.base_url}>
-                       {endpoint.base_url}
-                       {endpoint.description && (
-                         <div className="text-xs text-muted-foreground">{endpoint.description}</div>
-                       )}
-                     </TableCell>
-                     <TableCell className="font-mono text-xs">
-                      {maskApiKey(endpoint.api_key)}
-                    </TableCell>
-                    <TableCell>{endpoint.priority}</TableCell>
-                    <TableCell>
+              return (
+                <div
+                  key={ep.id}
+                  ref={(el) => { if (el) endpointCardRefs.current.set(ep.id, el); }}
+                  className={cn(
+                    "rounded-lg border p-4 transition-all duration-300",
+                    isFocused && "ring-2 ring-primary/50 bg-primary/5",
+                    !isFocused && "hover:border-border/80"
+                  )}
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={cn(
+                          "inline-block h-2 w-2 rounded-full shrink-0",
+                          ep.health_status === "healthy" ? "bg-emerald-500" :
+                          ep.health_status === "unhealthy" ? "bg-red-500" : "bg-gray-400"
+                        )} />
+                        <span className="text-sm font-medium truncate">
+                          {ep.description || `Endpoint #${ep.id}`}
+                        </span>
+                        <StatusBadge
+                          label={`P${ep.priority}`}
+                          intent={ep.priority >= 10 ? "warning" : ep.priority >= 1 ? "info" : "muted"}
+                        />
+                        {!ep.is_active && (
+                          <StatusBadge label="Inactive" intent="muted" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-mono break-all">{ep.base_url}</p>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>Key: {maskedKey}</span>
+                        {ep.last_health_check && (
+                          <span>Checked {new Date(ep.last_health_check).toLocaleTimeString()}</span>
+                        )}
+                      </div>
+                      {rate && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-2 pt-0.5">
+                                <Progress
+                                  value={successRate}
+                                  className={cn(
+                                    "h-1.5",
+                                    successRate >= 95 ? "[&>[data-slot=progress-indicator]]:bg-emerald-500" :
+                                    successRate >= 80 ? "[&>[data-slot=progress-indicator]]:bg-amber-500" :
+                                    "[&>[data-slot=progress-indicator]]:bg-red-500"
+                                  )}
+                                />
+                                <span className={cn(
+                                  "text-[10px] font-medium tabular-nums shrink-0",
+                                  successRate >= 95 ? "text-emerald-600 dark:text-emerald-400" :
+                                  successRate >= 80 ? "text-amber-600 dark:text-amber-400" :
+                                  "text-red-600 dark:text-red-400"
+                                )}>
+                                  {successRate.toFixed(1)}%
+                                </span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">
+                                {rate.total_requests > 0
+                                  ? `${rate.success_count}/${rate.total_requests} requests succeeded`
+                                  : "No requests yet"}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            {(() => {
-                              const rate = successRates.get(endpoint.id);
-                              if (!rate || rate.total_requests === 0) {
-                                return (
-                                  <Badge variant="secondary" className="text-xs">
-                                    N/A
-                                  </Badge>
-                                );
-                              }
-                              const pct = rate.success_rate ?? 0;
-                              const color =
-                                pct >= 98
-                                  ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30"
-                                  : pct >= 75
-                                    ? "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30"
-                                    : "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30";
-                              return (
-                                <Badge variant="outline" className={`text-xs ${color}`}>
-                                  {pct.toFixed(1)}%
-                                </Badge>
-                              );
-                            })()}
+                            <span className="inline-flex">
+                              <Switch
+                                checked={ep.is_active}
+                                onCheckedChange={() => handleToggleActive(ep)}
+                                className="scale-90 data-[state=checked]:bg-emerald-500"
+                              />
+                            </span>
                           </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <div className="space-y-1">
-                              {(() => {
-                                const rate = successRates.get(endpoint.id);
-                                if (!rate || rate.total_requests === 0) {
-                                  return <div className="text-xs">No requests recorded (last 24h)</div>;
-                                }
-                                return (
-                                  <>
-                                    <div className="text-xs">
-                                      {rate.success_count}/{rate.total_requests} successful ({rate.success_rate?.toFixed(1)}%)
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {rate.error_count} errors (last 24h)
-                                    </div>
-                                  </>
-                                );
-                              })()}
-                              {endpoint.health_detail && (
-                                <div className="text-xs text-muted-foreground">{endpoint.health_detail}</div>
-                              )}
-                              {endpoint.last_health_check && (
-                                <div className="text-xs text-muted-foreground">
-                                  Last check: {new Date(endpoint.last_health_check).toLocaleString()}
-                                </div>
-                              )}
-                            </div>
-                          </TooltipContent>
+                          <TooltipContent><p className="text-xs">{ep.is_active ? "Deactivate" : "Activate"}</p></TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={endpoint.is_active}
-                        onCheckedChange={(checked) => handleToggleActive(endpoint, checked)}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleHealthCheck(endpoint.id)}
-                            disabled={healthCheckingIds.has(endpoint.id)}
-                          >
-                            {healthCheckingIds.has(endpoint.id) ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Activity className="mr-2 h-4 w-4" />
-                            )}
+                          <DropdownMenuItem onClick={() => openEndpointDialog(ep)}>
+                            <Pencil className="mr-2 h-3.5 w-3.5" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleHealthCheck(ep.id)} disabled={isChecking}>
+                            {isChecking ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Activity className="mr-2 h-3.5 w-3.5" />}
                             Health Check
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleOpenEndpointDialog(endpoint)}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleDeleteEndpoint(endpoint.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEndpoint(ep.id)}>
+                            <Trash2 className="mr-2 h-3.5 w-3.5" />
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredEndpoints.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      {model.endpoints.length === 0 ? "No endpoints configured. Add one to start routing requests." : "No endpoints match your search."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <Dialog open={isEndpointDialogOpen} onOpenChange={setIsEndpointDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingEndpoint ? "Edit Endpoint" : "Add Endpoint"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEndpointSubmit} className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="base_url">Base URL</Label>
+            <div className="space-y-2">
+              <Label htmlFor="ep-url">Base URL</Label>
               <Input
-                id="base_url"
+                id="ep-url"
+                placeholder="https://api.openai.com/v1"
                 value={endpointForm.base_url}
                 onChange={(e) => setEndpointForm({ ...endpointForm, base_url: e.target.value })}
-                placeholder="https://api.openai.com/v1"
                 required
               />
             </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="api_key">API Key</Label>
+            <div className="space-y-2">
+              <Label htmlFor="ep-key">API Key</Label>
               <Input
-                id="api_key"
+                id="ep-key"
                 type="password"
+                placeholder="sk-..."
                 value={endpointForm.api_key}
                 onChange={(e) => setEndpointForm({ ...endpointForm, api_key: e.target.value })}
-                placeholder={editingEndpoint ? "Leave blank to keep unchanged" : "sk-..."}
-                required={!editingEndpoint}
+                required
               />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="priority">Priority</Label>
+              <div className="space-y-2">
+                <Label htmlFor="ep-priority">Priority</Label>
                 <Input
-                  id="priority"
+                  id="ep-priority"
                   type="number"
+                  min={0}
                   value={endpointForm.priority}
                   onChange={(e) => setEndpointForm({ ...endpointForm, priority: parseInt(e.target.value) || 0 })}
                 />
-                <p className="text-xs text-muted-foreground">Lower numbers are tried first</p>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="is_active" className="mb-2 block">Active Status</Label>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="is_active"
-                    checked={endpointForm.is_active}
-                    onCheckedChange={(checked) => setEndpointForm({ ...endpointForm, is_active: checked })}
-                  />
-                  <Label htmlFor="is_active" className="font-normal">
-                    {endpointForm.is_active ? "Active" : "Inactive"}
-                  </Label>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="ep-desc">Description</Label>
+                <Input
+                  id="ep-desc"
+                  placeholder="Optional label"
+                  value={endpointForm.description || ""}
+                  onChange={(e) => setEndpointForm({ ...endpointForm, description: e.target.value })}
+                />
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={endpointForm.description || ""}
-                onChange={(e) => setEndpointForm({ ...endpointForm, description: e.target.value })}
-                placeholder="Optional notes"
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label>Active</Label>
+                <p className="text-xs text-muted-foreground">Include in load balancing</p>
+              </div>
+              <Switch
+                checked={endpointForm.is_active}
+                onCheckedChange={(checked) => setEndpointForm({ ...endpointForm, is_active: checked })}
+                className="data-[state=checked]:bg-emerald-500"
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label>Custom Headers</Label>
-              <div className="space-y-2">
-                {headerRows.map((row, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      placeholder="Key"
-                      value={row.key}
-                      onChange={(e) => handleHeaderRowChange(index, "key", e.target.value)}
-                      className="flex-1"
-                    />
-                    <Input
-                      placeholder="Value"
-                      value={row.value}
-                      onChange={(e) => handleHeaderRowChange(index, "value", e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveHeaderRow(index)}
-                      className="h-10 w-10 text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Custom Headers</Label>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={handleAddHeaderRow}
-                  className="w-full border-dashed"
+                  className="h-7 text-xs"
+                  onClick={() => setHeaderRows([...headerRows, { key: "", value: "" }])}
                 >
-                  <Plus className="mr-2 h-3 w-3" /> Add Header
+                  <Plus className="mr-1 h-3 w-3" />
+                  Add
                 </Button>
               </div>
+              {headerRows.map((row, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    placeholder="Header name"
+                    value={row.key}
+                    onChange={(e) => {
+                      const updated = [...headerRows];
+                      updated[i] = { ...updated[i], key: e.target.value };
+                      setHeaderRows(updated);
+                    }}
+                    className="h-8 text-xs"
+                  />
+                  <Input
+                    placeholder="Value"
+                    value={row.value}
+                    onChange={(e) => {
+                      const updated = [...headerRows];
+                      updated[i] = { ...updated[i], value: e.target.value };
+                      setHeaderRows(updated);
+                    }}
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => setHeaderRows(headerRows.filter((_, j) => j !== i))}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
             {dialogTestResult && (
-              <div className={`flex items-center gap-2 rounded-md border p-3 text-sm ${
-                dialogTestResult.status === "healthy" ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400" :
-                "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400"
-              }`}>
-                <span className={`inline-block h-2.5 w-2.5 rounded-full ${
-                  dialogTestResult.status === "healthy" ? "bg-green-500" : "bg-red-500"
-                }`} />
+              <div className={cn(
+                "flex items-center gap-2 rounded-md border px-3 py-2 text-sm",
+                dialogTestResult.status === "healthy"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400"
+              )}>
+                <span className={cn(
+                  "inline-block h-2.5 w-2.5 rounded-full",
+                  dialogTestResult.status === "healthy" ? "bg-emerald-500" : "bg-red-500"
+                )} />
                 {dialogTestResult.detail}
               </div>
             )}
@@ -662,19 +575,16 @@ export function ModelDetailPage() {
                   onClick={handleDialogTestConnection}
                   disabled={dialogTestingConnection}
                   className="mr-auto"
+                  size="sm"
                 >
-                  {dialogTestingConnection ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Activity className="mr-2 h-4 w-4" />
-                  )}
-                  Test Connection
+                  {dialogTestingConnection ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Activity className="mr-1.5 h-3.5 w-3.5" />}
+                  Test
                 </Button>
               )}
-              <Button type="button" variant="outline" onClick={() => setIsEndpointDialogOpen(false)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsEndpointDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save</Button>
+              <Button type="submit" size="sm">Save</Button>
             </DialogFooter>
           </form>
         </DialogContent>

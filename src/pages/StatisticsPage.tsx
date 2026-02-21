@@ -1,26 +1,38 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 import { useEndpointNavigation } from "@/hooks/useEndpointNavigation";
 import type { RequestLogEntry, StatsSummary } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Activity, Clock, CheckCircle, Coins, AlertCircle } from "lucide-react";
+import { Activity, Clock, CheckCircle, Coins, AlertCircle, TrendingUp } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
+import { MetricCard } from "@/components/MetricCard";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { cn } from "@/lib/utils";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 function formatErrorDetail(detail: string | null): string | null {
   if (!detail) return null;
   try {
     const parsed = JSON.parse(detail);
-    const msg =
-      parsed?.error?.message ||
-      parsed?.error?.msg ||
-      parsed?.detail ||
-      parsed?.message;
+    const msg = parsed?.error?.message || parsed?.error?.msg || parsed?.detail || parsed?.message;
     if (msg) return String(msg);
     return detail;
   } catch {
@@ -28,317 +40,367 @@ function formatErrorDetail(detail: string | null): string | null {
   }
 }
 
+interface TimeBucket {
+  label: string;
+  requests: number;
+  errors: number;
+  avgLatency: number;
+}
+
+function bucketLogs(logs: RequestLogEntry[], timeRange: string): TimeBucket[] {
+  if (logs.length === 0) return [];
+
+  const sorted = [...logs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  const bucketMap = new Map<string, { requests: number; errors: number; totalLatency: number }>();
+
+  for (const log of sorted) {
+    const d = new Date(log.created_at);
+    let key: string;
+    if (timeRange === "1h") {
+      const mins = d.getMinutes();
+      const bucket5 = Math.floor(mins / 5) * 5;
+      key = `${d.getHours().toString().padStart(2, "0")}:${bucket5.toString().padStart(2, "0")}`;
+    } else if (timeRange === "24h") {
+      key = `${d.getHours().toString().padStart(2, "0")}:00`;
+    } else {
+      key = `${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getDate().toString().padStart(2, "0")}`;
+    }
+
+    const existing = bucketMap.get(key) ?? { requests: 0, errors: 0, totalLatency: 0 };
+    existing.requests++;
+    if (log.status_code >= 400) existing.errors++;
+    existing.totalLatency += log.response_time_ms;
+    bucketMap.set(key, existing);
+  }
+
+  return Array.from(bucketMap.entries()).map(([label, data]) => ({
+    label,
+    requests: data.requests,
+    errors: data.errors,
+    avgLatency: Math.round(data.totalLatency / data.requests),
+  }));
+}
+
 export function StatisticsPage() {
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const { navigateToEndpoint } = useEndpointNavigation();
-  
+
   const [modelId, setModelId] = useState("");
   const [endpointId, setEndpointId] = useState("");
   const [providerType, setProviderType] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d" | "all">("24h");
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        let fromTime: string | undefined;
-        const now = new Date();
-        
-        if (timeRange === "1h") {
-          fromTime = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-        } else if (timeRange === "24h") {
-          fromTime = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-        } else if (timeRange === "7d") {
-          fromTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const timeout = setTimeout(() => {
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          let fromTime: string | undefined;
+          const now = new Date();
+          if (timeRange === "1h") fromTime = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+          else if (timeRange === "24h") fromTime = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+          else if (timeRange === "7d") fromTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+          const params = {
+            model_id: modelId || undefined,
+            provider_type: providerType === "all" ? undefined : providerType,
+            endpoint_id: endpointId ? parseInt(endpointId) : undefined,
+            from_time: fromTime,
+            limit: 500,
+          };
+
+          const [logsData, summaryData] = await Promise.all([
+            api.stats.requests(params),
+            api.stats.summary(params),
+          ]);
+          setLogs(logsData.items);
+          setSummary(summaryData);
+        } catch (error) {
+          console.error("Failed to fetch statistics:", error);
+        } finally {
+          setLoading(false);
         }
-
-        const params = {
-          model_id: modelId || undefined,
-          provider_type: providerType === "all" ? undefined : providerType,
-          endpoint_id: endpointId ? parseInt(endpointId) : undefined,
-          from_time: fromTime,
-          limit: 100
-        };
-
-        const [logsData, summaryData] = await Promise.all([
-          api.stats.requests(params),
-          api.stats.summary(params)
-        ]);
-
-        setLogs(logsData.items);
-        setSummary(summaryData);
-      } catch (error) {
-        console.error("Failed to fetch statistics:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const timeoutId = setTimeout(() => {
+      };
       fetchData();
     }, 500);
+    return () => clearTimeout(timeout);
+  }, [modelId, endpointId, providerType, timeRange]);
 
-    return () => clearTimeout(timeoutId);
-  }, [modelId, providerType, timeRange, endpointId]);
+  const chartData = useMemo(() => bucketLogs(logs, timeRange), [logs, timeRange]);
 
-  const getStatusColor = (status: number): { variant: "outline"; className: string } => {
-    if (status >= 200 && status < 300) 
-      return { variant: "outline", className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400 dark:border-emerald-400/30" };
-    if (status >= 400 && status < 500) 
-      return { variant: "outline", className: "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400 dark:border-amber-400/30" };
-    return { variant: "outline", className: "bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400 dark:border-red-400/30" };
-  };
+  const successRate = summary && summary.total_requests > 0
+    ? ((summary.success_count / summary.total_requests) * 100).toFixed(1)
+    : "0.0";
 
-  const formatTime = (isoString: string) => {
-    return new Date(isoString).toLocaleString();
-  };
+  if (loading && logs.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-56" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-[100px] rounded-xl" />)}
+        </div>
+        <Skeleton className="h-[300px] rounded-xl" />
+        <Skeleton className="h-[400px] rounded-xl" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Statistics</h2>
-        
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2">
-            <Button 
-              variant={timeRange === "1h" ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setTimeRange("1h")}
+    <div className="space-y-6">
+      <PageHeader title="Statistics" description="Request analytics and performance metrics">
+        <div className="flex gap-1 rounded-lg bg-muted p-1">
+          {(["1h", "24h", "7d", "all"] as const).map((range) => (
+            <Button
+              key={range}
+              variant={timeRange === range ? "default" : "outline"}
+              size="sm"
+              className={cn("h-7 px-3 text-xs", timeRange === range && "shadow-sm")}
+              onClick={() => setTimeRange(range)}
             >
-              Last 1h
+              {range === "all" ? "All" : range}
             </Button>
-            <Button 
-              variant={timeRange === "24h" ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setTimeRange("24h")}
-            >
-              Last 24h
-            </Button>
-            <Button 
-              variant={timeRange === "7d" ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setTimeRange("7d")}
-            >
-              Last 7d
-            </Button>
-            <Button 
-              variant={timeRange === "all" ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setTimeRange("all")}
-            >
-              All
-            </Button>
-          </div>
+          ))}
         </div>
+      </PageHeader>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Input
+          placeholder="Filter by Model ID..."
+          value={modelId}
+          onChange={(e) => setModelId(e.target.value)}
+          className="h-8 w-full text-xs sm:w-52"
+        />
+        <Select value={providerType} onValueChange={setProviderType}>
+          <SelectTrigger className="h-8 w-full text-xs sm:w-44">
+            <SelectValue placeholder="Provider" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Providers</SelectItem>
+            <SelectItem value="openai">
+              <span className="flex items-center gap-2"><ProviderIcon providerType="openai" size={12} /> OpenAI</span>
+            </SelectItem>
+            <SelectItem value="anthropic">
+              <span className="flex items-center gap-2"><ProviderIcon providerType="anthropic" size={12} /> Anthropic</span>
+            </SelectItem>
+            <SelectItem value="gemini">
+              <span className="flex items-center gap-2"><ProviderIcon providerType="gemini" size={12} /> Gemini</span>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          placeholder="Endpoint ID"
+          value={endpointId}
+          onChange={(e) => setEndpointId(e.target.value)}
+          className="h-8 w-full text-xs sm:w-28"
+          type="number"
+          min="1"
+        />
       </div>
 
-      <div className="flex flex-col gap-4 md:flex-row">
-        <div className="w-full md:w-1/2 lg:w-1/3">
-          <Input 
-            placeholder="Filter by Model ID..." 
-            value={modelId} 
-            onChange={(e) => setModelId(e.target.value)}
-          />
-        </div>
-        <div className="w-full md:w-1/3 lg:w-1/4">
-          <Select value={providerType} onValueChange={setProviderType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Provider Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Providers</SelectItem>
-              <SelectItem value="openai"><span className="inline-flex items-center gap-1.5"><ProviderIcon providerType="openai" size={14} />OpenAI</span></SelectItem>
-              <SelectItem value="anthropic"><span className="inline-flex items-center gap-1.5"><ProviderIcon providerType="anthropic" size={14} />Anthropic</span></SelectItem>
-              <SelectItem value="gemini"><span className="inline-flex items-center gap-1.5"><ProviderIcon providerType="gemini" size={14} />Gemini</span></SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="w-full md:w-1/3 lg:w-1/4">
-          <Input 
-            placeholder="Endpoint ID" 
-            value={endpointId} 
-            onChange={(e) => setEndpointId(e.target.value)}
-            type="number"
-            min="1"
-          />
-        </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          label="Total Requests"
+          value={summary?.total_requests ?? 0}
+          detail={`${summary?.success_count ?? 0} successful`}
+          icon={<Activity className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Avg Latency"
+          value={`${(summary?.avg_response_time_ms ?? 0).toFixed(0)}ms`}
+          detail={`P95: ${(summary?.p95_response_time_ms ?? 0).toFixed(0)}ms`}
+          icon={<Clock className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Success Rate"
+          value={`${successRate}%`}
+          detail={`${summary?.error_count ?? 0} errors`}
+          icon={<CheckCircle className="h-4 w-4" />}
+        />
+        <MetricCard
+          label="Total Tokens"
+          value={(summary?.total_tokens ?? 0).toLocaleString()}
+          detail={`In: ${(summary?.total_input_tokens ?? 0).toLocaleString()} / Out: ${(summary?.total_output_tokens ?? 0).toLocaleString()}`}
+          icon={<Coins className="h-4 w-4" />}
+        />
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? "..." : summary?.total_requests.toLocaleString() ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {loading ? "..." : `${summary?.success_count.toLocaleString() ?? 0} successful`}
-            </p>
-          </CardContent>
-        </Card>
+      {chartData.length > 1 && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                Request Volume
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-4">
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                    <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: "var(--popover)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--radius)",
+                        fontSize: 12,
+                        color: "var(--popover-foreground)",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="requests"
+                      stroke="var(--chart-1)"
+                      fill="url(#fillRequests)"
+                      strokeWidth={2}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="errors"
+                      stroke="var(--destructive)"
+                      fill="var(--destructive)"
+                      fillOpacity={0.1}
+                      strokeWidth={1.5}
+                      strokeDasharray="4 2"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? "..." : `${Math.round(summary?.avg_response_time_ms ?? 0)}ms`}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {loading ? "..." : `P95: ${Math.round(summary?.p95_response_time_ms ?? 0)}ms`}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? "..." : `${(summary?.success_rate ?? 0).toFixed(1)}%`}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {loading ? "..." : `${summary?.error_count.toLocaleString() ?? 0} errors`}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tokens</CardTitle>
-            <Coins className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? "..." : summary?.total_tokens.toLocaleString() ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {loading ? "..." : `In: ${summary?.total_input_tokens.toLocaleString() ?? 0} / Out: ${summary?.total_output_tokens.toLocaleString() ?? 0}`}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Avg Latency per Bucket
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-4">
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                    <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" unit="ms" />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: "var(--popover)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--radius)",
+                        fontSize: 12,
+                        color: "var(--popover-foreground)",
+                      }}
+                      formatter={(value: number) => [`${value}ms`, "Avg Latency"]}
+                    />
+                    <Bar dataKey="avgLatency" fill="var(--chart-2)" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Request Logs</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Request Log</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table className="min-w-[1100px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Endpoint</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Latency</TableHead>
-                  <TableHead>In Tokens</TableHead>
-                  <TableHead>Out Tokens</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Stream</TableHead>
-                  <TableHead>Error</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
+        <CardContent className="p-0">
+          {logs.length === 0 ? (
+            <EmptyState
+              icon={<Activity className="h-6 w-6" />}
+              title="No requests found"
+              description="Adjust your filters or time range to see request data."
+            />
+          ) : (
+            <div className="overflow-x-auto scrollbar-thin">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8">
-                      Loading data...
-                    </TableCell>
+                    <TableHead className="text-xs">Time</TableHead>
+                    <TableHead className="text-xs">Model</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Provider</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">Endpoint</TableHead>
+                    <TableHead className="text-xs">Status</TableHead>
+                    <TableHead className="text-xs hidden md:table-cell">Latency</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">Tokens</TableHead>
+                    <TableHead className="text-xs hidden md:table-cell">Stream</TableHead>
+                    <TableHead className="text-xs hidden lg:table-cell">Error</TableHead>
                   </TableRow>
-                ) : logs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                      No requests found for the selected period.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  logs.map((log) => {
+                </TableHeader>
+                <TableBody>
+                  {logs.map((log) => {
                     const errorMsg = formatErrorDetail(log.error_detail);
                     return (
-                      <TableRow key={log.id}>
-                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                          {formatTime(log.created_at)}
+                      <TableRow key={log.id} className="text-xs">
+                        <TableCell className="whitespace-nowrap py-2 text-muted-foreground">
+                          {new Date(log.created_at).toLocaleTimeString()}
                         </TableCell>
-                        <TableCell className="font-medium">{log.model_id}</TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1.5 capitalize">
-                            <ProviderIcon providerType={log.provider_type} size={14} />
-                            {log.provider_type}
-                          </span>
+                        <TableCell className="py-2 font-medium max-w-[140px] truncate">
+                          {log.model_id}
                         </TableCell>
-                        <TableCell className="text-xs max-w-[150px] truncate">
-                          {log.endpoint_id ? (
+                        <TableCell className="py-2 hidden sm:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <ProviderIcon providerType={log.provider_type} size={12} />
+                            <span className="capitalize">{log.provider_type}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2 hidden lg:table-cell">
+                          {log.endpoint_description ? (
                             <button
-                              type="button"
-                              className="text-left hover:underline cursor-pointer text-primary"
-                              onClick={() => navigateToEndpoint(log.endpoint_id!)}
+                              onClick={() => navigateToEndpoint(log.endpoint_id)}
+                              className="text-primary hover:underline cursor-pointer"
                             >
-                              {log.endpoint_description ? (
-                                `${log.endpoint_description} #${log.endpoint_id}`
-                              ) : log.endpoint_base_url ? (
-                                `${log.endpoint_base_url.length > 20 ? log.endpoint_base_url.substring(0, 20) + '...' : log.endpoint_base_url} #${log.endpoint_id}`
-                              ) : (
-                                `#${log.endpoint_id}`
-                              )}
+                              {log.endpoint_description}
                             </button>
                           ) : (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="text-muted-foreground cursor-help">Legacy</span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Legacy log: endpoint link unavailable</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <button
+                              onClick={() => navigateToEndpoint(log.endpoint_id)}
+                              className="text-muted-foreground hover:text-primary cursor-pointer"
+                            >
+                              #{log.endpoint_id}
+                            </button>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={getStatusColor(log.status_code).variant}
-                            className={getStatusColor(log.status_code).className}
-                          >
-                            {log.status_code}
-                          </Badge>
+                        <TableCell className="py-2">
+                          <StatusBadge
+                            label={String(log.status_code)}
+                            intent={log.status_code < 300 ? "success" : log.status_code < 500 ? "warning" : "danger"}
+                            className="tabular-nums"
+                          />
                         </TableCell>
-                        <TableCell>{log.response_time_ms}ms</TableCell>
-                        <TableCell className="text-xs">
-                          {log.input_tokens != null ? log.input_tokens.toLocaleString() : "-"}
+                        <TableCell className="py-2 hidden md:table-cell tabular-nums text-muted-foreground">
+                          {log.response_time_ms.toFixed(0)}ms
                         </TableCell>
-                        <TableCell className="text-xs">
-                          {log.output_tokens != null ? log.output_tokens.toLocaleString() : "-"}
+                        <TableCell className="py-2 hidden lg:table-cell tabular-nums text-muted-foreground">
+                          {log.total_tokens?.toLocaleString() ?? "-"}
                         </TableCell>
-                        <TableCell className="text-xs font-medium">
-                          {log.total_tokens != null ? log.total_tokens.toLocaleString() : "-"}
-                        </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2 hidden md:table-cell">
                           {log.is_stream ? (
-                            <Badge variant="outline" className="text-xs">Stream</Badge>
+                            <StatusBadge label="Stream" />
                           ) : (
-                            <span className="text-muted-foreground text-xs">-</span>
+                            <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="max-w-[200px]">
+                        <TableCell className="py-2 hidden lg:table-cell max-w-[180px]">
                           {errorMsg ? (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className="flex items-center gap-1 text-destructive cursor-help">
                                     <AlertCircle className="h-3 w-3 shrink-0" />
-                                    <span className="truncate text-xs">{errorMsg}</span>
+                                    <span className="truncate">{errorMsg}</span>
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" className="max-w-sm">
@@ -347,16 +409,16 @@ export function StatisticsPage() {
                               </Tooltip>
                             </TooltipProvider>
                           ) : (
-                            <span className="text-muted-foreground text-xs">-</span>
+                            <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
                       </TableRow>
                     );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
