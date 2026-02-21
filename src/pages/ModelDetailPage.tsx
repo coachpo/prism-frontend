@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { cn, formatProviderType, formatLabel } from "@/lib/utils";
@@ -52,7 +52,7 @@ export function ModelDetailPage() {
   });
   const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
 
-  const fetchModel = async () => {
+  const fetchModel = useCallback(async () => {
     if (!id) return;
     try {
       const [data, rates] = await Promise.all([
@@ -70,9 +70,9 @@ export function ModelDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
 
-  useEffect(() => { fetchModel(); }, [id]);
+  useEffect(() => { fetchModel(); }, [fetchModel]);
 
   useEffect(() => {
     if (!model || focusHandled.current) return;

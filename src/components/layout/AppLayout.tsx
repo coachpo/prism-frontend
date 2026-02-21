@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { LayoutDashboard, Server, BarChart3, FileSearch, Settings, Menu, X, Zap } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -14,11 +14,6 @@ const navLinks = [
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
-
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
 
   return (
     <div className="flex h-screen w-full bg-background text-foreground">
@@ -59,6 +54,7 @@ export function AppLayout() {
             <NavLink
               key={to}
               to={to}
+              onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
