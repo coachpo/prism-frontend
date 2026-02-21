@@ -83,11 +83,12 @@ export function StatisticsPage() {
     return () => clearTimeout(timeoutId);
   }, [modelId, providerType, timeRange, endpointId]);
 
-  const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return "default";
-    if (status >= 400 && status < 500) return "destructive";
-    if (status >= 500) return "destructive";
-    return "secondary";
+  const getStatusColor = (status: number): { variant: "outline"; className: string } => {
+    if (status >= 200 && status < 300) 
+      return { variant: "outline", className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400 dark:border-emerald-400/30" };
+    if (status >= 400 && status < 500) 
+      return { variant: "outline", className: "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400 dark:border-amber-400/30" };
+    return { variant: "outline", className: "bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400 dark:border-red-400/30" };
   };
 
   const formatTime = (isoString: string) => {
@@ -306,7 +307,10 @@ export function StatisticsPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusColor(log.status_code)}>
+                          <Badge 
+                            variant={getStatusColor(log.status_code).variant}
+                            className={getStatusColor(log.status_code).className}
+                          >
                             {log.status_code}
                           </Badge>
                         </TableCell>

@@ -105,11 +105,12 @@ export function AuditPage() {
     return providers.find(p => p.id === id)?.provider_type || "";
   };
 
-  const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return "default";
-    if (status >= 400 && status < 500) return "secondary";
-    if (status >= 500) return "destructive";
-    return "outline";
+  const getStatusColor = (status: number): { variant: "outline"; className: string } => {
+    if (status >= 200 && status < 300) 
+      return { variant: "outline", className: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400 dark:border-emerald-400/30" };
+    if (status >= 400 && status < 500) 
+      return { variant: "outline", className: "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400 dark:border-amber-400/30" };
+    return { variant: "outline", className: "bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400 dark:border-red-400/30" };
   };
 
   const formatJson = (str: string | null) => {
@@ -269,7 +270,10 @@ export function AuditPage() {
                         {log.request_url}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getStatusColor(log.response_status)}>
+                        <Badge 
+                          variant={getStatusColor(log.response_status).variant}
+                          className={getStatusColor(log.response_status).className}
+                        >
                           {log.response_status}
                         </Badge>
                       </TableCell>
@@ -336,7 +340,10 @@ export function AuditPage() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 bg-muted/50 rounded-lg shrink-0">
                 <div>
                   <div className="text-xs text-muted-foreground font-medium">Status</div>
-                  <Badge variant={getStatusColor(selectedLog.response_status)} className="mt-1">
+                  <Badge 
+                    variant={getStatusColor(selectedLog.response_status).variant}
+                    className={`mt-1 ${getStatusColor(selectedLog.response_status).className}`}
+                  >
                     {selectedLog.response_status}
                   </Badge>
                 </div>
@@ -414,7 +421,10 @@ export function AuditPage() {
 
                 <TabsContent value="response" className="mt-0 h-full overflow-y-auto p-1 space-y-4">
                   <div className="flex items-center gap-2 pt-2">
-                    <Badge variant={getStatusColor(selectedLog.response_status)}>
+                    <Badge 
+                      variant={getStatusColor(selectedLog.response_status).variant}
+                      className={getStatusColor(selectedLog.response_status).className}
+                    >
                       {selectedLog.response_status}
                     </Badge>
                     {selectedLog.is_stream && <Badge variant="secondary">Stream</Badge>}

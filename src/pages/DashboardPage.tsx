@@ -112,7 +112,12 @@ export function DashboardPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={model.model_type === "native" ? "default" : "outline"} className={model.model_type === "native" ? "bg-primary/90" : ""}>
+                      <Badge 
+                        variant="outline"
+                        className={model.model_type === "native" 
+                          ? "bg-teal-500/15 text-teal-700 border-teal-500/30 dark:text-teal-400 dark:border-teal-400/30"
+                          : "bg-violet-500/15 text-violet-700 border-violet-500/30 dark:text-violet-400 dark:border-violet-400/30"}
+                      >
                         {model.model_type === "native" ? "Native" : "Proxy"}
                       </Badge>
                     </TableCell>
@@ -151,8 +156,10 @@ export function DashboardPage() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={model.is_enabled ? "default" : "secondary"}
-                        className={model.is_enabled ? "bg-primary/90" : ""}
+                        variant="outline"
+                        className={model.is_enabled 
+                          ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400 dark:border-emerald-400/30"
+                          : "bg-gray-500/15 text-gray-500 border-gray-500/30 dark:text-gray-400 dark:border-gray-400/30"}
                       >
                         {model.is_enabled ? "Enabled" : "Disabled"}
                       </Badge>
