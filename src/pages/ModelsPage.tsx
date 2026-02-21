@@ -129,6 +129,11 @@ export function ModelsPage() {
     }
   };
 
+  const selectedProvider = providers.find(p => p.id === formData.provider_id);
+  const nativeModelsForProvider = models.filter(
+    m => m.model_type === "native" && m.provider_id === formData.provider_id && (!editingModel || m.model_id !== formData.model_id)
+  );
+
   const filtered = models.filter((m) => {
     if (search) {
       const q = search.toLowerCase();
@@ -323,7 +328,7 @@ export function ModelsPage() {
                 <Label>Provider</Label>
                 <Select
                   value={String(formData.provider_id)}
-                  onValueChange={(v) => setFormData({ ...formData, provider_id: parseInt(v) })}
+                  onValueChange={(v) => setFormData({ ...formData, provider_id: parseInt(v), redirect_to: null })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select provider" />
@@ -367,7 +372,7 @@ export function ModelsPage() {
               <Label>Type</Label>
               <Select
                 value={formData.model_type}
-                onValueChange={(v) => setFormData({ ...formData, model_type: v as "native" | "proxy" })}
+                onValueChange={(v) => setFormData({ ...formData, model_type: v as "native" | "proxy", redirect_to: v === "native" ? null : formData.redirect_to })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -382,12 +387,28 @@ export function ModelsPage() {
             {formData.model_type === "proxy" && (
               <div className="space-y-2">
                 <Label>Redirect To</Label>
-                <Input
-                  value={formData.redirect_to || ""}
-                  onChange={(e) => setFormData({ ...formData, redirect_to: e.target.value || null })}
-                  placeholder="Target model ID"
-                  required
-                />
+                {nativeModelsForProvider.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No native models available for {selectedProvider?.name || "this provider"}. Create a native model first.
+                  </p>
+                ) : (
+                  <Select
+                    value={formData.redirect_to || ""}
+                    onValueChange={(val) => setFormData({ ...formData, redirect_to: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select target model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {nativeModelsForProvider.map((m) => (
+                        <SelectItem key={m.model_id} value={m.model_id}>
+                          {m.display_name || m.model_id}
+                          {m.display_name && ` (${m.model_id})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             )}
 
