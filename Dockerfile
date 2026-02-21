@@ -42,8 +42,5 @@ RUN echo 'server { \
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider --timeout=2 http://localhost:3000/healthz || exit 1
-
 CMD ["nginx", "-g", "daemon off;"]
 
