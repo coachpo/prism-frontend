@@ -38,7 +38,7 @@ export function AppLayout() {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-sidebar-primary to-sidebar-primary/70">
             <Zap className="h-3.5 w-3.5 text-sidebar-primary-foreground" />
           </div>
-          <span className="text-sm font-semibold tracking-tight">Prism Gateway</span>
+          <span className="text-sm font-semibold tracking-tight">Prism</span>
           <button
             onClick={() => setSidebarOpen(false)}
             className="ml-auto lg:hidden text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors"
