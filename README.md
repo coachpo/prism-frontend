@@ -114,7 +114,7 @@ The frontend uses `VITE_API_BASE` when set. If unset, it uses same-origin API pa
 ### Pages
 
 1. **Dashboard** - Overview of all models with success rate badges
-2. **Models** - CRUD interface for models (native + proxy)
+2. **Models** - CRUD interface for models (native + proxy), load balancing strategies (single/failover), failover recovery controls
 3. **Model Detail** - Endpoint management, health checks, success rate tracking
 4. **Statistics** - Request logs with filters, aggregated stats (latency, tokens, success rate)
 5. **Audit** - Audit log viewer with request/response body inspection
@@ -130,6 +130,8 @@ The frontend uses `VITE_API_BASE` when set. If unset, it uses same-origin API pa
   - Status: Enabled (green), Disabled (gray)
   - HTTP Status: 2xx (green), 4xx (amber), 5xx (red)
   - Success Rate: ≥98% (green), 75-98% (yellow), <75% (red), N/A (gray)
+  - Load Balancing: Single (blue), Failover (purple)
+  - Recovery: Enabled (green), Disabled (gray)
 
 ### API Client
 

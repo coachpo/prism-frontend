@@ -72,16 +72,21 @@ export interface EndpointOwnerResponse {
 }
 
 // --- Model Config ---
+export type ModelType = "native" | "proxy";
+export type LoadBalancingStrategy = "single" | "failover";
+
 export interface ModelConfig {
   id: number;
   provider_id: number;
   provider: Provider;
   model_id: string;
   display_name: string | null;
-  model_type: string;
+  model_type: ModelType;
   redirect_to: string | null;
-  lb_strategy: string;
+  lb_strategy: LoadBalancingStrategy;
   is_enabled: boolean;
+  failover_recovery_enabled: boolean;
+  failover_recovery_cooldown_seconds: number;
   endpoints: Endpoint[];
   created_at: string;
   updated_at: string;
@@ -93,10 +98,12 @@ export interface ModelConfigListItem {
   provider: Provider;
   model_id: string;
   display_name: string | null;
-  model_type: string;
+  model_type: ModelType;
   redirect_to: string | null;
-  lb_strategy: string;
+  lb_strategy: LoadBalancingStrategy;
   is_enabled: boolean;
+  failover_recovery_enabled: boolean;
+  failover_recovery_cooldown_seconds: number;
   endpoint_count: number;
   active_endpoint_count: number;
   health_success_rate: number | null;
@@ -109,20 +116,24 @@ export interface ModelConfigCreate {
   provider_id: number;
   model_id: string;
   display_name?: string | null;
-  model_type?: string;
+  model_type?: ModelType;
   redirect_to?: string | null;
-  lb_strategy?: string;
+  lb_strategy?: LoadBalancingStrategy;
   is_enabled?: boolean;
+  failover_recovery_enabled?: boolean;
+  failover_recovery_cooldown_seconds?: number;
 }
 
 export interface ModelConfigUpdate {
   provider_id?: number;
   model_id?: string;
   display_name?: string | null;
-  model_type?: string;
+  model_type?: ModelType;
   redirect_to?: string | null;
-  lb_strategy?: string;
+  lb_strategy?: LoadBalancingStrategy;
   is_enabled?: boolean;
+  failover_recovery_enabled?: boolean;
+  failover_recovery_cooldown_seconds?: number;
 }
 
 export interface RequestLogEntry {
@@ -215,10 +226,12 @@ export interface ConfigModelExport {
   provider_type: string;
   model_id: string;
   display_name: string | null;
-  model_type: string;
+  model_type: ModelType;
   redirect_to: string | null;
-  lb_strategy: string;
+  lb_strategy: LoadBalancingStrategy;
   is_enabled: boolean;
+  failover_recovery_enabled: boolean;
+  failover_recovery_cooldown_seconds: number;
   endpoints: ConfigEndpointExport[];
 }
 
@@ -231,7 +244,7 @@ export interface ConfigProviderExport {
 }
 
 export interface ConfigExportResponse {
-  version: number;
+  version: 2;
   exported_at: string;
   providers: ConfigProviderExport[];
   models: ConfigModelExport[];
@@ -239,7 +252,7 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: number;
+  version: 2;
   exported_at?: string;
   providers: ConfigProviderExport[];
   models: ConfigModelExport[];

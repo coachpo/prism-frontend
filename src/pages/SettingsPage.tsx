@@ -1,6 +1,8 @@
 import { useRef, useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { z } from "zod";
 import type { ConfigImportRequest, Provider, HeaderBlocklistRule, HeaderBlocklistRuleCreate } from "@/lib/types";
+import { ConfigImportSchema } from "@/lib/configImportValidation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,10 +168,17 @@ export function SettingsPage() {
     setSelectedFile(file);
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text) as ConfigImportRequest;
-      setParsedConfig(parsed);
-    } catch {
-      toast.error("Invalid JSON file");
+      const parsed = JSON.parse(text);
+      
+      const validation = ConfigImportSchema.safeParse(parsed);
+      if (!validation.success) {
+        const errors = validation.error.issues.map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`).join(", ");
+        throw new Error(`Invalid configuration: ${errors}`);
+      }
+      
+      setParsedConfig(validation.data as ConfigImportRequest);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Invalid JSON file");
       setSelectedFile(null);
       setParsedConfig(null);
       if (fileInputRef.current) fileInputRef.current.value = "";

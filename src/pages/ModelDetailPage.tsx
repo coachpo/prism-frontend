@@ -237,7 +237,7 @@ export function ModelDetailPage() {
 
       <Card>
         <CardContent className="p-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Provider</p>
               <div className="flex items-center gap-2">
@@ -257,6 +257,22 @@ export function ModelDetailPage() {
                   </span>
                 ) : (
                   formatLabel(model.lb_strategy)
+                )}
+              </span>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Recovery Policy</p>
+              <span className="text-sm font-medium">
+                {model.model_type === "native" && model.lb_strategy === "failover" ? (
+                  model.failover_recovery_enabled ? (
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      Enabled ({model.failover_recovery_cooldown_seconds}s)
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Disabled</span>
+                  )
+                ) : (
+                  <span className="text-muted-foreground">N/A</span>
                 )}
               </span>
             </div>

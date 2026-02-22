@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { formatProviderType, formatLabel } from "@/lib/utils";
-import type { ModelConfigListItem, Provider, ModelConfigCreate, ModelConfigUpdate } from "@/lib/types";
+import type { ModelConfigListItem, Provider, ModelConfigCreate, ModelConfigUpdate, LoadBalancingStrategy } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -46,6 +46,8 @@ export function ModelsPage() {
     redirect_to: null,
     lb_strategy: "single",
     is_enabled: true,
+    failover_recovery_enabled: true,
+    failover_recovery_cooldown_seconds: 60,
   });
 
   const fetchData = async () => {
@@ -77,6 +79,8 @@ export function ModelsPage() {
         redirect_to: model.redirect_to,
         lb_strategy: model.lb_strategy,
         is_enabled: model.is_enabled,
+        failover_recovery_enabled: model.failover_recovery_enabled,
+        failover_recovery_cooldown_seconds: model.failover_recovery_cooldown_seconds,
       });
     } else {
       setEditingModel(null);
@@ -88,6 +92,8 @@ export function ModelsPage() {
         redirect_to: null,
         lb_strategy: "single",
         is_enabled: true,
+        failover_recovery_enabled: true,
+        failover_recovery_cooldown_seconds: 60,
       });
     }
     setIsDialogOpen(true);
@@ -103,11 +109,20 @@ export function ModelsPage() {
           redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
           lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
           is_enabled: formData.is_enabled,
+          failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
+          failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
         };
         await api.models.update(editingModel.id, updateData);
         toast.success("Model updated");
       } else {
-        await api.models.create(formData);
+        const createData: ModelConfigCreate = {
+          ...formData,
+          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
+          lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
+          failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
+          failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
+        };
+        await api.models.create(createData);
         toast.success("Model created");
       }
       setIsDialogOpen(false);
@@ -417,17 +432,50 @@ export function ModelsPage() {
                 <Label>Load Balancing</Label>
                 <Select
                   value={formData.lb_strategy}
-                  onValueChange={(v) => setFormData({ ...formData, lb_strategy: v })}
+                  onValueChange={(v) => setFormData({ ...formData, lb_strategy: v as LoadBalancingStrategy })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="single">Single</SelectItem>
-                    <SelectItem value="round_robin">Round Robin</SelectItem>
+
                     <SelectItem value="failover">Failover</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+            {formData.model_type === "native" && formData.lb_strategy === "failover" && (
+              <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
+                <div className="space-y-2">
+                  <Label className="text-base font-medium">Recovery Policy</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Configure how the system attempts to recover failed endpoints.
+                  </p>
+                </div>
+                
+                <SwitchController
+                  label="Auto-Recovery"
+                  description="Periodically check failed endpoints"
+                  checked={formData.failover_recovery_enabled ?? true}
+                  onCheckedChange={(checked) => setFormData({ ...formData, failover_recovery_enabled: checked })}
+                />
+
+                {formData.failover_recovery_enabled && (
+                  <div className="space-y-2">
+                    <Label>Cooldown Period (seconds)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={3600}
+                      value={formData.failover_recovery_cooldown_seconds}
+                      onChange={(e) => setFormData({ ...formData, failover_recovery_cooldown_seconds: parseInt(e.target.value) || 60 })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Wait time before retrying a failed endpoint (1-3600s).
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
