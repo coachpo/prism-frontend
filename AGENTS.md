@@ -10,27 +10,28 @@ React 19 SPA dashboard for managing LLM proxy configuration — models, endpoint
 src/
 ├── main.tsx                    # Entry: StrictMode + ThemeProvider + TooltipProvider + Toaster + App
 ├── App.tsx                     # BrowserRouter with 6 routes inside AppLayout
-├── pages/                      # 6 page components (2539 lines total)
+├── pages/                      # 6 page components (2947 lines total)
 │   ├── DashboardPage.tsx       # Overview of all models with health badges — 149 lines
-│   ├── ModelsPage.tsx          # Model CRUD list — 452 lines
-│   ├── ModelDetailPage.tsx     # Single model: endpoints, health checks, config — 585 lines
+│   ├── ModelsPage.tsx          # Model CRUD list — 465 lines
+│   ├── ModelDetailPage.tsx     # Single model: endpoints, health checks, config — 581 lines
 │   ├── StatisticsPage.tsx      # Request logs + aggregated stats with recharts — 429 lines
-│   ├── AuditPage.tsx           # Audit log viewer with detail modal — 529 lines
-│   └── SettingsPage.tsx        # Provider audit toggles + config export/import — 395 lines
+│   ├── AuditPage.tsx           # Audit log viewer with detail modal — 528 lines
+│   └── SettingsPage.tsx        # Provider audit toggles + header blocklist + config export/import — 795 lines
 ├── components/
-│   ├── layout/AppLayout.tsx    # Responsive sidebar nav (collapsible drawer on mobile, fixed on lg+) — 109 lines
+│   ├── layout/AppLayout.tsx    # Responsive sidebar nav (collapsible drawer on mobile, fixed on lg+) — 105 lines
 │   ├── EmptyState.tsx          # Reusable empty state with icon, title, description, action — 26 lines
 │   ├── MetricCard.tsx          # Metric display card with icon, trend, click handler — 55 lines
 │   ├── PageHeader.tsx          # Reusable page header with title, description, actions — 25 lines
 │   ├── ProviderIcon.tsx        # SVG brand icons for OpenAI, Anthropic, Gemini — 51 lines
-│   ├── StatusBadge.tsx         # Semantic color-coded badges (8 intent variants) — 32 lines
+│   ├── StatusBadge.tsx         # Semantic color-coded badges (8 intent variants) — 60 lines
 │   ├── ThemeToggle.tsx         # Dark/light mode toggle (next-themes) — 20 lines
+│   ├── SwitchController.tsx   # react-hook-form controlled Switch wrapper — 38 lines
 │   └── ui/                     # shadcn/ui primitives (22 components)
 ├── hooks/
 │   └── useEndpointNavigation.ts # Navigate to model detail with endpoint focus + owner cache — 35 lines
 ├── lib/
-│   ├── api.ts                  # Typed fetch wrapper — all backend API calls (6 namespaces) — 172 lines
-│   ├── types.ts                # TypeScript interfaces mirroring backend schemas — 315 lines
+│   ├── api.ts                  # Typed fetch wrapper — all backend API calls (6 namespaces) — 198 lines
+│   ├── types.ts                # TypeScript interfaces mirroring backend schemas — 350 lines
 │   └── utils.ts                # cn() + formatLabel() + formatProviderType() — 22 lines
 └── assets/                     # Static assets (SVGs)
 ```
