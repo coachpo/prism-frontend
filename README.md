@@ -99,13 +99,13 @@ The dev server will be available at http://localhost:5173.
 Create a `.env` file in the frontend directory:
 
 ```env
-# Backend API URL (default: http://localhost:8000)
-VITE_API_BASE=http://localhost:8000
+# Optional backend API URL override (default: same-origin)
+# VITE_API_BASE=https://your-prism-domain.example
 ```
 
 ### API Base URL
 
-The frontend connects to the backend API at the URL specified in `VITE_API_BASE`. This is configured in `lib/api.ts`.
+The frontend uses `VITE_API_BASE` when set. If unset, it uses same-origin API paths (`/api`, `/v1`, `/v1beta`). In development, Vite proxies these paths to `http://localhost:8000` by default.
 
 ---
 
@@ -196,8 +196,9 @@ The build output is optimized and minified. Serve the `dist/` directory with any
 
 Check that:
 1. Backend is running at the URL specified in `VITE_API_BASE`
-2. CORS is enabled on the backend (it is by default)
-3. No firewall blocking the connection
+2. If `VITE_API_BASE` is unset, ensure the app is behind a reverse proxy (production) or Vite dev proxy (development)
+3. CORS is enabled on the backend (it is by default)
+4. No firewall blocking the connection
 
 ### Build Errors
 

@@ -44,7 +44,7 @@ src/
 | Add page | `App.tsx` (route) + `pages/` (component) + `AppLayout` (nav link) |
 | Add UI component | `pnpm dlx shadcn add <name>` | Installs to `components/ui/` |
 | Add reusable component | `components/` | See EmptyState, MetricCard, PageHeader, StatusBadge for patterns |
-| Change API base URL | `VITE_API_BASE` env var | Default: `http://localhost:8000` |
+| Change API base URL | `VITE_API_BASE` env var | Default: same-origin `""` (dev uses Vite proxy to backend) |
 | Theming | `index.css` + `next-themes` | CSS variables (oklch color space) for light/dark, `--radius: 0.625rem` |
 | Audit UI | `pages/AuditPage.tsx` | Log list + detail modal with request/response bodies |
 | Provider settings | `pages/SettingsPage.tsx` | Audit toggles + config export/import |
