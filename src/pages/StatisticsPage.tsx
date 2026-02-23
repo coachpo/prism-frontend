@@ -5,7 +5,6 @@ import type { RequestLogEntry, StatsSummary } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +14,7 @@ import { ProviderIcon } from "@/components/ProviderIcon";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { ProviderSelect } from "@/components/ProviderSelect";
 import { cn } from "@/lib/utils";
 import {
   AreaChart,
@@ -172,23 +172,7 @@ export function StatisticsPage() {
           onChange={(e) => setModelId(e.target.value)}
           className="h-8 w-full text-xs sm:w-52"
         />
-        <Select value={providerType} onValueChange={setProviderType}>
-          <SelectTrigger className="h-8 w-full text-xs sm:w-44">
-            <SelectValue placeholder="Provider" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Providers</SelectItem>
-            <SelectItem value="openai">
-              <span className="flex items-center gap-2"><ProviderIcon providerType="openai" size={12} /> OpenAI</span>
-            </SelectItem>
-            <SelectItem value="anthropic">
-              <span className="flex items-center gap-2"><ProviderIcon providerType="anthropic" size={12} /> Anthropic</span>
-            </SelectItem>
-            <SelectItem value="gemini">
-              <span className="flex items-center gap-2"><ProviderIcon providerType="gemini" size={12} /> Gemini</span>
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <ProviderSelect value={providerType} onValueChange={setProviderType} className="h-8 w-full text-xs sm:w-44" />
         <Input
           placeholder="Endpoint ID"
           value={endpointId}

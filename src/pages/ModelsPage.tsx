@@ -18,6 +18,7 @@ import { Plus, Pencil, Trash2, MoreHorizontal, Search, Server } from "lucide-rea
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { ProviderSelect } from "@/components/ProviderSelect";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -194,17 +195,7 @@ export function ModelsPage() {
             className="pl-9 h-9"
           />
         </div>
-        <Select value={providerFilter} onValueChange={setProviderFilter}>
-          <SelectTrigger className="w-auto min-w-[130px] h-9">
-            <SelectValue placeholder="Provider" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Providers</SelectItem>
-            <SelectItem value="openai">OpenAI</SelectItem>
-            <SelectItem value="anthropic">Anthropic</SelectItem>
-            <SelectItem value="gemini">Gemini</SelectItem>
-          </SelectContent>
-        </Select>
+        <ProviderSelect value={providerFilter} onValueChange={setProviderFilter} providers={providers} className="w-auto min-w-[130px] h-9" />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-auto min-w-[110px] h-9">
             <SelectValue placeholder="Status" />
@@ -341,24 +332,14 @@ export function ModelsPage() {
             {!editingModel && (
               <div className="space-y-2">
                 <Label>Provider</Label>
-                <Select
+                <ProviderSelect
                   value={String(formData.provider_id)}
                   onValueChange={(v) => setFormData({ ...formData, provider_id: parseInt(v), redirect_to: null })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {providers.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        <div className="flex items-center gap-2">
-                          <ProviderIcon providerType={p.provider_type} size={14} />
-                          {p.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  valueType="provider_id"
+                  providers={providers}
+                  showAll={false}
+                  placeholder="Select provider"
+                />
               </div>
             )}
 

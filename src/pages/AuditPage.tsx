@@ -18,6 +18,7 @@ import { ProviderIcon } from "@/components/ProviderIcon";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { ProviderSelect } from "@/components/ProviderSelect";
 
 import { toast } from "sonner";
 
@@ -209,22 +210,7 @@ export function AuditPage() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={providerId} onValueChange={(v) => { setProviderId(v); setOffset(0); }}>
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Provider" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Providers</SelectItem>
-                {providers.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    <span className="flex items-center gap-2">
-                      <ProviderIcon providerType={p.provider_type} size={14} />
-                      {p.name}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ProviderSelect value={providerId} onValueChange={(v) => { setProviderId(v); setOffset(0); }} valueType="provider_id" providers={providers} className="w-full sm:w-[160px]" />
 
             <Input
               placeholder="Model ID"
