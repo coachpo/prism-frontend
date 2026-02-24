@@ -24,6 +24,7 @@ const EndpointExportSchema = z.object({
   input_price: z.string().nullable().optional(),
   output_price: z.string().nullable().optional(),
   cached_input_price: z.string().nullable().optional(),
+  cache_creation_price: z.string().nullable().optional(),
   reasoning_price: z.string().nullable().optional(),
   missing_special_token_policy: z
     .enum(["MAP_TO_OUTPUT", "ZERO_COST"])

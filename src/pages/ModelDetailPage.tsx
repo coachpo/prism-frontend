@@ -75,6 +75,7 @@ export function ModelDetailPage() {
     input_price: null,
     output_price: null,
     cached_input_price: null,
+    cache_creation_price: null,
     reasoning_price: null,
     missing_special_token_policy: "MAP_TO_OUTPUT",
   });
@@ -149,6 +150,7 @@ export function ModelDetailPage() {
       ["Input price", endpointForm.input_price],
       ["Output price", endpointForm.output_price],
       ["Cached input price", endpointForm.cached_input_price],
+      ["Cache creation price", endpointForm.cache_creation_price],
       ["Reasoning price", endpointForm.reasoning_price],
     ] as const;
 
@@ -182,6 +184,7 @@ export function ModelDetailPage() {
         input_price: endpoint.input_price,
         output_price: endpoint.output_price,
         cached_input_price: endpoint.cached_input_price,
+        cache_creation_price: endpoint.cache_creation_price,
         reasoning_price: endpoint.reasoning_price,
         missing_special_token_policy: endpoint.missing_special_token_policy,
       });
@@ -202,6 +205,7 @@ export function ModelDetailPage() {
         input_price: null,
         output_price: null,
         cached_input_price: null,
+        cache_creation_price: null,
         reasoning_price: null,
         missing_special_token_policy: "MAP_TO_OUTPUT",
       });
@@ -236,6 +240,7 @@ export function ModelDetailPage() {
       input_price: normalizeOptionalDecimal(endpointForm.input_price),
       output_price: normalizeOptionalDecimal(endpointForm.output_price),
       cached_input_price: normalizeOptionalDecimal(endpointForm.cached_input_price),
+      cache_creation_price: normalizeOptionalDecimal(endpointForm.cache_creation_price),
       reasoning_price: normalizeOptionalDecimal(endpointForm.reasoning_price),
     };
 
@@ -507,7 +512,7 @@ export function ModelDetailPage() {
                       <p className="text-xs text-muted-foreground font-mono break-all">{ep.base_url}</p>
                       {ep.pricing_enabled ? (
                         <p className="text-[11px] text-muted-foreground">
-                          Input {ep.input_price ?? "0"} / Output {ep.output_price ?? "0"} / Cached {ep.cached_input_price ?? "0"} / Reasoning {ep.reasoning_price ?? "0"}
+                          Input {ep.input_price ?? "0"} / Output {ep.output_price ?? "0"} / Cached {ep.cached_input_price ?? "0"} / Cache Create {ep.cache_creation_price ?? "0"} / Reasoning {ep.reasoning_price ?? "0"}
                         </p>
                       ) : null}
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -749,7 +754,7 @@ export function ModelDetailPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="cached-input-price">Cached Input Price</Label>
                     <Input
@@ -761,6 +766,23 @@ export function ModelDetailPage() {
                         setEndpointForm({
                           ...endpointForm,
                           cached_input_price: e.target.value,
+                        })
+                      }
+                      disabled={!endpointForm.pricing_enabled}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cache-creation-price">Cache Creation Price</Label>
+                    <Input
+                      id="cache-creation-price"
+                      placeholder="0"
+                      inputMode="decimal"
+                      value={endpointForm.cache_creation_price ?? ""}
+                      onChange={(e) =>
+                        setEndpointForm({
+                          ...endpointForm,
+                          cache_creation_price: e.target.value,
                         })
                       }
                       disabled={!endpointForm.pricing_enabled}
