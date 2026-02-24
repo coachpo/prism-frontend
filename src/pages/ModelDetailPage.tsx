@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { cn, formatProviderType, formatLabel } from "@/lib/utils";
-import { isValidCurrencyCode } from "@/lib/costing";
+import {
+  formatMissingSpecialTokenPolicyLabel,
+  formatPricingUnitLabel,
+  isValidCurrencyCode,
+} from "@/lib/costing";
 import type { ModelConfig, Endpoint, EndpointCreate, EndpointUpdate, EndpointSuccessRate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -482,14 +486,17 @@ export function ModelDetailPage() {
                           intent={ep.pricing_enabled ? "success" : "muted"}
                         />
                         {ep.pricing_enabled && ep.pricing_unit && (
-                          <ValueBadge label={ep.pricing_unit} intent="info" />
+                          <ValueBadge
+                            label={formatPricingUnitLabel(ep.pricing_unit)}
+                            intent="info"
+                          />
                         )}
                         {ep.pricing_enabled && ep.pricing_currency_code && (
                           <ValueBadge label={ep.pricing_currency_code} intent="accent" />
                         )}
                         {ep.pricing_enabled && (
                           <ValueBadge
-                            label={ep.missing_special_token_policy}
+                            label={formatMissingSpecialTokenPolicyLabel(ep.missing_special_token_policy)}
                             intent={ep.missing_special_token_policy === "ZERO_COST" ? "warning" : "info"}
                           />
                         )}
@@ -688,8 +695,8 @@ export function ModelDetailPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="PER_1K">PER_1K</SelectItem>
-                        <SelectItem value="PER_1M">PER_1M</SelectItem>
+                        <SelectItem value="PER_1K">Per 1K tokens</SelectItem>
+                        <SelectItem value="PER_1M">Per 1M tokens</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -794,8 +801,8 @@ export function ModelDetailPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MAP_TO_OUTPUT">MAP_TO_OUTPUT</SelectItem>
-                      <SelectItem value="ZERO_COST">ZERO_COST</SelectItem>
+                      <SelectItem value="MAP_TO_OUTPUT">Map to output price</SelectItem>
+                      <SelectItem value="ZERO_COST">Zero cost</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

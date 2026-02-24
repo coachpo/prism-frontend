@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useEndpointNavigation } from "@/hooks/useEndpointNavigation";
-import { formatMoneyMicros, formatTokenCount } from "@/lib/costing";
+import {
+  formatMoneyMicros,
+  formatTokenCount,
+  formatUnpricedReasonLabel,
+} from "@/lib/costing";
 import type {
   RequestLogEntry,
   SpendingGroupBy,
@@ -766,7 +770,7 @@ export function StatisticsPage() {
                               />
                             </TableCell>
                             <TableCell className="py-2 hidden xl:table-cell max-w-[220px] truncate text-muted-foreground">
-                              {log.unpriced_reason || "-"}
+                              {formatUnpricedReasonLabel(log.unpriced_reason)}
                             </TableCell>
                             <TableCell className="py-2 hidden md:table-cell">
                               {log.is_stream ? (
@@ -1234,7 +1238,9 @@ export function StatisticsPage() {
                         key={reason}
                         className="flex items-center justify-between rounded border px-2 py-1.5"
                       >
-                        <span className="text-sm truncate pr-2">{reason}</span>
+                        <span className="text-sm truncate pr-2">
+                          {formatUnpricedReasonLabel(reason)}
+                        </span>
                         <span className="text-xs tabular-nums text-muted-foreground">
                           {count.toLocaleString()}
                         </span>

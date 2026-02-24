@@ -1,5 +1,39 @@
 const MICRO_FACTOR = 1_000_000;
 
+const PRICING_UNIT_LABELS: Record<string, string> = {
+  PER_1K: "Per 1K tokens",
+  PER_1M: "Per 1M tokens",
+};
+
+const MISSING_SPECIAL_TOKEN_POLICY_LABELS: Record<string, string> = {
+  MAP_TO_OUTPUT: "Map to output price",
+  ZERO_COST: "Zero cost",
+};
+
+const UNPRICED_REASON_LABELS: Record<string, string> = {
+  LEGACY_NO_COST_DATA: "Legacy (no cost data)",
+  PRICING_DISABLED: "Pricing disabled",
+  MISSING_PRICE_DATA: "Missing price data",
+  MISSING_ENDPOINT: "Missing endpoint",
+  MISSING_TOKEN_USAGE: "Missing token usage",
+};
+
+const FX_RATE_SOURCE_LABELS: Record<string, string> = {
+  ENDPOINT_SPECIFIC: "Endpoint-specific rate",
+  DEFAULT_1_TO_1: "Default (1:1)",
+};
+
+function formatEnumLabel(
+  value: string | null | undefined,
+  labels: Record<string, string>,
+  fallback = "-"
+): string {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+  return labels[value] ?? value;
+}
+
 export function microsToDecimal(micros: number | null | undefined): number {
   if (micros === null || micros === undefined) {
     return 0;
@@ -45,4 +79,22 @@ export function isValidPositiveDecimalString(value: string): boolean {
     return false;
   }
   return parsed > 0;
+}
+
+export function formatPricingUnitLabel(value: string | null | undefined): string {
+  return formatEnumLabel(value, PRICING_UNIT_LABELS);
+}
+
+export function formatMissingSpecialTokenPolicyLabel(
+  value: string | null | undefined
+): string {
+  return formatEnumLabel(value, MISSING_SPECIAL_TOKEN_POLICY_LABELS);
+}
+
+export function formatUnpricedReasonLabel(value: string | null | undefined): string {
+  return formatEnumLabel(value, UNPRICED_REASON_LABELS);
+}
+
+export function formatFxRateSourceLabel(value: string | null | undefined): string {
+  return formatEnumLabel(value, FX_RATE_SOURCE_LABELS);
 }
