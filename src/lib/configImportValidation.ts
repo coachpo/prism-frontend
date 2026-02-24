@@ -10,6 +10,7 @@ const ProviderExportSchema = z.object({
 });
 
 const EndpointExportSchema = z.object({
+  endpoint_id: z.number().nullable().optional(),
   base_url: z.string(),
   api_key: z.string(),
   is_active: z.boolean(),
@@ -17,6 +18,18 @@ const EndpointExportSchema = z.object({
   description: z.string().nullable(),
   auth_type: z.string().nullable(),
   custom_headers: z.record(z.string(), z.string()).nullable(),
+  pricing_enabled: z.boolean().optional().default(false),
+  pricing_unit: z.enum(["PER_1K", "PER_1M"]).nullable().optional(),
+  pricing_currency_code: z.string().nullable().optional(),
+  input_price: z.string().nullable().optional(),
+  output_price: z.string().nullable().optional(),
+  cached_input_price: z.string().nullable().optional(),
+  reasoning_price: z.string().nullable().optional(),
+  missing_special_token_policy: z
+    .enum(["MAP_TO_OUTPUT", "ZERO_COST"])
+    .optional()
+    .default("MAP_TO_OUTPUT"),
+  pricing_config_version: z.number().optional().default(0),
 });
 
 const ModelExportSchema = z.object({
@@ -40,12 +53,25 @@ const HeaderBlocklistRuleExportSchema = z.object({
   is_system: z.boolean(),
 });
 
+const EndpointFxRateExportSchema = z.object({
+  model_id: z.string(),
+  endpoint_id: z.number(),
+  fx_rate: z.string(),
+});
+
+const UserSettingsExportSchema = z.object({
+  report_currency_code: z.string(),
+  report_currency_symbol: z.string(),
+  endpoint_fx_mappings: z.array(EndpointFxRateExportSchema).optional().default([]),
+});
+
 
 export const ConfigImportSchema = z.object({
-  version: z.literal(2),
+  version: z.union([z.literal(2), z.literal(3)]),
   exported_at: z.string().optional(),
   providers: z.array(ProviderExportSchema),
   models: z.array(ModelExportSchema),
+  user_settings: UserSettingsExportSchema.optional(),
   header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),
 });
 

@@ -28,6 +28,15 @@ export interface Endpoint {
   description: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
+  pricing_enabled: boolean;
+  pricing_unit: "PER_1K" | "PER_1M" | null;
+  pricing_currency_code: string | null;
+  input_price: string | null;
+  output_price: string | null;
+  cached_input_price: string | null;
+  reasoning_price: string | null;
+  missing_special_token_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
+  pricing_config_version: number;
   health_status: string;
   health_detail: string | null;
   last_health_check: string | null;
@@ -43,6 +52,14 @@ export interface EndpointCreate {
   description?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
+  pricing_enabled?: boolean;
+  pricing_unit?: "PER_1K" | "PER_1M" | null;
+  pricing_currency_code?: string | null;
+  input_price?: string | null;
+  output_price?: string | null;
+  cached_input_price?: string | null;
+  reasoning_price?: string | null;
+  missing_special_token_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
 }
 
 export interface EndpointUpdate {
@@ -53,6 +70,14 @@ export interface EndpointUpdate {
   description?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
+  pricing_enabled?: boolean;
+  pricing_unit?: "PER_1K" | "PER_1M" | null;
+  pricing_currency_code?: string | null;
+  input_price?: string | null;
+  output_price?: string | null;
+  cached_input_price?: string | null;
+  reasoning_price?: string | null;
+  missing_special_token_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
 }
 
 export interface HealthCheckResponse {
@@ -149,6 +174,30 @@ export interface RequestLogEntry {
   input_tokens: number | null;
   output_tokens: number | null;
   total_tokens: number | null;
+  success_flag: boolean | null;
+  billable_flag: boolean | null;
+  priced_flag: boolean | null;
+  unpriced_reason: string | null;
+  cached_input_tokens: number | null;
+  reasoning_tokens: number | null;
+  input_cost_micros: number | null;
+  output_cost_micros: number | null;
+  cached_input_cost_micros: number | null;
+  reasoning_cost_micros: number | null;
+  total_cost_original_micros: number | null;
+  total_cost_user_currency_micros: number | null;
+  currency_code_original: string | null;
+  report_currency_code: string | null;
+  report_currency_symbol: string | null;
+  fx_rate_used: string | null;
+  fx_rate_source: string | null;
+  pricing_snapshot_unit: string | null;
+  pricing_snapshot_input: string | null;
+  pricing_snapshot_output: string | null;
+  pricing_snapshot_cached_input: string | null;
+  pricing_snapshot_reasoning: string | null;
+  pricing_snapshot_policy: string | null;
+  pricing_config_version_used: number | null;
   request_path: string;
   error_detail: string | null;
   created_at: string;
@@ -213,6 +262,7 @@ export interface EndpointSuccessRate {
 }
 
 export interface ConfigEndpointExport {
+  endpoint_id?: number | null;
   base_url: string;
   api_key: string;
   is_active: boolean;
@@ -220,6 +270,15 @@ export interface ConfigEndpointExport {
   description: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
+  pricing_enabled: boolean;
+  pricing_unit: "PER_1K" | "PER_1M" | null;
+  pricing_currency_code: string | null;
+  input_price: string | null;
+  output_price: string | null;
+  cached_input_price: string | null;
+  reasoning_price: string | null;
+  missing_special_token_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
+  pricing_config_version: number;
 }
 
 export interface ConfigModelExport {
@@ -243,19 +302,33 @@ export interface ConfigProviderExport {
   audit_capture_bodies: boolean;
 }
 
+export interface ConfigEndpointFxRateExport {
+  model_id: string;
+  endpoint_id: number;
+  fx_rate: string;
+}
+
+export interface ConfigUserSettingsExport {
+  report_currency_code: string;
+  report_currency_symbol: string;
+  endpoint_fx_mappings: ConfigEndpointFxRateExport[];
+}
+
 export interface ConfigExportResponse {
-  version: 2;
+  version: 2 | 3;
   exported_at: string;
   providers: ConfigProviderExport[];
   models: ConfigModelExport[];
+  user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules: HeaderBlocklistRuleExport[];
 }
 
 export interface ConfigImportRequest {
-  version: 2;
+  version: 2 | 3;
   exported_at?: string;
   providers: ConfigProviderExport[];
   models: ConfigModelExport[];
+  user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
 }
 
@@ -327,6 +400,91 @@ export interface AuditLogDeleteResponse {
 
 export interface BatchDeleteResponse {
   deleted_count: number;
+}
+
+export interface EndpointFxMapping {
+  model_id: string;
+  endpoint_id: number;
+  fx_rate: string;
+}
+
+export interface CostingSettingsResponse {
+  report_currency_code: string;
+  report_currency_symbol: string;
+  endpoint_fx_mappings: EndpointFxMapping[];
+}
+
+export interface CostingSettingsUpdate {
+  report_currency_code: string;
+  report_currency_symbol: string;
+  endpoint_fx_mappings: EndpointFxMapping[];
+}
+
+export type SpendingGroupBy =
+  | "none"
+  | "day"
+  | "week"
+  | "month"
+  | "provider"
+  | "model"
+  | "endpoint"
+  | "model_endpoint";
+
+export interface SpendingReportParams {
+  preset?: "today" | "24h" | "last_7_days" | "7d" | "last_30_days" | "30d" | "custom" | "all";
+  from_time?: string;
+  to_time?: string;
+  provider_type?: string;
+  model_id?: string;
+  endpoint_id?: number;
+  group_by?: SpendingGroupBy;
+  limit?: number;
+  offset?: number;
+  top_n?: number;
+}
+
+export interface SpendingSummary {
+  total_cost_micros: number;
+  successful_request_count: number;
+  priced_request_count: number;
+  unpriced_request_count: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cached_input_tokens: number;
+  total_reasoning_tokens: number;
+  total_tokens: number;
+  avg_cost_per_successful_request_micros: number;
+}
+
+export interface SpendingGroupRow {
+  key: string;
+  total_cost_micros: number;
+  total_requests: number;
+  priced_requests: number;
+  unpriced_requests: number;
+  total_tokens: number;
+}
+
+export interface SpendingTopModel {
+  model_id: string;
+  total_cost_micros: number;
+}
+
+export interface SpendingTopEndpoint {
+  endpoint_id: number | null;
+  endpoint_label: string;
+  total_cost_micros: number;
+}
+
+export interface SpendingReportResponse {
+  summary: SpendingSummary;
+  groups: SpendingGroupRow[];
+  groups_total: number;
+  top_spending_models: SpendingTopModel[];
+  top_spending_endpoints: SpendingTopEndpoint[];
+  unpriced_breakdown: Record<string, number>;
+  report_currency_code: string;
+  report_currency_symbol: string;
 }
 
 export interface HeaderBlocklistRule {

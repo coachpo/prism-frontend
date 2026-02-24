@@ -23,9 +23,13 @@ import type {
   AuditLogParams,
   AuditLogDeleteResponse,
   BatchDeleteResponse,
+  CostingSettingsResponse,
+  CostingSettingsUpdate,
   HeaderBlocklistRule,
   HeaderBlocklistRuleCreate,
   HeaderBlocklistRuleUpdate,
+  SpendingReportParams,
+  SpendingReportResponse,
 } from "./types";
 
 const rawApiBase = import.meta.env.VITE_API_BASE?.trim();
@@ -126,6 +130,18 @@ export const api = {
     },
     endpointSuccessRates: () =>
       request<EndpointSuccessRate[]>("/api/stats/endpoint-success-rates"),
+    spending: (params?: SpendingReportParams) => {
+      const qs = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+        });
+      }
+      const query = qs.toString();
+      return request<SpendingReportResponse>(
+        `/api/stats/spending${query ? `?${query}` : ""}`
+      );
+    },
     delete: (params: { older_than_days?: number; delete_all?: boolean }) => {
       const qs = new URLSearchParams();
       if (params.older_than_days !== undefined)
@@ -135,6 +151,17 @@ export const api = {
         `/api/stats/requests?${qs.toString()}`,
         { method: "DELETE" }
       );
+    },
+  },
+
+  settings: {
+    costing: {
+      get: () => request<CostingSettingsResponse>("/api/settings/costing"),
+      update: (data: CostingSettingsUpdate) =>
+        request<CostingSettingsResponse>("/api/settings/costing", {
+          method: "PUT",
+          body: JSON.stringify(data),
+        }),
     },
   },
 

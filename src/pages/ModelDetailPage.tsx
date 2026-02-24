@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { cn, formatProviderType, formatLabel } from "@/lib/utils";
+import { isValidCurrencyCode } from "@/lib/costing";
 import type { ModelConfig, Endpoint, EndpointCreate, EndpointUpdate, EndpointSuccessRate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,9 +16,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, Activity, Loader2, X, ChevronRight, Shield } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, Activity, Loader2, X, ChevronRight, Shield, Coins } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { EmptyState } from "@/components/EmptyState";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +51,8 @@ export function ModelDetailPage() {
   const [healthCheckingIds, setHealthCheckingIds] = useState<Set<number>>(new Set());
   const [dialogTestingConnection, setDialogTestingConnection] = useState(false);
   const [dialogTestResult, setDialogTestResult] = useState<{ status: string; detail: string } | null>(null);
+  const [pricingSectionOpen, setPricingSectionOpen] = useState(false);
+  const [pricingValidationError, setPricingValidationError] = useState<string | null>(null);
   const [successRates, setSuccessRates] = useState<Map<number, EndpointSuccessRate>>(new Map());
   const [focusedEndpointId, setFocusedEndpointId] = useState<number | null>(null);
   const endpointCardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -50,6 +65,14 @@ export function ModelDetailPage() {
     description: "",
     is_active: true,
     custom_headers: null,
+    pricing_enabled: false,
+    pricing_unit: "PER_1M",
+    pricing_currency_code: "USD",
+    input_price: null,
+    output_price: null,
+    cached_input_price: null,
+    reasoning_price: null,
+    missing_special_token_policy: "MAP_TO_OUTPUT",
   });
   const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
 
@@ -92,6 +115,49 @@ export function ModelDetailPage() {
     }, 200);
   }, [model, searchParams, setSearchParams]);
 
+  const normalizeOptionalDecimal = (value: string | null | undefined): string | null => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  };
+
+  const isNonNegativeDecimal = (value: string): boolean => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0;
+  };
+
+  const validatePricingForm = (): string | null => {
+    if (!endpointForm.pricing_enabled) {
+      return null;
+    }
+
+    const currency = endpointForm.pricing_currency_code?.trim().toUpperCase() || "";
+    if (!isValidCurrencyCode(currency)) {
+      return "Pricing currency must be a valid 3-letter code (for example, USD).";
+    }
+    if (!endpointForm.pricing_unit) {
+      return "Pricing unit is required when pricing is enabled.";
+    }
+
+    const decimalFields = [
+      ["Input price", endpointForm.input_price],
+      ["Output price", endpointForm.output_price],
+      ["Cached input price", endpointForm.cached_input_price],
+      ["Reasoning price", endpointForm.reasoning_price],
+    ] as const;
+
+    for (const [label, fieldValue] of decimalFields) {
+      const normalized = normalizeOptionalDecimal(fieldValue);
+      if (normalized && !isNonNegativeDecimal(normalized)) {
+        return `${label} must be a non-negative decimal value.`;
+      }
+    }
+
+    return null;
+  };
+
   const openEndpointDialog = (endpoint?: Endpoint) => {
     if (endpoint) {
       setEditingEndpoint(endpoint);
@@ -106,12 +172,38 @@ export function ModelDetailPage() {
         description: endpoint.description || "",
         is_active: endpoint.is_active,
         custom_headers: endpoint.custom_headers,
+        pricing_enabled: endpoint.pricing_enabled,
+        pricing_unit: endpoint.pricing_unit,
+        pricing_currency_code: endpoint.pricing_currency_code,
+        input_price: endpoint.input_price,
+        output_price: endpoint.output_price,
+        cached_input_price: endpoint.cached_input_price,
+        reasoning_price: endpoint.reasoning_price,
+        missing_special_token_policy: endpoint.missing_special_token_policy,
       });
+      setPricingSectionOpen(endpoint.pricing_enabled);
     } else {
       setEditingEndpoint(null);
       setHeaderRows([]);
-      setEndpointForm({ base_url: "", api_key: "", priority: 0, description: "", is_active: true, custom_headers: null });
+      setEndpointForm({
+        base_url: "",
+        api_key: "",
+        priority: 0,
+        description: "",
+        is_active: true,
+        custom_headers: null,
+        pricing_enabled: false,
+        pricing_unit: "PER_1M",
+        pricing_currency_code: "USD",
+        input_price: null,
+        output_price: null,
+        cached_input_price: null,
+        reasoning_price: null,
+        missing_special_token_policy: "MAP_TO_OUTPUT",
+      });
+      setPricingSectionOpen(false);
     }
+    setPricingValidationError(null);
     setDialogTestResult(null);
     setIsEndpointDialogOpen(true);
   };
@@ -121,7 +213,27 @@ export function ModelDetailPage() {
     const customHeaders = headerRows.length > 0
       ? Object.fromEntries(headerRows.filter(r => r.key.trim()).map(r => [r.key.trim(), r.value]))
       : null;
-    const payload = { ...endpointForm, custom_headers: customHeaders };
+
+    const pricingError = validatePricingForm();
+    if (pricingError) {
+      setPricingValidationError(pricingError);
+      toast.error(pricingError);
+      return;
+    }
+
+    setPricingValidationError(null);
+
+    const payload: EndpointCreate = {
+      ...endpointForm,
+      custom_headers: customHeaders,
+      pricing_currency_code: endpointForm.pricing_currency_code
+        ? endpointForm.pricing_currency_code.trim().toUpperCase()
+        : null,
+      input_price: normalizeOptionalDecimal(endpointForm.input_price),
+      output_price: normalizeOptionalDecimal(endpointForm.output_price),
+      cached_input_price: normalizeOptionalDecimal(endpointForm.cached_input_price),
+      reasoning_price: normalizeOptionalDecimal(endpointForm.reasoning_price),
+    };
 
     try {
       if (editingEndpoint) {
@@ -365,11 +477,32 @@ export function ModelDetailPage() {
                           label={`P${ep.priority}`}
                           intent={ep.priority >= 10 ? "warning" : ep.priority >= 1 ? "info" : "muted"}
                         />
+                        <StatusBadge
+                          label={ep.pricing_enabled ? "Pricing On" : "Pricing Off"}
+                          intent={ep.pricing_enabled ? "success" : "muted"}
+                        />
+                        {ep.pricing_enabled && ep.pricing_unit && (
+                          <ValueBadge label={ep.pricing_unit} intent="info" />
+                        )}
+                        {ep.pricing_enabled && ep.pricing_currency_code && (
+                          <ValueBadge label={ep.pricing_currency_code} intent="accent" />
+                        )}
+                        {ep.pricing_enabled && (
+                          <ValueBadge
+                            label={ep.missing_special_token_policy}
+                            intent={ep.missing_special_token_policy === "ZERO_COST" ? "warning" : "info"}
+                          />
+                        )}
                         {!ep.is_active && (
                           <StatusBadge label="Inactive" intent="muted" />
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground font-mono break-all">{ep.base_url}</p>
+                      {ep.pricing_enabled ? (
+                        <p className="text-[11px] text-muted-foreground">
+                          Input {ep.input_price ?? "0"} / Output {ep.output_price ?? "0"} / Cached {ep.cached_input_price ?? "0"} / Reasoning {ep.reasoning_price ?? "0"}
+                        </p>
+                      ) : null}
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span>Key: {maskedKey}</span>
                         {ep.last_health_check && (
@@ -505,6 +638,173 @@ export function ModelDetailPage() {
               checked={endpointForm.is_active}
               onCheckedChange={(checked) => setEndpointForm({ ...endpointForm, is_active: checked })}
             />
+
+            <Collapsible
+              open={pricingSectionOpen}
+              onOpenChange={setPricingSectionOpen}
+              className="rounded-lg border p-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-2 text-sm font-medium">
+                    <Coins className="h-4 w-4 text-muted-foreground" />
+                    Token Pricing
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Configure per-endpoint token cost tracking.
+                  </p>
+                </div>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm">
+                    {pricingSectionOpen ? "Hide" : "Configure"}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+
+              <CollapsibleContent className="space-y-3 pt-3">
+                <SwitchController
+                  label="Enable pricing"
+                  description="When disabled, requests on this endpoint are tracked as unpriced."
+                  checked={endpointForm.pricing_enabled ?? false}
+                  onCheckedChange={(checked) =>
+                    setEndpointForm({ ...endpointForm, pricing_enabled: checked })
+                  }
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pricing-unit">Pricing Unit</Label>
+                    <Select
+                      value={endpointForm.pricing_unit ?? "PER_1M"}
+                      onValueChange={(value) =>
+                        setEndpointForm({
+                          ...endpointForm,
+                          pricing_unit: value as "PER_1K" | "PER_1M",
+                        })
+                      }
+                      disabled={!endpointForm.pricing_enabled}
+                    >
+                      <SelectTrigger id="pricing-unit">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PER_1K">PER_1K</SelectItem>
+                        <SelectItem value="PER_1M">PER_1M</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="pricing-currency">Currency Code</Label>
+                    <Input
+                      id="pricing-currency"
+                      placeholder="USD"
+                      maxLength={3}
+                      value={endpointForm.pricing_currency_code ?? ""}
+                      onChange={(e) =>
+                        setEndpointForm({
+                          ...endpointForm,
+                          pricing_currency_code: e.target.value.toUpperCase(),
+                        })
+                      }
+                      disabled={!endpointForm.pricing_enabled}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="input-price">Input Price</Label>
+                    <Input
+                      id="input-price"
+                      placeholder="0"
+                      inputMode="decimal"
+                      value={endpointForm.input_price ?? ""}
+                      onChange={(e) =>
+                        setEndpointForm({ ...endpointForm, input_price: e.target.value })
+                      }
+                      disabled={!endpointForm.pricing_enabled}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="output-price">Output Price</Label>
+                    <Input
+                      id="output-price"
+                      placeholder="0"
+                      inputMode="decimal"
+                      value={endpointForm.output_price ?? ""}
+                      onChange={(e) =>
+                        setEndpointForm({ ...endpointForm, output_price: e.target.value })
+                      }
+                      disabled={!endpointForm.pricing_enabled}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cached-input-price">Cached Input Price</Label>
+                    <Input
+                      id="cached-input-price"
+                      placeholder="0"
+                      inputMode="decimal"
+                      value={endpointForm.cached_input_price ?? ""}
+                      onChange={(e) =>
+                        setEndpointForm({
+                          ...endpointForm,
+                          cached_input_price: e.target.value,
+                        })
+                      }
+                      disabled={!endpointForm.pricing_enabled}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="reasoning-price">Reasoning Price</Label>
+                    <Input
+                      id="reasoning-price"
+                      placeholder="0"
+                      inputMode="decimal"
+                      value={endpointForm.reasoning_price ?? ""}
+                      onChange={(e) =>
+                        setEndpointForm({
+                          ...endpointForm,
+                          reasoning_price: e.target.value,
+                        })
+                      }
+                      disabled={!endpointForm.pricing_enabled}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="missing-policy">Missing Special Token Policy</Label>
+                  <Select
+                    value={endpointForm.missing_special_token_policy ?? "MAP_TO_OUTPUT"}
+                    onValueChange={(value) =>
+                      setEndpointForm({
+                        ...endpointForm,
+                        missing_special_token_policy: value as "MAP_TO_OUTPUT" | "ZERO_COST",
+                      })
+                    }
+                    disabled={!endpointForm.pricing_enabled}
+                  >
+                    <SelectTrigger id="missing-policy">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MAP_TO_OUTPUT">MAP_TO_OUTPUT</SelectItem>
+                      <SelectItem value="ZERO_COST">ZERO_COST</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {pricingValidationError && (
+                  <p className="text-xs text-destructive">{pricingValidationError}</p>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">

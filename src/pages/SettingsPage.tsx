@@ -1,7 +1,17 @@
 import { useRef, useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { z } from "zod";
-import type { ConfigImportRequest, Provider, HeaderBlocklistRule, HeaderBlocklistRuleCreate } from "@/lib/types";
+import { isValidCurrencyCode, isValidPositiveDecimalString } from "@/lib/costing";
+import type {
+  ConfigImportRequest,
+  Provider,
+  HeaderBlocklistRule,
+  HeaderBlocklistRuleCreate,
+  EndpointFxMapping,
+  CostingSettingsUpdate,
+  ModelConfigListItem,
+  Endpoint,
+} from "@/lib/types";
 import { ConfigImportSchema } from "@/lib/configImportValidation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Download, Upload, AlertTriangle, Shield, Trash2, Ban, Lock, Plus, Pencil, ChevronRight } from "lucide-react";
+import { Download, Upload, AlertTriangle, Shield, Trash2, Ban, Lock, Plus, Pencil, ChevronRight, Coins } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -69,10 +79,26 @@ export function SettingsPage() {
   const [deleteRuleConfirm, setDeleteRuleConfirm] = useState<HeaderBlocklistRule | null>(null);
   const [systemRulesOpen, setSystemRulesOpen] = useState(false);
   const [userRulesOpen, setUserRulesOpen] = useState(true);
+  const [costingUnavailable, setCostingUnavailable] = useState(false);
+  const [costingLoading, setCostingLoading] = useState(false);
+  const [costingSaving, setCostingSaving] = useState(false);
+  const [models, setModels] = useState<ModelConfigListItem[]>([]);
+  const [mappingEndpoints, setMappingEndpoints] = useState<Endpoint[]>([]);
+  const [mappingLoading, setMappingLoading] = useState(false);
+  const [mappingModelId, setMappingModelId] = useState("");
+  const [mappingEndpointId, setMappingEndpointId] = useState("");
+  const [mappingFxRate, setMappingFxRate] = useState("");
+  const [costingForm, setCostingForm] = useState<CostingSettingsUpdate>({
+    report_currency_code: "USD",
+    report_currency_symbol: "$",
+    endpoint_fx_mappings: [],
+  });
 
   useEffect(() => {
     api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
     fetchRules();
+    fetchCostingSettings();
+    fetchModels();
   }, []);
 
   const fetchRules = async () => {
@@ -84,6 +110,168 @@ export function SettingsPage() {
       toast.error("Failed to load header blocklist rules");
     } finally {
       setLoadingRules(false);
+    }
+  };
+
+  const fetchModels = async () => {
+    try {
+      const data = await api.models.list();
+      setModels(data);
+    } catch {
+      toast.error("Failed to load models for FX mapping");
+    }
+  };
+
+  const fetchCostingSettings = async () => {
+    setCostingLoading(true);
+    try {
+      const data = await api.settings.costing.get();
+      setCostingForm({
+        report_currency_code: data.report_currency_code,
+        report_currency_symbol: data.report_currency_symbol,
+        endpoint_fx_mappings: data.endpoint_fx_mappings,
+      });
+      setCostingUnavailable(false);
+    } catch (error) {
+      if (error instanceof Error && /not found/i.test(error.message)) {
+        setCostingUnavailable(true);
+      } else {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to load costing settings"
+        );
+      }
+    } finally {
+      setCostingLoading(false);
+    }
+  };
+
+  const loadMappingEndpoints = async (modelConfigId: number) => {
+    setMappingLoading(true);
+    setMappingEndpointId("");
+    try {
+      const model = await api.models.get(modelConfigId);
+      setMappingEndpoints(model.endpoints ?? []);
+    } catch {
+      setMappingEndpoints([]);
+      toast.error("Failed to load endpoints for selected model");
+    } finally {
+      setMappingLoading(false);
+    }
+  };
+
+  const handleAddFxMapping = () => {
+    if (!mappingModelId || !mappingEndpointId || !mappingFxRate.trim()) {
+      toast.error("Model, endpoint, and FX rate are required");
+      return;
+    }
+    if (!isValidPositiveDecimalString(mappingFxRate)) {
+      toast.error("FX rate must be a valid decimal greater than zero");
+      return;
+    }
+
+    const endpointId = Number.parseInt(mappingEndpointId, 10);
+    if (Number.isNaN(endpointId)) {
+      toast.error("Invalid endpoint selection");
+      return;
+    }
+
+    const duplicate = costingForm.endpoint_fx_mappings.some(
+      (row) => row.model_id === mappingModelId && row.endpoint_id === endpointId
+    );
+    if (duplicate) {
+      toast.error("Duplicate FX mapping for selected model and endpoint");
+      return;
+    }
+
+    const nextMappings = [
+      ...costingForm.endpoint_fx_mappings,
+      {
+        model_id: mappingModelId,
+        endpoint_id: endpointId,
+        fx_rate: mappingFxRate.trim(),
+      },
+    ].sort((a, b) => {
+      if (a.model_id === b.model_id) {
+        return a.endpoint_id - b.endpoint_id;
+      }
+      return a.model_id.localeCompare(b.model_id);
+    });
+
+    setCostingForm({ ...costingForm, endpoint_fx_mappings: nextMappings });
+    setMappingEndpointId("");
+    setMappingFxRate("");
+  };
+
+  const handleDeleteFxMapping = (mapping: EndpointFxMapping) => {
+    setCostingForm({
+      ...costingForm,
+      endpoint_fx_mappings: costingForm.endpoint_fx_mappings.filter(
+        (row) =>
+          !(
+            row.model_id === mapping.model_id &&
+            row.endpoint_id === mapping.endpoint_id
+          )
+      ),
+    });
+  };
+
+  const handleSaveCostingSettings = async () => {
+    const normalizedCode = costingForm.report_currency_code.trim().toUpperCase();
+    const normalizedSymbol = costingForm.report_currency_symbol.trim();
+
+    if (!isValidCurrencyCode(normalizedCode)) {
+      toast.error("Report currency must be a valid 3-letter code (for example, USD)");
+      return;
+    }
+    if (!normalizedSymbol) {
+      toast.error("Report currency symbol is required");
+      return;
+    }
+    if (normalizedSymbol.length > 5) {
+      toast.error("Report currency symbol must be 5 characters or fewer");
+      return;
+    }
+
+    const seen = new Set<string>();
+    for (const mapping of costingForm.endpoint_fx_mappings) {
+      const key = `${mapping.model_id}::${mapping.endpoint_id}`;
+      if (seen.has(key)) {
+        toast.error(`Duplicate mapping detected: ${mapping.model_id} #${mapping.endpoint_id}`);
+        return;
+      }
+      seen.add(key);
+      if (!isValidPositiveDecimalString(mapping.fx_rate)) {
+        toast.error(
+          `FX rate for ${mapping.model_id} #${mapping.endpoint_id} must be greater than zero`
+        );
+        return;
+      }
+    }
+
+    const payload: CostingSettingsUpdate = {
+      report_currency_code: normalizedCode,
+      report_currency_symbol: normalizedSymbol,
+      endpoint_fx_mappings: costingForm.endpoint_fx_mappings,
+    };
+
+    setCostingSaving(true);
+    try {
+      const saved = await api.settings.costing.update(payload);
+      setCostingForm({
+        report_currency_code: saved.report_currency_code,
+        report_currency_symbol: saved.report_currency_symbol,
+        endpoint_fx_mappings: saved.endpoint_fx_mappings,
+      });
+      toast.success("Costing settings saved");
+      setCostingUnavailable(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save costing settings"
+      );
+    } finally {
+      setCostingSaving(false);
     }
   };
 
@@ -273,9 +461,16 @@ export function SettingsPage() {
     }
   };
 
+  const nativeModels = models
+    .filter((model) => model.model_type === "native")
+    .sort((a, b) => a.model_id.localeCompare(b.model_id));
+  const modelLabelMap = new Map(
+    nativeModels.map((model) => [model.model_id, model.display_name || model.model_id])
+  );
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" description="Manage providers, configuration backups, and data retention" />
+      <PageHeader title="Settings" description="Manage providers, backups, costing settings, and data retention" />
 
       <div className="space-y-1">
         <h3 className="text-base font-semibold">Configuration Backup</h3>
@@ -292,7 +487,7 @@ export function SettingsPage() {
               Export
             </CardTitle>
             <CardDescription className="text-xs">
-              Download all providers, models, and endpoint configurations as JSON.
+              Download providers, models, endpoints, blocklist rules, and costing settings as JSON.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -314,7 +509,7 @@ export function SettingsPage() {
             </CardTitle>
             <CardDescription className="text-xs">
               Upload a JSON backup to replace all current configuration. This will DELETE all
-              existing providers, models, and endpoints.
+              existing providers, models, endpoints, and user-defined settings.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -346,6 +541,199 @@ export function SettingsPage() {
       </div>
 
       <div className="space-y-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Coins className="h-4 w-4" />
+              Costing and Currency
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Configure report currency and endpoint FX mappings used by spending reports. Unmapped endpoints use default 1:1 conversion.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {costingUnavailable ? (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                Costing settings API is currently unavailable. Upgrade the backend to enable this feature.
+              </div>
+            ) : costingLoading ? (
+              <div className="space-y-2">
+                <div className="h-9 animate-pulse rounded bg-muted" />
+                <div className="h-9 animate-pulse rounded bg-muted" />
+                <div className="h-24 animate-pulse rounded bg-muted" />
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="report-currency-code">Report Currency Code</Label>
+                    <Input
+                      id="report-currency-code"
+                      maxLength={3}
+                      value={costingForm.report_currency_code}
+                      onChange={(e) =>
+                        setCostingForm({
+                          ...costingForm,
+                          report_currency_code: e.target.value.toUpperCase(),
+                        })
+                      }
+                      placeholder="USD"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="report-currency-symbol">Report Currency Symbol</Label>
+                    <Input
+                      id="report-currency-symbol"
+                      maxLength={5}
+                      value={costingForm.report_currency_symbol}
+                      onChange={(e) =>
+                        setCostingForm({
+                          ...costingForm,
+                          report_currency_symbol: e.target.value,
+                        })
+                      }
+                      placeholder="$"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      onClick={handleSaveCostingSettings}
+                      disabled={costingSaving}
+                      className="w-full"
+                    >
+                      {costingSaving ? "Saving..." : "Save Costing Settings"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-3">
+                  <div className="space-y-1 pb-3">
+                    <h4 className="text-sm font-medium">Endpoint FX Mappings</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Each mapping is scoped by model and endpoint. Endpoint-specific rates override default 1:1 conversion.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 lg:grid-cols-4">
+                    <div className="space-y-2">
+                      <Label>Model</Label>
+                      <Select
+                        value={mappingModelId}
+                        onValueChange={(value) => {
+                          setMappingModelId(value);
+                          const selectedModel = nativeModels.find(
+                            (model) => model.model_id === value
+                          );
+                          if (selectedModel) {
+                            loadMappingEndpoints(selectedModel.id);
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {nativeModels.map((model) => (
+                            <SelectItem key={model.id} value={model.model_id}>
+                              {model.display_name || model.model_id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Endpoint</Label>
+                      <Select
+                        value={mappingEndpointId}
+                        onValueChange={setMappingEndpointId}
+                        disabled={!mappingModelId || mappingLoading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={mappingLoading ? "Loading endpoints..." : "Select endpoint"}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mappingEndpoints.map((endpoint) => (
+                            <SelectItem key={endpoint.id} value={String(endpoint.id)}>
+                              #{endpoint.id} {endpoint.description || endpoint.base_url}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="mapping-fx-rate">FX Rate</Label>
+                      <Input
+                        id="mapping-fx-rate"
+                        value={mappingFxRate}
+                        onChange={(e) => setMappingFxRate(e.target.value)}
+                        placeholder="1.000000"
+                        inputMode="decimal"
+                      />
+                    </div>
+
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleAddFxMapping}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Mapping
+                      </Button>
+                    </div>
+                  </div>
+
+                  {costingForm.endpoint_fx_mappings.length === 0 ? (
+                    <div className="mt-3 rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground">
+                      No endpoint FX mappings configured.
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Model</TableHead>
+                            <TableHead>Endpoint</TableHead>
+                            <TableHead>FX Rate</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {costingForm.endpoint_fx_mappings.map((mapping) => (
+                            <TableRow key={`${mapping.model_id}-${mapping.endpoint_id}`}>
+                              <TableCell className="font-medium">
+                                {modelLabelMap.get(mapping.model_id) || mapping.model_id}
+                              </TableCell>
+                              <TableCell>#{mapping.endpoint_id}</TableCell>
+                              <TableCell>{mapping.fx_rate}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  onClick={() => handleDeleteFxMapping(mapping)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm">
