@@ -179,8 +179,8 @@ export function ModelDetailPage() {
         is_active: endpoint.is_active,
         custom_headers: endpoint.custom_headers,
         pricing_enabled: endpoint.pricing_enabled,
-        pricing_unit: endpoint.pricing_unit,
-        pricing_currency_code: endpoint.pricing_currency_code,
+        pricing_unit: endpoint.pricing_unit ?? "PER_1M",
+        pricing_currency_code: endpoint.pricing_currency_code || "USD",
         input_price: endpoint.input_price,
         output_price: endpoint.output_price,
         cached_input_price: endpoint.cached_input_price,
@@ -679,7 +679,14 @@ export function ModelDetailPage() {
                   description="When disabled, requests on this endpoint are tracked as unpriced."
                   checked={endpointForm.pricing_enabled ?? false}
                   onCheckedChange={(checked) =>
-                    setEndpointForm({ ...endpointForm, pricing_enabled: checked })
+                    setEndpointForm({
+                      ...endpointForm,
+                      pricing_enabled: checked,
+                      ...(checked && {
+                        pricing_unit: endpointForm.pricing_unit ?? "PER_1M",
+                        pricing_currency_code: endpointForm.pricing_currency_code || "USD",
+                      }),
+                    })
                   }
                 />
 
