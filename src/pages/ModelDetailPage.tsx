@@ -545,7 +545,7 @@ export function ModelDetailPage() {
                                 </span>
                               </div>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent className="pointer-events-none">
                               <p className="text-xs">
                                 {rate.total_requests > 0
                                   ? `${rate.success_count}/${rate.total_requests} requests succeeded`
