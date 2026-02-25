@@ -34,6 +34,7 @@ import {
 import {
   Activity,
   AlertCircle,
+  CircleHelp,
   CircleDollarSign,
   Clock,
   Coins,
@@ -45,6 +46,9 @@ import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { ProviderSelect } from "@/components/ProviderSelect";
+import { SpecialTokenCoverageStrip } from "@/components/statistics/SpecialTokenCoverageStrip";
+import { SpecialTokenSummaryCard } from "@/components/statistics/SpecialTokenSummaryCard";
+import { TokenMetricCell } from "@/components/statistics/TokenMetricCell";
 import { cn } from "@/lib/utils";
 import {
   Area,
@@ -87,6 +91,59 @@ interface TimeBucket {
   requests: number;
   errors: number;
   avgLatency: number;
+}
+
+type SpecialTokenFilter =
+  | "all"
+  | "has_cached"
+  | "has_reasoning"
+  | "has_any_special"
+  | "missing_special";
+
+function hasSpecialTokenValue(value: number | null | undefined): boolean {
+  return value !== null && value !== undefined;
+}
+
+function rowHasAnySpecialToken(log: RequestLogEntry): boolean {
+  return (
+    hasSpecialTokenValue(log.cached_input_tokens) ||
+    hasSpecialTokenValue(log.cache_creation_tokens) ||
+    hasSpecialTokenValue(log.reasoning_tokens)
+  );
+}
+
+function metricUnavailableReason(
+  log: Pick<RequestLogEntry, "status_code" | "is_stream">,
+  value: number | null | undefined
+): string {
+  if (value !== null && value !== undefined) {
+    return "";
+  }
+  if (log.status_code >= 400) {
+    return "request failed before usage accounting";
+  }
+  if (log.is_stream) {
+    return "stream ended without usage event";
+  }
+  return "upstream did not report this metric";
+}
+
+function HeaderWithTooltip({ label, tooltip }: { label: string; tooltip: string }) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center gap-1 cursor-help">
+            {label}
+            <CircleHelp className="h-3 w-3 text-muted-foreground" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 function bucketLogs(logs: RequestLogEntry[], timeRange: string): TimeBucket[] {
@@ -185,6 +242,8 @@ export function StatisticsPage() {
   const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d" | "all">(
     "24h"
   );
+  const [specialTokenFilter, setSpecialTokenFilter] =
+    useState<SpecialTokenFilter>("all");
 
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
   const [spendingLoading, setSpendingLoading] = useState(false);
@@ -307,6 +366,58 @@ export function StatisticsPage() {
 
   const chartData = useMemo(() => bucketLogs(logs, timeRange), [logs, timeRange]);
 
+  const requestLogRows = useMemo(() => {
+    return logs.filter((log) => {
+      if (specialTokenFilter === "has_cached") {
+        return hasSpecialTokenValue(log.cached_input_tokens);
+      }
+      if (specialTokenFilter === "has_reasoning") {
+        return hasSpecialTokenValue(log.reasoning_tokens);
+      }
+      if (specialTokenFilter === "has_any_special") {
+        return rowHasAnySpecialToken(log);
+      }
+      if (specialTokenFilter === "missing_special") {
+        return !rowHasAnySpecialToken(log);
+      }
+      return true;
+    });
+  }, [logs, specialTokenFilter]);
+
+  const specialTokenCoverage = useMemo(() => {
+    let cachedCaptured = 0;
+    let reasoningCaptured = 0;
+    let anySpecialCaptured = 0;
+    let noTokenUsage = 0;
+
+    for (const log of requestLogRows) {
+      if (hasSpecialTokenValue(log.cached_input_tokens)) {
+        cachedCaptured++;
+      }
+      if (hasSpecialTokenValue(log.reasoning_tokens)) {
+        reasoningCaptured++;
+      }
+      if (rowHasAnySpecialToken(log)) {
+        anySpecialCaptured++;
+      }
+      if (
+        !hasSpecialTokenValue(log.input_tokens) &&
+        !hasSpecialTokenValue(log.output_tokens) &&
+        !hasSpecialTokenValue(log.total_tokens)
+      ) {
+        noTokenUsage++;
+      }
+    }
+
+    return {
+      totalRows: requestLogRows.length,
+      cachedCaptured,
+      reasoningCaptured,
+      anySpecialCaptured,
+      noTokenUsage,
+    };
+  }, [requestLogRows]);
+
   const successRate =
     summary && summary.total_requests > 0
       ? ((summary.success_count / summary.total_requests) * 100).toFixed(1)
@@ -388,9 +499,26 @@ export function StatisticsPage() {
               type="number"
               min="1"
             />
+            <Select
+              value={specialTokenFilter}
+              onValueChange={(value) =>
+                setSpecialTokenFilter(value as SpecialTokenFilter)
+              }
+            >
+              <SelectTrigger className="h-8 w-full text-xs sm:w-52">
+                <SelectValue placeholder="Special token rows" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All rows</SelectItem>
+                <SelectItem value="has_cached">Has cached</SelectItem>
+                <SelectItem value="has_reasoning">Has reasoning</SelectItem>
+                <SelectItem value="has_any_special">Has any special</SelectItem>
+                <SelectItem value="missing_special">Missing special</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <MetricCard
               label="Total Requests"
               value={summary?.total_requests ?? 0}
@@ -416,6 +544,14 @@ export function StatisticsPage() {
               icon={<Coins className="h-4 w-4" />}
             />
           </div>
+
+          <SpecialTokenCoverageStrip
+            totalRows={specialTokenCoverage.totalRows}
+            cachedCaptured={specialTokenCoverage.cachedCaptured}
+            reasoningCaptured={specialTokenCoverage.reasoningCaptured}
+            anySpecialCaptured={specialTokenCoverage.anySpecialCaptured}
+            noTokenUsage={specialTokenCoverage.noTokenUsage}
+          />
 
           {chartData.length > 1 && (
             <div className="grid gap-4 lg:grid-cols-2">
@@ -555,11 +691,19 @@ export function StatisticsPage() {
               <CardTitle className="text-sm font-medium">Request Log</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {logs.length === 0 ? (
+              {requestLogRows.length === 0 ? (
                 <EmptyState
                   icon={<Activity className="h-6 w-6" />}
-                  title="No requests found"
-                  description="Adjust your filters or time range to see request data."
+                  title={
+                    logs.length === 0
+                      ? "No requests found"
+                      : "No rows match special-token filter"
+                  }
+                  description={
+                    logs.length === 0
+                      ? "Adjust your filters or time range to see request data."
+                      : "Try a different special-token filter to show matching request rows."
+                  }
                 />
               ) : (
                 <div className="overflow-x-auto scrollbar-thin">
@@ -585,10 +729,25 @@ export function StatisticsPage() {
                           Out
                         </TableHead>
                         <TableHead className="text-xs hidden xl:table-cell">
-                          Cached
+                          <HeaderWithTooltip
+                            label="Cached"
+                            tooltip="Input tokens served from upstream cache. Null means this request did not include cached-token usage data."
+                          />
                         </TableHead>
                         <TableHead className="text-xs hidden xl:table-cell">
-                          Reasoning
+                          <HeaderWithTooltip
+                            label="Cache Create"
+                            tooltip="Input tokens used to create cache entries. Null means this metric was not reported by upstream."
+                          />
+                        </TableHead>
+                        <TableHead className="text-xs hidden xl:table-cell">
+                          <HeaderWithTooltip
+                            label="Reasoning"
+                            tooltip="Internal reasoning/thinking tokens reported by the upstream model."
+                          />
+                        </TableHead>
+                        <TableHead className="text-xs hidden sm:table-cell xl:hidden">
+                          Usage
                         </TableHead>
                         <TableHead className="text-xs hidden lg:table-cell">
                           Total Tokens
@@ -603,6 +762,9 @@ export function StatisticsPage() {
                           Cached Cost
                         </TableHead>
                         <TableHead className="text-xs hidden 2xl:table-cell">
+                          Cache Create Cost
+                        </TableHead>
+                        <TableHead className="text-xs hidden 2xl:table-cell">
                           Reasoning Cost
                         </TableHead>
                         <TableHead className="text-xs hidden xl:table-cell">
@@ -615,7 +777,10 @@ export function StatisticsPage() {
                           Priced
                         </TableHead>
                         <TableHead className="text-xs hidden xl:table-cell">
-                          Unpriced Reason
+                          <HeaderWithTooltip
+                            label="Unpriced Reason"
+                            tooltip="Reason why a request was not priced (for example pricing disabled, missing endpoint, or missing token usage)."
+                          />
                         </TableHead>
                         <TableHead className="text-xs hidden md:table-cell">
                           Stream
@@ -626,16 +791,11 @@ export function StatisticsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {logs.map((log) => {
+                      {requestLogRows.map((log) => {
                         const errorMsg = formatErrorDetail(log.error_detail);
                         const endpointLogId = log.endpoint_id;
-                        const spendLabel = formatMoneyMicros(
-                          log.total_cost_user_currency_micros,
-                          log.report_currency_symbol || "$",
-                          log.report_currency_code || undefined,
-                          2,
-                          6
-                        );
+                        const reportCurrencySymbol = log.report_currency_symbol || "$";
+                        const reportCurrencyCode = log.report_currency_code || undefined;
 
                         return (
                           <TableRow key={log.id} className="text-xs">
@@ -692,46 +852,138 @@ export function StatisticsPage() {
                               {log.response_time_ms.toFixed(0)}ms
                             </TableCell>
                             <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              {formatTokenCount(log.input_tokens)}
+                              <TokenMetricCell
+                                value={log.input_tokens}
+                                nullReason={metricUnavailableReason(log, log.input_tokens)}
+                                formatValue={(value) => value.toLocaleString()}
+                              />
                             </TableCell>
                             <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              {formatTokenCount(log.output_tokens)}
+                              <TokenMetricCell
+                                value={log.output_tokens}
+                                nullReason={metricUnavailableReason(log, log.output_tokens)}
+                                formatValue={(value) => value.toLocaleString()}
+                              />
                             </TableCell>
                             <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              {formatTokenCount(log.cached_input_tokens)}
+                              <TokenMetricCell
+                                value={log.cached_input_tokens}
+                                nullReason={metricUnavailableReason(
+                                  log,
+                                  log.cached_input_tokens
+                                )}
+                                formatValue={(value) => value.toLocaleString()}
+                              />
                             </TableCell>
                             <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              {formatTokenCount(log.reasoning_tokens)}
+                              <TokenMetricCell
+                                value={log.cache_creation_tokens}
+                                nullReason={metricUnavailableReason(
+                                  log,
+                                  log.cache_creation_tokens
+                                )}
+                                formatValue={(value) => value.toLocaleString()}
+                              />
+                            </TableCell>
+                            <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
+                              <TokenMetricCell
+                                value={log.reasoning_tokens}
+                                nullReason={metricUnavailableReason(log, log.reasoning_tokens)}
+                                formatValue={(value) => value.toLocaleString()}
+                              />
+                            </TableCell>
+                            <TableCell className="py-2 hidden sm:table-cell xl:hidden text-muted-foreground">
+                              <div className="space-y-0.5 leading-tight">
+                                <p>
+                                  In {formatTokenCount(log.input_tokens)} / Out {" "}
+                                  {formatTokenCount(log.output_tokens)} / Total {" "}
+                                  {formatTokenCount(log.total_tokens)}
+                                </p>
+                                <p>
+                                  Cached {formatTokenCount(log.cached_input_tokens)} / Cache Create {" "}
+                                  {formatTokenCount(log.cache_creation_tokens)} / Reasoning {" "}
+                                  {formatTokenCount(log.reasoning_tokens)}
+                                </p>
+                              </div>
                             </TableCell>
                             <TableCell className="py-2 hidden lg:table-cell tabular-nums text-muted-foreground">
-                              {formatTokenCount(log.total_tokens)}
+                              <TokenMetricCell
+                                value={log.total_tokens}
+                                nullReason={metricUnavailableReason(log, log.total_tokens)}
+                                formatValue={(value) => value.toLocaleString()}
+                              />
                             </TableCell>
                             <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
-                              {formatMoneyMicros(
-                                log.input_cost_micros,
-                                log.report_currency_symbol || "$"
-                              )}
+                              <TokenMetricCell
+                                value={log.input_cost_micros}
+                                nullReason={metricUnavailableReason(log, log.input_cost_micros)}
+                                formatValue={(value) =>
+                                  formatMoneyMicros(value, reportCurrencySymbol)
+                                }
+                              />
                             </TableCell>
                             <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
-                              {formatMoneyMicros(
-                                log.output_cost_micros,
-                                log.report_currency_symbol || "$"
-                              )}
+                              <TokenMetricCell
+                                value={log.output_cost_micros}
+                                nullReason={metricUnavailableReason(log, log.output_cost_micros)}
+                                formatValue={(value) =>
+                                  formatMoneyMicros(value, reportCurrencySymbol)
+                                }
+                              />
                             </TableCell>
                             <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
-                              {formatMoneyMicros(
-                                log.cached_input_cost_micros,
-                                log.report_currency_symbol || "$"
-                              )}
+                              <TokenMetricCell
+                                value={log.cached_input_cost_micros}
+                                nullReason={metricUnavailableReason(
+                                  log,
+                                  log.cached_input_cost_micros
+                                )}
+                                formatValue={(value) =>
+                                  formatMoneyMicros(value, reportCurrencySymbol)
+                                }
+                              />
                             </TableCell>
                             <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
-                              {formatMoneyMicros(
-                                log.reasoning_cost_micros,
-                                log.report_currency_symbol || "$"
-                              )}
+                              <TokenMetricCell
+                                value={log.cache_creation_cost_micros}
+                                nullReason={metricUnavailableReason(
+                                  log,
+                                  log.cache_creation_cost_micros
+                                )}
+                                formatValue={(value) =>
+                                  formatMoneyMicros(value, reportCurrencySymbol)
+                                }
+                              />
+                            </TableCell>
+                            <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
+                              <TokenMetricCell
+                                value={log.reasoning_cost_micros}
+                                nullReason={metricUnavailableReason(
+                                  log,
+                                  log.reasoning_cost_micros
+                                )}
+                                formatValue={(value) =>
+                                  formatMoneyMicros(value, reportCurrencySymbol)
+                                }
+                              />
                             </TableCell>
                             <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              {spendLabel}
+                              <TokenMetricCell
+                                value={log.total_cost_user_currency_micros}
+                                nullReason={metricUnavailableReason(
+                                  log,
+                                  log.total_cost_user_currency_micros
+                                )}
+                                formatValue={(value) =>
+                                  formatMoneyMicros(
+                                    value,
+                                    reportCurrencySymbol,
+                                    reportCurrencyCode,
+                                    2,
+                                    6
+                                  )
+                                }
+                              />
                             </TableCell>
                             <TableCell className="py-2 hidden xl:table-cell">
                               <ValueBadge
@@ -1067,6 +1319,11 @@ export function StatisticsPage() {
                   : undefined
               }
               icon={<Coins className="h-4 w-4" />}
+            />
+            <SpecialTokenSummaryCard
+              cachedInputTokens={spending?.summary.total_cached_input_tokens}
+              cacheCreationTokens={spending?.summary.total_cache_creation_tokens}
+              reasoningTokens={spending?.summary.total_reasoning_tokens}
             />
           </div>
 
