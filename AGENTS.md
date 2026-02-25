@@ -6,7 +6,7 @@ React 19 SPA dashboard for managing LLM proxy configuration — models, endpoint
 src/
 ├── main.tsx                    # Entry: StrictMode + ThemeProvider + TooltipProvider + Toaster + App
 ├── App.tsx                     # BrowserRouter with 6 routes inside AppLayout
-├── pages/                      # 6 page components (4534 lines total)
+├── pages/                      # 6 page components (4800 lines total)
 │   ├── DashboardPage.tsx       # Overview of all models with health badges — 149 lines
 │   ├── ModelsPage.tsx          # Model CRUD list with provider filter — 556 lines
 │   ├── ModelDetailPage.tsx     # Single model: endpoints, health checks, pricing config — 926 lines
@@ -15,6 +15,10 @@ src/
 │   └── SettingsPage.tsx        # Provider audit toggles + header blocklist + costing settings + config export/import — 1192 lines
 ├── components/
 │   ├── layout/AppLayout.tsx    # Responsive sidebar nav (collapsible drawer on mobile, fixed on lg+) — 105 lines
+│   ├── statistics/             # Token visualization components (3 files)
+│   │   ├── SpecialTokenCoverageStrip.tsx  # Token coverage visualization
+│   │   ├── SpecialTokenSummaryCard.tsx    # Token summary card
+│   │   └── TokenMetricCell.tsx            # Token metric cell
 │   ├── EmptyState.tsx          # Reusable empty state with icon, title, description, action — 26 lines
 │   ├── MetricCard.tsx          # Metric display card with icon, trend, click handler — 55 lines
 │   ├── PageHeader.tsx          # Reusable page header with title, description, actions — 25 lines
