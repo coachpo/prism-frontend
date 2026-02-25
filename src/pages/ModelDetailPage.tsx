@@ -77,7 +77,7 @@ export function ModelDetailPage() {
     cached_input_price: null,
     cache_creation_price: null,
     reasoning_price: null,
-    missing_special_token_policy: "MAP_TO_OUTPUT",
+    missing_special_token_price_policy: "MAP_TO_OUTPUT",
   });
   const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
 
@@ -186,7 +186,7 @@ export function ModelDetailPage() {
         cached_input_price: endpoint.cached_input_price,
         cache_creation_price: endpoint.cache_creation_price,
         reasoning_price: endpoint.reasoning_price,
-        missing_special_token_policy: endpoint.missing_special_token_policy,
+        missing_special_token_price_policy: endpoint.missing_special_token_price_policy,
       });
       setPricingSectionOpen(endpoint.pricing_enabled);
     } else {
@@ -207,7 +207,7 @@ export function ModelDetailPage() {
         cached_input_price: null,
         cache_creation_price: null,
         reasoning_price: null,
-        missing_special_token_policy: "MAP_TO_OUTPUT",
+        missing_special_token_price_policy: "MAP_TO_OUTPUT",
       });
       setPricingSectionOpen(false);
     }
@@ -501,8 +501,8 @@ export function ModelDetailPage() {
                         )}
                         {ep.pricing_enabled && (
                           <ValueBadge
-                            label={formatMissingSpecialTokenPolicyLabel(ep.missing_special_token_policy)}
-                            intent={ep.missing_special_token_policy === "ZERO_COST" ? "warning" : "info"}
+                            label={formatMissingSpecialTokenPolicyLabel(ep.missing_special_token_price_policy)}
+                            intent={ep.missing_special_token_price_policy === "ZERO_COST" ? "warning" : "info"}
                           />
                         )}
                         {!ep.is_active && (
@@ -817,11 +817,11 @@ export function ModelDetailPage() {
                 <div className="space-y-2">
                   <Label htmlFor="missing-policy">Missing Special Token Policy</Label>
                   <Select
-                    value={endpointForm.missing_special_token_policy ?? "MAP_TO_OUTPUT"}
+                    value={endpointForm.missing_special_token_price_policy ?? "MAP_TO_OUTPUT"}
                     onValueChange={(value) =>
                       setEndpointForm({
                         ...endpointForm,
-                        missing_special_token_policy: value as "MAP_TO_OUTPUT" | "ZERO_COST",
+                        missing_special_token_price_policy: value as "MAP_TO_OUTPUT" | "ZERO_COST",
                       })
                     }
                     disabled={!endpointForm.pricing_enabled}

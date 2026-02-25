@@ -26,7 +26,7 @@ const EndpointExportSchema = z.object({
   cached_input_price: z.string().nullable().optional(),
   cache_creation_price: z.string().nullable().optional(),
   reasoning_price: z.string().nullable().optional(),
-  missing_special_token_policy: z
+  missing_special_token_price_policy: z
     .enum(["MAP_TO_OUTPUT", "ZERO_COST"])
     .optional()
     .default("MAP_TO_OUTPUT"),
@@ -68,7 +68,7 @@ const UserSettingsExportSchema = z.object({
 
 
 export const ConfigImportSchema = z.object({
-  version: z.union([z.literal(2), z.literal(3)]),
+  version: z.literal(4),
   exported_at: z.string().optional(),
   providers: z.array(ProviderExportSchema),
   models: z.array(ModelExportSchema),

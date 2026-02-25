@@ -36,7 +36,7 @@ export interface Endpoint {
   cached_input_price: string | null;
   cache_creation_price: string | null;
   reasoning_price: string | null;
-  missing_special_token_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
+  missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
   pricing_config_version: number;
   health_status: string;
   health_detail: string | null;
@@ -61,7 +61,7 @@ export interface EndpointCreate {
   cached_input_price?: string | null;
   cache_creation_price?: string | null;
   reasoning_price?: string | null;
-  missing_special_token_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
+  missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
 }
 
 export interface EndpointUpdate {
@@ -80,7 +80,7 @@ export interface EndpointUpdate {
   cached_input_price?: string | null;
   cache_creation_price?: string | null;
   reasoning_price?: string | null;
-  missing_special_token_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
+  missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
 }
 
 export interface HealthCheckResponse {
@@ -181,13 +181,13 @@ export interface RequestLogEntry {
   billable_flag: boolean | null;
   priced_flag: boolean | null;
   unpriced_reason: string | null;
-  cached_input_tokens: number | null;
-  cache_creation_tokens: number | null;
+  cache_read_input_tokens: number | null;
+  cache_creation_input_tokens: number | null;
   reasoning_tokens: number | null;
   input_cost_micros: number | null;
   output_cost_micros: number | null;
-  cached_input_cost_micros: number | null;
-  cache_creation_cost_micros: number | null;
+  cache_read_input_cost_micros: number | null;
+  cache_creation_input_cost_micros: number | null;
   reasoning_cost_micros: number | null;
   total_cost_original_micros: number | null;
   total_cost_user_currency_micros: number | null;
@@ -199,10 +199,10 @@ export interface RequestLogEntry {
   pricing_snapshot_unit: string | null;
   pricing_snapshot_input: string | null;
   pricing_snapshot_output: string | null;
-  pricing_snapshot_cached_input: string | null;
-  pricing_snapshot_cache_creation: string | null;
+  pricing_snapshot_cache_read_input: string | null;
+  pricing_snapshot_cache_creation_input: string | null;
   pricing_snapshot_reasoning: string | null;
-  pricing_snapshot_policy: string | null;
+  pricing_snapshot_missing_special_token_price_policy: string | null;
   pricing_config_version_used: number | null;
   request_path: string;
   error_detail: string | null;
@@ -284,7 +284,7 @@ export interface ConfigEndpointExport {
   cached_input_price: string | null;
   cache_creation_price: string | null;
   reasoning_price: string | null;
-  missing_special_token_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
+  missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
   pricing_config_version: number;
 }
 
@@ -322,7 +322,7 @@ export interface ConfigUserSettingsExport {
 }
 
 export interface ConfigExportResponse {
-  version: 2 | 3;
+  version: 4;
   exported_at: string;
   providers: ConfigProviderExport[];
   models: ConfigModelExport[];
@@ -331,7 +331,7 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 2 | 3;
+  version: 4;
   exported_at?: string;
   providers: ConfigProviderExport[];
   models: ConfigModelExport[];
@@ -457,8 +457,8 @@ export interface SpendingSummary {
   unpriced_request_count: number;
   total_input_tokens: number;
   total_output_tokens: number;
-  total_cached_input_tokens: number;
-  total_cache_creation_tokens: number;
+  total_cache_read_input_tokens: number;
+  total_cache_creation_input_tokens: number;
   total_reasoning_tokens: number;
   total_tokens: number;
   avg_cost_per_successful_request_micros: number;

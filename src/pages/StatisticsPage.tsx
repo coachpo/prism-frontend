@@ -106,8 +106,8 @@ function hasSpecialTokenValue(value: number | null | undefined): boolean {
 
 function rowHasAnySpecialToken(log: RequestLogEntry): boolean {
   return (
-    hasSpecialTokenValue(log.cached_input_tokens) ||
-    hasSpecialTokenValue(log.cache_creation_tokens) ||
+    hasSpecialTokenValue(log.cache_read_input_tokens) ||
+    hasSpecialTokenValue(log.cache_creation_input_tokens) ||
     hasSpecialTokenValue(log.reasoning_tokens)
   );
 }
@@ -369,7 +369,7 @@ export function StatisticsPage() {
   const requestLogRows = useMemo(() => {
     return logs.filter((log) => {
       if (specialTokenFilter === "has_cached") {
-        return hasSpecialTokenValue(log.cached_input_tokens);
+        return hasSpecialTokenValue(log.cache_read_input_tokens);
       }
       if (specialTokenFilter === "has_reasoning") {
         return hasSpecialTokenValue(log.reasoning_tokens);
@@ -391,7 +391,7 @@ export function StatisticsPage() {
     let noTokenUsage = 0;
 
     for (const log of requestLogRows) {
-      if (hasSpecialTokenValue(log.cached_input_tokens)) {
+      if (hasSpecialTokenValue(log.cache_read_input_tokens)) {
         cachedCaptured++;
       }
       if (hasSpecialTokenValue(log.reasoning_tokens)) {
@@ -867,20 +867,20 @@ export function StatisticsPage() {
                             </TableCell>
                             <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
                               <TokenMetricCell
-                                value={log.cached_input_tokens}
+                                value={log.cache_read_input_tokens}
                                 nullReason={metricUnavailableReason(
                                   log,
-                                  log.cached_input_tokens
+                                  log.cache_read_input_tokens
                                 )}
                                 formatValue={(value) => value.toLocaleString()}
                               />
                             </TableCell>
                             <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
                               <TokenMetricCell
-                                value={log.cache_creation_tokens}
+                                value={log.cache_creation_input_tokens}
                                 nullReason={metricUnavailableReason(
                                   log,
-                                  log.cache_creation_tokens
+                                  log.cache_creation_input_tokens
                                 )}
                                 formatValue={(value) => value.toLocaleString()}
                               />
@@ -900,8 +900,8 @@ export function StatisticsPage() {
                                   {formatTokenCount(log.total_tokens)}
                                 </p>
                                 <p>
-                                  Cached {formatTokenCount(log.cached_input_tokens)} / Cache Create {" "}
-                                  {formatTokenCount(log.cache_creation_tokens)} / Reasoning {" "}
+                                  Cached {formatTokenCount(log.cache_read_input_tokens)} / Cache Create {" "}
+                                  {formatTokenCount(log.cache_creation_input_tokens)} / Reasoning {" "}
                                   {formatTokenCount(log.reasoning_tokens)}
                                 </p>
                               </div>
@@ -933,10 +933,10 @@ export function StatisticsPage() {
                             </TableCell>
                             <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
                               <TokenMetricCell
-                                value={log.cached_input_cost_micros}
+                                value={log.cache_read_input_cost_micros}
                                 nullReason={metricUnavailableReason(
                                   log,
-                                  log.cached_input_cost_micros
+                                  log.cache_read_input_cost_micros
                                 )}
                                 formatValue={(value) =>
                                   formatMoneyMicros(value, reportCurrencySymbol)
@@ -945,10 +945,10 @@ export function StatisticsPage() {
                             </TableCell>
                             <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
                               <TokenMetricCell
-                                value={log.cache_creation_cost_micros}
+                                value={log.cache_creation_input_cost_micros}
                                 nullReason={metricUnavailableReason(
                                   log,
-                                  log.cache_creation_cost_micros
+                                  log.cache_creation_input_cost_micros
                                 )}
                                 formatValue={(value) =>
                                   formatMoneyMicros(value, reportCurrencySymbol)
@@ -1321,8 +1321,8 @@ export function StatisticsPage() {
               icon={<Coins className="h-4 w-4" />}
             />
             <SpecialTokenSummaryCard
-              cachedInputTokens={spending?.summary.total_cached_input_tokens}
-              cacheCreationTokens={spending?.summary.total_cache_creation_tokens}
+              cachedInputTokens={spending?.summary.total_cache_read_input_tokens}
+              cacheCreationTokens={spending?.summary.total_cache_creation_input_tokens}
               reasoningTokens={spending?.summary.total_reasoning_tokens}
             />
           </div>
