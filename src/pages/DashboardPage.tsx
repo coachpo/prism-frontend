@@ -52,7 +52,7 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Prism V1 Dashboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Prism Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Profile-centric routing, auth controls, and batched telemetry health.
         </p>
