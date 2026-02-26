@@ -208,7 +208,8 @@ export interface PasskeyRegisterBeginResponse {
 export interface PasskeyRegisterFinishRequest {
   challenge_id: string;
   credential_id: string;
-  public_key: string;
+  attestation_object: string;
+  client_data_json: string;
   transports?: string[] | null;
   name?: string | null;
 }
@@ -226,6 +227,10 @@ export interface PasskeyLoginBeginResponse {
 export interface PasskeyLoginFinishRequest {
   challenge_id: string;
   credential_id: string;
+  authenticator_data: string;
+  client_data_json: string;
+  signature: string;
+  user_handle?: string | null;
 }
 
 export interface PasskeyRevokeRequest {
@@ -358,7 +363,6 @@ export interface ConfigExportProfile {
 }
 
 export interface ConfigExportResponse {
-  version: 4;
   exported_at: string;
   auth_enabled: boolean;
   profiles: ConfigExportProfile[];
@@ -376,7 +380,6 @@ export interface ConfigImportProfile extends ConfigExportProfile {
 }
 
 export interface ConfigImportRequest {
-  version: 4;
   profiles: ConfigImportProfile[];
 }
 

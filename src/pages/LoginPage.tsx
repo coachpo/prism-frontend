@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ export function LoginPage() {
 
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [passkeyCredentialId, setPasskeyCredentialId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handlePasswordLogin(event: FormEvent<HTMLFormElement>) {
@@ -39,7 +38,7 @@ export function LoginPage() {
     event.preventDefault();
     setIsSubmitting(true);
     try {
-      await auth.loginPasskey(usernameOrEmail, passkeyCredentialId);
+      await auth.loginPasskey(usernameOrEmail);
       toast.success("Passkey login successful");
       navigate("/dashboard", { replace: true });
     } catch (error) {
@@ -134,23 +133,6 @@ export function LoginPage() {
                     onChange={(event) => setUsernameOrEmail(event.target.value)}
                     required
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="credential_id" className="flex items-center gap-2">
-                    <KeyRound className="h-4 w-4" />
-                    Credential ID
-                  </Label>
-                  <Input
-                    id="credential_id"
-                    placeholder="Paste registered credential ID"
-                    value={passkeyCredentialId}
-                    onChange={(event) => setPasskeyCredentialId(event.target.value)}
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    For now, Prism uses the credential ID generated during passkey registration.
-                  </p>
                 </div>
 
                 <Button className="w-full" disabled={isSubmitting} type="submit">

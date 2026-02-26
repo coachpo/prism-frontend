@@ -12,6 +12,11 @@ import { toast } from "sonner";
 
 import { applyTokenPair, clearSessionTokens, getRefreshToken } from "@/lib/auth";
 import { api, ApiClientError } from "@/lib/api";
+import {
+  base64UrlToArrayBuffer,
+  isWebAuthnSupported,
+  uint8ArrayToBase64Url,
+} from "@/lib/webauthn";
 import type {
   AuthStatusResponse,
   EnableAuthRequest,
@@ -30,7 +35,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   refreshStatus: () => Promise<void>;
   loginPassword: (body: LoginPasswordRequest) => Promise<void>;
-  loginPasskey: (usernameOrEmail: string, credentialId: string) => Promise<void>;
+  loginPasskey: (usernameOrEmail: string) => Promise<void>;
   enableAuth: (body: EnableAuthRequest) => Promise<void>;
   applyTokenPair: (pair: TokenPairResponse) => void;
   logout: () => Promise<void>;
@@ -104,11 +109,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyPair]);
 
   const loginPasskey = useCallback(
-    async (usernameOrEmail: string, credentialId: string) => {
+    async (usernameOrEmail: string) => {
+      if (!isWebAuthnSupported()) {
+        throw new Error("Passkeys are not supported in this browser");
+      }
       const begin = await api.auth.loginPasskeyBegin({ username_or_email: usernameOrEmail });
+      const credential = await navigator.credentials.get({
+        publicKey: {
+          challenge: base64UrlToArrayBuffer(begin.challenge),
+          rpId: begin.rp_id,
+          timeout: 60_000,
+          userVerification: "required",
+        },
+      });
+      if (!(credential instanceof PublicKeyCredential)) {
+        throw new Error("Failed to obtain WebAuthn assertion");
+      }
+
+      const assertion = credential.response;
+      if (!(assertion instanceof AuthenticatorAssertionResponse)) {
+        throw new Error("Invalid WebAuthn assertion response");
+      }
+
       const finishBody: PasskeyLoginFinishRequest = {
         challenge_id: begin.challenge_id,
-        credential_id: credentialId,
+        credential_id: uint8ArrayToBase64Url(credential.rawId),
+        authenticator_data: uint8ArrayToBase64Url(assertion.authenticatorData),
+        client_data_json: uint8ArrayToBase64Url(assertion.clientDataJSON),
+        signature: uint8ArrayToBase64Url(assertion.signature),
+        user_handle: assertion.userHandle
+          ? uint8ArrayToBase64Url(assertion.userHandle)
+          : null,
       };
       const pair = await api.auth.loginPasskeyFinish(finishBody);
       applyPair(pair);

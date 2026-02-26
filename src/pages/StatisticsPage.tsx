@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { toast } from "sonner";
 
+import { ProfileSelect } from "@/components/ProfileSelect";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ export function StatisticsPage() {
   const [logs, setLogs] = useState<RequestLogResponse[]>([]);
   const [total, setTotal] = useState(0);
 
+  const [profileFilter, setProfileFilter] = useState("all");
   const [modelFilter, setModelFilter] = useState("");
   const [providerFilter, setProviderFilter] = useState("");
   const [statusCodeFilter, setStatusCodeFilter] = useState("");
@@ -29,6 +31,8 @@ export function StatisticsPage() {
       const [nextSummary, nextLogs] = await Promise.all([
         api.stats.summary(),
         api.stats.requests({
+          profile_id:
+            profileFilter && profileFilter !== "all" ? profileFilter : undefined,
           model_id: modelFilter || undefined,
           provider_type: providerFilter || undefined,
           status_code: statusCodeFilter ? Number(statusCodeFilter) : undefined,
@@ -114,7 +118,15 @@ export function StatisticsPage() {
           <CardTitle>Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-3 md:grid-cols-4" onSubmit={applyFilters}>
+          <form className="grid gap-3 md:grid-cols-5" onSubmit={applyFilters}>
+            <div className="space-y-1">
+              <Label htmlFor="filter_profile">Profile</Label>
+              <ProfileSelect
+                value={profileFilter}
+                onValueChange={setProfileFilter}
+                placeholder="All profiles"
+              />
+            </div>
             <div className="space-y-1">
               <Label htmlFor="filter_model">Model ID</Label>
               <Input

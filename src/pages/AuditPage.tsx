@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { ProfileSelect } from "@/components/ProfileSelect";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import type { AuditLogResponse } from "@/lib/types";
 export function AuditPage() {
   const [rows, setRows] = useState<AuditLogResponse[]>([]);
   const [selected, setSelected] = useState<AuditLogResponse | null>(null);
+  const [profileFilter, setProfileFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("");
   const [modelFilter, setModelFilter] = useState("");
   const [limit, setLimit] = useState(50);
@@ -21,6 +23,8 @@ export function AuditPage() {
     setIsLoading(true);
     try {
       const response = await api.audit.list({
+        profile_id:
+          profileFilter && profileFilter !== "all" ? profileFilter : undefined,
         response_status: statusFilter ? Number(statusFilter) : undefined,
         model_id: modelFilter || undefined,
         limit,
@@ -78,7 +82,15 @@ export function AuditPage() {
         <CardHeader>
           <CardTitle>Filters</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-4">
+        <CardContent className="grid gap-3 md:grid-cols-5">
+          <div className="space-y-1">
+            <Label htmlFor="audit_profile">Profile</Label>
+            <ProfileSelect
+              value={profileFilter}
+              onValueChange={setProfileFilter}
+              placeholder="All profiles"
+            />
+          </div>
           <div className="space-y-1">
             <Label htmlFor="audit_status">Response status</Label>
             <Input

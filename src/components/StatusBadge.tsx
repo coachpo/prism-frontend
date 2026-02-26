@@ -14,9 +14,6 @@ const INTENT_CLASSES = {
 
 export type BadgeIntent = keyof typeof INTENT_CLASSES;
 
-/** @deprecated Use BadgeIntent instead */
-export type StatusBadgeIntent = BadgeIntent;
-
 interface BaseBadgeProps {
   label: string;
   intent?: BadgeIntent;

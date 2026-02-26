@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Download, KeyRound, RotateCcw, ShieldOff, Upload } from "lucide-react";
+import { Download, RotateCcw, ShieldOff, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -11,22 +11,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 import { ConfigImportSchema } from "@/lib/configImportValidation";
 import type { ApiKeyResponse, ConfigImportRequest, PasskeyResponse } from "@/lib/types";
-
-function randomBase64Url(bytes = 32) {
-  const array = new Uint8Array(bytes);
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    crypto.getRandomValues(array);
-  } else {
-    for (let index = 0; index < array.length; index += 1) {
-      array[index] = Math.floor(Math.random() * 256);
-    }
-  }
-  let binary = "";
-  for (const byte of array) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+import {
+  base64UrlToArrayBuffer,
+  isWebAuthnSupported,
+  uint8ArrayToBase64Url,
+} from "@/lib/webauthn";
 
 export function SettingsPage() {
   const auth = useAuth();
@@ -56,7 +45,6 @@ export function SettingsPage() {
   const [passkeyOtpChallengeId, setPasskeyOtpChallengeId] = useState("");
   const [passkeyOtpCode, setPasskeyOtpCode] = useState("");
   const [passkeyDebugOtp, setPasskeyDebugOtp] = useState<string | null>(null);
-  const [latestCredentialId, setLatestCredentialId] = useState("");
 
   const [revokeOtpChallengeId, setRevokeOtpChallengeId] = useState("");
   const [revokeOtpCode, setRevokeOtpCode] = useState("");
@@ -256,21 +244,54 @@ export function SettingsPage() {
   async function createPasskey() {
     setIsSubmitting(true);
     try {
+      if (!isWebAuthnSupported()) {
+        throw new Error("Passkeys are not supported in this browser");
+      }
       const begin = await api.auth.beginPasskeyRegistration({
         otp_challenge_id: passkeyOtpChallengeId,
         otp_code: passkeyOtpCode,
         name: passkeyName,
       });
-      const credentialId = randomBase64Url(24);
-      const publicKey = randomBase64Url(48);
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: base64UrlToArrayBuffer(begin.challenge),
+          rp: {
+            id: begin.rp_id,
+            name: begin.rp_name,
+          },
+          user: {
+            id: new TextEncoder().encode(begin.user_id),
+            name: begin.user_name,
+            displayName: begin.user_name,
+          },
+          pubKeyCredParams: [
+            { type: "public-key", alg: -7 },
+            { type: "public-key", alg: -257 },
+          ],
+          timeout: 60_000,
+          attestation: "none",
+          authenticatorSelection: {
+            userVerification: "required",
+          },
+        },
+      });
+      if (!(credential instanceof PublicKeyCredential)) {
+        throw new Error("Failed to create WebAuthn credential");
+      }
+
+      const response = credential.response;
+      if (!(response instanceof AuthenticatorAttestationResponse)) {
+        throw new Error("Invalid WebAuthn attestation response");
+      }
+
       await api.auth.finishPasskeyRegistration({
         challenge_id: begin.challenge_id,
-        credential_id: credentialId,
-        public_key: publicKey,
-        transports: ["internal"],
+        credential_id: uint8ArrayToBase64Url(credential.rawId),
+        attestation_object: uint8ArrayToBase64Url(response.attestationObject),
+        client_data_json: uint8ArrayToBase64Url(response.clientDataJSON),
+        transports: response.getTransports?.() ?? null,
         name: passkeyName,
       });
-      setLatestCredentialId(credentialId);
       toast.success("Passkey created");
       await loadSecurityData();
     } catch (error) {
@@ -320,8 +341,18 @@ export function SettingsPage() {
     setIsSubmitting(true);
     try {
       const payload = await api.config.export();
-      setConfigPayload(JSON.stringify(payload, null, 2));
-      toast.success("Config exported");
+      const template: ConfigImportRequest = {
+        profiles: payload.profiles.map((profile) => ({
+          ...profile,
+          api_key: "",
+          models: profile.models.map((model) => ({
+            ...model,
+            pricing: model.pricing ? { ...model.pricing } : null,
+          })),
+        })),
+      };
+      setConfigPayload(JSON.stringify(template, null, 2));
+      toast.success("Config template generated. Fill profile api_key values before importing.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to export config";
       toast.error(message);
@@ -334,7 +365,7 @@ export function SettingsPage() {
     event.preventDefault();
     setIsSubmitting(true);
     try {
-      const parsed = ConfigImportSchema.parse(JSON.parse(configPayload)) as ConfigImportRequest;
+      const parsed: ConfigImportRequest = ConfigImportSchema.parse(JSON.parse(configPayload));
       await api.config.import(parsed);
       toast.success("Config imported");
     } catch (error) {
@@ -546,8 +577,7 @@ export function SettingsPage() {
             <CardHeader>
               <CardTitle>Passkeys</CardTitle>
               <CardDescription>
-                Passkey create/revoke requires OTP. This UI uses generated credential IDs for local
-                validation flows.
+                Passkey create/revoke requires OTP and uses browser-native WebAuthn flows.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -606,13 +636,6 @@ export function SettingsPage() {
                   )}
                 </div>
               </div>
-
-              {latestCredentialId && (
-                <div className="rounded border p-3 text-sm">
-                  <p className="font-medium">Latest generated credential ID</p>
-                  <code className="mt-1 block break-all text-xs">{latestCredentialId}</code>
-                </div>
-              )}
 
               <div className="rounded border p-3 space-y-3">
                 <p className="font-medium text-sm">Revoke flow</p>
@@ -719,7 +742,9 @@ export function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Config import/export</CardTitle>
-          <CardDescription>Uses V2 profile-centric config schema (version 4).</CardDescription>
+          <CardDescription>
+            Export generates an import template; set each <code>profile.api_key</code> before import.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
@@ -736,8 +761,11 @@ export function SettingsPage() {
               className="min-h-64 w-full rounded-md border bg-background px-3 py-2 text-xs"
               value={configPayload}
               onChange={(event) => setConfigPayload(event.target.value)}
-              placeholder="Paste export payload here"
+              placeholder="Paste config template JSON with profile.api_key values"
             />
+            <p className="text-xs text-muted-foreground">
+              Import requires non-empty <code>api_key</code> for every profile.
+            </p>
             <Button type="submit" disabled={isSubmitting || !configPayload.trim()}>
               <Upload className="mr-2 h-4 w-4" />
               Import config
@@ -745,29 +773,6 @@ export function SettingsPage() {
           </form>
         </CardContent>
       </Card>
-
-      {canManageSecurity && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <KeyRound className="h-4 w-4" />
-              Login helper
-            </CardTitle>
-            <CardDescription>
-              Use this generated credential ID in the login passkey tab for UI smoke testing.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {latestCredentialId ? (
-              <code className="block break-all rounded border bg-muted p-2 text-xs">
-                {latestCredentialId}
-              </code>
-            ) : (
-              <p className="text-sm text-muted-foreground">No generated credential yet.</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

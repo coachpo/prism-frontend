@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const PricingSchema = z.object({
+const PricingSchema = z.strictObject({
   currency_code: z.string().length(3),
   price_input_micros: z.number().int().nonnegative().nullable(),
   price_output_micros: z.number().int().nonnegative().nullable(),
@@ -11,13 +11,13 @@ const PricingSchema = z.object({
   source_reference: z.string().nullable(),
 });
 
-const ModelSchema = z.object({
+const ModelSchema = z.strictObject({
   model_id: z.string().min(1),
   is_active: z.boolean(),
   pricing: PricingSchema.nullable(),
 });
 
-const ProfileSchema = z.object({
+const ProfileSchema = z.strictObject({
   provider_type: z.enum(["openai", "anthropic", "gemini"]),
   name: z.string().nullable(),
   description: z.string().nullable(),
@@ -32,8 +32,7 @@ const ProfileSchema = z.object({
   models: z.array(ModelSchema),
 });
 
-export const ConfigImportSchema = z.object({
-  version: z.literal(4),
+export const ConfigImportSchema = z.strictObject({
   profiles: z.array(ProfileSchema),
 });
 
