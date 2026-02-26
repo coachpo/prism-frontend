@@ -1,79 +1,40 @@
 import { z } from "zod";
 
-
-const ProviderExportSchema = z.object({
-  name: z.string(),
-  provider_type: z.string(),
-  description: z.string().nullable(),
-  audit_enabled: z.boolean(),
-  audit_capture_bodies: z.boolean(),
+const PricingSchema = z.object({
+  currency_code: z.string().length(3),
+  price_input_micros: z.number().int().nonnegative().nullable(),
+  price_output_micros: z.number().int().nonnegative().nullable(),
+  price_cache_read_micros: z.number().int().nonnegative().nullable(),
+  price_cache_write_micros: z.number().int().nonnegative().nullable(),
+  price_reasoning_micros: z.number().int().nonnegative().nullable(),
+  missing_special_token_price_policy: z.enum(["MAP_TO_OUTPUT", "ZERO_COST"]),
+  source_reference: z.string().nullable(),
 });
 
-const EndpointExportSchema = z.object({
-  endpoint_id: z.number().nullable().optional(),
-  base_url: z.string(),
-  api_key: z.string(),
+const ModelSchema = z.object({
+  model_id: z.string().min(1),
   is_active: z.boolean(),
-  priority: z.number(),
+  pricing: PricingSchema.nullable(),
+});
+
+const ProfileSchema = z.object({
+  provider_type: z.enum(["openai", "anthropic", "gemini"]),
+  name: z.string().nullable(),
   description: z.string().nullable(),
-  auth_type: z.string().nullable(),
-  custom_headers: z.record(z.string(), z.string()).nullable(),
-  pricing_enabled: z.boolean().optional().default(false),
-  pricing_unit: z.enum(["PER_1K", "PER_1M"]).nullable().optional(),
-  pricing_currency_code: z.string().nullable().optional(),
-  input_price: z.string().nullable().optional(),
-  output_price: z.string().nullable().optional(),
-  cached_input_price: z.string().nullable().optional(),
-  cache_creation_price: z.string().nullable().optional(),
-  reasoning_price: z.string().nullable().optional(),
-  missing_special_token_price_policy: z
-    .enum(["MAP_TO_OUTPUT", "ZERO_COST"])
-    .optional()
-    .default("MAP_TO_OUTPUT"),
-  pricing_config_version: z.number().optional().default(0),
+  endpoint_url: z.string().url(),
+  api_key: z.string().min(1),
+  auth_extra: z.record(z.string(), z.unknown()).nullable(),
+  priority: z.number().int(),
+  is_dynamic: z.boolean(),
+  is_active: z.boolean(),
+  tags: z.array(z.string()),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
+  models: z.array(ModelSchema),
 });
-
-const ModelExportSchema = z.object({
-  provider_type: z.string(),
-  model_id: z.string(),
-  display_name: z.string().nullable(),
-  model_type: z.enum(["native", "proxy"]),
-  redirect_to: z.string().nullable(),
-  lb_strategy: z.enum(["single", "failover"]),
-  is_enabled: z.boolean(),
-  failover_recovery_enabled: z.boolean(),
-  failover_recovery_cooldown_seconds: z.number(),
-  endpoints: z.array(EndpointExportSchema),
-});
-
-const HeaderBlocklistRuleExportSchema = z.object({
-  name: z.string(),
-  match_type: z.enum(["exact", "prefix"]),
-  pattern: z.string(),
-  enabled: z.boolean(),
-  is_system: z.boolean(),
-});
-
-const EndpointFxRateExportSchema = z.object({
-  model_id: z.string(),
-  endpoint_id: z.number(),
-  fx_rate: z.string(),
-});
-
-const UserSettingsExportSchema = z.object({
-  report_currency_code: z.string(),
-  report_currency_symbol: z.string(),
-  endpoint_fx_mappings: z.array(EndpointFxRateExportSchema).optional().default([]),
-});
-
 
 export const ConfigImportSchema = z.object({
   version: z.literal(4),
-  exported_at: z.string().optional(),
-  providers: z.array(ProviderExportSchema),
-  models: z.array(ModelExportSchema),
-  user_settings: UserSettingsExportSchema.optional(),
-  header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),
+  profiles: z.array(ProfileSchema),
 });
 
 export type ConfigImportSchemaType = z.infer<typeof ConfigImportSchema>;

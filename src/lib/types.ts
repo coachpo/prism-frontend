@@ -1,382 +1,310 @@
-// TypeScript types matching backend Pydantic schemas exactly
+export type ProviderType = "openai" | "anthropic" | "gemini";
+export type MissingSpecialTokenPricePolicy = "MAP_TO_OUTPUT" | "ZERO_COST";
 
-// --- Provider ---
+export interface ApiErrorBody {
+  code: string;
+  message: string;
+  details?: Record<string, unknown> | null;
+}
+
+export interface ErrorEnvelope {
+  error: ApiErrorBody;
+}
+
 export interface Provider {
   id: number;
   name: string;
-  provider_type: string;
-  description: string | null;
-  audit_enabled: boolean;
-  audit_capture_bodies: boolean;
+  provider_type: ProviderType;
+  profile_count: number;
   created_at: string;
-  updated_at: string;
 }
 
-export interface ProviderUpdate {
-  audit_enabled?: boolean;
-  audit_capture_bodies?: boolean;
-}
-
-// --- Endpoint ---
-export interface Endpoint {
-  id: number;
-  model_config_id: number;
-  base_url: string;
-  api_key: string;
-  is_active: boolean;
+export interface ProviderProfile {
+  id: string;
+  provider_id: number;
+  provider_type: ProviderType;
+  name: string | null;
+  description: string | null;
+  endpoint_url: string;
   priority: number;
-  description: string | null;
-  auth_type: string | null;
-  custom_headers: Record<string, string> | null;
-  pricing_enabled: boolean;
-  pricing_unit: "PER_1K" | "PER_1M" | null;
-  pricing_currency_code: string | null;
-  input_price: string | null;
-  output_price: string | null;
-  cached_input_price: string | null;
-  cache_creation_price: string | null;
-  reasoning_price: string | null;
-  missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
-  pricing_config_version: number;
-  health_status: string;
-  health_detail: string | null;
-  last_health_check: string | null;
+  is_dynamic: boolean;
+  is_active: boolean;
+  tags: string[];
+  metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface EndpointCreate {
-  base_url: string;
+export interface ProviderProfileCreateRequest {
+  name?: string | null;
+  description?: string | null;
+  endpoint_url: string;
   api_key: string;
-  is_active?: boolean;
+  auth_extra?: Record<string, unknown> | null;
   priority?: number;
-  description?: string | null;
-  auth_type?: string | null;
-  custom_headers?: Record<string, string> | null;
-  pricing_enabled?: boolean;
-  pricing_unit?: "PER_1K" | "PER_1M" | null;
-  pricing_currency_code?: string | null;
-  input_price?: string | null;
-  output_price?: string | null;
-  cached_input_price?: string | null;
-  cache_creation_price?: string | null;
-  reasoning_price?: string | null;
-  missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
+  is_dynamic?: boolean;
+  is_active?: boolean;
+  tags?: string[];
+  metadata?: Record<string, unknown> | null;
 }
 
-export interface EndpointUpdate {
-  base_url?: string;
+export interface ProviderProfileUpdateRequest {
+  name?: string | null;
+  description?: string | null;
+  endpoint_url?: string;
   api_key?: string;
-  is_active?: boolean;
+  auth_extra?: Record<string, unknown> | null;
   priority?: number;
-  description?: string | null;
-  auth_type?: string | null;
-  custom_headers?: Record<string, string> | null;
-  pricing_enabled?: boolean;
-  pricing_unit?: "PER_1K" | "PER_1M" | null;
-  pricing_currency_code?: string | null;
-  input_price?: string | null;
-  output_price?: string | null;
-  cached_input_price?: string | null;
-  cache_creation_price?: string | null;
-  reasoning_price?: string | null;
-  missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
+  is_dynamic?: boolean;
+  is_active?: boolean;
+  tags?: string[];
+  metadata?: Record<string, unknown> | null;
 }
 
-export interface HealthCheckResponse {
-  endpoint_id: number;
-  health_status: string;
-  checked_at: string;
-  detail: string;
-  response_time_ms: number;
-}
-
-export interface EndpointOwnerResponse {
-  endpoint_id: number;
-  model_config_id: number;
-  model_id: string;
-  endpoint_description: string | null;
-  endpoint_base_url: string;
-}
-
-// --- Model Config ---
-export type ModelType = "native" | "proxy";
-export type LoadBalancingStrategy = "single" | "failover";
-
-export interface ModelConfig {
-  id: number;
-  provider_id: number;
-  provider: Provider;
-  model_id: string;
-  display_name: string | null;
-  model_type: ModelType;
-  redirect_to: string | null;
-  lb_strategy: LoadBalancingStrategy;
-  is_enabled: boolean;
-  failover_recovery_enabled: boolean;
-  failover_recovery_cooldown_seconds: number;
-  endpoints: Endpoint[];
+export interface ProfileModelPricing {
+  id: string;
+  profile_model_id: string;
+  currency_code: string;
+  price_input_micros: number | null;
+  price_output_micros: number | null;
+  price_cache_read_micros: number | null;
+  price_cache_write_micros: number | null;
+  price_reasoning_micros: number | null;
+  missing_special_token_price_policy: MissingSpecialTokenPricePolicy;
+  source_reference: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface ModelConfigListItem {
-  id: number;
-  provider_id: number;
-  provider: Provider;
+export interface ProfileModel {
+  id: string;
+  profile_id: string;
   model_id: string;
-  display_name: string | null;
-  model_type: ModelType;
-  redirect_to: string | null;
-  lb_strategy: LoadBalancingStrategy;
-  is_enabled: boolean;
-  failover_recovery_enabled: boolean;
-  failover_recovery_cooldown_seconds: number;
-  endpoint_count: number;
-  active_endpoint_count: number;
-  health_success_rate: number | null;
-  health_total_requests: number;
+  is_active: boolean;
+  pricing: ProfileModelPricing | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface ModelConfigCreate {
-  provider_id: number;
-  model_id: string;
-  display_name?: string | null;
-  model_type?: ModelType;
-  redirect_to?: string | null;
-  lb_strategy?: LoadBalancingStrategy;
-  is_enabled?: boolean;
-  failover_recovery_enabled?: boolean;
-  failover_recovery_cooldown_seconds?: number;
+export interface ProfileModelsUpsertRequest {
+  models: string[];
 }
 
-export interface ModelConfigUpdate {
-  provider_id?: number;
-  model_id?: string;
-  display_name?: string | null;
-  model_type?: ModelType;
-  redirect_to?: string | null;
-  lb_strategy?: LoadBalancingStrategy;
-  is_enabled?: boolean;
-  failover_recovery_enabled?: boolean;
-  failover_recovery_cooldown_seconds?: number;
+export interface ProfileModelPricingUpsertRequest {
+  currency_code: string;
+  price_input_micros?: number | null;
+  price_output_micros?: number | null;
+  price_cache_read_micros?: number | null;
+  price_cache_write_micros?: number | null;
+  price_reasoning_micros?: number | null;
+  missing_special_token_price_policy?: MissingSpecialTokenPricePolicy;
+  source_reference?: string | null;
 }
 
-export interface RequestLogEntry {
+export interface AuthStatusResponse {
+  auth_enabled: boolean;
+  has_passkey: boolean;
+  api_key_count: number;
+}
+
+export interface OtpRequest {
+  email: string;
+}
+
+export interface OtpChallengeResponse {
+  otp_challenge_id: string;
+  expires_at: string;
+  debug_otp_code: string | null;
+}
+
+export interface EnableAuthRequest {
+  email: string;
+  username: string;
+  password: string;
+  otp_challenge_id: string;
+  otp_code: string;
+}
+
+export interface LoginPasswordRequest {
+  username_or_email: string;
+  password: string;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string;
+}
+
+export interface TokenPairResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: "bearer";
+  expires_in: number;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export interface PasswordResetConfirmRequest {
+  otp_challenge_id: string;
+  otp_code: string;
+  new_password: string;
+}
+
+export interface DisableAuthConfirmRequest {
+  otp_challenge_id: string;
+  otp_code: string;
+}
+
+export interface AuthMessageResponse {
+  message: string;
+}
+
+export interface ApiKeyResponse {
+  id: string;
+  name: string;
+  key_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface ApiKeyCreateRequest {
+  name: string;
+  expires_at?: string | null;
+}
+
+export interface ApiKeyCreateResponse extends ApiKeyResponse {
+  plain_api_key: string;
+}
+
+export interface ApiKeyUpdateRequest {
+  name?: string | null;
+  expires_at?: string | null;
+}
+
+export interface PasskeyOtpRequest {
+  email: string;
+  action: "create" | "revoke";
+}
+
+export interface PasskeyRegisterBeginRequest {
+  otp_challenge_id: string;
+  otp_code: string;
+  name?: string | null;
+}
+
+export interface PasskeyRegisterBeginResponse {
+  challenge_id: string;
+  challenge: string;
+  rp_id: string;
+  rp_name: string;
+  user_id: string;
+  user_name: string;
+}
+
+export interface PasskeyRegisterFinishRequest {
+  challenge_id: string;
+  credential_id: string;
+  public_key: string;
+  transports?: string[] | null;
+  name?: string | null;
+}
+
+export interface PasskeyLoginBeginRequest {
+  username_or_email: string;
+}
+
+export interface PasskeyLoginBeginResponse {
+  challenge_id: string;
+  challenge: string;
+  rp_id: string;
+}
+
+export interface PasskeyLoginFinishRequest {
+  challenge_id: string;
+  credential_id: string;
+}
+
+export interface PasskeyRevokeRequest {
+  otp_challenge_id: string;
+  otp_code: string;
+}
+
+export interface PasskeyResponse {
+  id: string;
+  name: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface RequestLogResponse {
   id: number;
+  profile_id: string | null;
+  profile_name_snapshot: string | null;
+  provider_profile_priority_snapshot: number | null;
   model_id: string;
   provider_type: string;
-  endpoint_id: number | null;
-  endpoint_base_url: string | null;
-  endpoint_description: string | null;
   status_code: number;
   response_time_ms: number;
   is_stream: boolean;
+  request_path: string;
+  error_code: string | null;
+  error_detail: string | null;
   input_tokens: number | null;
   output_tokens: number | null;
-  total_tokens: number | null;
-  success_flag: boolean | null;
-  billable_flag: boolean | null;
-  priced_flag: boolean | null;
-  unpriced_reason: string | null;
   cache_read_input_tokens: number | null;
-  cache_creation_input_tokens: number | null;
+  cache_write_input_tokens: number | null;
   reasoning_tokens: number | null;
-  input_cost_micros: number | null;
-  output_cost_micros: number | null;
-  cache_read_input_cost_micros: number | null;
-  cache_creation_input_cost_micros: number | null;
-  reasoning_cost_micros: number | null;
-  total_cost_original_micros: number | null;
-  total_cost_user_currency_micros: number | null;
-  currency_code_original: string | null;
-  report_currency_code: string | null;
-  report_currency_symbol: string | null;
-  fx_rate_used: string | null;
-  fx_rate_source: string | null;
-  pricing_snapshot_unit: string | null;
-  pricing_snapshot_input: string | null;
-  pricing_snapshot_output: string | null;
-  pricing_snapshot_cache_read_input: string | null;
-  pricing_snapshot_cache_creation_input: string | null;
-  pricing_snapshot_reasoning: string | null;
-  pricing_snapshot_missing_special_token_price_policy: string | null;
-  pricing_config_version_used: number | null;
-  request_path: string;
-  error_detail: string | null;
+  total_tokens: number | null;
+  total_cost_micros: number | null;
+  currency_code: string | null;
   created_at: string;
 }
 
 export interface RequestLogListResponse {
-  items: RequestLogEntry[];
+  items: RequestLogResponse[];
   total: number;
   limit: number;
   offset: number;
 }
 
-export interface StatGroup {
-  key: string;
+export interface StatsSummaryResponse {
   total_requests: number;
-  success_count: number;
-  error_count: number;
-  avg_response_time_ms: number;
-  total_tokens: number;
+  successful_requests: number;
+  failed_requests: number;
+  total_cost_micros: number | null;
 }
 
-export interface StatsSummary {
-  total_requests: number;
-  success_count: number;
-  error_count: number;
-  success_rate: number;
-  avg_response_time_ms: number;
-  p95_response_time_ms: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_tokens: number;
-  groups: StatGroup[];
-}
-
-export interface StatsRequestParams {
+export interface RequestLogQuery {
+  profile_id?: string;
   model_id?: string;
   provider_type?: string;
   status_code?: number;
-  success?: boolean;
-  from_time?: string;
-  to_time?: string;
-  endpoint_id?: number;
   limit?: number;
   offset?: number;
 }
 
-export interface StatsSummaryParams {
-  from_time?: string;
-  to_time?: string;
-  group_by?: "model" | "provider" | "endpoint";
-  model_id?: string;
-  provider_type?: string;
-  endpoint_id?: number;
+export interface DeleteRowsResponse {
+  deleted_count: number;
 }
 
-export interface EndpointSuccessRate {
-  endpoint_id: number;
-  total_requests: number;
-  success_count: number;
-  error_count: number;
-  success_rate: number | null;
-}
-
-export interface ConfigEndpointExport {
-  endpoint_id?: number | null;
-  base_url: string;
-  api_key: string;
-  is_active: boolean;
-  priority: number;
-  description: string | null;
-  auth_type: string | null;
-  custom_headers: Record<string, string> | null;
-  pricing_enabled: boolean;
-  pricing_unit: "PER_1K" | "PER_1M" | null;
-  pricing_currency_code: string | null;
-  input_price: string | null;
-  output_price: string | null;
-  cached_input_price: string | null;
-  cache_creation_price: string | null;
-  reasoning_price: string | null;
-  missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
-  pricing_config_version: number;
-}
-
-export interface ConfigModelExport {
-  provider_type: string;
-  model_id: string;
-  display_name: string | null;
-  model_type: ModelType;
-  redirect_to: string | null;
-  lb_strategy: LoadBalancingStrategy;
-  is_enabled: boolean;
-  failover_recovery_enabled: boolean;
-  failover_recovery_cooldown_seconds: number;
-  endpoints: ConfigEndpointExport[];
-}
-
-export interface ConfigProviderExport {
-  name: string;
-  provider_type: string;
-  description: string | null;
-  audit_enabled: boolean;
-  audit_capture_bodies: boolean;
-}
-
-export interface ConfigEndpointFxRateExport {
-  model_id: string;
-  endpoint_id: number;
-  fx_rate: string;
-}
-
-export interface ConfigUserSettingsExport {
-  report_currency_code: string;
-  report_currency_symbol: string;
-  endpoint_fx_mappings: ConfigEndpointFxRateExport[];
-}
-
-export interface ConfigExportResponse {
-  version: 4;
-  exported_at: string;
-  providers: ConfigProviderExport[];
-  models: ConfigModelExport[];
-  user_settings?: ConfigUserSettingsExport | null;
-  header_blocklist_rules: HeaderBlocklistRuleExport[];
-}
-
-export interface ConfigImportRequest {
-  version: 4;
-  exported_at?: string;
-  providers: ConfigProviderExport[];
-  models: ConfigModelExport[];
-  user_settings?: ConfigUserSettingsExport | null;
-  header_blocklist_rules?: HeaderBlocklistRuleExport[];
-}
-
-export interface ConfigImportResponse {
-  providers_imported: number;
-  models_imported: number;
-  endpoints_imported: number;
-}
-
-export interface AuditLogListItem {
+export interface AuditLogResponse {
   id: number;
   request_log_id: number | null;
-  provider_id: number;
+  profile_id: string | null;
+  profile_name_snapshot: string | null;
+  provider_id: number | null;
   model_id: string;
-  endpoint_id: number | null;
-  endpoint_base_url: string | null;
-  endpoint_description: string | null;
   request_method: string;
   request_url: string;
-  request_headers: string;
-  request_body_preview: string | null;
-  response_status: number;
-  is_stream: boolean;
-  duration_ms: number;
-  created_at: string;
-}
-
-export interface AuditLogDetail {
-  id: number;
-  request_log_id: number | null;
-  provider_id: number;
-  model_id: string;
-  endpoint_id: number | null;
-  endpoint_base_url: string | null;
-  endpoint_description: string | null;
-  request_method: string;
-  request_url: string;
-  request_headers: string;
+  request_headers: Record<string, unknown>;
   request_body: string | null;
   response_status: number;
-  response_headers: string | null;
+  response_headers: Record<string, unknown> | null;
   response_body: string | null;
   is_stream: boolean;
   duration_ms: number;
@@ -384,146 +312,81 @@ export interface AuditLogDetail {
 }
 
 export interface AuditLogListResponse {
-  items: AuditLogListItem[];
+  items: AuditLogResponse[];
   total: number;
   limit: number;
   offset: number;
 }
 
-export interface AuditLogParams {
-  provider_id?: number;
+export interface AuditLogQuery {
+  profile_id?: string;
   model_id?: string;
-  status_code?: number;
-  endpoint_id?: number;
-  from_time?: string;
-  to_time?: string;
+  response_status?: number;
   limit?: number;
   offset?: number;
 }
 
-export interface AuditLogDeleteResponse {
-  deleted_count: number;
+export interface ConfigExportProfileModelPricing {
+  currency_code: string;
+  price_input_micros: number | null;
+  price_output_micros: number | null;
+  price_cache_read_micros: number | null;
+  price_cache_write_micros: number | null;
+  price_reasoning_micros: number | null;
+  missing_special_token_price_policy: MissingSpecialTokenPricePolicy;
+  source_reference: string | null;
 }
 
-export interface BatchDeleteResponse {
-  deleted_count: number;
-}
-
-export interface EndpointFxMapping {
+export interface ConfigExportProfileModel {
   model_id: string;
-  endpoint_id: number;
-  fx_rate: string;
+  is_active: boolean;
+  pricing: ConfigExportProfileModelPricing | null;
 }
 
-export interface CostingSettingsResponse {
-  report_currency_code: string;
-  report_currency_symbol: string;
-  endpoint_fx_mappings: EndpointFxMapping[];
+export interface ConfigExportProfile {
+  provider_type: ProviderType;
+  name: string | null;
+  description: string | null;
+  endpoint_url: string;
+  auth_extra: Record<string, unknown> | null;
+  priority: number;
+  is_dynamic: boolean;
+  is_active: boolean;
+  tags: string[];
+  metadata: Record<string, unknown> | null;
+  models: ConfigExportProfileModel[];
 }
 
-export interface CostingSettingsUpdate {
-  report_currency_code: string;
-  report_currency_symbol: string;
-  endpoint_fx_mappings: EndpointFxMapping[];
+export interface ConfigExportResponse {
+  version: 4;
+  exported_at: string;
+  auth_enabled: boolean;
+  profiles: ConfigExportProfile[];
 }
 
-export type SpendingGroupBy =
-  | "none"
-  | "day"
-  | "week"
-  | "month"
-  | "provider"
-  | "model"
-  | "endpoint"
-  | "model_endpoint";
+export type ConfigImportProfileModelPricing = ConfigExportProfileModelPricing;
 
-export interface SpendingReportParams {
-  preset?: "today" | "24h" | "last_7_days" | "7d" | "last_30_days" | "30d" | "custom" | "all";
-  from_time?: string;
-  to_time?: string;
-  provider_type?: string;
-  model_id?: string;
-  endpoint_id?: number;
-  group_by?: SpendingGroupBy;
-  limit?: number;
-  offset?: number;
-  top_n?: number;
+export interface ConfigImportProfileModel extends ConfigExportProfileModel {
+  pricing: ConfigImportProfileModelPricing | null;
 }
 
-export interface SpendingSummary {
-  total_cost_micros: number;
-  successful_request_count: number;
-  priced_request_count: number;
-  unpriced_request_count: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_cache_read_input_tokens: number;
-  total_cache_creation_input_tokens: number;
-  total_reasoning_tokens: number;
-  total_tokens: number;
-  avg_cost_per_successful_request_micros: number;
+export interface ConfigImportProfile extends ConfigExportProfile {
+  api_key: string;
+  models: ConfigImportProfileModel[];
 }
 
-export interface SpendingGroupRow {
-  key: string;
-  total_cost_micros: number;
-  total_requests: number;
-  priced_requests: number;
-  unpriced_requests: number;
-  total_tokens: number;
+export interface ConfigImportRequest {
+  version: 4;
+  profiles: ConfigImportProfile[];
 }
 
-export interface SpendingTopModel {
-  model_id: string;
-  total_cost_micros: number;
+export interface ConfigImportResponse {
+  providers_imported: number;
+  profiles_imported: number;
+  models_imported: number;
 }
 
-export interface SpendingTopEndpoint {
-  endpoint_id: number | null;
-  endpoint_label: string;
-  total_cost_micros: number;
-}
-
-export interface SpendingReportResponse {
-  summary: SpendingSummary;
-  groups: SpendingGroupRow[];
-  groups_total: number;
-  top_spending_models: SpendingTopModel[];
-  top_spending_endpoints: SpendingTopEndpoint[];
-  unpriced_breakdown: Record<string, number>;
-  report_currency_code: string;
-  report_currency_symbol: string;
-}
-
-export interface HeaderBlocklistRule {
-  id: number;
-  name: string;
-  match_type: "exact" | "prefix";
-  pattern: string;
-  enabled: boolean;
-  is_system: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface HeaderBlocklistRuleCreate {
-  name: string;
-  match_type: "exact" | "prefix";
-  pattern: string;
-  enabled?: boolean;
-}
-
-export interface HeaderBlocklistRuleUpdate {
-  name?: string;
-  match_type?: "exact" | "prefix";
-  pattern?: string;
-  enabled?: boolean;
-}
-
-export interface HeaderBlocklistRuleExport {
-  name: string;
-  match_type: "exact" | "prefix";
-  pattern: string;
-  enabled: boolean;
-  is_system: boolean;
+export interface TelemetrySnapshot {
+  queue_depth: number;
+  metrics: Record<string, unknown>;
 }

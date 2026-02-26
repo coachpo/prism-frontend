@@ -1,494 +1,288 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { api } from "@/lib/api";
-import { formatProviderType, formatLabel } from "@/lib/utils";
-import type { ModelConfigListItem, Provider, ModelConfigCreate, ModelConfigUpdate, LoadBalancingStrategy } from "@/lib/types";
+import type { FormEvent } from "react";
+import { Link } from "react-router-dom";
+import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SwitchController } from "@/components/SwitchController";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreHorizontal, Search, Server } from "lucide-react";
-import { ProviderIcon } from "@/components/ProviderIcon";
-import { PageHeader } from "@/components/PageHeader";
-import { EmptyState } from "@/components/EmptyState";
-import { ProviderSelect } from "@/components/ProviderSelect";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+import { api } from "@/lib/api";
+import type { ProviderProfile, ProviderType } from "@/lib/types";
+
+const providerOptions: ProviderType[] = ["openai", "anthropic", "gemini"];
+
+function normalizeTags(raw: string) {
+  return raw
+    .split(",")
+    .map((tag) => tag.trim().toLowerCase())
+    .filter(Boolean);
+}
 
 export function ModelsPage() {
-  const navigate = useNavigate();
-  const [models, setModels] = useState<ModelConfigListItem[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingModel, setEditingModel] = useState<ModelConfigListItem | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<ModelConfigListItem | null>(null);
-  const [search, setSearch] = useState("");
-  const [providerFilter, setProviderFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [provider, setProvider] = useState<ProviderType>("openai");
+  const [profiles, setProfiles] = useState<ProviderProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [formData, setFormData] = useState<ModelConfigCreate>({
-    provider_id: 0,
-    model_id: "",
-    display_name: "",
-    model_type: "native",
-    redirect_to: null,
-    lb_strategy: "single",
-    is_enabled: true,
-    failover_recovery_enabled: true,
-    failover_recovery_cooldown_seconds: 60,
-  });
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [endpointUrl, setEndpointUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [priority, setPriority] = useState(100);
+  const [isDynamic, setIsDynamic] = useState(false);
+  const [isActive, setIsActive] = useState(true);
+  const [tags, setTags] = useState("");
 
-  const fetchData = async () => {
+  async function loadProfiles(nextProvider = provider) {
+    setIsLoading(true);
     try {
-      const [modelsData, providersData] = await Promise.all([
-        api.models.list(),
-        api.providers.list(),
-      ]);
-      setModels(modelsData);
-      setProviders(providersData);
+      const nextProfiles = await api.profiles.listByProvider(nextProvider);
+      setProfiles(nextProfiles);
     } catch (error) {
-      toast.error("Failed to fetch data");
-      console.error(error);
+      const message = error instanceof Error ? error.message : "Failed to load profiles";
+      toast.error(message);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
+  }
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    void loadProfiles(provider);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider]);
 
-  const handleOpenDialog = (model?: ModelConfigListItem) => {
-    if (model) {
-      setEditingModel(model);
-      setFormData({
-        provider_id: model.provider_id,
-        model_id: model.model_id,
-        display_name: model.display_name || "",
-        model_type: model.model_type,
-        redirect_to: model.redirect_to,
-        lb_strategy: model.lb_strategy,
-        is_enabled: model.is_enabled,
-        failover_recovery_enabled: model.failover_recovery_enabled,
-        failover_recovery_cooldown_seconds: model.failover_recovery_cooldown_seconds,
-      });
-    } else {
-      setEditingModel(null);
-      setFormData({
-        provider_id: providers[0]?.id ?? 0,
-        model_id: "",
-        display_name: "",
-        model_type: "native",
-        redirect_to: null,
-        lb_strategy: "single",
-        is_enabled: true,
-        failover_recovery_enabled: true,
-        failover_recovery_cooldown_seconds: 60,
-      });
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function handleCreateProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     try {
-      if (editingModel) {
-        const updateData: ModelConfigUpdate = {
-          display_name: formData.display_name || null,
-          model_type: formData.model_type,
-          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
-          lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
-          is_enabled: formData.is_enabled,
-          failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
-          failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
-        };
-        await api.models.update(editingModel.id, updateData);
-        toast.success("Model updated");
-      } else {
-        const createData: ModelConfigCreate = {
-          ...formData,
-          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
-          lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
-          failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
-          failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
-        };
-        await api.models.create(createData);
-        toast.success("Model created");
-      }
-      setIsDialogOpen(false);
-      fetchData();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save model");
-    }
-  };
+      await api.profiles.create(provider, {
+        name: name || null,
+        description: description || null,
+        endpoint_url: endpointUrl,
+        api_key: apiKey,
+        priority,
+        is_dynamic: isDynamic,
+        is_active: isActive,
+        tags: normalizeTags(tags),
+      });
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
+      setName("");
+      setDescription("");
+      setEndpointUrl("");
+      setApiKey("");
+      setPriority(100);
+      setIsDynamic(false);
+      setIsActive(true);
+      setTags("");
+
+      toast.success("Profile created");
+      await loadProfiles();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create profile";
+      toast.error(message);
+    }
+  }
+
+  async function toggleProfileActive(profile: ProviderProfile, nextIsActive: boolean) {
     try {
-      await api.models.delete(deleteTarget.id);
-      toast.success("Model deleted");
-      setDeleteTarget(null);
-      fetchData();
+      await api.profiles.patch(profile.id, { is_active: nextIsActive });
+      await loadProfiles();
+      toast.success("Profile updated");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete model");
+      const message = error instanceof Error ? error.message : "Failed to update profile";
+      toast.error(message);
     }
-  };
+  }
 
-  const selectedProvider = providers.find(p => p.id === formData.provider_id);
-  const nativeModelsForProvider = models.filter(
-    m => m.model_type === "native" && m.provider_id === formData.provider_id && (!editingModel || m.model_id !== formData.model_id)
-  );
-
-  const filtered = models.filter((m) => {
-    if (search) {
-      const q = search.toLowerCase();
-      if (!m.model_id.toLowerCase().includes(q) && !(m.display_name || "").toLowerCase().includes(q)) return false;
+  async function deleteProfile(profileId: string) {
+    const confirmed = window.confirm("Delete this profile and all model registrations?");
+    if (!confirmed) {
+      return;
     }
-    if (providerFilter !== "all" && m.provider.provider_type !== providerFilter) return false;
-    if (statusFilter === "enabled" && !m.is_enabled) return false;
-    if (statusFilter === "disabled" && m.is_enabled) return false;
-    if (typeFilter !== "all" && m.model_type !== typeFilter) return false;
-    return true;
-  });
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-40" />
-        <div className="flex gap-3">
-          <Skeleton className="h-9 flex-1 max-w-sm" />
-          <Skeleton className="h-9 w-32" />
-          <Skeleton className="h-9 w-32" />
-        </div>
-        <Skeleton className="h-[500px] rounded-xl" />
-      </div>
-    );
+    try {
+      await api.profiles.delete(profileId);
+      toast.success("Profile deleted");
+      await loadProfiles();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete profile";
+      toast.error(message);
+    }
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Models" description={`${models.length} model configurations`}>
-        <Button size="sm" onClick={() => handleOpenDialog()}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          New Model
-        </Button>
-      </PageHeader>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search models..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9"
-          />
-        </div>
-        <ProviderSelect value={providerFilter} onValueChange={setProviderFilter} providers={providers} className="w-auto min-w-[130px] h-9" />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-auto min-w-[110px] h-9">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="enabled">On</SelectItem>
-            <SelectItem value="disabled">Off</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-auto min-w-[110px] h-9">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="native">Native</SelectItem>
-            <SelectItem value="proxy">Proxy</SelectItem>
-          </SelectContent>
-        </Select>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Provider Profiles</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage provider-specific profiles used by Prism V2 routing and failover.
+        </p>
       </div>
 
       <Card>
-        <CardContent className="p-0">
-          {filtered.length === 0 ? (
-            <EmptyState
-              icon={<Server className="h-6 w-6" />}
-              title={search || providerFilter !== "all" || statusFilter !== "all" || typeFilter !== "all" ? "No models match filters" : "No models configured"}
-              description={search ? "Try adjusting your search or filters" : "Create your first model to get started"}
-              action={!search ? <Button size="sm" onClick={() => handleOpenDialog()}><Plus className="mr-1.5 h-4 w-4" />New Model</Button> : undefined}
-            />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Model</TableHead>
-                  <TableHead className="hidden sm:table-cell">Provider</TableHead>
-                  <TableHead className="hidden md:table-cell">Type</TableHead>
-                  <TableHead className="hidden lg:table-cell">Strategy</TableHead>
-                  <TableHead className="hidden md:table-cell text-center">Endpoints</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-10" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((model) => (
-                  <TableRow
-                    key={model.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/models/${model.id}`)}
-                  >
-                    <TableCell>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="sm:hidden">
-                            <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                          </span>
-                          <span className="text-sm font-medium truncate">
-                            {model.display_name || model.model_id}
-                          </span>
-                        </div>
-                        {(model.display_name || (model.model_type === "proxy" && model.redirect_to)) && (
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {model.model_type === "proxy" && model.redirect_to
-                              ? `${model.model_id} → ${model.redirect_to}`
-                              : model.model_id}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <div className="flex items-center gap-1.5">
-                        <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                        <span className="text-sm">{formatProviderType(model.provider.provider_type)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {model.model_type === "proxy" ? (
-                        <div className="flex items-center">
-                      <TypeBadge label="Proxy" intent="accent" />
-                        </div>
-                      ) : (
-                        <TypeBadge label="Native" intent="info" />
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <span className="text-xs text-muted-foreground">{formatLabel(model.lb_strategy)}</span>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-center">
-                      <span className="text-sm tabular-nums">{model.active_endpoint_count}/{model.endpoint_count}</span>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        label={model.is_enabled ? "On" : "Off"}
-                        intent={model.is_enabled ? "success" : "muted"}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenuItem onClick={() => handleOpenDialog(model)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteTarget(model)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingModel ? "Edit Model" : "New Model"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!editingModel && (
-              <div className="space-y-2">
-                <Label>Provider</Label>
-                <ProviderSelect
-                  value={String(formData.provider_id)}
-                  onValueChange={(v) => setFormData({ ...formData, provider_id: parseInt(v), redirect_to: null })}
-                  valueType="provider_id"
-                  providers={providers}
-                  showAll={false}
-                  placeholder="Select provider"
-                />
-              </div>
-            )}
-
-            {!editingModel && (
-              <div className="space-y-2">
-                <Label>Model ID</Label>
-                <Input
-                  value={formData.model_id}
-                  onChange={(e) => setFormData({ ...formData, model_id: e.target.value })}
-                  placeholder="e.g. gpt-4o"
-                  required
-                />
-              </div>
-            )}
-
+        <CardHeader>
+          <CardTitle>Create profile</CardTitle>
+          <CardDescription>
+            Add endpoint URL + key for the selected provider and assign priority.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={handleCreateProfile}>
             <div className="space-y-2">
-              <Label>Display Name</Label>
-              <Input
-                value={formData.display_name ?? ""}
-                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                placeholder="Optional friendly name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Type</Label>
-              <Select
-                value={formData.model_type}
-                onValueChange={(v) => setFormData({ ...formData, model_type: v as "native" | "proxy", redirect_to: v === "native" ? null : formData.redirect_to })}
-              >
+              <Label>Provider</Label>
+              <Select value={provider} onValueChange={(value) => setProvider(value as ProviderType)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="native">Native</SelectItem>
-                  <SelectItem value="proxy">Proxy</SelectItem>
+                  {providerOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {formData.model_type === "proxy" && (
-              <div className="space-y-2">
-                <Label>Redirect To</Label>
-                {nativeModelsForProvider.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No native models available for {selectedProvider?.name || "this provider"}. Create a native model first.
-                  </p>
-                ) : (
-                  <Select
-                    value={formData.redirect_to || ""}
-                    onValueChange={(val) => setFormData({ ...formData, redirect_to: val })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select target model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {nativeModelsForProvider.map((m) => (
-                        <SelectItem key={m.model_id} value={m.model_id}>
-                          {m.display_name || m.model_id}
-                          {m.display_name && ` (${m.model_id})`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="profile_name">Name</Label>
+              <Input
+                id="profile_name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Primary"
+              />
+            </div>
 
-            {formData.model_type === "native" && (
-              <div className="space-y-2">
-                <Label>Load Balancing</Label>
-                <Select
-                  value={formData.lb_strategy}
-                  onValueChange={(v) => setFormData({ ...formData, lb_strategy: v as LoadBalancingStrategy })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="single">Single</SelectItem>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="endpoint_url">Endpoint URL</Label>
+              <Input
+                id="endpoint_url"
+                type="url"
+                value={endpointUrl}
+                onChange={(event) => setEndpointUrl(event.target.value)}
+                placeholder="https://api.openai.com/v1"
+                required
+              />
+            </div>
 
-                    <SelectItem value="failover">Failover</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {formData.model_type === "native" && formData.lb_strategy === "failover" && (
-              <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
-                <div className="space-y-2">
-                  <Label className="text-base font-medium">Recovery Policy</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Configure how the system attempts to recover failed endpoints.
-                  </p>
-                </div>
-                
-                <SwitchController
-                  label="Auto-Recovery"
-                  description="Periodically check failed endpoints"
-                  checked={formData.failover_recovery_enabled ?? true}
-                  onCheckedChange={(checked) => setFormData({ ...formData, failover_recovery_enabled: checked })}
-                />
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="api_key">API key</Label>
+              <Input
+                id="api_key"
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                placeholder="sk-..."
+                required
+              />
+            </div>
 
-                {formData.failover_recovery_enabled && (
-                  <div className="space-y-2">
-                    <Label>Cooldown Period (seconds)</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={3600}
-                      value={formData.failover_recovery_cooldown_seconds}
-                      onChange={(e) => setFormData({ ...formData, failover_recovery_cooldown_seconds: parseInt(e.target.value) || 60 })}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Wait time before retrying a failed endpoint (1-3600s).
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Input
+                id="priority"
+                type="number"
+                value={priority}
+                onChange={(event) => setPriority(Number(event.target.value) || 0)}
+              />
+            </div>
 
-            <SwitchController
-              label="Active"
-              description="Turn this model on or off"
-              checked={formData.is_enabled}
-              onCheckedChange={(checked) => setFormData({ ...formData, is_enabled: checked })}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags (comma-separated)</Label>
+              <Input
+                id="tags"
+                value={tags}
+                onChange={(event) => setTags(event.target.value)}
+                placeholder="prod, primary"
+              />
+            </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">Save</Button>
-            </DialogFooter>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Primary production endpoint"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={isDynamic} onCheckedChange={setIsDynamic} id="is_dynamic" />
+              <Label htmlFor="is_dynamic">Dynamic routing profile</Label>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={isActive} onCheckedChange={setIsActive} id="is_active" />
+              <Label htmlFor="is_active">Active</Label>
+            </div>
+
+            <div className="md:col-span-2">
+              <Button className="w-full md:w-auto" type="submit">
+                <Plus className="mr-2 h-4 w-4" />
+                Create profile
+              </Button>
+            </div>
           </form>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
 
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete Model</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{deleteTarget?.display_name || deleteTarget?.model_id}"? This will also delete all associated endpoints.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Card>
+        <CardHeader>
+          <CardTitle>{provider} profiles</CardTitle>
+          <CardDescription>Priority order determines failover sequence.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {profiles.map((profile) => (
+            <div key={profile.id} className="rounded border p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">{profile.name ?? "Unnamed profile"}</p>
+                  <p className="text-xs text-muted-foreground">{profile.endpoint_url}</p>
+                  <p className="text-xs text-muted-foreground">
+                    priority={profile.priority} • dynamic={String(profile.is_dynamic)}
+                  </p>
+                  {profile.tags.length > 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">tags: {profile.tags.join(", ")}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 rounded border px-2 py-1">
+                    <Switch
+                      checked={profile.is_active}
+                      onCheckedChange={(next) => void toggleProfileActive(profile, next)}
+                      id={`active-${profile.id}`}
+                    />
+                    <Label htmlFor={`active-${profile.id}`} className="text-xs">
+                      Active
+                    </Label>
+                  </div>
+
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={`/profiles/${profile.id}`}>Open</Link>
+                  </Button>
+
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    onClick={() => void deleteProfile(profile.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Delete profile</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {!profiles.length && !isLoading && (
+            <p className="text-sm text-muted-foreground">No profiles for {provider} yet.</p>
+          )}
+          {isLoading && <p className="text-sm text-muted-foreground">Loading profiles...</p>}
+        </CardContent>
+      </Card>
     </div>
   );
 }

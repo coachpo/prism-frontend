@@ -1,1192 +1,773 @@
-import { useRef, useState, useEffect } from "react";
-import { api } from "@/lib/api";
-import { z } from "zod";
-import { isValidCurrencyCode, isValidPositiveDecimalString } from "@/lib/costing";
-import type {
-  ConfigImportRequest,
-  Provider,
-  HeaderBlocklistRule,
-  HeaderBlocklistRuleCreate,
-  EndpointFxMapping,
-  CostingSettingsUpdate,
-  ModelConfigListItem,
-  Endpoint,
-} from "@/lib/types";
-import { ConfigImportSchema } from "@/lib/configImportValidation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
+import { Download, KeyRound, RotateCcw, ShieldOff, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { Download, Upload, AlertTriangle, Shield, Trash2, Ban, Lock, Plus, Pencil, ChevronRight, Coins } from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ProviderIcon } from "@/components/ProviderIcon";
-import { PageHeader } from "@/components/PageHeader";
-import { SwitchController } from "@/components/SwitchController";
-import { TypeBadge } from "@/components/StatusBadge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/lib/api";
+import { ConfigImportSchema } from "@/lib/configImportValidation";
+import type { ApiKeyResponse, ConfigImportRequest, PasskeyResponse } from "@/lib/types";
+
+function randomBase64Url(bytes = 32) {
+  const array = new Uint8Array(bytes);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(array);
+  } else {
+    for (let index = 0; index < array.length; index += 1) {
+      array[index] = Math.floor(Math.random() * 256);
+    }
+  }
+  let binary = "";
+  for (const byte of array) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
 
 export function SettingsPage() {
-  const [importing, setImporting] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [parsedConfig, setParsedConfig] = useState<ConfigImportRequest | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: "requests" | "audits"; days: number | null; deleteAll: boolean } | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [cleanupType, setCleanupType] = useState<"requests" | "audits">("requests");
-  const [retentionPreset, setRetentionPreset] = useState("");
-  const [customDays, setCustomDays] = useState("");
-  const [blocklistRules, setBlocklistRules] = useState<HeaderBlocklistRule[]>([]);
-  const [loadingRules, setLoadingRules] = useState(false);
-  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
-  const [editingRule, setEditingRule] = useState<HeaderBlocklistRule | null>(null);
-  const [ruleForm, setRuleForm] = useState<HeaderBlocklistRuleCreate>({
-    name: "",
-    match_type: "exact",
-    pattern: "",
-    enabled: true,
-  });
-  const [deleteRuleConfirm, setDeleteRuleConfirm] = useState<HeaderBlocklistRule | null>(null);
-  const [systemRulesOpen, setSystemRulesOpen] = useState(false);
-  const [userRulesOpen, setUserRulesOpen] = useState(true);
-  const [costingUnavailable, setCostingUnavailable] = useState(false);
-  const [costingLoading, setCostingLoading] = useState(false);
-  const [costingSaving, setCostingSaving] = useState(false);
-  const [models, setModels] = useState<ModelConfigListItem[]>([]);
-  const [mappingEndpoints, setMappingEndpoints] = useState<Endpoint[]>([]);
-  const [mappingLoading, setMappingLoading] = useState(false);
-  const [mappingModelId, setMappingModelId] = useState("");
-  const [mappingEndpointId, setMappingEndpointId] = useState("");
-  const [mappingFxRate, setMappingFxRate] = useState("");
-  const [costingForm, setCostingForm] = useState<CostingSettingsUpdate>({
-    report_currency_code: "USD",
-    report_currency_symbol: "$",
-    endpoint_fx_mappings: [],
-  });
+  const auth = useAuth();
+
+  const [email, setEmail] = useState("admin@example.com");
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("StrongPassword!123");
+
+  const [setupChallengeId, setSetupChallengeId] = useState("");
+  const [setupOtpCode, setSetupOtpCode] = useState("");
+  const [setupDebugOtp, setSetupDebugOtp] = useState<string | null>(null);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
+  const [disableChallengeId, setDisableChallengeId] = useState("");
+  const [disableOtpCode, setDisableOtpCode] = useState("");
+  const [disableDebugOtp, setDisableDebugOtp] = useState<string | null>(null);
+
+  const [apiKeys, setApiKeys] = useState<ApiKeyResponse[]>([]);
+  const [newApiKeyName, setNewApiKeyName] = useState("default-key");
+  const [newApiKeyExpiresAt, setNewApiKeyExpiresAt] = useState("");
+  const [newPlainApiKey, setNewPlainApiKey] = useState<string | null>(null);
+
+  const [passkeys, setPasskeys] = useState<PasskeyResponse[]>([]);
+  const [passkeyName, setPasskeyName] = useState("Laptop Passkey");
+  const [passkeyOtpChallengeId, setPasskeyOtpChallengeId] = useState("");
+  const [passkeyOtpCode, setPasskeyOtpCode] = useState("");
+  const [passkeyDebugOtp, setPasskeyDebugOtp] = useState<string | null>(null);
+  const [latestCredentialId, setLatestCredentialId] = useState("");
+
+  const [revokeOtpChallengeId, setRevokeOtpChallengeId] = useState("");
+  const [revokeOtpCode, setRevokeOtpCode] = useState("");
+  const [revokeDebugOtp, setRevokeDebugOtp] = useState<string | null>(null);
+
+  const [configPayload, setConfigPayload] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canManageSecurity = useMemo(
+    () => auth.authEnabled && auth.isAuthenticated,
+    [auth.authEnabled, auth.isAuthenticated],
+  );
+
+  async function loadSecurityData() {
+    if (!canManageSecurity) {
+      setApiKeys([]);
+      setPasskeys([]);
+      return;
+    }
+    try {
+      const [nextKeys, nextPasskeys] = await Promise.all([
+        api.auth.listApiKeys(),
+        api.auth.listPasskeys(),
+      ]);
+      setApiKeys(nextKeys);
+      setPasskeys(nextPasskeys);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load security settings";
+      toast.error(message);
+    }
+  }
 
   useEffect(() => {
-    api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
-    fetchRules();
-    fetchCostingSettings();
-    fetchModels();
-  }, []);
+    void loadSecurityData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canManageSecurity]);
 
-  const fetchRules = async () => {
-    setLoadingRules(true);
+  async function requestSetupOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
     try {
-      const rules = await api.config.headerBlocklistRules.list(true);
-      setBlocklistRules(rules);
-    } catch {
-      toast.error("Failed to load header blocklist rules");
+      const challenge = await api.auth.setupRequestOtp({ email });
+      setSetupChallengeId(challenge.otp_challenge_id);
+      setSetupDebugOtp(challenge.debug_otp_code);
+      if (challenge.debug_otp_code) {
+        setSetupOtpCode(challenge.debug_otp_code);
+      }
+      toast.success("Setup OTP requested");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to request OTP";
+      toast.error(message);
     } finally {
-      setLoadingRules(false);
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const fetchModels = async () => {
+  async function enableAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
     try {
-      const data = await api.models.list();
-      setModels(data);
-    } catch {
-      toast.error("Failed to load models for FX mapping");
-    }
-  };
-
-  const fetchCostingSettings = async () => {
-    setCostingLoading(true);
-    try {
-      const data = await api.settings.costing.get();
-      setCostingForm({
-        report_currency_code: data.report_currency_code,
-        report_currency_symbol: data.report_currency_symbol,
-        endpoint_fx_mappings: data.endpoint_fx_mappings,
+      await auth.enableAuth({
+        email,
+        username,
+        password,
+        otp_challenge_id: setupChallengeId,
+        otp_code: setupOtpCode,
       });
-      setCostingUnavailable(false);
+      await auth.refreshStatus();
+      toast.success("Authentication enabled");
     } catch (error) {
-      if (error instanceof Error && /not found/i.test(error.message)) {
-        setCostingUnavailable(true);
-      } else {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to load costing settings"
-        );
-      }
+      const message = error instanceof Error ? error.message : "Failed to enable auth";
+      toast.error(message);
     } finally {
-      setCostingLoading(false);
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const loadMappingEndpoints = async (modelConfigId: number) => {
-    setMappingLoading(true);
-    setMappingEndpointId("");
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
     try {
-      const model = await api.models.get(modelConfigId);
-      setMappingEndpoints(model.endpoints ?? []);
-    } catch {
-      setMappingEndpoints([]);
-      toast.error("Failed to load endpoints for selected model");
-    } finally {
-      setMappingLoading(false);
-    }
-  };
-
-  const handleAddFxMapping = () => {
-    if (!mappingModelId || !mappingEndpointId || !mappingFxRate.trim()) {
-      toast.error("Model, endpoint, and FX rate are required");
-      return;
-    }
-    if (!isValidPositiveDecimalString(mappingFxRate)) {
-      toast.error("FX rate must be a valid decimal greater than zero");
-      return;
-    }
-
-    const endpointId = Number.parseInt(mappingEndpointId, 10);
-    if (Number.isNaN(endpointId)) {
-      toast.error("Invalid endpoint selection");
-      return;
-    }
-
-    const duplicate = costingForm.endpoint_fx_mappings.some(
-      (row) => row.model_id === mappingModelId && row.endpoint_id === endpointId
-    );
-    if (duplicate) {
-      toast.error("Duplicate FX mapping for selected model and endpoint");
-      return;
-    }
-
-    const nextMappings = [
-      ...costingForm.endpoint_fx_mappings,
-      {
-        model_id: mappingModelId,
-        endpoint_id: endpointId,
-        fx_rate: mappingFxRate.trim(),
-      },
-    ].sort((a, b) => {
-      if (a.model_id === b.model_id) {
-        return a.endpoint_id - b.endpoint_id;
-      }
-      return a.model_id.localeCompare(b.model_id);
-    });
-
-    setCostingForm({ ...costingForm, endpoint_fx_mappings: nextMappings });
-    setMappingEndpointId("");
-    setMappingFxRate("");
-  };
-
-  const handleDeleteFxMapping = (mapping: EndpointFxMapping) => {
-    setCostingForm({
-      ...costingForm,
-      endpoint_fx_mappings: costingForm.endpoint_fx_mappings.filter(
-        (row) =>
-          !(
-            row.model_id === mapping.model_id &&
-            row.endpoint_id === mapping.endpoint_id
-          )
-      ),
-    });
-  };
-
-  const handleSaveCostingSettings = async () => {
-    const normalizedCode = costingForm.report_currency_code.trim().toUpperCase();
-    const normalizedSymbol = costingForm.report_currency_symbol.trim();
-
-    if (!isValidCurrencyCode(normalizedCode)) {
-      toast.error("Report currency must be a valid 3-letter code (for example, USD)");
-      return;
-    }
-    if (!normalizedSymbol) {
-      toast.error("Report currency symbol is required");
-      return;
-    }
-    if (normalizedSymbol.length > 5) {
-      toast.error("Report currency symbol must be 5 characters or fewer");
-      return;
-    }
-
-    const seen = new Set<string>();
-    for (const mapping of costingForm.endpoint_fx_mappings) {
-      const key = `${mapping.model_id}::${mapping.endpoint_id}`;
-      if (seen.has(key)) {
-        toast.error(`Duplicate mapping detected: ${mapping.model_id} #${mapping.endpoint_id}`);
-        return;
-      }
-      seen.add(key);
-      if (!isValidPositiveDecimalString(mapping.fx_rate)) {
-        toast.error(
-          `FX rate for ${mapping.model_id} #${mapping.endpoint_id} must be greater than zero`
-        );
-        return;
-      }
-    }
-
-    const payload: CostingSettingsUpdate = {
-      report_currency_code: normalizedCode,
-      report_currency_symbol: normalizedSymbol,
-      endpoint_fx_mappings: costingForm.endpoint_fx_mappings,
-    };
-
-    setCostingSaving(true);
-    try {
-      const saved = await api.settings.costing.update(payload);
-      setCostingForm({
-        report_currency_code: saved.report_currency_code,
-        report_currency_symbol: saved.report_currency_symbol,
-        endpoint_fx_mappings: saved.endpoint_fx_mappings,
+      await api.auth.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
       });
-      toast.success("Costing settings saved");
-      setCostingUnavailable(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      toast.success("Password changed");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to save costing settings"
-      );
+      const message = error instanceof Error ? error.message : "Failed to change password";
+      toast.error(message);
     } finally {
-      setCostingSaving(false);
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const toggleAudit = async (providerId: number, checked: boolean) => {
-    setProviders((prev) =>
-      prev.map((p) => (p.id === providerId ? { ...p, audit_enabled: checked } : p))
-    );
+  async function requestDisableOtp() {
+    setIsSubmitting(true);
     try {
-      await api.providers.update(providerId, { audit_enabled: checked });
-    } catch {
-      setProviders((prev) =>
-        prev.map((p) => (p.id === providerId ? { ...p, audit_enabled: !checked } : p))
-      );
-      toast.error("Failed to update provider");
-    }
-  };
-
-  const toggleBodies = async (providerId: number, checked: boolean) => {
-    setProviders((prev) =>
-      prev.map((p) => (p.id === providerId ? { ...p, audit_capture_bodies: checked } : p))
-    );
-    try {
-      await api.providers.update(providerId, { audit_capture_bodies: checked });
-    } catch {
-      setProviders((prev) =>
-        prev.map((p) => (p.id === providerId ? { ...p, audit_capture_bodies: !checked } : p))
-      );
-      toast.error("Failed to update provider");
-    }
-  };
-
-  const handleBatchDelete = async () => {
-    if (!deleteConfirm) return;
-    const { type, days, deleteAll } = deleteConfirm;
-    setDeleteConfirm(null);
-    setDeleting(true);
-    try {
-      let count = 0;
-      if (type === "requests") {
-        const res = deleteAll
-          ? await api.stats.delete({ delete_all: true })
-          : await api.stats.delete({ older_than_days: days! });
-        count = res.deleted_count;
-        toast.success(`Deleted ${count} request logs`);
-      } else {
-        const res = deleteAll
-          ? await api.audit.delete({ delete_all: true })
-          : await api.audit.delete({ older_than_days: days! });
-        count = res.deleted_count;
-        toast.success(`Deleted ${count} audit logs`);
+      const challenge = await api.auth.disableRequestOtp();
+      setDisableChallengeId(challenge.otp_challenge_id);
+      setDisableDebugOtp(challenge.debug_otp_code);
+      if (challenge.debug_otp_code) {
+        setDisableOtpCode(challenge.debug_otp_code);
       }
-    } catch {
-      toast.error("Deletion failed");
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const data = await api.config.export();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const date = new Date().toISOString().split("T")[0];
-      a.href = url;
-      a.download = `gateway-config-${date}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Configuration exported successfully");
+      toast.success("Disable-auth OTP requested");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Export failed");
+      const message = error instanceof Error ? error.message : "Failed to request disable OTP";
+      toast.error(message);
     } finally {
-      setExporting(false);
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setSelectedFile(file);
+  async function disableAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
     try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      
-      const validation = ConfigImportSchema.safeParse(parsed);
-      if (!validation.success) {
-        const errors = validation.error.issues.map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`).join(", ");
-        throw new Error(`Invalid configuration: ${errors}`);
+      await api.auth.disableConfirm({
+        otp_challenge_id: disableChallengeId,
+        otp_code: disableOtpCode,
+      });
+      await auth.refreshStatus();
+      toast.success("Authentication disabled and auth data purged");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to disable authentication";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function revokeAllSessions() {
+    setIsSubmitting(true);
+    try {
+      await api.auth.revokeAllSessions();
+      toast.success("All sessions revoked");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to revoke sessions";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function createApiKey(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const created = await api.auth.createApiKey({
+        name: newApiKeyName,
+        expires_at: newApiKeyExpiresAt || null,
+      });
+      setNewPlainApiKey(created.plain_api_key);
+      toast.success("API key created (shown once)");
+      await loadSecurityData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create API key";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function revokeApiKey(keyId: string) {
+    setIsSubmitting(true);
+    try {
+      await api.auth.revokeApiKey(keyId);
+      toast.success("API key revoked");
+      await loadSecurityData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to revoke API key";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function requestPasskeyCreateOtp() {
+    setIsSubmitting(true);
+    try {
+      const challenge = await api.auth.requestPasskeyOtp({ email, action: "create" });
+      setPasskeyOtpChallengeId(challenge.otp_challenge_id);
+      setPasskeyDebugOtp(challenge.debug_otp_code);
+      if (challenge.debug_otp_code) {
+        setPasskeyOtpCode(challenge.debug_otp_code);
       }
-      
-      setParsedConfig(validation.data as ConfigImportRequest);
+      toast.success("Passkey create OTP requested");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Invalid JSON file");
-      setSelectedFile(null);
-      setParsedConfig(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const handleImport = async () => {
-    if (!parsedConfig) return;
-    setConfirmOpen(false);
-    setImporting(true);
-    try {
-      const result = await api.config.import(parsedConfig);
-      toast.success(
-        `Imported ${result.providers_imported} providers, ${result.models_imported} models, ${result.endpoints_imported} endpoints`
-      );
-      setSelectedFile(null);
-      setParsedConfig(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Import failed");
+      const message = error instanceof Error ? error.message : "Failed to request passkey OTP";
+      toast.error(message);
     } finally {
-      setImporting(false);
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const handleToggleRule = async (rule: HeaderBlocklistRule, checked: boolean) => {
-    setBlocklistRules((prev) =>
-      prev.map((r) => (r.id === rule.id ? { ...r, enabled: checked } : r))
-    );
+  async function createPasskey() {
+    setIsSubmitting(true);
     try {
-      await api.config.headerBlocklistRules.update(rule.id, { enabled: checked });
-    } catch {
-      setBlocklistRules((prev) =>
-        prev.map((r) => (r.id === rule.id ? { ...r, enabled: !checked } : r))
-      );
-      toast.error("Failed to update rule");
-    }
-  };
-
-  const openAddRuleDialog = () => {
-    setEditingRule(null);
-    setRuleForm({ name: "", match_type: "exact", pattern: "", enabled: true });
-    setRuleDialogOpen(true);
-  };
-
-  const openEditRuleDialog = (rule: HeaderBlocklistRule) => {
-    setEditingRule(rule);
-    setRuleForm({
-      name: rule.name,
-      match_type: rule.match_type,
-      pattern: rule.pattern,
-      enabled: rule.enabled,
-    });
-    setRuleDialogOpen(true);
-  };
-
-  const handleSaveRule = async () => {
-    if (!ruleForm.name || !ruleForm.pattern) {
-      toast.error("Name and pattern are required");
-      return;
-    }
-
-    if (ruleForm.match_type === "prefix" && !ruleForm.pattern.endsWith("-")) {
-      toast.error("Prefix patterns must end with a hyphen (-)");
-      return;
-    }
-
-    try {
-      if (editingRule) {
-        await api.config.headerBlocklistRules.update(editingRule.id, ruleForm);
-        toast.success("Rule updated successfully");
-      } else {
-        await api.config.headerBlocklistRules.create(ruleForm);
-        toast.success("Rule created successfully");
-      }
-      setRuleDialogOpen(false);
-      fetchRules();
+      const begin = await api.auth.beginPasskeyRegistration({
+        otp_challenge_id: passkeyOtpChallengeId,
+        otp_code: passkeyOtpCode,
+        name: passkeyName,
+      });
+      const credentialId = randomBase64Url(24);
+      const publicKey = randomBase64Url(48);
+      await api.auth.finishPasskeyRegistration({
+        challenge_id: begin.challenge_id,
+        credential_id: credentialId,
+        public_key: publicKey,
+        transports: ["internal"],
+        name: passkeyName,
+      });
+      setLatestCredentialId(credentialId);
+      toast.success("Passkey created");
+      await loadSecurityData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save rule");
+      const message = error instanceof Error ? error.message : "Failed to create passkey";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const handleDeleteRule = async () => {
-    if (!deleteRuleConfirm) return;
+  async function requestPasskeyRevokeOtp() {
+    setIsSubmitting(true);
     try {
-      await api.config.headerBlocklistRules.delete(deleteRuleConfirm.id);
-      toast.success("Rule deleted successfully");
-      setDeleteRuleConfirm(null);
-      fetchRules();
-    } catch {
-      toast.error("Failed to delete rule");
+      const challenge = await api.auth.requestPasskeyOtp({ email, action: "revoke" });
+      setRevokeOtpChallengeId(challenge.otp_challenge_id);
+      setRevokeDebugOtp(challenge.debug_otp_code);
+      if (challenge.debug_otp_code) {
+        setRevokeOtpCode(challenge.debug_otp_code);
+      }
+      toast.success("Passkey revoke OTP requested");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to request revoke OTP";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }
 
-  const nativeModels = models
-    .filter((model) => model.model_type === "native")
-    .sort((a, b) => a.model_id.localeCompare(b.model_id));
-  const modelLabelMap = new Map(
-    nativeModels.map((model) => [model.model_id, model.display_name || model.model_id])
-  );
+  async function revokePasskey(passkeyId: string) {
+    setIsSubmitting(true);
+    try {
+      await api.auth.revokePasskey(passkeyId, {
+        otp_challenge_id: revokeOtpChallengeId,
+        otp_code: revokeOtpCode,
+      });
+      toast.success("Passkey revoked");
+      await loadSecurityData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to revoke passkey";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function exportConfig() {
+    setIsSubmitting(true);
+    try {
+      const payload = await api.config.export();
+      setConfigPayload(JSON.stringify(payload, null, 2));
+      toast.success("Config exported");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to export config";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function importConfig(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const parsed = ConfigImportSchema.parse(JSON.parse(configPayload)) as ConfigImportRequest;
+      await api.config.import(parsed);
+      toast.success("Config imported");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to import config";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Settings" description="Manage providers, backups, costing settings, and data retention" />
-
-      <div className="space-y-1">
-        <h3 className="text-base font-semibold">Configuration Backup</h3>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Settings & Security</h1>
         <p className="text-sm text-muted-foreground">
-          Export or import your gateway configuration as JSON.
+          Configure authentication lifecycle, API keys, passkeys, and V2 config import/export.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Download className="h-4 w-4" />
-              Export
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Download providers, models, endpoints, blocklist rules, and costing settings as JSON.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2 rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              API keys are included in plaintext.
-            </div>
-            <Button onClick={handleExport} disabled={exporting} className="w-full">
-              {exporting ? "Exporting..." : "Export Configuration"}
-            </Button>
-          </CardContent>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Authentication status</CardTitle>
+          <CardDescription>
+            auth_enabled={String(auth.authEnabled)} • has_passkey={String(auth.hasPasskey)} •
+            api_key_count={auth.apiKeyCount}
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
+      {!auth.authEnabled && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Upload className="h-4 w-4" />
-              Import
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Upload a JSON backup to replace all current configuration. This will DELETE all
-              existing providers, models, endpoints, and user-defined settings.
+          <CardHeader>
+            <CardTitle>Enable authentication</CardTitle>
+            <CardDescription>
+              Setup requires OTP verification and creates the single admin account.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              This action is destructive and cannot be undone.
-            </div>
-            <Input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleFileSelect}
-            />
-            {selectedFile && parsedConfig && (
-              <p className="text-sm text-muted-foreground">
-                {parsedConfig.providers?.length ?? 0} providers, {parsedConfig.models?.length ?? 0} models
-              </p>
-            )}
-            <Button
-              onClick={() => setConfirmOpen(true)}
-              disabled={!parsedConfig || importing}
-              variant="destructive"
-              className="w-full"
-            >
-              {importing ? "Importing..." : "Import Configuration"}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="space-y-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Coins className="h-4 w-4" />
-              Costing and Currency
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Configure report currency and endpoint FX mappings used by spending reports. Unmapped endpoints use default 1:1 conversion.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {costingUnavailable ? (
-              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-                Costing settings API is currently unavailable. Upgrade the backend to enable this feature.
+            <form className="grid gap-4 md:grid-cols-2" onSubmit={requestSetupOtp}>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="setup_email">Email</Label>
+                <Input
+                  id="setup_email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
               </div>
-            ) : costingLoading ? (
+              <Button type="submit" disabled={isSubmitting} className="md:col-span-2 w-full md:w-auto">
+                Request setup OTP
+              </Button>
+            </form>
+
+            <form className="grid gap-4 border-t pt-4 md:grid-cols-2" onSubmit={enableAuth}>
               <div className="space-y-2">
-                <div className="h-9 animate-pulse rounded bg-muted" />
-                <div className="h-9 animate-pulse rounded bg-muted" />
-                <div className="h-24 animate-pulse rounded bg-muted" />
-              </div>
-            ) : (
-              <>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="report-currency-code">Report Currency Code</Label>
-                    <Input
-                      id="report-currency-code"
-                      maxLength={3}
-                      value={costingForm.report_currency_code}
-                      onChange={(e) =>
-                        setCostingForm({
-                          ...costingForm,
-                          report_currency_code: e.target.value.toUpperCase(),
-                        })
-                      }
-                      placeholder="USD"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="report-currency-symbol">Report Currency Symbol</Label>
-                    <Input
-                      id="report-currency-symbol"
-                      maxLength={5}
-                      value={costingForm.report_currency_symbol}
-                      onChange={(e) =>
-                        setCostingForm({
-                          ...costingForm,
-                          report_currency_symbol: e.target.value,
-                        })
-                      }
-                      placeholder="$"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      onClick={handleSaveCostingSettings}
-                      disabled={costingSaving}
-                      className="w-full"
-                    >
-                      {costingSaving ? "Saving..." : "Save Costing Settings"}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border p-3">
-                  <div className="space-y-1 pb-3">
-                    <h4 className="text-sm font-medium">Endpoint FX Mappings</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Each mapping is scoped by model and endpoint. Endpoint-specific rates override default 1:1 conversion.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 lg:grid-cols-4">
-                    <div className="space-y-2">
-                      <Label>Model</Label>
-                      <Select
-                        value={mappingModelId}
-                        onValueChange={(value) => {
-                          setMappingModelId(value);
-                          const selectedModel = nativeModels.find(
-                            (model) => model.model_id === value
-                          );
-                          if (selectedModel) {
-                            loadMappingEndpoints(selectedModel.id);
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {nativeModels.map((model) => (
-                            <SelectItem key={model.id} value={model.model_id}>
-                              {model.display_name || model.model_id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Endpoint</Label>
-                      <Select
-                        value={mappingEndpointId}
-                        onValueChange={setMappingEndpointId}
-                        disabled={!mappingModelId || mappingLoading}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={mappingLoading ? "Loading endpoints..." : "Select endpoint"}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mappingEndpoints.map((endpoint) => (
-                            <SelectItem key={endpoint.id} value={String(endpoint.id)}>
-                              #{endpoint.id} {endpoint.description || endpoint.base_url}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="mapping-fx-rate">FX Rate</Label>
-                      <Input
-                        id="mapping-fx-rate"
-                        value={mappingFxRate}
-                        onChange={(e) => setMappingFxRate(e.target.value)}
-                        placeholder="1.000000"
-                        inputMode="decimal"
-                      />
-                    </div>
-
-                    <div className="flex items-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        onClick={handleAddFxMapping}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Mapping
-                      </Button>
-                    </div>
-                  </div>
-
-                  {costingForm.endpoint_fx_mappings.length === 0 ? (
-                    <div className="mt-3 rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground">
-                      No endpoint FX mappings configured.
-                    </div>
-                  ) : (
-                    <div className="mt-3 rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Model</TableHead>
-                            <TableHead>Endpoint</TableHead>
-                            <TableHead>FX Rate</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {costingForm.endpoint_fx_mappings.map((mapping) => (
-                            <TableRow key={`${mapping.model_id}-${mapping.endpoint_id}`}>
-                              <TableCell className="font-medium">
-                                {modelLabelMap.get(mapping.model_id) || mapping.model_id}
-                              </TableCell>
-                              <TableCell>#{mapping.endpoint_id}</TableCell>
-                              <TableCell>{mapping.fx_rate}</TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                  onClick={() => handleDeleteFxMapping(mapping)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Shield className="h-4 w-4" />
-              Audit Configuration
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Configure audit logging settings for each provider.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {providers.map((provider) => (
-                <div key={provider.id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="text-sm font-medium inline-flex items-center gap-2">
-                    <ProviderIcon providerType={provider.provider_type} size={14} />
-                    {provider.name}
-                  </div>
-                    <div className="flex items-center gap-5">
-                     <div className="flex items-center gap-2">
-                       <Switch
-                         id={`audit-${provider.id}`}
-                         checked={provider.audit_enabled}
-                         onCheckedChange={(checked) => toggleAudit(provider.id, checked)}
-                         className="data-[state=checked]:bg-emerald-500"
-                       />
-                       <Label htmlFor={`audit-${provider.id}`} className="text-xs">Audit</Label>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       <Switch
-                         id={`bodies-${provider.id}`}
-                         checked={provider.audit_capture_bodies}
-                         onCheckedChange={(checked) => toggleBodies(provider.id, checked)}
-                         disabled={!provider.audit_enabled}
-                         className="data-[state=checked]:bg-emerald-500"
-                       />
-                       <Label htmlFor={`bodies-${provider.id}`} className="text-xs">Bodies</Label>
-                     </div>
-                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Ban className="h-4 w-4" />
-                  Header Blocklist
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Manage headers stripped from upstream requests. System rules protect against Cloudflare tunnel metadata leaking to providers.
-                </CardDescription>
-              </div>
-              <Button size="sm" variant="outline" onClick={openAddRuleDialog}>
-                <Plus className="mr-2 h-3.5 w-3.5" />
-                Add Rule
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loadingRules ? (
-              <div className="h-24 flex items-center justify-center text-sm text-muted-foreground">
-                Loading rules...
-              </div>
-            ) : blocklistRules.length === 0 ? (
-              <div className="h-24 flex items-center justify-center text-sm text-muted-foreground">
-                No rules found.
-              </div>
-            ) : (
-              <>
-                {blocklistRules.filter((r) => r.is_system).length > 0 && (
-                  <Collapsible open={systemRulesOpen} onOpenChange={setSystemRulesOpen}>
-                    <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted/50 transition-colors">
-                      <ChevronRight className={`h-4 w-4 transition-transform ${systemRulesOpen ? "rotate-90" : ""}`} />
-                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                      System Rules
-                      <span className="text-xs text-muted-foreground">
-                        ({blocklistRules.filter((r) => r.is_system).length})
-                      </span>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="rounded-md border mt-1.5">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[80px]">Enabled</TableHead>
-                              <TableHead>Name</TableHead>
-                              <TableHead>Type</TableHead>
-                              <TableHead>Pattern</TableHead>
-                              <TableHead className="w-[100px] text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {blocklistRules.filter((r) => r.is_system).map((rule) => (
-                              <TableRow key={rule.id}>
-                                <TableCell>
-                                  <Switch
-                                    checked={rule.enabled}
-                                    onCheckedChange={(checked) => handleToggleRule(rule, checked)}
-                                    className="data-[state=checked]:bg-emerald-500"
-                                  />
-                                </TableCell>
-                                <TableCell className="font-medium">
-                                  <div className="flex items-center gap-2">
-                                    {rule.name}
-                                    <Lock className="h-3 w-3 text-muted-foreground" />
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <TypeBadge
-                                    label={rule.match_type}
-                                    intent={rule.match_type === "exact" ? "info" : "accent"}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <code className="rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
-                                    {rule.pattern}
-                                  </code>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() => openEditRuleDialog(rule)}
-                                      disabled
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive hover:text-destructive"
-                                      onClick={() => setDeleteRuleConfirm(rule)}
-                                      disabled
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
-
-                {blocklistRules.filter((r) => !r.is_system).length > 0 && (
-                  <Collapsible open={userRulesOpen} onOpenChange={setUserRulesOpen}>
-                    <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium hover:bg-muted/50 transition-colors">
-                      <ChevronRight className={`h-4 w-4 transition-transform ${userRulesOpen ? "rotate-90" : ""}`} />
-                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                      User Rules
-                      <span className="text-xs text-muted-foreground">
-                        ({blocklistRules.filter((r) => !r.is_system).length})
-                      </span>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="rounded-md border mt-1.5">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-[80px]">Enabled</TableHead>
-                              <TableHead>Name</TableHead>
-                              <TableHead>Type</TableHead>
-                              <TableHead>Pattern</TableHead>
-                              <TableHead className="w-[100px] text-right">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {blocklistRules.filter((r) => !r.is_system).map((rule) => (
-                              <TableRow key={rule.id}>
-                                <TableCell>
-                                  <Switch
-                                    checked={rule.enabled}
-                                    onCheckedChange={(checked) => handleToggleRule(rule, checked)}
-                                    className="data-[state=checked]:bg-emerald-500"
-                                  />
-                                </TableCell>
-                                <TableCell className="font-medium">
-                                  {rule.name}
-                                </TableCell>
-                                <TableCell>
-                                  <TypeBadge
-                                    label={rule.match_type}
-                                    intent={rule.match_type === "exact" ? "info" : "accent"}
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <code className="rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
-                                    {rule.pattern}
-                                  </code>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() => openEditRuleDialog(rule)}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-destructive hover:text-destructive"
-                                      onClick={() => setDeleteRuleConfirm(rule)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Trash2 className="h-4 w-4" />
-              Data Management
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Batch delete old logs to free up space.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap items-center gap-3">
-              <Select
-                value={cleanupType}
-                onValueChange={(v) => setCleanupType(v as "requests" | "audits")}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="requests">Request Logs</SelectItem>
-                  <SelectItem value="audits">Audit Logs</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={retentionPreset}
-                onValueChange={(v) => {
-                  setRetentionPreset(v);
-                  if (v !== "custom") setCustomDays("");
-                }}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select retention..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">Older than 7 days</SelectItem>
-                  <SelectItem value="15">Older than 15 days</SelectItem>
-                  <SelectItem value="30">Older than 30 days</SelectItem>
-                  <SelectItem value="custom">Custom days</SelectItem>
-                  <SelectItem value="all" className="text-destructive">Delete all</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {retentionPreset === "custom" && (
+                <Label htmlFor="setup_username">Username</Label>
                 <Input
-                  type="number"
-                  min={1}
-                  placeholder="Days"
-                  className="w-24"
-                  value={customDays}
-                  onChange={(e) => setCustomDays(e.target.value)}
+                  id="setup_username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  required
                 />
-              )}
+              </div>
 
-              <Button
-                variant="destructive"
-                disabled={
-                  deleting ||
-                  !retentionPreset ||
-                  (retentionPreset === "custom" && (!customDays || parseInt(customDays) < 1))
-                }
-                onClick={() => {
-                  if (retentionPreset === "all") {
-                    setDeleteConfirm({ type: cleanupType, days: null, deleteAll: true });
-                  } else {
-                    const days =
-                      retentionPreset === "custom" ? parseInt(customDays) : parseInt(retentionPreset);
-                    setDeleteConfirm({ type: cleanupType, days, deleteAll: false });
-                  }
-                }}
-              >
-                Delete
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Import</DialogTitle>
-            <DialogDescription>
-              This will replace ALL existing configuration
-              ({parsedConfig?.providers?.length ?? 0} providers, {parsedConfig?.models?.length ?? 0} models).
-              This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleImport}>
-              Continue
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              {deleteConfirm?.deleteAll
-                ? `Are you sure you want to delete ALL ${deleteConfirm?.type === "requests" ? "request" : "audit"} logs? This action cannot be undone.`
-                : `Are you sure you want to delete ${deleteConfirm?.type === "requests" ? "request" : "audit"} logs older than ${deleteConfirm?.days} days? This action cannot be undone.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleBatchDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingRule ? "Edit Rule" : "Add Rule"}</DialogTitle>
-            <DialogDescription>
-              {editingRule
-                ? "Modify an existing header blocklist rule."
-                : "Create a new rule to block specific headers from being sent upstream."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="rule-name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="rule-name"
-                value={ruleForm.name}
-                onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
-                className="col-span-3"
-                placeholder="e.g. Cloudflare Headers"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="rule-type" className="text-right">
-                Type
-              </Label>
-              <Select
-                value={ruleForm.match_type}
-                onValueChange={(v) =>
-                  setRuleForm({ ...ruleForm, match_type: v as "exact" | "prefix" })
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="exact">Exact Match</SelectItem>
-                  <SelectItem value="prefix">Prefix Match</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="rule-pattern" className="text-right">
-                Pattern
-              </Label>
-              <div className="col-span-3 space-y-1">
+              <div className="space-y-2">
+                <Label htmlFor="setup_password">Password</Label>
                 <Input
-                  id="rule-pattern"
-                  value={ruleForm.pattern}
-                  onChange={(e) => setRuleForm({ ...ruleForm, pattern: e.target.value })}
-                  className="font-mono"
-                  placeholder={ruleForm.match_type === "prefix" ? "cf-" : "x-custom-header"}
+                  id="setup_password"
+                  type="password"
+                  minLength={12}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
                 />
-                {ruleForm.match_type === "prefix" && (
-                  <p className="text-[0.8rem] text-muted-foreground">
-                    Prefix patterns must end with a hyphen (-).
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="setup_challenge">OTP challenge ID</Label>
+                <Input
+                  id="setup_challenge"
+                  value={setupChallengeId}
+                  onChange={(event) => setSetupChallengeId(event.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="setup_code">OTP code</Label>
+                <Input
+                  id="setup_code"
+                  value={setupOtpCode}
+                  onChange={(event) => setSetupOtpCode(event.target.value)}
+                  minLength={6}
+                  maxLength={6}
+                  required
+                />
+                {setupDebugOtp && (
+                  <p className="text-xs text-muted-foreground">
+                    Debug OTP: <code>{setupDebugOtp}</code>
                   </p>
                 )}
               </div>
-            </div>
-            <SwitchController
-              label="Enabled"
-              description="Activate this rule immediately"
-              checked={ruleForm.enabled}
-              onCheckedChange={(checked) => setRuleForm({ ...ruleForm, enabled: checked })}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveRule}>Save Rule</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      <Dialog
-        open={!!deleteRuleConfirm}
-        onOpenChange={(open) => !open && setDeleteRuleConfirm(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Rule</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the rule "{deleteRuleConfirm?.name}"? This action cannot
-              be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteRuleConfirm(null)}>
-              Cancel
+              <Button type="submit" disabled={isSubmitting} className="md:col-span-2">
+                Enable authentication
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {canManageSecurity && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Password</CardTitle>
+              <CardDescription>Change current password using verified current credentials.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form className="grid gap-4 md:grid-cols-2" onSubmit={changePassword}>
+                <div className="space-y-2">
+                  <Label htmlFor="current_password">Current password</Label>
+                  <Input
+                    id="current_password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new_password">New password</Label>
+                  <Input
+                    id="new_password"
+                    type="password"
+                    minLength={12}
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="md:col-span-2 w-full md:w-auto" disabled={isSubmitting}>
+                  Change password
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>API keys</CardTitle>
+              <CardDescription>Create up to 10 active API keys; key values are returned once.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <form className="grid gap-4 md:grid-cols-2" onSubmit={createApiKey}>
+                <div className="space-y-2">
+                  <Label htmlFor="api_key_name">Name</Label>
+                  <Input
+                    id="api_key_name"
+                    value={newApiKeyName}
+                    onChange={(event) => setNewApiKeyName(event.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="api_key_expiry">Expires at (optional)</Label>
+                  <Input
+                    id="api_key_expiry"
+                    type="datetime-local"
+                    value={newApiKeyExpiresAt}
+                    onChange={(event) => setNewApiKeyExpiresAt(event.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="md:col-span-2 w-full md:w-auto" disabled={isSubmitting}>
+                  Create API key
+                </Button>
+              </form>
+
+              {newPlainApiKey && (
+                <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                  <p className="font-medium">Copy this API key now (shown once)</p>
+                  <code className="mt-1 block break-all text-xs">{newPlainApiKey}</code>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {apiKeys.map((key) => (
+                  <div key={key.id} className="flex flex-wrap items-center justify-between gap-3 rounded border p-3">
+                    <div>
+                      <p className="font-medium">{key.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {key.key_prefix} • created {new Date(key.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <Button variant="destructive" size="sm" onClick={() => void revokeApiKey(key.id)}>
+                      Revoke
+                    </Button>
+                  </div>
+                ))}
+                {!apiKeys.length && (
+                  <p className="text-sm text-muted-foreground">No API keys yet.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Passkeys</CardTitle>
+              <CardDescription>
+                Passkey create/revoke requires OTP. This UI uses generated credential IDs for local
+                validation flows.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="passkey_email">Email for OTP actions</Label>
+                  <Input
+                    id="passkey_email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="passkey_name">Passkey name</Label>
+                  <Input
+                    id="passkey_name"
+                    value={passkeyName}
+                    onChange={(event) => setPasskeyName(event.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => void requestPasskeyCreateOtp()}>
+                    Request create OTP
+                  </Button>
+                  <Button type="button" onClick={() => void createPasskey()}>
+                    Create passkey
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="passkey_create_challenge">Create OTP challenge ID</Label>
+                  <Input
+                    id="passkey_create_challenge"
+                    value={passkeyOtpChallengeId}
+                    onChange={(event) => setPasskeyOtpChallengeId(event.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="passkey_create_code">Create OTP code</Label>
+                  <Input
+                    id="passkey_create_code"
+                    value={passkeyOtpCode}
+                    onChange={(event) => setPasskeyOtpCode(event.target.value)}
+                    minLength={6}
+                    maxLength={6}
+                  />
+                  {passkeyDebugOtp && (
+                    <p className="text-xs text-muted-foreground">
+                      Debug OTP: <code>{passkeyDebugOtp}</code>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {latestCredentialId && (
+                <div className="rounded border p-3 text-sm">
+                  <p className="font-medium">Latest generated credential ID</p>
+                  <code className="mt-1 block break-all text-xs">{latestCredentialId}</code>
+                </div>
+              )}
+
+              <div className="rounded border p-3 space-y-3">
+                <p className="font-medium text-sm">Revoke flow</p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    placeholder="Revoke OTP challenge ID"
+                    value={revokeOtpChallengeId}
+                    onChange={(event) => setRevokeOtpChallengeId(event.target.value)}
+                  />
+                  <Input
+                    placeholder="Revoke OTP code"
+                    value={revokeOtpCode}
+                    onChange={(event) => setRevokeOtpCode(event.target.value)}
+                    minLength={6}
+                    maxLength={6}
+                  />
+                </div>
+                {revokeDebugOtp && (
+                  <p className="text-xs text-muted-foreground">
+                    Debug OTP: <code>{revokeDebugOtp}</code>
+                  </p>
+                )}
+                <Button type="button" variant="outline" onClick={() => void requestPasskeyRevokeOtp()}>
+                  Request revoke OTP
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {passkeys.map((passkey) => (
+                  <div key={passkey.id} className="flex flex-wrap items-center justify-between gap-3 rounded border p-3">
+                    <div>
+                      <p className="font-medium">{passkey.name ?? "Unnamed passkey"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        created {new Date(passkey.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <Button variant="destructive" size="sm" onClick={() => void revokePasskey(passkey.id)}>
+                      Revoke
+                    </Button>
+                  </div>
+                ))}
+                {!passkeys.length && (
+                  <p className="text-sm text-muted-foreground">No passkeys configured.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Disable authentication</CardTitle>
+              <CardDescription>
+                <span className="text-destructive font-medium">Destructive:</span> disabling auth
+                purges user, passkey, API key, and OTP records.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="outline" onClick={() => void requestDisableOtp()}>
+                  <ShieldOff className="mr-2 h-4 w-4" />
+                  Request disable OTP
+                </Button>
+                <Button type="button" variant="outline" onClick={() => void revokeAllSessions()}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Revoke all sessions
+                </Button>
+              </div>
+
+              <form className="grid gap-4 md:grid-cols-2" onSubmit={disableAuth}>
+                <div className="space-y-2">
+                  <Label htmlFor="disable_challenge">Disable OTP challenge ID</Label>
+                  <Input
+                    id="disable_challenge"
+                    value={disableChallengeId}
+                    onChange={(event) => setDisableChallengeId(event.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="disable_code">Disable OTP code</Label>
+                  <Input
+                    id="disable_code"
+                    value={disableOtpCode}
+                    onChange={(event) => setDisableOtpCode(event.target.value)}
+                    minLength={6}
+                    maxLength={6}
+                    required
+                  />
+                  {disableDebugOtp && (
+                    <p className="text-xs text-muted-foreground">
+                      Debug OTP: <code>{disableDebugOtp}</code>
+                    </p>
+                  )}
+                </div>
+                <Button type="submit" variant="destructive" disabled={isSubmitting} className="md:col-span-2">
+                  Confirm disable auth
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Config import/export</CardTitle>
+          <CardDescription>Uses V2 profile-centric config schema (version 4).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => void exportConfig()} disabled={isSubmitting}>
+              <Download className="mr-2 h-4 w-4" />
+              Export config
             </Button>
-            <Button variant="destructive" onClick={handleDeleteRule}>
-              Delete
+          </div>
+
+          <form className="space-y-3" onSubmit={importConfig}>
+            <Label htmlFor="config_payload">Config JSON</Label>
+            <textarea
+              id="config_payload"
+              className="min-h-64 w-full rounded-md border bg-background px-3 py-2 text-xs"
+              value={configPayload}
+              onChange={(event) => setConfigPayload(event.target.value)}
+              placeholder="Paste export payload here"
+            />
+            <Button type="submit" disabled={isSubmitting || !configPayload.trim()}>
+              <Upload className="mr-2 h-4 w-4" />
+              Import config
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </form>
+        </CardContent>
+      </Card>
+
+      {canManageSecurity && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4" />
+              Login helper
+            </CardTitle>
+            <CardDescription>
+              Use this generated credential ID in the login passkey tab for UI smoke testing.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {latestCredentialId ? (
+              <code className="block break-all rounded border bg-muted p-2 text-xs">
+                {latestCredentialId}
+              </code>
+            ) : (
+              <p className="text-sm text-muted-foreground">No generated credential yet.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

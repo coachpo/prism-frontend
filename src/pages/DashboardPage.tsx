@@ -1,149 +1,146 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { api } from "@/lib/api";
-import type { ModelConfigListItem } from "@/lib/types";
-import { Card, CardContent } from "@/components/ui/card";
-import { StatusBadge, TypeBadge, ValueBadge } from "@/components/StatusBadge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Server, Zap, Globe, ArrowRight } from "lucide-react";
-import { ProviderIcon } from "@/components/ProviderIcon";
-import { MetricCard } from "@/components/MetricCard";
-import { PageHeader } from "@/components/PageHeader";
-import { EmptyState } from "@/components/EmptyState";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, Database, Shield, ShieldOff } from "lucide-react";
 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/lib/api";
+import type { Provider, StatsSummaryResponse, TelemetrySnapshot } from "@/lib/types";
 
 export function DashboardPage() {
-  const [models, setModels] = useState<ModelConfigListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const auth = useAuth();
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [summary, setSummary] = useState<StatsSummaryResponse | null>(null);
+  const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.models.list()
-      .then(setModels)
-      .catch((err) => console.error("Failed to fetch dashboard data:", err))
-      .finally(() => setLoading(false));
+    let mounted = true;
+
+    async function load() {
+      try {
+        const [nextProviders, nextSummary, nextTelemetry] = await Promise.all([
+          api.providers.list(),
+          api.stats.summary(),
+          api.stats.telemetry(),
+        ]);
+        if (!mounted) {
+          return;
+        }
+        setProviders(nextProviders);
+        setSummary(nextSummary);
+        setTelemetry(nextTelemetry);
+        setError(null);
+      } catch (nextError) {
+        if (!mounted) {
+          return;
+        }
+        setError(nextError instanceof Error ? nextError.message : "Failed to load dashboard");
+      }
+    }
+
+    void load();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const totalModels = models.length;
-  const activeEndpoints = models.reduce((sum, m) => sum + m.active_endpoint_count, 0);
-  const activeProviders = new Set(models.map((m) => m.provider.provider_type)).size;
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-[104px] rounded-xl" />
-          ))}
-        </div>
-        <Skeleton className="h-[400px] rounded-xl" />
-      </div>
-    );
-  }
+  const totalProfiles = useMemo(
+    () => providers.reduce((acc, provider) => acc + provider.profile_count, 0),
+    [providers],
+  );
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard" description="Overview of your LLM proxy configuration" />
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Prism V2 Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Profile-centric routing, auth controls, and batched telemetry health.
+        </p>
+      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <MetricCard
-          label="Total Models"
-          value={totalModels}
-          detail="Configured models"
-          icon={<Server className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Active Endpoints"
-          value={activeEndpoints}
-          detail="Across all models"
-          icon={<Zap className="h-4 w-4" />}
-          className="[&_[data-slot=icon]]:bg-chart-2/15 [&_[data-slot=icon]]:text-chart-2"
-        />
-        <MetricCard
-          label="Providers"
-          value={activeProviders}
-          detail="Unique providers"
-          icon={<Globe className="h-4 w-4" />}
-          className="[&_[data-slot=icon]]:bg-chart-3/15 [&_[data-slot=icon]]:text-chart-3"
-        />
+      {error && (
+        <Card>
+          <CardContent className="pt-6 text-sm text-destructive">{error}</CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Auth mode</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              {auth.authEnabled ? <Shield className="h-4 w-4" /> : <ShieldOff className="h-4 w-4" />}
+              {auth.authEnabled ? "Enabled" : "Disabled"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            {auth.authEnabled
+              ? auth.isAuthenticated
+                ? "Authenticated session active"
+                : "Sign in required for protected APIs"
+              : "Open mode for local trusted use"}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Providers</CardDescription>
+            <CardTitle className="text-lg">{providers.length}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            Built-in providers with {totalProfiles} configured profiles.
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total requests</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Activity className="h-4 w-4" />
+              {summary?.total_requests ?? 0}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            {summary?.successful_requests ?? 0} success / {summary?.failed_requests ?? 0} failed
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Telemetry queue depth</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Database className="h-4 w-4" />
+              {telemetry?.queue_depth ?? 0}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            Batched write worker status from `/api/v2/stats/telemetry`.
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
-        <CardContent className="p-0">
-          {models.length === 0 ? (
-            <EmptyState
-              icon={<Server className="h-6 w-6" />}
-              title="No models configured"
-              description="Add your first model to get started with the proxy gateway."
-            />
-          ) : (
-            <div className="divide-y">
-              {models.map((model) => {
-                const successRate = model.health_success_rate ?? 0;
-
-                return (
-                  <div
-                    key={model.id}
-                    className="flex items-center gap-4 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/models/${model.id}`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && navigate(`/models/${model.id}`)}
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                      <ProviderIcon providerType={model.provider.provider_type} size={16} />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">
-                          {model.display_name || model.model_id}
-                        </span>
-                        {model.model_type === "proxy" ? (
-                          <TypeBadge label="Proxy" intent="accent" />
-                        ) : (
-                          <TypeBadge label="Native" intent="info" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {model.model_type === "proxy" && model.redirect_to
-                          ? `${model.model_id} → ${model.redirect_to}`
-                          : model.model_id}
-                      </p>
-                    </div>
-
-                    <div className="hidden sm:flex items-center gap-3 shrink-0">
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Endpoints</p>
-                        <p className="text-sm font-medium">
-                          {model.active_endpoint_count}/{model.endpoint_count}
-                        </p>
-                      </div>
-
-                      {model.endpoint_count > 0 && (
-                        <ValueBadge
-                          label={`${successRate.toFixed(0)}%`}
-                          intent={successRate >= 90 ? "success" : successRate >= 50 ? "warning" : "danger"}
-                          className="text-xs tabular-nums"
-                        />
-                      )}
-                    </div>
-
-                    <StatusBadge
-                      label={model.is_enabled ? "On" : "Off"}
-                      intent={model.is_enabled ? "success" : "muted"}
-                    />
-
-                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <CardHeader>
+          <CardTitle>Providers</CardTitle>
+          <CardDescription>Profile counts by provider type</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            {providers.map((provider) => (
+              <div key={provider.id} className="flex items-center justify-between rounded border p-3">
+                <div>
+                  <p className="font-medium">{provider.name}</p>
+                  <p className="text-xs text-muted-foreground">{provider.provider_type}</p>
+                </div>
+                <span className="text-sm font-semibold">{provider.profile_count} profiles</span>
+              </div>
+            ))}
+            {!providers.length && (
+              <p className="text-sm text-muted-foreground">No providers available.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
