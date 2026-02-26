@@ -37,6 +37,7 @@ export interface Endpoint {
   cache_creation_price: string | null;
   reasoning_price: string | null;
   missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
+  forward_stream_options: boolean;
   pricing_config_version: number;
   health_status: string;
   health_detail: string | null;
@@ -62,6 +63,7 @@ export interface EndpointCreate {
   cache_creation_price?: string | null;
   reasoning_price?: string | null;
   missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
+  forward_stream_options?: boolean;
 }
 
 export interface EndpointUpdate {
@@ -81,6 +83,7 @@ export interface EndpointUpdate {
   cache_creation_price?: string | null;
   reasoning_price?: string | null;
   missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
+  forward_stream_options?: boolean;
 }
 
 export interface HealthCheckResponse {
@@ -286,6 +289,7 @@ export interface ConfigEndpointExport {
   reasoning_price: string | null;
   missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
   pricing_config_version: number;
+  forward_stream_options: boolean;
 }
 
 export interface ConfigModelExport {

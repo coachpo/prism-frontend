@@ -78,6 +78,7 @@ export function ModelDetailPage() {
     cache_creation_price: null,
     reasoning_price: null,
     missing_special_token_price_policy: "MAP_TO_OUTPUT",
+    forward_stream_options: false,
   });
   const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
 
@@ -187,6 +188,7 @@ export function ModelDetailPage() {
         cache_creation_price: endpoint.cache_creation_price,
         reasoning_price: endpoint.reasoning_price,
         missing_special_token_price_policy: endpoint.missing_special_token_price_policy,
+        forward_stream_options: endpoint.forward_stream_options,
       });
       setPricingSectionOpen(endpoint.pricing_enabled);
     } else {
@@ -208,6 +210,7 @@ export function ModelDetailPage() {
         cache_creation_price: null,
         reasoning_price: null,
         missing_special_token_price_policy: "MAP_TO_OUTPUT",
+        forward_stream_options: false,
       });
       setPricingSectionOpen(false);
     }
@@ -649,6 +652,12 @@ export function ModelDetailPage() {
               description="Include in load balancing"
               checked={endpointForm.is_active}
               onCheckedChange={(checked) => setEndpointForm({ ...endpointForm, is_active: checked })}
+            />
+            <SwitchController
+              label="Forward stream_options"
+              description="Pass stream_options to the upstream provider instead of stripping it"
+              checked={endpointForm.forward_stream_options ?? false}
+              onCheckedChange={(checked) => setEndpointForm({ ...endpointForm, forward_stream_options: checked })}
             />
 
             <Collapsible

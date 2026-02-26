@@ -31,6 +31,7 @@ const EndpointExportSchema = z.object({
     .optional()
     .default("MAP_TO_OUTPUT"),
   pricing_config_version: z.number().optional().default(0),
+  forward_stream_options: z.boolean().optional().default(false),
 });
 
 const ModelExportSchema = z.object({
