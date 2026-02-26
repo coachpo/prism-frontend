@@ -82,7 +82,7 @@ export function StatisticsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Statistics</h1>
         <p className="text-sm text-muted-foreground">
-          Request-level telemetry snapshots from `/api/v2/stats`.
+          Request-level telemetry snapshots from `/api/v1/stats`.
         </p>
       </div>
 

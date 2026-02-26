@@ -155,7 +155,7 @@ async function refreshTokens() {
 
     try {
       const pair = await request<TokenPairResponse>(
-        "/api/v2/auth/token/refresh",
+        "/api/v1/auth/token/refresh",
         {
           method: "POST",
           body: JSON.stringify({ refresh_token: refreshToken } satisfies RefreshTokenRequest),
@@ -218,40 +218,40 @@ async function request<T>(
 
 export const api = {
   providers: {
-    list: () => request<Provider[]>("/api/v2/providers", {}, { auth: true }),
+    list: () => request<Provider[]>("/api/v1/providers", {}, { auth: true }),
   },
 
   profiles: {
     listByProvider: (provider: ProviderType) =>
-      request<ProviderProfile[]>(`/api/v2/providers/${provider}/profiles`, {}, { auth: true }),
+      request<ProviderProfile[]>(`/api/v1/providers/${provider}/profiles`, {}, { auth: true }),
 
     create: (provider: ProviderType, body: ProviderProfileCreateRequest) =>
-      request<ProviderProfile>(`/api/v2/providers/${provider}/profiles`, {
+      request<ProviderProfile>(`/api/v1/providers/${provider}/profiles`, {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
     patch: (profileId: string, body: ProviderProfileUpdateRequest) =>
-      request<ProviderProfile>(`/api/v2/profiles/${profileId}`, {
+      request<ProviderProfile>(`/api/v1/profiles/${profileId}`, {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
 
     delete: (profileId: string) =>
-      request<void>(`/api/v2/profiles/${profileId}`, { method: "DELETE" }),
+      request<void>(`/api/v1/profiles/${profileId}`, { method: "DELETE" }),
 
     listModels: (profileId: string) =>
-      request<ProfileModel[]>(`/api/v2/profiles/${profileId}/models`),
+      request<ProfileModel[]>(`/api/v1/profiles/${profileId}/models`),
 
     upsertModels: (profileId: string, body: ProfileModelsUpsertRequest) =>
-      request<ProfileModel[]>(`/api/v2/profiles/${profileId}/models`, {
+      request<ProfileModel[]>(`/api/v1/profiles/${profileId}/models`, {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
     deleteModel: (profileId: string, modelId: string) =>
       request<void>(
-        `/api/v2/profiles/${profileId}/models/${encodeURIComponent(modelId)}`,
+        `/api/v1/profiles/${profileId}/models/${encodeURIComponent(modelId)}`,
         { method: "DELETE" },
       ),
 
@@ -261,7 +261,7 @@ export const api = {
       body: ProfileModelPricingUpsertRequest,
     ) =>
       request<ProfileModelPricing>(
-        `/api/v2/profiles/${profileId}/models/${encodeURIComponent(modelId)}/pricing`,
+        `/api/v1/profiles/${profileId}/models/${encodeURIComponent(modelId)}/pricing`,
         {
           method: "PUT",
           body: JSON.stringify(body),
@@ -270,7 +270,7 @@ export const api = {
 
     deletePricing: (profileId: string, modelId: string) =>
       request<void>(
-        `/api/v2/profiles/${profileId}/models/${encodeURIComponent(modelId)}/pricing`,
+        `/api/v1/profiles/${profileId}/models/${encodeURIComponent(modelId)}/pricing`,
         { method: "DELETE" },
       ),
 
@@ -290,117 +290,117 @@ export const api = {
   },
 
   auth: {
-    status: () => request<AuthStatusResponse>("/api/v2/auth/status", {}, { auth: false }),
+    status: () => request<AuthStatusResponse>("/api/v1/auth/status", {}, { auth: false }),
 
     setupRequestOtp: (body: OtpRequest) =>
-      request<OtpChallengeResponse>("/api/v2/auth/setup/request-otp", {
+      request<OtpChallengeResponse>("/api/v1/auth/setup/request-otp", {
         method: "POST",
         body: JSON.stringify(body),
       }, { auth: false }),
 
     setupEnable: (body: EnableAuthRequest) =>
-      request<TokenPairResponse>("/api/v2/auth/setup/enable", {
+      request<TokenPairResponse>("/api/v1/auth/setup/enable", {
         method: "POST",
         body: JSON.stringify(body),
       }, { auth: false }),
 
     loginPassword: (body: LoginPasswordRequest) =>
-      request<TokenPairResponse>("/api/v2/auth/login/password", {
+      request<TokenPairResponse>("/api/v1/auth/login/password", {
         method: "POST",
         body: JSON.stringify(body),
       }, { auth: false }),
 
     loginPasskeyBegin: (body: PasskeyLoginBeginRequest) =>
-      request<PasskeyLoginBeginResponse>("/api/v2/auth/login/passkey/begin", {
+      request<PasskeyLoginBeginResponse>("/api/v1/auth/login/passkey/begin", {
         method: "POST",
         body: JSON.stringify(body),
       }, { auth: false }),
 
     loginPasskeyFinish: (body: PasskeyLoginFinishRequest) =>
-      request<TokenPairResponse>("/api/v2/auth/login/passkey/finish", {
+      request<TokenPairResponse>("/api/v1/auth/login/passkey/finish", {
         method: "POST",
         body: JSON.stringify(body),
       }, { auth: false }),
 
     refresh: (refreshToken: string) =>
-      request<TokenPairResponse>("/api/v2/auth/token/refresh", {
+      request<TokenPairResponse>("/api/v1/auth/token/refresh", {
         method: "POST",
         body: JSON.stringify({ refresh_token: refreshToken } satisfies RefreshTokenRequest),
       }, { auth: false, retryOnAuth: false }),
 
-    logout: () => request<AuthMessageResponse>("/api/v2/auth/logout", { method: "POST" }),
+    logout: () => request<AuthMessageResponse>("/api/v1/auth/logout", { method: "POST" }),
 
     revokeAllSessions: () =>
-      request<AuthMessageResponse>("/api/v2/auth/revoke-all-sessions", { method: "POST" }),
+      request<AuthMessageResponse>("/api/v1/auth/revoke-all-sessions", { method: "POST" }),
 
     changePassword: (body: ChangePasswordRequest) =>
-      request<AuthMessageResponse>("/api/v2/auth/password/change", {
+      request<AuthMessageResponse>("/api/v1/auth/password/change", {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
     passwordResetRequestOtp: (body: OtpRequest) =>
-      request<OtpChallengeResponse>("/api/v2/auth/password/reset/request-otp", {
+      request<OtpChallengeResponse>("/api/v1/auth/password/reset/request-otp", {
         method: "POST",
         body: JSON.stringify(body),
       }, { auth: false }),
 
     passwordResetConfirm: (body: PasswordResetConfirmRequest) =>
-      request<AuthMessageResponse>("/api/v2/auth/password/reset/confirm", {
+      request<AuthMessageResponse>("/api/v1/auth/password/reset/confirm", {
         method: "POST",
         body: JSON.stringify(body),
       }, { auth: false }),
 
     disableRequestOtp: () =>
-      request<OtpChallengeResponse>("/api/v2/auth/disable/request-otp", { method: "POST" }),
+      request<OtpChallengeResponse>("/api/v1/auth/disable/request-otp", { method: "POST" }),
 
     disableConfirm: (body: DisableAuthConfirmRequest) =>
-      request<AuthMessageResponse>("/api/v2/auth/disable/confirm", {
+      request<AuthMessageResponse>("/api/v1/auth/disable/confirm", {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
-    listApiKeys: () => request<ApiKeyResponse[]>("/api/v2/auth/api-keys"),
+    listApiKeys: () => request<ApiKeyResponse[]>("/api/v1/auth/api-keys"),
 
     createApiKey: (body: ApiKeyCreateRequest) =>
-      request<ApiKeyCreateResponse>("/api/v2/auth/api-keys", {
+      request<ApiKeyCreateResponse>("/api/v1/auth/api-keys", {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
     updateApiKey: (keyId: string, body: ApiKeyUpdateRequest) =>
-      request<ApiKeyResponse>(`/api/v2/auth/api-keys/${keyId}`, {
+      request<ApiKeyResponse>(`/api/v1/auth/api-keys/${keyId}`, {
         method: "PATCH",
         body: JSON.stringify(body),
       }),
 
     revokeApiKey: (keyId: string) =>
-      request<AuthMessageResponse>(`/api/v2/auth/api-keys/${keyId}`, {
+      request<AuthMessageResponse>(`/api/v1/auth/api-keys/${keyId}`, {
         method: "DELETE",
       }),
 
-    listPasskeys: () => request<PasskeyResponse[]>("/api/v2/auth/passkeys"),
+    listPasskeys: () => request<PasskeyResponse[]>("/api/v1/auth/passkeys"),
 
     requestPasskeyOtp: (body: PasskeyOtpRequest) =>
-      request<OtpChallengeResponse>("/api/v2/auth/passkeys/request-otp", {
+      request<OtpChallengeResponse>("/api/v1/auth/passkeys/request-otp", {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
     beginPasskeyRegistration: (body: PasskeyRegisterBeginRequest) =>
-      request<PasskeyRegisterBeginResponse>("/api/v2/auth/passkeys/register/begin", {
+      request<PasskeyRegisterBeginResponse>("/api/v1/auth/passkeys/register/begin", {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
     finishPasskeyRegistration: (body: PasskeyRegisterFinishRequest) =>
-      request<PasskeyResponse>("/api/v2/auth/passkeys/register/finish", {
+      request<PasskeyResponse>("/api/v1/auth/passkeys/register/finish", {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
     revokePasskey: (passkeyId: string, body: PasskeyRevokeRequest) =>
-      request<AuthMessageResponse>(`/api/v2/auth/passkeys/${passkeyId}`, {
+      request<AuthMessageResponse>(`/api/v1/auth/passkeys/${passkeyId}`, {
         method: "DELETE",
         body: JSON.stringify(body),
       }),
@@ -408,35 +408,35 @@ export const api = {
 
   stats: {
     requests: (query: RequestLogQuery = {}) =>
-      request<RequestLogListResponse>(`/api/v2/stats/requests${buildQuery(query)}`),
+      request<RequestLogListResponse>(`/api/v1/stats/requests${buildQuery(query)}`),
 
-    summary: () => request<StatsSummaryResponse>("/api/v2/stats/summary"),
+    summary: () => request<StatsSummaryResponse>("/api/v1/stats/summary"),
 
-    telemetry: () => request<TelemetrySnapshot>("/api/v2/stats/telemetry"),
+    telemetry: () => request<TelemetrySnapshot>("/api/v1/stats/telemetry"),
 
     delete: (params: { older_than_days?: number; delete_all?: boolean }) =>
-      request<DeleteRowsResponse>(`/api/v2/stats/requests${buildQuery(params)}`, {
+      request<DeleteRowsResponse>(`/api/v1/stats/requests${buildQuery(params)}`, {
         method: "DELETE",
       }),
   },
 
   audit: {
     list: (query: AuditLogQuery = {}) =>
-      request<AuditLogListResponse>(`/api/v2/audit/logs${buildQuery(query)}`),
+      request<AuditLogListResponse>(`/api/v1/audit/logs${buildQuery(query)}`),
 
-    get: (auditId: number) => request<AuditLogResponse>(`/api/v2/audit/logs/${auditId}`),
+    get: (auditId: number) => request<AuditLogResponse>(`/api/v1/audit/logs/${auditId}`),
 
     delete: (params: { older_than_days?: number; delete_all?: boolean }) =>
-      request<DeleteRowsResponse>(`/api/v2/audit/logs${buildQuery(params)}`, {
+      request<DeleteRowsResponse>(`/api/v1/audit/logs${buildQuery(params)}`, {
         method: "DELETE",
       }),
   },
 
   config: {
-    export: () => request<ConfigExportResponse>("/api/v2/config/export"),
+    export: () => request<ConfigExportResponse>("/api/v1/config/export"),
 
     import: (body: ConfigImportRequest) =>
-      request<ConfigImportResponse>("/api/v2/config/import", {
+      request<ConfigImportResponse>("/api/v1/config/import", {
         method: "POST",
         body: JSON.stringify(body),
       }),

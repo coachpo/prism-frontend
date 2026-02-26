@@ -1,6 +1,6 @@
 import type { TokenPairResponse } from "@/lib/types";
 
-const REFRESH_TOKEN_STORAGE_KEY = "prism_v2_refresh_token";
+const REFRESH_TOKEN_STORAGE_KEY = "prism_v1_refresh_token";
 
 let accessToken: string | null = null;
 

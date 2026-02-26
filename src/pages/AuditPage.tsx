@@ -74,7 +74,7 @@ export function AuditPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Audit Logs</h1>
         <p className="text-sm text-muted-foreground">
-          Request/response captures with security redaction from `/api/v2/audit`.
+          Request/response captures with security redaction from `/api/v1/audit`.
         </p>
       </div>
 
