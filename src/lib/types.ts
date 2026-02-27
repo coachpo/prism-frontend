@@ -288,6 +288,7 @@ export interface StatsRequestParams {
   success?: boolean;
   from_time?: string;
   to_time?: string;
+  endpoint_id?: number;
   connection_id?: number;
   limit?: number;
   offset?: number;

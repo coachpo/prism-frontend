@@ -4,7 +4,7 @@ import { useTimezone } from "@/hooks/useTimezone";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
 import { api } from "@/lib/api";
 import { formatMoneyMicros, formatTokenCount, formatUnpricedReasonLabel } from "@/lib/costing";
-import type { ConnectionDropdownItem, RequestLogEntry } from "@/lib/types";
+import type { ConnectionDropdownItem, Endpoint, RequestLogEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -264,7 +264,7 @@ function parseOptionalNumber(value: string | null): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
-function parseConnectionParam(value: string | null): string {
+function parseIdFilterParam(value: string | null): string {
   if (!value) return "__all__";
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? String(parsed) : "__all__";
@@ -421,6 +421,7 @@ export function RequestLogsPage() {
   const [loading, setLoading] = useState(true);
   const [models, setModels] = useState<{ model_id: string; display_name: string | null }[]>([]);
   const [connections, setConnections] = useState<ConnectionDropdownItem[]>([]);
+  const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
 
   const initialModelId = searchParams.get("model_id");
   const initialProviderType = searchParams.get("provider_type");
@@ -431,7 +432,8 @@ export function RequestLogsPage() {
   const [providerType, setProviderType] = useState(
     initialProviderType && initialProviderType.trim() !== "" ? initialProviderType : "all"
   );
-  const [connectionId, setConnectionId] = useState(() => parseConnectionParam(searchParams.get("connection_id")));
+  const [connectionId, setConnectionId] = useState(() => parseIdFilterParam(searchParams.get("connection_id")));
+  const [endpointId, setEndpointId] = useState(() => parseIdFilterParam(searchParams.get("endpoint_id")));
   const [timeRange, setTimeRange] = useState<TimeRange>(() =>
     parseEnumParam(searchParams.get("time_range"), REQUEST_TIME_RANGES, "24h")
   );
@@ -463,7 +465,6 @@ export function RequestLogsPage() {
     )
   );
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-  const [endpointFilter, setEndpointFilter] = useState(searchParams.get("endpoint") || "");
   const [latencyBucket, setLatencyBucket] = useState<LatencyBucket>(() =>
     parseEnumParam(
       searchParams.get("latency_bucket"),
@@ -489,9 +490,14 @@ export function RequestLogsPage() {
   useEffect(() => {
     const fetchFilters = async () => {
       try {
-        const [modelsData, connectionsData] = await Promise.all([api.models.list(), api.endpoints.connections()]);
+        const [modelsData, connectionsData, endpointsData] = await Promise.all([
+          api.models.list(),
+          api.endpoints.connections(),
+          api.endpoints.list(),
+        ]);
         setModels(modelsData.map((model) => ({ model_id: model.model_id, display_name: model.display_name })));
         setConnections(connectionsData.items);
+        setEndpoints(endpointsData);
       } catch (error) {
         console.error("Failed to load request-log filters", error);
       }
@@ -515,6 +521,7 @@ export function RequestLogsPage() {
         setOrDelete("model_id", modelId, "__all__");
         setOrDelete("provider_type", providerType, "all");
         setOrDelete("connection_id", connectionId, "__all__");
+        setOrDelete("endpoint_id", endpointId, "__all__");
         setOrDelete("time_range", timeRange, "24h");
         setOrDelete("special_token_filter", specialTokenFilter, "all");
         setOrDelete("outcome_filter", outcomeFilter, "all");
@@ -522,7 +529,7 @@ export function RequestLogsPage() {
         setOrDelete("view", view, "overview");
         setOrDelete("triage", triage, "none");
         setOrDelete("search", searchQuery, "");
-        setOrDelete("endpoint", endpointFilter, "");
+        next.delete("endpoint");
         setOrDelete("latency_bucket", latencyBucket, "all");
         if (showPricedOnly) next.set("priced_only", "true");
         else next.delete("priced_only");
@@ -548,7 +555,7 @@ export function RequestLogsPage() {
     );
   }, [
     connectionId,
-    endpointFilter,
+    endpointId,
     latencyBucket,
     limit,
     modelId,
@@ -587,6 +594,7 @@ export function RequestLogsPage() {
             model_id: modelId === "__all__" ? undefined : modelId,
             provider_type: providerType === "all" ? undefined : providerType,
             connection_id: connectionId === "__all__" ? undefined : Number.parseInt(connectionId, 10),
+            endpoint_id: endpointId === "__all__" ? undefined : Number.parseInt(endpointId, 10),
             from_time: fromTime,
             limit,
             offset,
@@ -605,7 +613,7 @@ export function RequestLogsPage() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [connectionId, limit, modelId, offset, providerType, timeRange]);
+  }, [connectionId, endpointId, limit, modelId, offset, providerType, timeRange]);
 
   const filteredAndSortedRows = useMemo(() => {
     let result = logs.filter((log) => {
@@ -620,19 +628,6 @@ export function RequestLogsPage() {
           String(log.status_code).includes(query) ||
           String(log.id).includes(query);
         if (!matches) return false;
-      }
-
-      if (endpointFilter) {
-        const endpointQuery = endpointFilter.toLowerCase();
-        const endpointText = [
-          log.endpoint_description || "",
-          log.endpoint_base_url || "",
-          String(log.endpoint_id ?? ""),
-          String(log.connection_id ?? ""),
-        ]
-          .join(" ")
-          .toLowerCase();
-        if (!endpointText.includes(endpointQuery)) return false;
       }
 
       if (!matchesLatencyBucket(latencyBucket, log.response_time_ms)) return false;
@@ -678,7 +673,6 @@ export function RequestLogsPage() {
 
     return result;
   }, [
-    endpointFilter,
     latencyBucket,
     logs,
     outcomeFilter,
@@ -702,7 +696,6 @@ export function RequestLogsPage() {
 
   const clearAllFilters = () => {
     setSearchQuery("");
-    setEndpointFilter("");
     setTriage("none");
     setLatencyBucket("all");
     setTokenMin(null);
@@ -717,6 +710,7 @@ export function RequestLogsPage() {
     setModelId("__all__");
     setProviderType("all");
     setConnectionId("__all__");
+    setEndpointId("__all__");
     setTimeRange("24h");
     setView("overview");
     setOffset(0);
@@ -1094,7 +1088,7 @@ export function RequestLogsPage() {
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-8">
+            <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={modelId}
                 onValueChange={(next) => {
@@ -1102,7 +1096,7 @@ export function RequestLogsPage() {
                   setOffset(0);
                 }}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 w-full text-xs sm:w-[180px] [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate">
                   <SelectValue placeholder="Model" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1121,7 +1115,7 @@ export function RequestLogsPage() {
                   setProviderType(next);
                   setOffset(0);
                 }}
-                className="h-8 text-xs"
+                className="h-8 w-full text-xs sm:w-[150px] [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate"
               />
 
               <Select
@@ -1131,11 +1125,11 @@ export function RequestLogsPage() {
                   setOffset(0);
                 }}
               >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Endpoint" />
+                <SelectTrigger className="h-8 w-full text-xs sm:w-[180px] [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate">
+                  <SelectValue placeholder="Connection" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Endpoints</SelectItem>
+                  <SelectItem value="__all__">All Connections</SelectItem>
                   {connections.map((connection) => (
                     <SelectItem key={connection.id} value={String(connection.id)}>
                       {getConnectionLabel(connection)}
@@ -1144,18 +1138,25 @@ export function RequestLogsPage() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-2 rounded-md border px-2">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Endpoint</span>
-                <Input
-                  value={endpointFilter}
-                  onChange={(event) => {
-                    setEndpointFilter(event.target.value);
-                    setOffset(0);
-                  }}
-                  placeholder="name, url, or id"
-                  className="h-7 border-0 px-0 text-xs shadow-none focus-visible:ring-0"
-                />
-              </div>
+              <Select
+                value={endpointId}
+                onValueChange={(next) => {
+                  setEndpointId(next);
+                  setOffset(0);
+                }}
+              >
+                <SelectTrigger className="h-8 w-full text-xs sm:w-[180px] [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate">
+                  <SelectValue placeholder="Endpoint" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Endpoints</SelectItem>
+                  {endpoints.map((endpoint) => (
+                    <SelectItem key={endpoint.id} value={String(endpoint.id)}>
+                      {endpoint.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               <Select
                 value={outcomeFilter}
@@ -1164,7 +1165,7 @@ export function RequestLogsPage() {
                   setOffset(0);
                 }}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 w-full text-xs sm:w-[130px] [&_[data-slot=select-value]]:truncate">
                   <SelectValue placeholder="Outcome" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1181,7 +1182,7 @@ export function RequestLogsPage() {
                   setOffset(0);
                 }}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 w-full text-xs sm:w-[150px] [&_[data-slot=select-value]]:truncate">
                   <SelectValue placeholder="Stream" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1198,7 +1199,7 @@ export function RequestLogsPage() {
                   setOffset(0);
                 }}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 w-full text-xs sm:w-[140px] [&_[data-slot=select-value]]:truncate">
                   <SelectValue placeholder="Latency" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1217,7 +1218,7 @@ export function RequestLogsPage() {
                   setOffset(0);
                 }}
               >
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 w-full text-xs sm:w-[190px] [&_[data-slot=select-value]]:truncate">
                   <SelectValue placeholder="Special Tokens" />
                 </SelectTrigger>
                 <SelectContent>
