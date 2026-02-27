@@ -1413,30 +1413,48 @@ export function StatisticsPage() {
 
                 <div className="space-y-1">
                   <span className="text-xs text-muted-foreground">Model ID</span>
-                  <Input
-                    className="h-8 text-xs"
-                    placeholder="Filter by model..."
-                    value={spendingModelId}
-                    onChange={(e) => {
-                      setSpendingModelId(e.target.value);
+                  <Select
+                    value={spendingModelId || "__all__"}
+                    onValueChange={(value) => {
+                      setSpendingModelId(value === "__all__" ? "" : value);
                       setSpendingOffset(0);
                     }}
-                  />
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Model ID" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All Models</SelectItem>
+                      {models.map((m) => (
+                        <SelectItem key={m.model_id} value={m.model_id}>
+                          {m.display_name || m.model_id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-xs text-muted-foreground">Connection ID</span>
-                  <Input
-                    className="h-8 text-xs"
-                    type="number"
-                    min="1"
-                    placeholder="Filter by connection..."
-                    value={spendingConnectionId}
-                    onChange={(e) => {
-                      setSpendingConnectionId(e.target.value);
+                  <Select
+                    value={spendingConnectionId || "__all__"}
+                    onValueChange={(value) => {
+                      setSpendingConnectionId(value === "__all__" ? "" : value);
                       setSpendingOffset(0);
                     }}
-                  />
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Connection" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All Connections</SelectItem>
+                      {connections.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {getConnectionLabel(c)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

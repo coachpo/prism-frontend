@@ -6,7 +6,6 @@ import { api } from "@/lib/api";
 import { formatMoneyMicros, formatTokenCount, formatUnpricedReasonLabel } from "@/lib/costing";
 import type { ConnectionDropdownItem, RequestLogEntry } from "@/lib/types";
 import { PageHeader } from "@/components/PageHeader";
-import { MetricCard } from "@/components/MetricCard";
 import { EmptyState } from "@/components/EmptyState";
 import { ProviderSelect } from "@/components/ProviderSelect";
 import { ProviderIcon } from "@/components/ProviderIcon";
@@ -35,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Activity, AlertCircle, CircleHelp, Clock } from "lucide-react";
+import { Activity, AlertCircle, CircleHelp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function formatErrorDetail(detail: string | null): string | null {
@@ -334,8 +333,6 @@ export function RequestLogsPage() {
     });
   }, [logs, outcomeFilter, specialTokenFilter, streamFilter]);
 
-  const errorRows = filteredRows.filter((row) => row.status_code >= 400).length;
-  const streamRows = filteredRows.filter((row) => row.is_stream).length;
   const canPaginateForward = offset + limit < total;
   const currentPage = total > 0 ? Math.floor(offset / limit) + 1 : 1;
   const totalPages = total > 0 ? Math.ceil(total / limit) : 1;
@@ -348,33 +345,6 @@ export function RequestLogsPage() {
         title="Request Logs"
         description="Full-fidelity request telemetry with operational and cost-level fields"
       />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          label="Rows Loaded"
-          value={logs.length.toLocaleString()}
-          detail={total > 0 ? `Page ${currentPage} of ${totalPages}` : "Current time window"}
-          icon={<Activity className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Rows Visible"
-          value={filteredRows.length.toLocaleString()}
-          detail="After local filters"
-          icon={<Clock className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Error Rows"
-          value={errorRows.toLocaleString()}
-          detail="Status >= 400"
-          icon={<AlertCircle className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Streaming Rows"
-          value={streamRows.toLocaleString()}
-          detail="is_stream=true"
-          icon={<TypeBadge label="SSE" />}
-        />
-      </div>
 
       <Card>
         <CardHeader className="pb-3">
