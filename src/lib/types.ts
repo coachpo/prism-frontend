@@ -126,6 +126,16 @@ export interface ConnectionOwnerResponse {
   endpoint_base_url: string;
 }
 
+export interface ConnectionDropdownItem {
+  id: number;
+  endpoint_id: number;
+  description: string | null;
+}
+
+export interface ConnectionDropdownResponse {
+  items: ConnectionDropdownItem[];
+}
+
 // --- Model Config ---
 export type ModelType = "native" | "proxy";
 export type LoadBalancingStrategy = "single" | "failover";
@@ -355,6 +365,7 @@ export interface ConfigUserSettingsExport {
   report_currency_code: string;
   report_currency_symbol: string;
   endpoint_fx_mappings: ConfigEndpointFxRateExport[];
+  timezone_preference?: string | null;
 }
 
 export interface ConfigExportResponse {
@@ -461,12 +472,14 @@ export interface CostingSettingsResponse {
   report_currency_code: string;
   report_currency_symbol: string;
   endpoint_fx_mappings: EndpointFxMapping[];
+  timezone_preference?: string | null;
 }
 
 export interface CostingSettingsUpdate {
   report_currency_code: string;
   report_currency_symbol: string;
   endpoint_fx_mappings: EndpointFxMapping[];
+  timezone_preference?: string | null;
 }
 
 export type SpendingGroupBy =

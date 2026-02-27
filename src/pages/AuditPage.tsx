@@ -1,7 +1,14 @@
+import { useTimezone } from "@/hooks/useTimezone";
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
-import type { AuditLogListItem, AuditLogDetail, AuditLogParams, Provider } from "@/lib/types";
+import type {
+  AuditLogListItem,
+  AuditLogDetail,
+  AuditLogParams,
+  ConnectionDropdownItem,
+  Provider,
+} from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TypeBadge, ValueBadge, type BadgeIntent } from "@/components/StatusBadge";
@@ -79,6 +86,7 @@ export function AuditPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const { navigateToConnection } = useConnectionNavigation();
 
+  const { format: formatTime } = useTimezone();
   const [selectedLog, setSelectedLog] = useState<AuditLogDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -93,25 +101,18 @@ export function AuditPage() {
   const [limit] = useState(50);
   const [offset, setOffset] = useState(0);
   const [models, setModels] = useState<{ model_id: string; display_name: string | null }[]>([]);
-  const [connections, setConnections] = useState<{ id: number }[]>([]);
+  const [connections, setConnections] = useState<ConnectionDropdownItem[]>([]);
 
   // Fetch models and connections for filter dropdowns
   useEffect(() => {
     const fetchFilters = async () => {
       try {
-        const [modelsData, logsData] = await Promise.all([
+        const [modelsData, connectionsData] = await Promise.all([
           api.models.list(),
-          api.audit.list({ limit: 200 }),
+          api.endpoints.connections(),
         ]);
         setModels(modelsData.map(m => ({ model_id: m.model_id, display_name: m.display_name })));
-        const uniqueConnections = Array.from(
-          new Set(
-            logsData.items
-              .map((log) => log.connection_id)
-              .filter((id): id is number => id !== null)
-          )
-        ).map((id) => ({ id }));
-        setConnections(uniqueConnections);
+        setConnections(connectionsData.items);
       } catch (error) {
         console.error("Failed to fetch filter options:", error);
       }
@@ -181,15 +182,21 @@ export function AuditPage() {
 
   const clearFilters = () => {
     setProviderId("all");
-    setModelId("");
-    setConnectionId("");
+    setModelId("__all__");
+    setConnectionId("__all__");
     setStatusFilter("all");
     setDateFrom("");
     setDateTo("");
     setOffset(0);
   };
 
-  const hasFilters = providerId !== "all" || modelId || connectionId || statusFilter !== "all" || dateFrom || dateTo;
+  const hasFilters =
+    providerId !== "all" ||
+    modelId !== "__all__" ||
+    connectionId !== "__all__" ||
+    statusFilter !== "all" ||
+    dateFrom ||
+    dateTo;
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
   const selectedConnectionId = selectedLog?.connection_id ?? null;
@@ -375,7 +382,11 @@ export function AuditPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(log.created_at).toLocaleTimeString()}
+                            {formatTime(log.created_at, {
+                              hour: "numeric",
+                              minute: "numeric",
+                              second: "numeric",
+                            })}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -428,7 +439,7 @@ export function AuditPage() {
             </SheetTitle>
             {selectedLog && (
               <SheetDescription className="text-xs">
-                {new Date(selectedLog.created_at).toLocaleString()} · {selectedLog.duration_ms}ms
+                {formatTime(selectedLog.created_at)} · {selectedLog.duration_ms}ms
                 {selectedConnectionId === null ? (
                   <span> · Connection unavailable</span>
                 ) : (

@@ -1,3 +1,4 @@
+import { useTimezone } from "@/hooks/useTimezone";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
@@ -7,6 +8,7 @@ import {
   formatUnpricedReasonLabel,
 } from "@/lib/costing";
 import type {
+  ConnectionDropdownItem,
   RequestLogEntry,
   SpendingGroupBy,
   SpendingReportResponse,
@@ -262,7 +264,8 @@ export function StatisticsPage() {
   const [spendingOffset, setSpendingOffset] = useState(0);
   const [spendingTopN, setSpendingTopN] = useState(5);
   const [models, setModels] = useState<{ model_id: string; display_name: string | null }[]>([]);
-  const [connections, setConnections] = useState<{ id: number; endpoint_id: number }[]>([]);
+  const [connections, setConnections] = useState<ConnectionDropdownItem[]>([]);
+  const { format: formatTime } = useTimezone();
 
 
   // Fetch models and connections for filter dropdowns
@@ -271,18 +274,10 @@ export function StatisticsPage() {
       try {
         const [modelsData, connectionsData] = await Promise.all([
           api.models.list(),
-          api.stats.requests({ limit: 500 }), // Get recent connections from logs
+          api.endpoints.connections(),
         ]);
         setModels(modelsData.map(m => ({ model_id: m.model_id, display_name: m.display_name })));
-        // Extract unique connection IDs from logs
-        const uniqueConnections = Array.from(
-          new Set(
-            connectionsData.items
-              .map((log) => log.connection_id)
-              .filter((id): id is number => id !== null)
-          )
-        ).map((id) => ({ id, endpoint_id: 0 })); // endpoint_id not needed for filter
-        setConnections(uniqueConnections);
+        setConnections(connectionsData.items);
       } catch (error) {
         console.error("Failed to fetch filter options:", error);
       }
@@ -840,7 +835,11 @@ export function StatisticsPage() {
                         return (
                           <TableRow key={log.id} className="text-xs">
                             <TableCell className="whitespace-nowrap py-2 text-muted-foreground">
-                              {new Date(log.created_at).toLocaleTimeString()}
+                              {formatTime(log.created_at, {
+                                hour: "numeric",
+                                minute: "numeric",
+                                second: "numeric",
+                              })}
                             </TableCell>
                             <TableCell className="py-2 font-medium max-w-[140px] truncate">
                               {log.model_id}

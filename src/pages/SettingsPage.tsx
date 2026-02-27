@@ -1,3 +1,4 @@
+import { Globe } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { z } from "zod";
@@ -91,6 +92,7 @@ export function SettingsPage() {
   const [costingForm, setCostingForm] = useState<CostingSettingsUpdate>({
     report_currency_code: "USD",
     report_currency_symbol: "$",
+    timezone_preference: null,
     endpoint_fx_mappings: [],
   });
 
@@ -129,6 +131,7 @@ export function SettingsPage() {
       setCostingForm({
         report_currency_code: data.report_currency_code,
         report_currency_symbol: data.report_currency_symbol,
+        timezone_preference: data.timezone_preference,
         endpoint_fx_mappings: data.endpoint_fx_mappings,
       });
       setCostingUnavailable(false);
@@ -254,6 +257,7 @@ export function SettingsPage() {
       report_currency_code: normalizedCode,
       report_currency_symbol: normalizedSymbol,
       endpoint_fx_mappings: costingForm.endpoint_fx_mappings,
+      timezone_preference: costingForm.timezone_preference,
     };
 
     setCostingSaving(true);
@@ -262,6 +266,7 @@ export function SettingsPage() {
       setCostingForm({
         report_currency_code: saved.report_currency_code,
         report_currency_symbol: saved.report_currency_symbol,
+        timezone_preference: saved.timezone_preference,
         endpoint_fx_mappings: saved.endpoint_fx_mappings,
       });
       toast.success("Costing settings saved");
@@ -751,6 +756,65 @@ export function SettingsPage() {
             )}
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Globe className="h-4 w-4" />
+              Timezone
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Set the timezone for displaying timestamps across the dashboard.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {costingUnavailable ? (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                Settings API is currently unavailable.
+              </div>
+            ) : costingLoading ? (
+              <div className="space-y-2">
+                <div className="h-9 animate-pulse rounded bg-muted" />
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 items-end">
+                <div className="space-y-2">
+                  <Label>Timezone Preference</Label>
+                  <Select
+                    value={costingForm.timezone_preference || "auto"}
+                    onValueChange={(value) =>
+                      setCostingForm({
+                        ...costingForm,
+                        timezone_preference: value === "auto" ? null : value,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">
+                        Auto (Browser: {Intl.DateTimeFormat().resolvedOptions().timeZone})
+                      </SelectItem>
+                      {Intl.supportedValuesOf("timeZone").map((tz) => (
+                        <SelectItem key={tz} value={tz}>
+                          {tz}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={handleSaveCostingSettings}
+                  disabled={costingSaving}
+                  className="w-full sm:w-auto"
+                >
+                  {costingSaving ? "Saving..." : "Save Timezone"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
 
         <Card>
           <CardHeader className="pb-3">

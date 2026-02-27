@@ -11,6 +11,7 @@ import type {
   Connection,
   ConnectionCreate,
   ConnectionUpdate,
+  ConnectionDropdownResponse,
   HealthCheckResponse,
   ConnectionOwnerResponse,
   RequestLogListResponse,
@@ -87,6 +88,8 @@ export const api = {
 
   endpoints: {
     list: () => request<Endpoint[]>("/api/endpoints"),
+    connections: () =>
+      request<ConnectionDropdownResponse>("/api/endpoints/connections"),
     create: (data: EndpointCreate) =>
       request<Endpoint>("/api/endpoints", {
         method: "POST",
