@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Server, BarChart3, FileSearch, Settings, Menu, X, Zap, Plug } from "lucide-react";
+import { LayoutDashboard, Server, BarChart3, FileSearch, Settings, Menu, X, Zap, Plug, Logs } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
@@ -9,6 +9,7 @@ const navLinks = [
   { to: "/models", icon: Server, label: "Models" },
   { to: "/endpoints", icon: Plug, label: "Endpoints" },
   { to: "/statistics", icon: BarChart3, label: "Statistics" },
+  { to: "/request-logs", icon: Logs, label: "Request Logs" },
   { to: "/audit", icon: FileSearch, label: "Audit" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];

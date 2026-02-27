@@ -1,12 +1,7 @@
-import { useTimezone } from "@/hooks/useTimezone";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
-import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
-import {
-  formatMoneyMicros,
-  formatTokenCount,
-  formatUnpricedReasonLabel,
-} from "@/lib/costing";
+import { formatMoneyMicros } from "@/lib/costing";
 import type {
   ConnectionDropdownItem,
   RequestLogEntry,
@@ -23,33 +18,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Activity,
-  AlertCircle,
-  CircleHelp,
-  Clock,
-  Coins,
-  Gauge,
-  TrendingUp,
-  CircleDollarSign,
-} from "lucide-react";
-import { ProviderIcon } from "@/components/ProviderIcon";
+import { Activity, Clock, Coins, Gauge, TrendingUp, CircleDollarSign } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { ProviderSelect } from "@/components/ProviderSelect";
 import { SpecialTokenCoverageStrip } from "@/components/statistics/SpecialTokenCoverageStrip";
-import { TokenMetricCell } from "@/components/statistics/TokenMetricCell";
 import { TopSpendingCard } from "@/components/statistics/TopSpendingCard";
 import { cn } from "@/lib/utils";
 import {
@@ -72,22 +49,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-function formatErrorDetail(detail: string | null): string | null {
-  if (!detail) return null;
-  try {
-    const parsed = JSON.parse(detail);
-    const msg =
-      parsed?.error?.message ||
-      parsed?.error?.msg ||
-      parsed?.detail ||
-      parsed?.message;
-    if (msg) return String(msg);
-    return detail;
-  } catch {
-    return detail;
-  }
-}
-
 interface TimeBucket {
   label: string;
   requests: number;
@@ -102,6 +63,87 @@ type SpecialTokenFilter =
   | "has_any_special"
   | "missing_special";
 
+const STATISTICS_TABS = ["operations", "spending"] as const;
+const OPERATIONS_TIME_RANGES = ["1h", "24h", "7d", "all"] as const;
+const OPERATIONS_SPECIAL_TOKEN_FILTERS: readonly SpecialTokenFilter[] = [
+  "all",
+  "has_cached",
+  "has_reasoning",
+  "has_any_special",
+  "missing_special",
+];
+const SPENDING_PRESETS = [
+  "today",
+  "last_7_days",
+  "last_30_days",
+  "custom",
+  "all",
+] as const;
+const SPENDING_GROUP_BY_OPTIONS: readonly SpendingGroupBy[] = [
+  "none",
+  "day",
+  "week",
+  "month",
+  "provider",
+  "model",
+  "endpoint",
+  "model_endpoint",
+];
+const SPENDING_LIMIT_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_SPENDING_LIMIT = 25;
+const DEFAULT_SPENDING_TOP_N = 5;
+
+function parseEnumParam<T extends string>(
+  value: string | null,
+  allowed: readonly T[],
+  fallback: T
+): T {
+  return value && allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function parseNonNegativeIntParam(value: string | null, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function parseBoundedIntParam(
+  value: string | null,
+  fallback: number,
+  min: number,
+  max: number
+): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function parseConnectionFilterParam(value: string | null): string {
+  if (!value) return "__all__";
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? String(parsed) : "__all__";
+}
+
+function parseSpendingConnectionParam(value: string | null): string {
+  if (!value) return "";
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? String(parsed) : "";
+}
+
+function parseSpendingLimitParam(value: string | null): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return SPENDING_LIMIT_OPTIONS.includes(parsed as (typeof SPENDING_LIMIT_OPTIONS)[number])
+    ? parsed
+    : DEFAULT_SPENDING_LIMIT;
+}
+
+function getConnectionLabel(
+  connection: Pick<ConnectionDropdownItem, "id" | "name" | "description">
+ ): string {
+  return connection.name || connection.description || `Connection #${connection.id}`;
+}
+
 function hasSpecialTokenValue(value: number | null | undefined): boolean {
   return value !== null && value !== undefined;
 }
@@ -113,41 +155,6 @@ function rowHasAnySpecialToken(log: RequestLogEntry): boolean {
     hasSpecialTokenValue(log.reasoning_tokens)
   );
 }
-
-function metricUnavailableReason(
-  log: Pick<RequestLogEntry, "status_code" | "is_stream">,
-  value: number | null | undefined
-): string {
-  if (value !== null && value !== undefined) {
-    return "";
-  }
-  if (log.status_code >= 400) {
-    return "request failed before usage accounting";
-  }
-  if (log.is_stream) {
-    return "stream ended without usage event";
-  }
-  return "upstream did not report this metric";
-}
-
-function HeaderWithTooltip({ label, tooltip }: { label: string; tooltip: string }) {
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="inline-flex items-center gap-1 cursor-help">
-            {label}
-            <CircleHelp className="h-3 w-3 text-muted-foreground" />
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
-          {tooltip}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
 function bucketLogs(logs: RequestLogEntry[], timeRange: string): TimeBucket[] {
   if (logs.length === 0) return [];
 
@@ -229,43 +236,80 @@ function toIsoFromDateInput(
 }
 
 export function StatisticsPage() {
-  const [activeTab, setActiveTab] = useState<"operations" | "spending">(
-    "operations"
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"operations" | "spending">(() =>
+    parseEnumParam(searchParams.get("tab"), STATISTICS_TABS, "operations")
   );
 
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const { navigateToConnection } = useConnectionNavigation();
+  const navigate = useNavigate();
 
-  const [modelId, setModelId] = useState("__all__");
-  const [connectionId, setConnectionId] = useState("__all__");
-  const [providerType, setProviderType] = useState<string>("all");
-  const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d" | "all">(
-    "24h"
+  const initialOperationsModelId = searchParams.get("model_id");
+  const initialOperationsProviderType = searchParams.get("provider_type");
+  const initialSpendingProviderType = searchParams.get("spending_provider_type");
+
+  const [modelId, setModelId] = useState(
+    initialOperationsModelId && initialOperationsModelId.trim() !== ""
+      ? initialOperationsModelId
+      : "__all__"
   );
-  const [specialTokenFilter, setSpecialTokenFilter] =
-    useState<SpecialTokenFilter>("all");
+  const [connectionId, setConnectionId] = useState(() =>
+    parseConnectionFilterParam(searchParams.get("connection_id"))
+  );
+  const [providerType, setProviderType] = useState<string>(
+    initialOperationsProviderType && initialOperationsProviderType.trim() !== ""
+      ? initialOperationsProviderType
+      : "all"
+  );
+  const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d" | "all">(() =>
+    parseEnumParam(searchParams.get("time_range"), OPERATIONS_TIME_RANGES, "24h")
+  );
+  const [specialTokenFilter, setSpecialTokenFilter] = useState<SpecialTokenFilter>(() =>
+    parseEnumParam(
+      searchParams.get("special_token_filter"),
+      OPERATIONS_SPECIAL_TOKEN_FILTERS,
+      "all"
+    )
+  );
 
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
   const [spendingLoading, setSpendingLoading] = useState(false);
   const [spendingError, setSpendingError] = useState<string | null>(null);
   const [spendingPreset, setSpendingPreset] = useState<
     "today" | "last_7_days" | "last_30_days" | "custom" | "all"
-  >("last_7_days");
-  const [spendingFrom, setSpendingFrom] = useState("");
-  const [spendingTo, setSpendingTo] = useState("");
-  const [spendingProviderType, setSpendingProviderType] = useState("all");
-  const [spendingModelId, setSpendingModelId] = useState("");
-  const [spendingConnectionId, setSpendingConnectionId] = useState("");
+>(() => parseEnumParam(searchParams.get("spending_preset"), SPENDING_PRESETS, "last_7_days"));
+  const [spendingFrom, setSpendingFrom] = useState(searchParams.get("spending_from") ?? "");
+  const [spendingTo, setSpendingTo] = useState(searchParams.get("spending_to") ?? "");
+  const [spendingProviderType, setSpendingProviderType] = useState(
+    initialSpendingProviderType && initialSpendingProviderType.trim() !== ""
+      ? initialSpendingProviderType
+      : "all"
+  );
+  const [spendingModelId, setSpendingModelId] = useState(searchParams.get("spending_model_id") ?? "");
+  const [spendingConnectionId, setSpendingConnectionId] = useState(() =>
+    parseSpendingConnectionParam(searchParams.get("spending_connection_id"))
+  );
   const [spendingGroupBy, setSpendingGroupBy] =
-    useState<SpendingGroupBy>("model");
-  const [spendingLimit, setSpendingLimit] = useState(25);
-  const [spendingOffset, setSpendingOffset] = useState(0);
-  const [spendingTopN, setSpendingTopN] = useState(5);
+    useState<SpendingGroupBy>(() =>
+      parseEnumParam(
+        searchParams.get("spending_group_by"),
+        SPENDING_GROUP_BY_OPTIONS,
+        "model"
+      )
+    );
+  const [spendingLimit, setSpendingLimit] = useState(() =>
+    parseSpendingLimitParam(searchParams.get("spending_limit"))
+  );
+  const [spendingOffset, setSpendingOffset] = useState(() =>
+    parseNonNegativeIntParam(searchParams.get("spending_offset"), 0)
+  );
+  const [spendingTopN, setSpendingTopN] = useState(() =>
+    parseBoundedIntParam(searchParams.get("spending_top_n"), DEFAULT_SPENDING_TOP_N, 1, 50)
+  );
   const [models, setModels] = useState<{ model_id: string; display_name: string | null }[]>([]);
   const [connections, setConnections] = useState<ConnectionDropdownItem[]>([]);
-  const { format: formatTime } = useTimezone();
 
 
   // Fetch models and connections for filter dropdowns
@@ -284,6 +328,71 @@ export function StatisticsPage() {
     };
     fetchFilters();
   }, []);
+
+  useEffect(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        const setOrDelete = (key: string, value: string, defaultValue?: string) => {
+          if (!value || (defaultValue !== undefined && value === defaultValue)) {
+            next.delete(key);
+            return;
+          }
+          next.set(key, value);
+        };
+
+        setOrDelete("tab", activeTab, "operations");
+        setOrDelete("time_range", timeRange, "24h");
+        setOrDelete("model_id", modelId, "__all__");
+        setOrDelete("provider_type", providerType, "all");
+        setOrDelete("connection_id", connectionId, "__all__");
+        setOrDelete("special_token_filter", specialTokenFilter, "all");
+
+        setOrDelete("spending_preset", spendingPreset, "last_7_days");
+        if (spendingPreset === "custom") {
+          setOrDelete("spending_from", spendingFrom);
+          setOrDelete("spending_to", spendingTo);
+        } else {
+          next.delete("spending_from");
+          next.delete("spending_to");
+        }
+        setOrDelete("spending_provider_type", spendingProviderType, "all");
+        setOrDelete("spending_model_id", spendingModelId);
+        setOrDelete("spending_connection_id", spendingConnectionId);
+        setOrDelete("spending_group_by", spendingGroupBy, "model");
+
+        if (spendingLimit === DEFAULT_SPENDING_LIMIT) next.delete("spending_limit");
+        else next.set("spending_limit", String(spendingLimit));
+
+        if (spendingOffset <= 0) next.delete("spending_offset");
+        else next.set("spending_offset", String(spendingOffset));
+
+        if (spendingTopN === DEFAULT_SPENDING_TOP_N) next.delete("spending_top_n");
+        else next.set("spending_top_n", String(spendingTopN));
+
+        return next.toString() === prev.toString() ? prev : next;
+      },
+      { replace: true }
+    );
+  }, [
+    activeTab,
+    connectionId,
+    modelId,
+    providerType,
+    setSearchParams,
+    specialTokenFilter,
+    spendingConnectionId,
+    spendingFrom,
+    spendingGroupBy,
+    spendingLimit,
+    spendingModelId,
+    spendingOffset,
+    spendingPreset,
+    spendingProviderType,
+    spendingTo,
+    spendingTopN,
+    timeRange,
+  ]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -441,6 +550,61 @@ export function StatisticsPage() {
     };
   }, [requestLogRows]);
 
+  const providerBreakdown = useMemo(() => {
+    const map = new Map<string, { requests: number; errors: number; latencyTotal: number }>();
+
+    for (const log of requestLogRows) {
+      const key = log.provider_type || "unknown";
+      const current = map.get(key) ?? { requests: 0, errors: 0, latencyTotal: 0 };
+      current.requests += 1;
+      current.latencyTotal += log.response_time_ms;
+      if (log.status_code >= 400) current.errors += 1;
+      map.set(key, current);
+    }
+
+    return Array.from(map.entries())
+      .map(([provider, values]) => ({
+        provider,
+        requests: values.requests,
+        errors: values.errors,
+        avgLatency: values.requests > 0 ? Math.round(values.latencyTotal / values.requests) : 0,
+      }))
+      .sort((a, b) => b.requests - a.requests);
+  }, [requestLogRows]);
+
+  const errorCodeBreakdown = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const log of requestLogRows) {
+      if (log.status_code < 400) continue;
+      const key = String(log.status_code);
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+
+    return Array.from(map.entries())
+      .map(([status, count]) => ({ status, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [requestLogRows]);
+
+  const latencyBandData = useMemo(() => {
+    const buckets = [
+      { band: "<500ms", count: 0 },
+      { band: "500ms-1s", count: 0 },
+      { band: "1s-3s", count: 0 },
+      { band: ">=3s", count: 0 },
+    ];
+
+    for (const log of requestLogRows) {
+      if (log.response_time_ms < 500) buckets[0].count += 1;
+      else if (log.response_time_ms < 1000) buckets[1].count += 1;
+      else if (log.response_time_ms < 3000) buckets[2].count += 1;
+      else buckets[3].count += 1;
+    }
+
+    return buckets;
+  }, [requestLogRows]);
+
+
   const successRate =
     summary && summary.total_requests > 0
       ? ((summary.success_count / summary.total_requests) * 100).toFixed(1)
@@ -486,7 +650,7 @@ export function StatisticsPage() {
 
         <TabsContent value="operations" className="space-y-6">
           <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1 w-fit">
-            {(["1h", "24h", "7d", "all"] as const).map((range) => (
+            {OPERATIONS_TIME_RANGES.map((range) => (
               <Button
                 key={range}
                 variant={timeRange === range ? "default" : "outline"}
@@ -523,13 +687,13 @@ export function StatisticsPage() {
             />
             <Select value={connectionId} onValueChange={setConnectionId}>
               <SelectTrigger className="h-8 w-full text-xs sm:w-32">
-                <SelectValue placeholder="Connection ID" />
+                <SelectValue placeholder="Connection" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">All Connections</SelectItem>
                 {connections.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)}>
-                    {c.id}
+                    {getConnectionLabel(c)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -605,39 +769,14 @@ export function StatisticsPage() {
                         margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
                       >
                         <defs>
-                          <linearGradient
-                            id="fillRequests"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="5%"
-                              stopColor="var(--chart-1)"
-                              stopOpacity={0.3}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor="var(--chart-1)"
-                              stopOpacity={0}
-                            />
+                          <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          className="stroke-border"
-                        />
-                        <XAxis
-                          dataKey="label"
-                          tick={{ fontSize: 11 }}
-                          className="text-muted-foreground"
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11 }}
-                          className="text-muted-foreground"
-                          allowDecimals={false}
-                        />
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                        <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                        <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
                         <RechartsTooltip
                           contentStyle={{
                             backgroundColor: "var(--popover)",
@@ -647,13 +786,7 @@ export function StatisticsPage() {
                             color: "var(--popover-foreground)",
                           }}
                         />
-                        <Area
-                          type="monotone"
-                          dataKey="requests"
-                          stroke="var(--chart-1)"
-                          fill="url(#fillRequests)"
-                          strokeWidth={2}
-                        />
+                        <Area type="monotone" dataKey="requests" stroke="var(--chart-1)" fill="url(#fillRequests)" strokeWidth={2} />
                         <Area
                           type="monotone"
                           dataKey="errors"
@@ -683,20 +816,9 @@ export function StatisticsPage() {
                         data={chartData}
                         margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
                       >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          className="stroke-border"
-                        />
-                        <XAxis
-                          dataKey="label"
-                          tick={{ fontSize: 11 }}
-                          className="text-muted-foreground"
-                        />
-                        <YAxis
-                          tick={{ fontSize: 11 }}
-                          className="text-muted-foreground"
-                          unit="ms"
-                        />
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                        <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                        <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" unit="ms" />
                         <RechartsTooltip
                           contentStyle={{
                             backgroundColor: "var(--popover)",
@@ -707,12 +829,72 @@ export function StatisticsPage() {
                           }}
                           formatter={(value: number) => [`${value}ms`, "Avg Latency"]}
                         />
-                        <Bar
-                          dataKey="avgLatency"
-                          fill="var(--chart-2)"
-                          radius={[4, 4, 0, 0]}
-                          maxBarSize={32}
+                        <Bar dataKey="avgLatency" fill="var(--chart-2)" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Provider Reliability</CardTitle>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  {providerBreakdown.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No provider data for current filters.</p>
+                  ) : (
+                    <div className="h-[220px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={providerBreakdown}
+                          margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                          <XAxis dataKey="provider" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                          <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
+                          <RechartsTooltip
+                            contentStyle={{
+                              backgroundColor: "var(--popover)",
+                              border: "1px solid var(--border)",
+                              borderRadius: "var(--radius)",
+                              fontSize: 12,
+                              color: "var(--popover-foreground)",
+                            }}
+                          />
+                          <Bar dataKey="requests" fill="var(--chart-4)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                          <Bar dataKey="errors" fill="var(--destructive)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Latency Distribution</CardTitle>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <div className="h-[220px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={latencyBandData}
+                        margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                        <XAxis dataKey="band" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                        <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: "var(--popover)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius)",
+                            fontSize: 12,
+                            color: "var(--popover-foreground)",
+                          }}
                         />
+                        <Bar dataKey="count" fill="var(--chart-5)" radius={[4, 4, 0, 0]} maxBarSize={40} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -723,381 +905,41 @@ export function StatisticsPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Request Log</CardTitle>
+              <CardTitle className="text-sm font-medium">Request Logs Workspace</CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              {requestLogRows.length === 0 ? (
-                <EmptyState
-                  icon={<Activity className="h-6 w-6" />}
-                  title={
-                    logs.length === 0
-                      ? "No requests found"
-                      : "No rows match special-token filter"
-                  }
-                  description={
-                    logs.length === 0
-                      ? "Adjust your filters or time range to see request data."
-                      : "Try a different special-token filter to show matching request rows."
-                  }
-                />
-              ) : (
-                <div className="max-h-[500px] overflow-auto scrollbar-thin">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Time</TableHead>
-                        <TableHead className="text-xs">Model</TableHead>
-                        <TableHead className="text-xs hidden sm:table-cell">
-                          Provider
-                        </TableHead>
-                        <TableHead className="text-xs hidden lg:table-cell">
-                          Connection
-                        </TableHead>
-                        <TableHead className="text-xs">Status</TableHead>
-                        <TableHead className="text-xs hidden md:table-cell">
-                          Latency
-                        </TableHead>
-                        <TableHead className="text-xs hidden xl:table-cell">
-                          In
-                        </TableHead>
-                        <TableHead className="text-xs hidden xl:table-cell">
-                          Out
-                        </TableHead>
-                        <TableHead className="text-xs hidden xl:table-cell">
-                          <HeaderWithTooltip
-                            label="Cached"
-                            tooltip="Input tokens served from upstream cache. Null means this request did not include cached-token usage data."
-                          />
-                        </TableHead>
-                        <TableHead className="text-xs hidden xl:table-cell">
-                          <HeaderWithTooltip
-                            label="Cache Create"
-                            tooltip="Input tokens used to create cache entries. Null means this metric was not reported by upstream."
-                          />
-                        </TableHead>
-                        <TableHead className="text-xs hidden xl:table-cell">
-                          <HeaderWithTooltip
-                            label="Reasoning"
-                            tooltip="Internal reasoning/thinking tokens reported by the upstream model."
-                          />
-                        </TableHead>
-                        <TableHead className="text-xs hidden sm:table-cell xl:hidden">
-                          Usage
-                        </TableHead>
-                        <TableHead className="text-xs hidden lg:table-cell">
-                          Total Tokens
-                        </TableHead>
-                        <TableHead className="text-xs hidden 2xl:table-cell">
-                          Input Cost
-                        </TableHead>
-                        <TableHead className="text-xs hidden 2xl:table-cell">
-                          Output Cost
-                        </TableHead>
-                        <TableHead className="text-xs hidden 2xl:table-cell">
-                          Cached Cost
-                        </TableHead>
-                        <TableHead className="text-xs hidden 2xl:table-cell">
-                          Cache Create Cost
-                        </TableHead>
-                        <TableHead className="text-xs hidden 2xl:table-cell">
-                          Reasoning Cost
-                        </TableHead>
-                        <TableHead className="text-xs hidden xl:table-cell">
-                          Spend
-                        </TableHead>
-                        <TableHead className="text-xs hidden xl:table-cell">
-                          Billable
-                        </TableHead>
-                        <TableHead className="text-xs hidden xl:table-cell">
-                          Priced
-                        </TableHead>
-                        <TableHead className="text-xs hidden xl:table-cell">
-                          <HeaderWithTooltip
-                            label="Unpriced Reason"
-                            tooltip="Reason why a request was not priced (for example pricing disabled, missing endpoint, or missing token usage)."
-                          />
-                        </TableHead>
-                        <TableHead className="text-xs hidden md:table-cell">
-                          Stream
-                        </TableHead>
-                        <TableHead className="text-xs hidden lg:table-cell">
-                          Error
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {requestLogRows.map((log) => {
-                        const errorMsg = formatErrorDetail(log.error_detail);
-                        const endpointLogId = log.connection_id;
-                        const reportCurrencySymbol = log.report_currency_symbol || "$";
-                        const reportCurrencyCode = log.report_currency_code || undefined;
-
-                        return (
-                          <TableRow key={log.id} className="text-xs">
-                            <TableCell className="whitespace-nowrap py-2 text-muted-foreground">
-                              {formatTime(log.created_at, {
-                                hour: "numeric",
-                                minute: "numeric",
-                                second: "numeric",
-                              })}
-                            </TableCell>
-                            <TableCell className="py-2 font-medium max-w-[140px] truncate">
-                              {log.model_id}
-                            </TableCell>
-                            <TableCell className="py-2 hidden sm:table-cell">
-                              <div className="flex items-center gap-1.5">
-                                <ProviderIcon
-                                  providerType={log.provider_type}
-                                  size={12}
-                                />
-                                <span className="capitalize">{log.provider_type}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2 hidden lg:table-cell">
-                              {endpointLogId === null ? (
-                                <span className="text-muted-foreground">
-                                  {log.endpoint_description || "-"}
-                                </span>
-                              ) : log.endpoint_description ? (
-                                <button
-                                  onClick={() => navigateToConnection(endpointLogId)}
-                                  className="text-primary hover:underline cursor-pointer"
-                                >
-                                  {log.endpoint_description}
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => navigateToConnection(endpointLogId)}
-                                  className="text-muted-foreground hover:text-primary cursor-pointer"
-                                >
-                                  #{endpointLogId}
-                                </button>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-2">
-                              <ValueBadge
-                                label={String(log.status_code)}
-                                intent={
-                                  log.status_code < 300
-                                    ? "success"
-                                    : log.status_code < 500
-                                      ? "warning"
-                                      : "danger"
-                                }
-                                className="tabular-nums"
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden md:table-cell tabular-nums text-muted-foreground">
-                              {log.response_time_ms.toFixed(0)}ms
-                            </TableCell>
-                            <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.input_tokens}
-                                nullReason={metricUnavailableReason(log, log.input_tokens)}
-                                formatValue={(value) => value.toLocaleString()}
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.output_tokens}
-                                nullReason={metricUnavailableReason(log, log.output_tokens)}
-                                formatValue={(value) => value.toLocaleString()}
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.cache_read_input_tokens}
-                                nullReason={metricUnavailableReason(
-                                  log,
-                                  log.cache_read_input_tokens
-                                )}
-                                formatValue={(value) => value.toLocaleString()}
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.cache_creation_input_tokens}
-                                nullReason={metricUnavailableReason(
-                                  log,
-                                  log.cache_creation_input_tokens
-                                )}
-                                formatValue={(value) => value.toLocaleString()}
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.reasoning_tokens}
-                                nullReason={metricUnavailableReason(log, log.reasoning_tokens)}
-                                formatValue={(value) => value.toLocaleString()}
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden sm:table-cell xl:hidden text-muted-foreground">
-                              <div className="space-y-0.5 leading-tight">
-                                <p>
-                                  In {formatTokenCount(log.input_tokens)} / Out {" "}
-                                  {formatTokenCount(log.output_tokens)} / Total {" "}
-                                  {formatTokenCount(log.total_tokens)}
-                                </p>
-                                <p>
-                                  Cached {formatTokenCount(log.cache_read_input_tokens)} / Cache Create {" "}
-                                  {formatTokenCount(log.cache_creation_input_tokens)} / Reasoning {" "}
-                                  {formatTokenCount(log.reasoning_tokens)}
-                                </p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="py-2 hidden lg:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.total_tokens}
-                                nullReason={metricUnavailableReason(log, log.total_tokens)}
-                                formatValue={(value) => value.toLocaleString()}
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.input_cost_micros}
-                                nullReason={metricUnavailableReason(log, log.input_cost_micros)}
-                                formatValue={(value) =>
-                                  formatMoneyMicros(value, reportCurrencySymbol)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.output_cost_micros}
-                                nullReason={metricUnavailableReason(log, log.output_cost_micros)}
-                                formatValue={(value) =>
-                                  formatMoneyMicros(value, reportCurrencySymbol)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.cache_read_input_cost_micros}
-                                nullReason={metricUnavailableReason(
-                                  log,
-                                  log.cache_read_input_cost_micros
-                                )}
-                                formatValue={(value) =>
-                                  formatMoneyMicros(value, reportCurrencySymbol)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.cache_creation_input_cost_micros}
-                                nullReason={metricUnavailableReason(
-                                  log,
-                                  log.cache_creation_input_cost_micros
-                                )}
-                                formatValue={(value) =>
-                                  formatMoneyMicros(value, reportCurrencySymbol)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden 2xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.reasoning_cost_micros}
-                                nullReason={metricUnavailableReason(
-                                  log,
-                                  log.reasoning_cost_micros
-                                )}
-                                formatValue={(value) =>
-                                  formatMoneyMicros(value, reportCurrencySymbol)
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden xl:table-cell tabular-nums text-muted-foreground">
-                              <TokenMetricCell
-                                value={log.total_cost_user_currency_micros}
-                                nullReason={metricUnavailableReason(
-                                  log,
-                                  log.total_cost_user_currency_micros
-                                )}
-                                formatValue={(value) =>
-                                  formatMoneyMicros(
-                                    value,
-                                    reportCurrencySymbol,
-                                    reportCurrencyCode,
-                                    2,
-                                    6
-                                  )
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden xl:table-cell">
-                              <ValueBadge
-                                label={
-                                  log.billable_flag === null
-                                    ? "Unknown"
-                                    : log.billable_flag
-                                      ? "Yes"
-                                      : "No"
-                                }
-                                intent={
-                                  log.billable_flag === null
-                                    ? "muted"
-                                    : log.billable_flag
-                                      ? "success"
-                                      : "warning"
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden xl:table-cell">
-                              <ValueBadge
-                                label={
-                                  log.priced_flag === null
-                                    ? "Unknown"
-                                    : log.priced_flag
-                                      ? "Yes"
-                                      : "No"
-                                }
-                                intent={
-                                  log.priced_flag === null
-                                    ? "muted"
-                                    : log.priced_flag
-                                      ? "success"
-                                      : "warning"
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="py-2 hidden xl:table-cell max-w-[220px] truncate text-muted-foreground">
-                              {formatUnpricedReasonLabel(log.unpriced_reason)}
-                            </TableCell>
-                            <TableCell className="py-2 hidden md:table-cell">
-                              {log.is_stream ? (
-                                <TypeBadge label="Stream" />
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-2 hidden lg:table-cell max-w-[180px]">
-                              {errorMsg ? (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <div className="flex items-center gap-1 text-destructive cursor-help">
-                                        <AlertCircle className="h-3 w-3 shrink-0" />
-                                        <span className="truncate">{errorMsg}</span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="left" className="max-w-sm">
-                                      <pre className="whitespace-pre-wrap text-xs">
-                                        {log.error_detail}
-                                      </pre>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Detailed request log review moved to a dedicated page with focused filters and a wider table layout.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground">Rows in current window</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">{logs.length.toLocaleString()}</p>
                 </div>
-              )}
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground">Rows after token filter</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">
+                    {requestLogRows.length.toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground">Error rows</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">
+                    {requestLogRows.filter((row) => row.status_code >= 400).length.toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground">Top status code</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums">
+                    {errorCodeBreakdown[0]?.status ?? "n/a"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="default" size="sm" onClick={() => navigate("/request-logs")}>
+                  Open Request Logs
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

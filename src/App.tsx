@@ -4,6 +4,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { ModelsPage } from "@/pages/ModelsPage";
 import { ModelDetailPage } from "@/pages/ModelDetailPage";
 import { StatisticsPage } from "@/pages/StatisticsPage";
+import { RequestLogsPage } from "@/pages/RequestLogsPage";
 import { AuditPage } from "@/pages/AuditPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { EndpointsPage } from "@/pages/EndpointsPage";
@@ -20,6 +21,7 @@ function App() {
           <Route path="/models/:id" element={<ModelDetailPage />} />
           <Route path="/endpoints" element={<EndpointsPage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/request-logs" element={<RequestLogsPage />} />
           <Route path="/audit" element={<AuditPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

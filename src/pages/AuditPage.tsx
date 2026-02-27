@@ -78,6 +78,8 @@ function CopyButton({ text }: { text: string }) {
     </Button>
   );
 }
+const getConnectionLabel = (connection: Pick<ConnectionDropdownItem, "id" | "name" | "description">): string =>
+  connection.name || connection.description || `Connection #${connection.id}`;
 
 export function AuditPage() {
   const [logs, setLogs] = useState<AuditLogListItem[]>([]);
@@ -260,13 +262,13 @@ export function AuditPage() {
 
             <Select value={connectionId} onValueChange={(v) => { setConnectionId(v); setOffset(0); }}>
               <SelectTrigger className="w-full sm:w-[120px]">
-                <SelectValue placeholder="Connection ID" />
+                <SelectValue placeholder="Connection" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">All Connections</SelectItem>
                 {connections.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)}>
-                    {c.id}
+                    {getConnectionLabel(c)}
                   </SelectItem>
                 ))}
               </SelectContent>

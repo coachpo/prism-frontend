@@ -47,6 +47,7 @@ export interface Connection {
   endpoint?: Endpoint; // Optional expanded endpoint details
   is_active: boolean;
   priority: number;
+  name: string | null;
   description: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
@@ -73,6 +74,7 @@ export interface ConnectionCreate {
   endpoint_create?: EndpointCreate;
   is_active?: boolean;
   priority?: number;
+  name?: string | null;
   description?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
@@ -93,6 +95,7 @@ export interface ConnectionUpdate {
   endpoint_create?: EndpointCreate;
   is_active?: boolean;
   priority?: number;
+  name?: string | null;
   description?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
@@ -120,6 +123,7 @@ export interface ConnectionOwnerResponse {
   connection_id: number;
   model_config_id: number;
   model_id: string;
+  connection_name: string | null;
   connection_description: string | null;
   endpoint_id: number;
   endpoint_name: string;
@@ -129,6 +133,7 @@ export interface ConnectionOwnerResponse {
 export interface ConnectionDropdownItem {
   id: number;
   endpoint_id: number;
+  name: string | null;
   description: string | null;
 }
 
@@ -318,6 +323,7 @@ export interface ConfigConnectionExport {
   endpoint_id: number;
   is_active: boolean;
   priority: number;
+  name: string | null;
   description: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;

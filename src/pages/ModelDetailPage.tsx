@@ -43,6 +43,8 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+const getConnectionName = (connection: Pick<Connection, "name" | "description">): string =>
+  connection.name || connection.description || "";
 export function ModelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -82,7 +84,7 @@ export function ModelDetailPage() {
 
   const [connectionForm, setConnectionForm] = useState<ConnectionCreate>({
     priority: 0,
-    description: "",
+    name: "",
     is_active: true,
     custom_headers: null,
     pricing_enabled: false,
@@ -215,7 +217,7 @@ export function ModelDetailPage() {
       setConnectionForm({
         endpoint_id: connection.endpoint_id,
         priority: connection.priority,
-        description: connection.description || "",
+        name: getConnectionName(connection),
         is_active: connection.is_active,
         custom_headers: connection.custom_headers,
         pricing_enabled: connection.pricing_enabled,
@@ -238,7 +240,7 @@ export function ModelDetailPage() {
       setHeaderRows([]);
       setConnectionForm({
         priority: 0,
-        description: "",
+        name: "",
         is_active: true,
         custom_headers: null,
         pricing_enabled: false,
@@ -410,7 +412,7 @@ export function ModelDetailPage() {
 
   const filteredConnections = [...(connectionSearch
     ? connections.filter(c =>
-        (c.description || "").toLowerCase().includes(connectionSearch.toLowerCase()) ||
+        (getConnectionName(c)).toLowerCase().includes(connectionSearch.toLowerCase()) ||
         (c.endpoint?.name || "").toLowerCase().includes(connectionSearch.toLowerCase()) ||
         (c.endpoint?.base_url || "").toLowerCase().includes(connectionSearch.toLowerCase())
       )
@@ -628,7 +630,7 @@ export function ModelDetailPage() {
                         conn.health_status === "unhealthy" ? "bg-red-500" : "bg-gray-400"
                       )} />
                       <span className="text-sm font-medium truncate">
-                        {conn.description || endpoint?.name || `Connection #${conn.id}`}
+                        {getConnectionName(conn) || endpoint?.name || `Connection #${conn.id}`}
                       </span>
                       <ValueBadge
                         label={`P${conn.priority}`}
@@ -871,12 +873,12 @@ export function ModelDetailPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="conn-desc">Description (Optional)</Label>
+                <Label htmlFor="conn-name">Name (Optional)</Label>
                 <Input
-                  id="conn-desc"
-                  placeholder="Override endpoint name"
-                  value={connectionForm.description || ""}
-                  onChange={(e) => setConnectionForm({ ...connectionForm, description: e.target.value })}
+                  id="conn-name"
+                  placeholder="Connection display name"
+                  value={connectionForm.name || ""}
+                  onChange={(e) => setConnectionForm({ ...connectionForm, name: e.target.value })}
                 />
               </div>
             </div>

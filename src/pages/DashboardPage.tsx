@@ -1,11 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
-import type { ModelConfigListItem, StatsSummary, SpendingReportResponse, RequestLogEntry } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import type {
+  ModelConfigListItem,
+  RequestLogEntry,
+  SpendingReportResponse,
+  StatsSummary,
+} from "@/lib/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ValueBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Server, Zap, Activity, DollarSign, ArrowUpRight, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  CheckCircle2,
+  DollarSign,
+  Server,
+  Timer,
+  XCircle,
+  Zap,
+} from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -18,20 +33,26 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
+  const [providerStats, setProviderStats] = useState<StatsSummary | null>(null);
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
   const [recentRequests, setRecentRequests] = useState<RequestLogEntry[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
+      const from24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
       try {
-        const [modelsData, statsData, spendingData, requestsData] = await Promise.all([
-          api.models.list(),
-          api.stats.summary({ from_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() }), // Last 24h stats
-          api.stats.spending({ preset: "30d", top_n: 5 }),
-          api.stats.requests({ limit: 10 }),
-        ]);
+        const [modelsData, statsData, providerStatsData, spendingData, requestsData] =
+          await Promise.all([
+            api.models.list(),
+            api.stats.summary({ from_time: from24h }),
+            api.stats.summary({ from_time: from24h, group_by: "provider" }),
+            api.stats.spending({ preset: "30d", top_n: 5 }),
+            api.stats.requests({ limit: 12 }),
+          ]);
         setModels(modelsData);
         setStats(statsData);
+        setProviderStats(providerStatsData);
         setSpending(spendingData);
         setRecentRequests(requestsData.items);
       } catch (error) {
@@ -40,8 +61,27 @@ export function DashboardPage() {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
+
+  const activeModels = models.filter((model) => model.is_enabled).length;
+  const totalRequests = stats?.total_requests ?? 0;
+  const successRate = stats?.success_rate ?? 0;
+  const errorRate = Math.max(0, 100 - successRate);
+  const avgLatency = stats?.avg_response_time_ms ?? 0;
+  const p95Latency = stats?.p95_response_time_ms ?? 0;
+  const totalCost = spending?.summary.total_cost_micros ?? 0;
+
+  const streamShare = useMemo(() => {
+    if (recentRequests.length === 0) return 0;
+    const streamCount = recentRequests.filter((request) => request.is_stream).length;
+    return (streamCount / recentRequests.length) * 100;
+  }, [recentRequests]);
+
+  const providerRows = useMemo(() => {
+    return (providerStats?.groups ?? []).sort((a, b) => b.total_requests - a.total_requests);
+  }, [providerStats]);
 
   if (loading) {
     return (
@@ -58,11 +98,6 @@ export function DashboardPage() {
       </div>
     );
   }
-
-  const activeModels = models.filter(m => m.is_enabled).length;
-  const totalRequests = stats?.total_requests || 0;
-  const successRate = stats?.success_rate || 0;
-  const totalCost = spending?.summary.total_cost_micros || 0;
 
   return (
     <div className="space-y-6">
@@ -99,9 +134,106 @@ export function DashboardPage() {
           icon={<Zap className="h-4 w-4" />}
           className={cn(
             "[&_[data-slot=icon]]:bg-violet-500/10 [&_[data-slot=icon]]:text-violet-500",
-            successRate >= 99 ? "text-emerald-600" : successRate >= 90 ? "text-amber-600" : "text-red-600"
+            successRate >= 99
+              ? "text-emerald-600"
+              : successRate >= 90
+                ? "text-amber-600"
+                : "text-red-600"
           )}
         />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Performance Snapshot</CardTitle>
+            <CardDescription>Current operational profile (24h)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-md border bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground">Avg Latency</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums">{avgLatency.toFixed(0)}ms</p>
+              </div>
+              <div className="rounded-md border bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground">P95 Latency</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums">{p95Latency.toFixed(0)}ms</p>
+              </div>
+              <div className="rounded-md border bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground">Error Rate</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums">{errorRate.toFixed(1)}%</p>
+              </div>
+              <div className="rounded-md border bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground">Streaming Share</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums">{streamShare.toFixed(1)}%</p>
+              </div>
+            </div>
+            <Button variant="outline" className="w-full" onClick={() => navigate("/statistics")}>
+              Open Statistics
+              <ArrowUpRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Provider Mix</CardTitle>
+            <CardDescription>Request distribution by provider (24h)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {providerRows.length === 0 ? (
+              <EmptyState
+                icon={<Activity className="h-6 w-6" />}
+                title="No provider activity"
+                description="Provider request distribution appears after traffic is processed."
+              />
+            ) : (
+              <div className="space-y-3">
+                {providerRows.slice(0, 3).map((provider) => {
+                  const ratio =
+                    totalRequests > 0 ? (provider.total_requests / totalRequests) * 100 : 0;
+                  return (
+                    <div key={provider.key} className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium capitalize">{provider.key}</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">
+                          {provider.total_requests.toLocaleString()} req
+                        </p>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary"
+                          style={{ width: `${Math.max(4, ratio)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Jump to focused investigation views</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/request-logs")}>
+              <Timer className="mr-2 h-4 w-4" />
+              Review Request Logs
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/statistics?tab=spending")}>
+              <DollarSign className="mr-2 h-4 w-4" />
+              Inspect Spending Breakdown
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/audit")}>
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              Open Audit Viewer
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
@@ -120,14 +252,19 @@ export function DashboardPage() {
             ) : (
               <div className="space-y-4">
                 {recentRequests.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                  <div
+                    key={req.id}
+                    className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                  >
                     <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "flex h-9 w-9 items-center justify-center rounded-full border",
-                        req.status_code >= 200 && req.status_code < 300
-                          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
-                          : "bg-red-500/10 border-red-500/20 text-red-500"
-                      )}>
+                      <div
+                        className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-full border",
+                          req.status_code >= 200 && req.status_code < 300
+                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                            : "bg-red-500/10 border-red-500/20 text-red-500"
+                        )}
+                      >
                         {req.status_code >= 200 && req.status_code < 300 ? (
                           <CheckCircle2 className="h-5 w-5" />
                         ) : (
@@ -135,11 +272,9 @@ export function DashboardPage() {
                         )}
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          {req.model_id}
-                        </p>
+                        <p className="text-sm font-medium leading-none">{req.model_id}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(req.created_at).toLocaleTimeString()} • {req.response_time_ms}ms
+                          {new Date(req.created_at).toLocaleTimeString()} - {req.response_time_ms}ms
                         </p>
                       </div>
                     </div>
@@ -188,7 +323,7 @@ export function DashboardPage() {
                           <div
                             className="h-full bg-primary"
                             style={{
-                              width: `${(model.total_cost_micros / (spending.top_spending_models[0]?.total_cost_micros || 1)) * 100}%`
+                              width: `${(model.total_cost_micros / (spending.top_spending_models[0]?.total_cost_micros || 1)) * 100}%`,
                             }}
                           />
                         </div>

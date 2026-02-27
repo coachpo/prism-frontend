@@ -54,6 +54,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const getConnectionName = (connection: Pick<Connection, "name" | "description">): string =>
+  connection.name || connection.description || "";
+
 export function SettingsPage() {
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -481,7 +484,7 @@ export function SettingsPage() {
           label:
             connection.endpoint?.name ||
             connection.endpoint?.base_url ||
-            connection.description ||
+            getConnectionName(connection) ||
             `Endpoint #${connection.endpoint_id}`,
         },
       ])
