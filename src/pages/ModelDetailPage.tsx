@@ -7,7 +7,7 @@ import {
   formatPricingUnitLabel,
   isValidCurrencyCode,
 } from "@/lib/costing";
-import type { ModelConfig, Endpoint, EndpointCreate, EndpointUpdate, EndpointSuccessRate } from "@/lib/types";
+import type { ModelConfig, Connection, ConnectionCreate, ConnectionUpdate, ConnectionSuccessRate, Endpoint, EndpointCreate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge, TypeBadge, ValueBadge } from "@/components/StatusBadge";
@@ -49,22 +49,35 @@ export function ModelDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [model, setModel] = useState<ModelConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEndpointDialogOpen, setIsEndpointDialogOpen] = useState(false);
-  const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
-  const [endpointSearch, setEndpointSearch] = useState("");
+  
+  // Connection state
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [isConnectionDialogOpen, setIsConnectionDialogOpen] = useState(false);
+  const [editingConnection, setEditingConnection] = useState<Connection | null>(null);
+  const [connectionSearch, setConnectionSearch] = useState("");
   const [healthCheckingIds, setHealthCheckingIds] = useState<Set<number>>(new Set());
   const [dialogTestingConnection, setDialogTestingConnection] = useState(false);
   const [dialogTestResult, setDialogTestResult] = useState<{ status: string; detail: string } | null>(null);
   const [pricingSectionOpen, setPricingSectionOpen] = useState(false);
   const [pricingValidationError, setPricingValidationError] = useState<string | null>(null);
-  const [successRates, setSuccessRates] = useState<Map<number, EndpointSuccessRate>>(new Map());
-  const [focusedEndpointId, setFocusedEndpointId] = useState<number | null>(null);
-  const endpointCardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const [successRates, setSuccessRates] = useState<Map<number, ConnectionSuccessRate>>(new Map());
+  const [focusedConnectionId, setFocusedConnectionId] = useState<number | null>(null);
+  const [connectionCardRefs] = useState<Map<number, HTMLDivElement>>(new Map());
   const focusHandled = useRef(false);
 
-  const [endpointForm, setEndpointForm] = useState<EndpointCreate>({
+  // Global endpoints for selection
+  const [globalEndpoints, setGlobalEndpoints] = useState<Endpoint[]>([]);
+  const [createMode, setCreateMode] = useState<"select" | "new">("select");
+  const [selectedEndpointId, setSelectedEndpointId] = useState<string>("");
+  
+  // Forms
+  const [newEndpointForm, setNewEndpointForm] = useState<EndpointCreate>({
+    name: "",
     base_url: "",
     api_key: "",
+  });
+
+  const [connectionForm, setConnectionForm] = useState<ConnectionCreate>({
     priority: 0,
     description: "",
     is_active: true,
@@ -80,18 +93,23 @@ export function ModelDetailPage() {
     missing_special_token_price_policy: "MAP_TO_OUTPUT",
     forward_stream_options: false,
   });
+
   const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
 
   const fetchModel = useCallback(async () => {
     if (!id) return;
     try {
-      const [data, rates] = await Promise.all([
+      const [data, rates, endpointsList] = await Promise.all([
         api.models.get(parseInt(id)),
-        api.stats.endpointSuccessRates(),
+        api.stats.connectionSuccessRates(),
+        api.endpoints.list(),
       ]);
       setModel(data);
-      const rateMap = new Map<number, EndpointSuccessRate>();
-      for (const r of rates) rateMap.set(r.endpoint_id, r);
+      setConnections(data.connections || []);
+      setGlobalEndpoints(endpointsList);
+      
+      const rateMap = new Map<number, ConnectionSuccessRate>();
+      for (const r of rates) rateMap.set(r.connection_id, r);
       setSuccessRates(rateMap);
     } catch (error) {
       toast.error("Failed to fetch model details");
@@ -106,20 +124,20 @@ export function ModelDetailPage() {
 
   useEffect(() => {
     if (!model || focusHandled.current) return;
-    const focusId = searchParams.get("focus_endpoint_id");
+    const focusId = searchParams.get("focus_connection_id");
     if (!focusId) return;
-    const eid = parseInt(focusId);
-    setFocusedEndpointId(eid);
+    const cid = parseInt(focusId);
+    setFocusedConnectionId(cid);
     focusHandled.current = true;
     setSearchParams({}, { replace: true });
     setTimeout(() => {
-      const el = endpointCardRefs.current.get(eid);
+      const el = connectionCardRefs.get(cid);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setTimeout(() => setFocusedEndpointId(null), 3000);
+        setTimeout(() => setFocusedConnectionId(null), 3000);
       }
     }, 200);
-  }, [model, searchParams, setSearchParams]);
+  }, [model, searchParams, setSearchParams, connectionCardRefs]);
 
   const normalizeOptionalDecimal = (value: string | null | undefined): string | null => {
     if (value === null || value === undefined) {
@@ -135,24 +153,24 @@ export function ModelDetailPage() {
   };
 
   const validatePricingForm = (): string | null => {
-    if (!endpointForm.pricing_enabled) {
+    if (!connectionForm.pricing_enabled) {
       return null;
     }
 
-    const currency = endpointForm.pricing_currency_code?.trim().toUpperCase() || "";
+    const currency = connectionForm.pricing_currency_code?.trim().toUpperCase() || "";
     if (!isValidCurrencyCode(currency)) {
       return "Pricing currency must be a valid 3-letter code (for example, USD).";
     }
-    if (!endpointForm.pricing_unit) {
+    if (!connectionForm.pricing_unit) {
       return "Pricing unit is required when pricing is enabled.";
     }
 
     const decimalFields = [
-      ["Input price", endpointForm.input_price],
-      ["Output price", endpointForm.output_price],
-      ["Cached input price", endpointForm.cached_input_price],
-      ["Cache creation price", endpointForm.cache_creation_price],
-      ["Reasoning price", endpointForm.reasoning_price],
+      ["Input price", connectionForm.input_price],
+      ["Output price", connectionForm.output_price],
+      ["Cached input price", connectionForm.cached_input_price],
+      ["Cache creation price", connectionForm.cache_creation_price],
+      ["Reasoning price", connectionForm.reasoning_price],
     ] as const;
 
     for (const [label, fieldValue] of decimalFields) {
@@ -165,38 +183,38 @@ export function ModelDetailPage() {
     return null;
   };
 
-  const openEndpointDialog = (endpoint?: Endpoint) => {
-    if (endpoint) {
-      setEditingEndpoint(endpoint);
-      const headers = endpoint.custom_headers
-        ? Object.entries(endpoint.custom_headers).map(([key, value]) => ({ key, value }))
+  const openConnectionDialog = (connection?: Connection) => {
+    if (connection) {
+      setEditingConnection(connection);
+      const headers = connection.custom_headers
+        ? Object.entries(connection.custom_headers).map(([key, value]) => ({ key, value }))
         : [];
       setHeaderRows(headers);
-      setEndpointForm({
-        base_url: endpoint.base_url,
-        api_key: endpoint.api_key,
-        priority: endpoint.priority,
-        description: endpoint.description || "",
-        is_active: endpoint.is_active,
-        custom_headers: endpoint.custom_headers,
-        pricing_enabled: endpoint.pricing_enabled,
-        pricing_unit: endpoint.pricing_unit ?? "PER_1M",
-        pricing_currency_code: endpoint.pricing_currency_code || "USD",
-        input_price: endpoint.input_price,
-        output_price: endpoint.output_price,
-        cached_input_price: endpoint.cached_input_price,
-        cache_creation_price: endpoint.cache_creation_price,
-        reasoning_price: endpoint.reasoning_price,
-        missing_special_token_price_policy: endpoint.missing_special_token_price_policy,
-        forward_stream_options: endpoint.forward_stream_options,
+      setConnectionForm({
+        endpoint_id: connection.endpoint_id,
+        priority: connection.priority,
+        description: connection.description || "",
+        is_active: connection.is_active,
+        custom_headers: connection.custom_headers,
+        pricing_enabled: connection.pricing_enabled,
+        pricing_unit: connection.pricing_unit ?? "PER_1M",
+        pricing_currency_code: connection.pricing_currency_code || "USD",
+        input_price: connection.input_price,
+        output_price: connection.output_price,
+        cached_input_price: connection.cached_input_price,
+        cache_creation_price: connection.cache_creation_price,
+        reasoning_price: connection.reasoning_price,
+        missing_special_token_price_policy: connection.missing_special_token_price_policy,
+        forward_stream_options: connection.forward_stream_options,
       });
-      setPricingSectionOpen(endpoint.pricing_enabled);
+      setPricingSectionOpen(connection.pricing_enabled);
+      // When editing, we don't use createMode or newEndpointForm
+      setCreateMode("select");
+      setSelectedEndpointId(String(connection.endpoint_id));
     } else {
-      setEditingEndpoint(null);
+      setEditingConnection(null);
       setHeaderRows([]);
-      setEndpointForm({
-        base_url: "",
-        api_key: "",
+      setConnectionForm({
         priority: 0,
         description: "",
         is_active: true,
@@ -212,14 +230,21 @@ export function ModelDetailPage() {
         missing_special_token_price_policy: "MAP_TO_OUTPUT",
         forward_stream_options: false,
       });
+      setNewEndpointForm({
+        name: "",
+        base_url: "",
+        api_key: "",
+      });
+      setCreateMode("select");
+      setSelectedEndpointId("");
       setPricingSectionOpen(false);
     }
     setPricingValidationError(null);
     setDialogTestResult(null);
-    setIsEndpointDialogOpen(true);
+    setIsConnectionDialogOpen(true);
   };
 
-  const handleEndpointSubmit = async (e: React.FormEvent) => {
+  const handleConnectionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const customHeaders = headerRows.length > 0
       ? Object.fromEntries(headerRows.filter(r => r.key.trim()).map(r => [r.key.trim(), r.value]))
@@ -234,64 +259,80 @@ export function ModelDetailPage() {
 
     setPricingValidationError(null);
 
-    const payload: EndpointCreate = {
-      ...endpointForm,
+    const payload: ConnectionCreate = {
+      ...connectionForm,
       custom_headers: customHeaders,
-      pricing_currency_code: endpointForm.pricing_currency_code
-        ? endpointForm.pricing_currency_code.trim().toUpperCase()
+      pricing_currency_code: connectionForm.pricing_currency_code
+        ? connectionForm.pricing_currency_code.trim().toUpperCase()
         : null,
-      input_price: normalizeOptionalDecimal(endpointForm.input_price),
-      output_price: normalizeOptionalDecimal(endpointForm.output_price),
-      cached_input_price: normalizeOptionalDecimal(endpointForm.cached_input_price),
-      cache_creation_price: normalizeOptionalDecimal(endpointForm.cache_creation_price),
-      reasoning_price: normalizeOptionalDecimal(endpointForm.reasoning_price),
+      input_price: normalizeOptionalDecimal(connectionForm.input_price),
+      output_price: normalizeOptionalDecimal(connectionForm.output_price),
+      cached_input_price: normalizeOptionalDecimal(connectionForm.cached_input_price),
+      cache_creation_price: normalizeOptionalDecimal(connectionForm.cache_creation_price),
+      reasoning_price: normalizeOptionalDecimal(connectionForm.reasoning_price),
     };
 
-    try {
-      if (editingEndpoint) {
-        const updateData: EndpointUpdate = { ...payload };
-        await api.endpoints.update(editingEndpoint.id, updateData);
-        toast.success("Endpoint updated");
+    if (!editingConnection) {
+      if (createMode === "select") {
+        if (!selectedEndpointId) {
+          toast.error("Please select an endpoint");
+          return;
+        }
+        payload.endpoint_id = parseInt(selectedEndpointId);
       } else {
-        await api.endpoints.create(parseInt(id!), payload);
-        toast.success("Endpoint created");
+        if (!newEndpointForm.name || !newEndpointForm.base_url || !newEndpointForm.api_key) {
+          toast.error("Please fill in all endpoint fields");
+          return;
+        }
+        payload.endpoint_create = newEndpointForm;
       }
-      setIsEndpointDialogOpen(false);
+    }
+
+    try {
+      if (editingConnection) {
+        const updateData: ConnectionUpdate = { ...payload };
+        await api.connections.update(editingConnection.id, updateData);
+        toast.success("Connection updated");
+      } else {
+        await api.connections.create(parseInt(id!), payload);
+        toast.success("Connection created");
+      }
+      setIsConnectionDialogOpen(false);
       fetchModel();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save endpoint");
+      toast.error(error instanceof Error ? error.message : "Failed to save connection");
     }
   };
 
-  const handleDeleteEndpoint = async (endpointId: number) => {
+  const handleDeleteConnection = async (connectionId: number) => {
     try {
-      await api.endpoints.delete(endpointId);
-      toast.success("Endpoint deleted");
+      await api.connections.delete(connectionId);
+      toast.success("Connection deleted");
       fetchModel();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete endpoint");
+      toast.error(error instanceof Error ? error.message : "Failed to delete connection");
     }
   };
 
-  const handleHealthCheck = async (endpointId: number) => {
-    setHealthCheckingIds(prev => new Set(prev).add(endpointId));
+  const handleHealthCheck = async (connectionId: number) => {
+    setHealthCheckingIds(prev => new Set(prev).add(connectionId));
     try {
-      const result = await api.endpoints.healthCheck(endpointId);
+      const result = await api.connections.healthCheck(connectionId);
       toast.success(`Health: ${result.health_status} (${result.response_time_ms}ms)`);
       fetchModel();
     } catch {
       toast.error("Health check failed");
     } finally {
-      setHealthCheckingIds(prev => { const s = new Set(prev); s.delete(endpointId); return s; });
+      setHealthCheckingIds(prev => { const s = new Set(prev); s.delete(connectionId); return s; });
     }
   };
 
   const handleDialogTestConnection = async () => {
-    if (!editingEndpoint) return;
+    if (!editingConnection) return;
     setDialogTestingConnection(true);
     setDialogTestResult(null);
     try {
-      const result = await api.endpoints.healthCheck(editingEndpoint.id);
+      const result = await api.connections.healthCheck(editingConnection.id);
       setDialogTestResult({ status: result.health_status, detail: result.detail });
     } catch {
       setDialogTestResult({ status: "error", detail: "Connection test failed" });
@@ -300,12 +341,12 @@ export function ModelDetailPage() {
     }
   };
 
-  const handleToggleActive = async (endpoint: Endpoint) => {
+  const handleToggleActive = async (connection: Connection) => {
     try {
-      await api.endpoints.update(endpoint.id, { is_active: !endpoint.is_active });
+      await api.connections.update(connection.id, { is_active: !connection.is_active });
       fetchModel();
     } catch {
-      toast.error("Failed to toggle endpoint");
+      toast.error("Failed to toggle connection");
     }
   };
 
@@ -324,13 +365,13 @@ export function ModelDetailPage() {
 
   if (!model) return null;
 
-  const endpoints = model.endpoints || [];
-  const filteredEndpoints = [...(endpointSearch
-    ? endpoints.filter(ep =>
-        (ep.description || "").toLowerCase().includes(endpointSearch.toLowerCase()) ||
-        ep.base_url.toLowerCase().includes(endpointSearch.toLowerCase())
+  const filteredConnections = [...(connectionSearch
+    ? connections.filter(c =>
+        (c.description || "").toLowerCase().includes(connectionSearch.toLowerCase()) ||
+        (c.endpoint?.name || "").toLowerCase().includes(connectionSearch.toLowerCase()) ||
+        (c.endpoint?.base_url || "").toLowerCase().includes(connectionSearch.toLowerCase())
       )
-    : endpoints
+    : connections
   )].sort((a, b) => a.priority - b.priority);
 
   return (
@@ -361,7 +402,7 @@ export function ModelDetailPage() {
 
       <Card>
         <CardContent className="p-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Provider</p>
               <div className="flex items-center gap-2">
@@ -401,9 +442,9 @@ export function ModelDetailPage() {
               </span>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Endpoints</p>
+              <p className="text-xs text-muted-foreground mb-1">Connections</p>
               <span className="text-sm font-medium">
-                {endpoints.filter(e => e.is_active).length} active / {endpoints.length} total
+                {connections.filter(c => c.is_active).length} active / {connections.length} total
               </span>
             </div>
             <div>
@@ -416,233 +457,295 @@ export function ModelDetailPage() {
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-base font-semibold">
-            Endpoints
-            <span className="ml-2 text-xs font-normal text-muted-foreground">({endpoints.length})</span>
-          </h2>
-          <div className="flex items-center gap-2">
-            {endpoints.length > 3 && (
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Filter endpoints..."
-                  value={endpointSearch}
-                  onChange={(e) => setEndpointSearch(e.target.value)}
-                  className="h-8 w-48 pl-8 text-xs"
-                />
-              </div>
-            )}
-            <Button size="sm" onClick={() => openEndpointDialog()}>
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Add Endpoint
-            </Button>
-          </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-base font-semibold">
+          Connections
+          <span className="ml-2 text-xs font-normal text-muted-foreground">({connections.length})</span>
+        </h2>
+        <div className="flex items-center gap-2">
+          {connections.length > 3 && (
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Filter connections..."
+                value={connectionSearch}
+                onChange={(e) => setConnectionSearch(e.target.value)}
+                className="h-8 w-48 pl-8 text-xs"
+              />
+            </div>
+          )}
+          <Button size="sm" onClick={() => openConnectionDialog()}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Add Connection
+          </Button>
         </div>
+      </div>
 
-        {filteredEndpoints.length === 0 ? (
-          <EmptyState
-            icon={<Shield className="h-6 w-6" />}
-            title={endpointSearch ? "No endpoints match your filter" : "No endpoints configured"}
-            description={endpointSearch ? "Try a different search term" : "Add an endpoint to start routing requests"}
-            action={!endpointSearch ? (
-              <Button size="sm" onClick={() => openEndpointDialog()}>
-                <Plus className="mr-1.5 h-3.5 w-3.5" />
-                Add Endpoint
-              </Button>
-            ) : undefined}
-          />
-        ) : (
-          <div className="space-y-2">
-            {filteredEndpoints.map((ep) => {
-              const rate = successRates.get(ep.id);
-              const isChecking = healthCheckingIds.has(ep.id);
-              const isFocused = focusedEndpointId === ep.id;
-              const successRate = rate?.success_rate ?? 0;
-              const maskedKey = ep.api_key.length > 8
-                ? `${ep.api_key.slice(0, 4)}••••••${ep.api_key.slice(-4)}`
-                : "••••••";
+      {filteredConnections.length === 0 ? (
+        <EmptyState
+          icon={<Shield className="h-6 w-6" />}
+          title={connectionSearch ? "No connections match your filter" : "No connections configured"}
+          description={connectionSearch ? "Try a different search term" : "Add a connection to start routing requests"}
+          action={!connectionSearch ? (
+            <Button size="sm" onClick={() => openConnectionDialog()}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Add Connection
+            </Button>
+          ) : undefined}
+        />
+      ) : (
+        <div className="space-y-2">
+          {filteredConnections.map((conn) => {
+            const rate = successRates.get(conn.id);
+            const isChecking = healthCheckingIds.has(conn.id);
+            const isFocused = focusedConnectionId === conn.id;
+            const successRate = rate?.success_rate ?? 0;
+            const endpoint = conn.endpoint;
+            const maskedKey = endpoint?.api_key && endpoint.api_key.length > 8
+              ? `${endpoint.api_key.slice(0, 4)}••••••${endpoint.api_key.slice(-4)}`
+              : "••••••";
 
-              return (
-                <div
-                  key={ep.id}
-                  ref={(el) => { if (el) endpointCardRefs.current.set(ep.id, el); }}
-                  className={cn(
-                    "rounded-lg border p-4 transition-all duration-300",
-                    isFocused && "ring-2 ring-primary/50 bg-primary/5",
-                    !isFocused && "hover:border-border/80"
-                  )}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={cn(
-                          "inline-block h-2 w-2 rounded-full shrink-0",
-                          ep.health_status === "healthy" ? "bg-emerald-500" :
-                          ep.health_status === "unhealthy" ? "bg-red-500" : "bg-gray-400"
-                        )} />
-                        <span className="text-sm font-medium truncate">
-                          {ep.description || `Endpoint #${ep.id}`}
-                        </span>
+            return (
+              <div
+                key={conn.id}
+                ref={(el) => { if (el) connectionCardRefs.get(conn.id); }}
+                className={cn(
+                  "rounded-lg border p-4 transition-all duration-300",
+                  isFocused && "ring-2 ring-primary/50 bg-primary/5",
+                  !isFocused && "hover:border-border/80"
+                )}
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={cn(
+                        "inline-block h-2 w-2 rounded-full shrink-0",
+                        conn.health_status === "healthy" ? "bg-emerald-500" :
+                        conn.health_status === "unhealthy" ? "bg-red-500" : "bg-gray-400"
+                      )} />
+                      <span className="text-sm font-medium truncate">
+                        {conn.description || endpoint?.name || `Connection #${conn.id}`}
+                      </span>
+                      <ValueBadge
+                        label={`P${conn.priority}`}
+                        intent={conn.priority >= 10 ? "warning" : conn.priority >= 1 ? "info" : "muted"}
+                      />
+                      <StatusBadge
+                        label={conn.pricing_enabled ? "Pricing On" : "Pricing Off"}
+                        intent={conn.pricing_enabled ? "success" : "muted"}
+                      />
+                      {conn.pricing_enabled && conn.pricing_unit && (
                         <ValueBadge
-                          label={`P${ep.priority}`}
-                          intent={ep.priority >= 10 ? "warning" : ep.priority >= 1 ? "info" : "muted"}
+                          label={formatPricingUnitLabel(conn.pricing_unit)}
+                          intent="info"
                         />
-                        <StatusBadge
-                          label={ep.pricing_enabled ? "Pricing On" : "Pricing Off"}
-                          intent={ep.pricing_enabled ? "success" : "muted"}
+                      )}
+                      {conn.pricing_enabled && conn.pricing_currency_code && (
+                        <ValueBadge label={conn.pricing_currency_code} intent="accent" />
+                      )}
+                      {conn.pricing_enabled && (
+                        <ValueBadge
+                          label={formatMissingSpecialTokenPolicyLabel(conn.missing_special_token_price_policy)}
+                          intent={conn.missing_special_token_price_policy === "ZERO_COST" ? "warning" : "info"}
                         />
-                        {ep.pricing_enabled && ep.pricing_unit && (
-                          <ValueBadge
-                            label={formatPricingUnitLabel(ep.pricing_unit)}
-                            intent="info"
-                          />
-                        )}
-                        {ep.pricing_enabled && ep.pricing_currency_code && (
-                          <ValueBadge label={ep.pricing_currency_code} intent="accent" />
-                        )}
-                        {ep.pricing_enabled && (
-                          <ValueBadge
-                            label={formatMissingSpecialTokenPolicyLabel(ep.missing_special_token_price_policy)}
-                            intent={ep.missing_special_token_price_policy === "ZERO_COST" ? "warning" : "info"}
-                          />
-                        )}
-                        {!ep.is_active && (
-                          <StatusBadge label="Inactive" intent="muted" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground font-mono break-all">{ep.base_url}</p>
-                      {ep.pricing_enabled ? (
-                        <p className="text-[11px] text-muted-foreground">
-                          Input {ep.input_price ?? "0"} / Output {ep.output_price ?? "0"} / Cached {ep.cached_input_price ?? "0"} / Cache Create {ep.cache_creation_price ?? "0"} / Reasoning {ep.reasoning_price ?? "0"}
-                        </p>
-                      ) : null}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>Key: {maskedKey}</span>
-                        {ep.last_health_check && (
-                          <span>Checked {new Date(ep.last_health_check).toLocaleTimeString()}</span>
-                        )}
-                      </div>
-                      {rate && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-2 pt-0.5">
-                                <Progress
-                                  value={successRate}
-                                  className={cn(
-                                    "h-1.5",
-                                    successRate >= 95 ? "[&>[data-slot=progress-indicator]]:bg-emerald-500" :
-                                    successRate >= 80 ? "[&>[data-slot=progress-indicator]]:bg-amber-500" :
-                                    "[&>[data-slot=progress-indicator]]:bg-red-500"
-                                  )}
-                                />
-                                <span className={cn(
-                                  "text-[10px] font-medium tabular-nums shrink-0",
-                                  successRate >= 95 ? "text-emerald-600 dark:text-emerald-400" :
-                                  successRate >= 80 ? "text-amber-600 dark:text-amber-400" :
-                                  "text-red-600 dark:text-red-400"
-                                )}>
-                                  {successRate.toFixed(1)}%
-                                </span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="pointer-events-none">
-                              <p className="text-xs">
-                                {rate.total_requests > 0
-                                  ? `${rate.success_count}/${rate.total_requests} requests succeeded`
-                                  : "No requests yet"}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                      )}
+                      {!conn.is_active && (
+                        <StatusBadge label="Inactive" intent="muted" />
                       )}
                     </div>
+                    <p className="text-xs text-muted-foreground font-mono break-all">{endpoint?.base_url}</p>
+                    {conn.pricing_enabled ? (
+                      <p className="text-[11px] text-muted-foreground">
+                        Input {conn.input_price ?? "0"} / Output {conn.output_price ?? "0"} / Cached {conn.cached_input_price ?? "0"} / Cache Create {conn.cache_creation_price ?? "0"} / Reasoning {conn.reasoning_price ?? "0"}
+                      </p>
+                    ) : null}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>Key: {maskedKey}</span>
+                      {conn.last_health_check && (
+                        <span>Checked {new Date(conn.last_health_check).toLocaleTimeString()}</span>
+                      )}
+                    </div>
+                    {rate && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-2 pt-0.5">
+                              <Progress
+                                value={successRate}
+                                className={cn(
+                                  "h-1.5",
+                                  successRate >= 95 ? "[&>[data-slot=progress-indicator]]:bg-emerald-500" :
+                                  successRate >= 80 ? "[&>[data-slot=progress-indicator]]:bg-amber-500" :
+                                  "[&>[data-slot=progress-indicator]]:bg-red-500"
+                                )}
+                              />
+                              <span className={cn(
+                                "text-[10px] font-medium tabular-nums shrink-0",
+                                successRate >= 95 ? "text-emerald-600 dark:text-emerald-400" :
+                                successRate >= 80 ? "text-amber-600 dark:text-amber-400" :
+                                "text-red-600 dark:text-red-400"
+                              )}>
+                                {successRate.toFixed(1)}%
+                              </span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="pointer-events-none">
+                            <p className="text-xs">
+                              {rate.total_requests > 0
+                                ? `${rate.success_count}/${rate.total_requests} requests succeeded`
+                                : "No requests yet"}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Switch
-                        checked={ep.is_active}
-                        onCheckedChange={() => handleToggleActive(ep)}
-                        className="scale-90 data-[state=checked]:bg-emerald-500"
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Switch
+                      checked={conn.is_active}
+                      onCheckedChange={() => handleToggleActive(conn)}
+                      className="scale-90 data-[state=checked]:bg-emerald-500"
+                    />
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openConnectionDialog(conn)}>
+                          <Pencil className="mr-2 h-3.5 w-3.5" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleHealthCheck(conn.id)} disabled={isChecking}>
+                          {isChecking ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Activity className="mr-2 h-3.5 w-3.5" />}
+                          Health Check
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteConnection(conn.id)}>
+                          <Trash2 className="mr-2 h-3.5 w-3.5" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Dialog open={isConnectionDialogOpen} onOpenChange={setIsConnectionDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingConnection ? "Edit Connection" : "Add Connection"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleConnectionSubmit} className="space-y-4">
+            {!editingConnection && (
+              <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
+                <div className="space-y-2">
+                  <Label>Endpoint Source</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        id="mode-select"
+                        name="createMode"
+                        checked={createMode === "select"}
+                        onChange={() => setCreateMode("select")}
+                        className="text-primary"
                       />
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEndpointDialog(ep)}>
-                            <Pencil className="mr-2 h-3.5 w-3.5" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleHealthCheck(ep.id)} disabled={isChecking}>
-                            {isChecking ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Activity className="mr-2 h-3.5 w-3.5" />}
-                            Health Check
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeleteEndpoint(ep.id)}>
-                            <Trash2 className="mr-2 h-3.5 w-3.5" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Label htmlFor="mode-select" className="font-normal cursor-pointer">Select Existing</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        id="mode-new"
+                        name="createMode"
+                        checked={createMode === "new"}
+                        onChange={() => setCreateMode("new")}
+                        className="text-primary"
+                      />
+                      <Label htmlFor="mode-new" className="font-normal cursor-pointer">Create New</Label>
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
-      <Dialog open={isEndpointDialogOpen} onOpenChange={setIsEndpointDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingEndpoint ? "Edit Endpoint" : "Add Endpoint"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEndpointSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="ep-url">Base URL</Label>
-              <Input
-                id="ep-url"
-                placeholder="https://api.openai.com/v1"
-                value={endpointForm.base_url}
-                onChange={(e) => setEndpointForm({ ...endpointForm, base_url: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ep-key">API Key</Label>
-              <Input
-                id="ep-key"
-                type="password"
-                placeholder="sk-..."
-                value={endpointForm.api_key}
-                onChange={(e) => setEndpointForm({ ...endpointForm, api_key: e.target.value })}
-                required
-              />
-            </div>
+                {createMode === "select" ? (
+                  <div className="space-y-2">
+                    <Label>Select Endpoint</Label>
+                    <Select value={selectedEndpointId} onValueChange={setSelectedEndpointId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an endpoint..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {globalEndpoints.map((ep) => (
+                          <SelectItem key={ep.id} value={String(ep.id)}>
+                            {ep.name} ({ep.base_url})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {globalEndpoints.length === 0 && (
+                      <p className="text-xs text-muted-foreground">No global endpoints found.</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Name</Label>
+                      <Input
+                        placeholder="e.g. OpenAI Primary"
+                        value={newEndpointForm.name}
+                        onChange={(e) => setNewEndpointForm({ ...newEndpointForm, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Base URL</Label>
+                      <Input
+                        placeholder="https://api.openai.com/v1"
+                        value={newEndpointForm.base_url}
+                        onChange={(e) => setNewEndpointForm({ ...newEndpointForm, base_url: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>API Key</Label>
+                      <Input
+                        type="password"
+                        placeholder="sk-..."
+                        value={newEndpointForm.api_key}
+                        onChange={(e) => setNewEndpointForm({ ...newEndpointForm, api_key: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="ep-priority">Priority</Label>
+                <Label htmlFor="conn-priority">Priority</Label>
                 <Input
-                  id="ep-priority"
+                  id="conn-priority"
                   type="number"
                   min={0}
-                  value={endpointForm.priority}
-                  onChange={(e) => setEndpointForm({ ...endpointForm, priority: parseInt(e.target.value) || 0 })}
+                  value={connectionForm.priority}
+                  onChange={(e) => setConnectionForm({ ...connectionForm, priority: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ep-desc">Description</Label>
+                <Label htmlFor="conn-desc">Description (Optional)</Label>
                 <Input
-                  id="ep-desc"
-                  placeholder="Optional label"
-                  value={endpointForm.description || ""}
-                  onChange={(e) => setEndpointForm({ ...endpointForm, description: e.target.value })}
+                  id="conn-desc"
+                  placeholder="Override endpoint name"
+                  value={connectionForm.description || ""}
+                  onChange={(e) => setConnectionForm({ ...connectionForm, description: e.target.value })}
                 />
               </div>
             </div>
@@ -650,14 +753,14 @@ export function ModelDetailPage() {
             <SwitchController
               label="Active"
               description="Include in load balancing"
-              checked={endpointForm.is_active}
-              onCheckedChange={(checked) => setEndpointForm({ ...endpointForm, is_active: checked })}
+              checked={connectionForm.is_active ?? true}
+              onCheckedChange={(checked) => setConnectionForm({ ...connectionForm, is_active: checked })}
             />
             <SwitchController
               label="Forward stream_options"
               description="Pass stream_options to the upstream provider instead of stripping it"
-              checked={endpointForm.forward_stream_options ?? false}
-              onCheckedChange={(checked) => setEndpointForm({ ...endpointForm, forward_stream_options: checked })}
+              checked={connectionForm.forward_stream_options ?? false}
+              onCheckedChange={(checked) => setConnectionForm({ ...connectionForm, forward_stream_options: checked })}
             />
 
             <Collapsible
@@ -672,7 +775,7 @@ export function ModelDetailPage() {
                     Token Pricing
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Configure per-endpoint token cost tracking.
+                    Configure per-connection token cost tracking.
                   </p>
                 </div>
                 <CollapsibleTrigger asChild>
@@ -685,15 +788,15 @@ export function ModelDetailPage() {
               <CollapsibleContent className="space-y-3 pt-3">
                 <SwitchController
                   label="Enable pricing"
-                  description="When disabled, requests on this endpoint are tracked as unpriced."
-                  checked={endpointForm.pricing_enabled ?? false}
+                  description="When disabled, requests on this connection are tracked as unpriced."
+                  checked={connectionForm.pricing_enabled ?? false}
                   onCheckedChange={(checked) =>
-                    setEndpointForm({
-                      ...endpointForm,
+                    setConnectionForm({
+                      ...connectionForm,
                       pricing_enabled: checked,
                       ...(checked && {
-                        pricing_unit: endpointForm.pricing_unit ?? "PER_1M",
-                        pricing_currency_code: endpointForm.pricing_currency_code || "USD",
+                        pricing_unit: connectionForm.pricing_unit ?? "PER_1M",
+                        pricing_currency_code: connectionForm.pricing_currency_code || "USD",
                       }),
                     })
                   }
@@ -703,14 +806,14 @@ export function ModelDetailPage() {
                   <div className="space-y-2">
                     <Label htmlFor="pricing-unit">Pricing Unit</Label>
                     <Select
-                      value={endpointForm.pricing_unit ?? "PER_1M"}
+                      value={connectionForm.pricing_unit ?? "PER_1M"}
                       onValueChange={(value) =>
-                        setEndpointForm({
-                          ...endpointForm,
+                        setConnectionForm({
+                          ...connectionForm,
                           pricing_unit: value as "PER_1K" | "PER_1M",
                         })
                       }
-                      disabled={!endpointForm.pricing_enabled}
+                      disabled={!connectionForm.pricing_enabled}
                     >
                       <SelectTrigger id="pricing-unit">
                         <SelectValue />
@@ -728,14 +831,14 @@ export function ModelDetailPage() {
                       id="pricing-currency"
                       placeholder="USD"
                       maxLength={3}
-                      value={endpointForm.pricing_currency_code ?? ""}
+                      value={connectionForm.pricing_currency_code ?? ""}
                       onChange={(e) =>
-                        setEndpointForm({
-                          ...endpointForm,
+                        setConnectionForm({
+                          ...connectionForm,
                           pricing_currency_code: e.target.value.toUpperCase(),
                         })
                       }
-                      disabled={!endpointForm.pricing_enabled}
+                      disabled={!connectionForm.pricing_enabled}
                     />
                   </div>
                 </div>
@@ -747,11 +850,11 @@ export function ModelDetailPage() {
                       id="input-price"
                       placeholder="0"
                       inputMode="decimal"
-                      value={endpointForm.input_price ?? ""}
+                      value={connectionForm.input_price ?? ""}
                       onChange={(e) =>
-                        setEndpointForm({ ...endpointForm, input_price: e.target.value })
+                        setConnectionForm({ ...connectionForm, input_price: e.target.value })
                       }
-                      disabled={!endpointForm.pricing_enabled}
+                      disabled={!connectionForm.pricing_enabled}
                     />
                   </div>
 
@@ -761,64 +864,53 @@ export function ModelDetailPage() {
                       id="output-price"
                       placeholder="0"
                       inputMode="decimal"
-                      value={endpointForm.output_price ?? ""}
+                      value={connectionForm.output_price ?? ""}
                       onChange={(e) =>
-                        setEndpointForm({ ...endpointForm, output_price: e.target.value })
+                        setConnectionForm({ ...connectionForm, output_price: e.target.value })
                       }
-                      disabled={!endpointForm.pricing_enabled}
+                      disabled={!connectionForm.pricing_enabled}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="cached-input-price">Cached Input Price</Label>
+                    <Label htmlFor="cached-price">Cached Input Price</Label>
                     <Input
-                      id="cached-input-price"
-                      placeholder="0"
+                      id="cached-price"
+                      placeholder="Optional"
                       inputMode="decimal"
-                      value={endpointForm.cached_input_price ?? ""}
+                      value={connectionForm.cached_input_price ?? ""}
                       onChange={(e) =>
-                        setEndpointForm({
-                          ...endpointForm,
-                          cached_input_price: e.target.value,
-                        })
+                        setConnectionForm({ ...connectionForm, cached_input_price: e.target.value })
                       }
-                      disabled={!endpointForm.pricing_enabled}
+                      disabled={!connectionForm.pricing_enabled}
                     />
                   </div>
-
                   <div className="space-y-2">
-                    <Label htmlFor="cache-creation-price">Cache Creation Price</Label>
+                    <Label htmlFor="cache-create-price">Cache Creation Price</Label>
                     <Input
-                      id="cache-creation-price"
-                      placeholder="0"
+                      id="cache-create-price"
+                      placeholder="Optional"
                       inputMode="decimal"
-                      value={endpointForm.cache_creation_price ?? ""}
+                      value={connectionForm.cache_creation_price ?? ""}
                       onChange={(e) =>
-                        setEndpointForm({
-                          ...endpointForm,
-                          cache_creation_price: e.target.value,
-                        })
+                        setConnectionForm({ ...connectionForm, cache_creation_price: e.target.value })
                       }
-                      disabled={!endpointForm.pricing_enabled}
+                      disabled={!connectionForm.pricing_enabled}
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="reasoning-price">Reasoning Price</Label>
                     <Input
                       id="reasoning-price"
-                      placeholder="0"
+                      placeholder="Optional"
                       inputMode="decimal"
-                      value={endpointForm.reasoning_price ?? ""}
+                      value={connectionForm.reasoning_price ?? ""}
                       onChange={(e) =>
-                        setEndpointForm({
-                          ...endpointForm,
-                          reasoning_price: e.target.value,
-                        })
+                        setConnectionForm({ ...connectionForm, reasoning_price: e.target.value })
                       }
-                      disabled={!endpointForm.pricing_enabled}
+                      disabled={!connectionForm.pricing_enabled}
                     />
                   </div>
                 </div>
@@ -826,115 +918,131 @@ export function ModelDetailPage() {
                 <div className="space-y-2">
                   <Label htmlFor="missing-policy">Missing Special Token Policy</Label>
                   <Select
-                    value={endpointForm.missing_special_token_price_policy ?? "MAP_TO_OUTPUT"}
+                    value={connectionForm.missing_special_token_price_policy ?? "MAP_TO_OUTPUT"}
                     onValueChange={(value) =>
-                      setEndpointForm({
-                        ...endpointForm,
+                      setConnectionForm({
+                        ...connectionForm,
                         missing_special_token_price_policy: value as "MAP_TO_OUTPUT" | "ZERO_COST",
                       })
                     }
-                    disabled={!endpointForm.pricing_enabled}
+                    disabled={!connectionForm.pricing_enabled}
                   >
                     <SelectTrigger id="missing-policy">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MAP_TO_OUTPUT">Map to output price</SelectItem>
-                      <SelectItem value="ZERO_COST">Zero cost</SelectItem>
+                      <SelectItem value="MAP_TO_OUTPUT">Map to Output (Default)</SelectItem>
+                      <SelectItem value="ZERO_COST">Zero Cost</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    How to price special tokens (reasoning, cache) if their specific price is not set.
+                  </p>
                 </div>
-
-                {pricingValidationError && (
-                  <p className="text-xs text-destructive">{pricingValidationError}</p>
-                )}
               </CollapsibleContent>
             </Collapsible>
 
+            {/* Custom Headers */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Custom Headers</Label>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-7 text-xs"
                   onClick={() => setHeaderRows([...headerRows, { key: "", value: "" }])}
                 >
-                  <Plus className="mr-1 h-3 w-3" />
-                  Add
+                  <Plus className="mr-1.5 h-3 w-3" />
+                  Add Header
                 </Button>
               </div>
-              {headerRows.map((row, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Input
-                    placeholder="Header name"
-                    value={row.key}
-                    onChange={(e) => {
-                      const updated = [...headerRows];
-                      updated[i] = { ...updated[i], key: e.target.value };
-                      setHeaderRows(updated);
-                    }}
-                    className="h-8 text-xs"
-                  />
-                  <Input
-                    placeholder="Value"
-                    value={row.value}
-                    onChange={(e) => {
-                      const updated = [...headerRows];
-                      updated[i] = { ...updated[i], value: e.target.value };
-                      setHeaderRows(updated);
-                    }}
-                    className="h-8 text-xs"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => setHeaderRows(headerRows.filter((_, j) => j !== i))}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
+              {headerRows.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">No custom headers configured.</p>
+              )}
+              <div className="space-y-2">
+                {headerRows.map((row, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Input
+                      placeholder="Header Key"
+                      value={row.key}
+                      onChange={(e) => {
+                        const newRows = [...headerRows];
+                        newRows[index].key = e.target.value;
+                        setHeaderRows(newRows);
+                      }}
+                      className="flex-1"
+                    />
+                    <Input
+                      placeholder="Value"
+                      value={row.value}
+                      onChange={(e) => {
+                        const newRows = [...headerRows];
+                        newRows[index].value = e.target.value;
+                        setHeaderRows(newRows);
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        const newRows = [...headerRows];
+                        newRows.splice(index, 1);
+                        setHeaderRows(newRows);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {dialogTestResult && (
-              <div className={cn(
-                "flex items-center gap-2 rounded-md border px-3 py-2 text-sm",
-                dialogTestResult.status === "healthy"
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                  : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400"
-              )}>
-                <span className={cn(
-                  "inline-block h-2.5 w-2.5 rounded-full",
-                  dialogTestResult.status === "healthy" ? "bg-emerald-500" : "bg-red-500"
-                )} />
-                {dialogTestResult.detail}
+            {pricingValidationError && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {pricingValidationError}
               </div>
             )}
 
             <DialogFooter className="gap-2 sm:gap-0">
-              {editingEndpoint && (
+              {editingConnection && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleDialogTestConnection}
                   disabled={dialogTestingConnection}
-                  className="mr-auto"
-                  size="sm"
                 >
-                  {dialogTestingConnection ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Activity className="mr-1.5 h-3.5 w-3.5" />}
-                  Test
+                  {dialogTestingConnection ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    "Test Connection"
+                  )}
                 </Button>
               )}
-              <Button type="button" variant="outline" size="sm" onClick={() => setIsEndpointDialogOpen(false)}>
+              <div className="flex-1" />
+              <Button type="button" variant="outline" onClick={() => setIsConnectionDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" size="sm">Save</Button>
+              <Button type="submit">Save Connection</Button>
             </DialogFooter>
           </form>
+
+          {dialogTestResult && (
+            <div className={cn(
+              "mt-4 rounded-md p-3 text-sm",
+              dialogTestResult.status === "healthy" ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200" :
+              "bg-red-50 text-red-900 dark:bg-red-950/30 dark:text-red-200"
+            )}>
+              <p className="font-medium">
+                {dialogTestResult.status === "healthy" ? "Connection Healthy" : "Connection Unhealthy"}
+              </p>
+              <p className="mt-1 text-xs opacity-90">{dialogTestResult.detail}</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -285,7 +285,7 @@ export function ModelsPage() {
                       <span className="text-xs text-muted-foreground">{formatLabel(model.lb_strategy)}</span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-center">
-                      <span className="text-sm tabular-nums">{model.active_endpoint_count}/{model.endpoint_count}</span>
+                      <span className="text-sm tabular-nums">{model.active_connection_count}/{model.connection_count}</span>
                     </TableCell>
                     <TableCell>
                       <StatusBadge

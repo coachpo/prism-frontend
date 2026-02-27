@@ -11,8 +11,14 @@ const ProviderExportSchema = z.object({
 
 const EndpointExportSchema = z.object({
   endpoint_id: z.number().nullable().optional(),
+  name: z.string(),
   base_url: z.string(),
   api_key: z.string(),
+});
+
+const ConnectionExportSchema = z.object({
+  connection_id: z.number().nullable().optional(),
+  endpoint_id: z.number(),
   is_active: z.boolean(),
   priority: z.number(),
   description: z.string().nullable(),
@@ -44,7 +50,7 @@ const ModelExportSchema = z.object({
   is_enabled: z.boolean(),
   failover_recovery_enabled: z.boolean(),
   failover_recovery_cooldown_seconds: z.number(),
-  endpoints: z.array(EndpointExportSchema),
+  connections: z.array(ConnectionExportSchema),
 });
 
 const HeaderBlocklistRuleExportSchema = z.object({
@@ -69,9 +75,10 @@ const UserSettingsExportSchema = z.object({
 
 
 export const ConfigImportSchema = z.object({
-  version: z.literal(4),
+  version: z.literal(5),
   exported_at: z.string().optional(),
   providers: z.array(ProviderExportSchema),
+  endpoints: z.array(EndpointExportSchema),
   models: z.array(ModelExportSchema),
   user_settings: UserSettingsExportSchema.optional(),
   header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),

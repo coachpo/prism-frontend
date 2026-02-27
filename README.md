@@ -2,7 +2,7 @@
 
 **React 19 dashboard for managing LLM proxy configuration with real-time telemetry and audit logging.**
 
-This is the frontend component of Prism, providing a web-based UI for configuring providers, models, endpoints, and viewing request statistics.
+This is the frontend component of Prism, providing a web-based UI for configuring providers, models, endpoints, connections, and viewing request statistics.
 
 ---
 
@@ -29,7 +29,8 @@ frontend/
 │   ├── pages/
 │   │   ├── DashboardPage.tsx       # Overview with model health badges
 │   │   ├── ModelsPage.tsx          # Model CRUD list
-│   │   ├── ModelDetailPage.tsx     # Single model + endpoints
+│   │   ├── ModelDetailPage.tsx     # Single model + connections config
+│   │   ├── EndpointConfigPage.tsx  # Global endpoint management
 │   │   ├── StatisticsPage.tsx      # Request logs + aggregated stats
 │   │   ├── AuditPage.tsx           # Audit log viewer
 │   │   └── SettingsPage.tsx        # Provider settings + config export/import
@@ -43,7 +44,7 @@ frontend/
 │   │   ├── types.ts                # TypeScript interfaces (mirrors backend schemas)
 │   │   └── utils.ts                # cn() helper (clsx + tailwind-merge)
 │   └── hooks/
-│       └── useEndpointNavigation.ts # Navigate to model detail with endpoint focus
+│       └── useEndpointNavigation.ts # Navigate to model detail with connection focus
 ├── public/                         # Static assets
 ├── index.html                      # HTML template
 ├── vite.config.ts                  # Vite configuration
@@ -115,7 +116,11 @@ The frontend uses `VITE_API_BASE` when set. If unset, it uses same-origin API pa
 
 1. **Dashboard** - Overview of all models with success rate badges
 2. **Models** - CRUD interface for models (native + proxy), load balancing strategies (single/failover), failover recovery controls
-3. **Model Detail** - Endpoint management, health checks, success rate tracking
+3. **Model Detail** - Connection management, health checks, success rate tracking
+4. **Endpoints** - Global credential management (Base URL + API Key)
+5. **Statistics** - Request logs with filters, aggregated stats (latency, tokens, success rate)
+6. **Audit** - Audit log viewer with request/response body inspection
+7. **Settings** - Provider audit toggles, costing settings, config export/import
 4. **Statistics** - Request logs with filters, aggregated stats (latency, tokens, success rate)
 5. **Audit** - Audit log viewer with request/response body inspection
 6. **Settings** - Provider audit toggles, config export/import
@@ -139,7 +144,7 @@ All backend API calls go through `lib/api.ts`, which provides:
 - Typed request/response interfaces
 - Automatic error handling
 - Base URL configuration
-- Namespaced API methods (providers, models, endpoints, stats, audit, config)
+- Namespaced API methods (providers, models, endpoints, connections, stats, audit, config)
 
 ---
 

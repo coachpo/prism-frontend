@@ -17,12 +17,34 @@ export interface ProviderUpdate {
   audit_capture_bodies?: boolean;
 }
 
-// --- Endpoint ---
+// --- Endpoint (Global) ---
 export interface Endpoint {
   id: number;
-  model_config_id: number;
+  name: string;
+  base_url: string;
+  api_key: string; // Masked in responses usually, but present
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EndpointCreate {
+  name: string;
   base_url: string;
   api_key: string;
+}
+
+export interface EndpointUpdate {
+  name?: string;
+  base_url?: string;
+  api_key?: string;
+}
+
+// --- Connection (Model-scoped) ---
+export interface Connection {
+  id: number;
+  model_config_id: number;
+  endpoint_id: number;
+  endpoint?: Endpoint; // Optional expanded endpoint details
   is_active: boolean;
   priority: number;
   description: string | null;
@@ -46,9 +68,9 @@ export interface Endpoint {
   updated_at: string;
 }
 
-export interface EndpointCreate {
-  base_url: string;
-  api_key: string;
+export interface ConnectionCreate {
+  endpoint_id?: number; // One of endpoint_id or endpoint_create is required
+  endpoint_create?: EndpointCreate;
   is_active?: boolean;
   priority?: number;
   description?: string | null;
@@ -66,9 +88,9 @@ export interface EndpointCreate {
   forward_stream_options?: boolean;
 }
 
-export interface EndpointUpdate {
-  base_url?: string;
-  api_key?: string;
+export interface ConnectionUpdate {
+  endpoint_id?: number;
+  endpoint_create?: EndpointCreate;
   is_active?: boolean;
   priority?: number;
   description?: string | null;
@@ -87,18 +109,20 @@ export interface EndpointUpdate {
 }
 
 export interface HealthCheckResponse {
-  endpoint_id: number;
+  connection_id: number;
   health_status: string;
   checked_at: string;
   detail: string;
   response_time_ms: number;
 }
 
-export interface EndpointOwnerResponse {
-  endpoint_id: number;
+export interface ConnectionOwnerResponse {
+  connection_id: number;
   model_config_id: number;
   model_id: string;
-  endpoint_description: string | null;
+  connection_description: string | null;
+  endpoint_id: number;
+  endpoint_name: string;
   endpoint_base_url: string;
 }
 
@@ -118,7 +142,7 @@ export interface ModelConfig {
   is_enabled: boolean;
   failover_recovery_enabled: boolean;
   failover_recovery_cooldown_seconds: number;
-  endpoints: Endpoint[];
+  connections: Connection[];
   created_at: string;
   updated_at: string;
 }
@@ -135,8 +159,8 @@ export interface ModelConfigListItem {
   is_enabled: boolean;
   failover_recovery_enabled: boolean;
   failover_recovery_cooldown_seconds: number;
-  endpoint_count: number;
-  active_endpoint_count: number;
+  connection_count: number;
+  active_connection_count: number;
   health_success_rate: number | null;
   health_total_requests: number;
   created_at: string;
@@ -172,6 +196,7 @@ export interface RequestLogEntry {
   model_id: string;
   provider_type: string;
   endpoint_id: number | null;
+  connection_id: number | null;
   endpoint_base_url: string | null;
   endpoint_description: string | null;
   status_code: number;
@@ -248,7 +273,7 @@ export interface StatsRequestParams {
   success?: boolean;
   from_time?: string;
   to_time?: string;
-  endpoint_id?: number;
+  connection_id?: number;
   limit?: number;
   offset?: number;
 }
@@ -260,10 +285,11 @@ export interface StatsSummaryParams {
   model_id?: string;
   provider_type?: string;
   endpoint_id?: number;
+  connection_id?: number;
 }
 
-export interface EndpointSuccessRate {
-  endpoint_id: number;
+export interface ConnectionSuccessRate {
+  connection_id: number;
   total_requests: number;
   success_count: number;
   error_count: number;
@@ -272,8 +298,14 @@ export interface EndpointSuccessRate {
 
 export interface ConfigEndpointExport {
   endpoint_id?: number | null;
+  name: string;
   base_url: string;
   api_key: string;
+}
+
+export interface ConfigConnectionExport {
+  connection_id?: number | null;
+  endpoint_id: number;
   is_active: boolean;
   priority: number;
   description: string | null;
@@ -302,7 +334,7 @@ export interface ConfigModelExport {
   is_enabled: boolean;
   failover_recovery_enabled: boolean;
   failover_recovery_cooldown_seconds: number;
-  endpoints: ConfigEndpointExport[];
+  connections: ConfigConnectionExport[];
 }
 
 export interface ConfigProviderExport {
@@ -326,18 +358,20 @@ export interface ConfigUserSettingsExport {
 }
 
 export interface ConfigExportResponse {
-  version: 4;
+  version: 5;
   exported_at: string;
   providers: ConfigProviderExport[];
+  endpoints: ConfigEndpointExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules: HeaderBlocklistRuleExport[];
 }
 
 export interface ConfigImportRequest {
-  version: 4;
+  version: 5;
   exported_at?: string;
   providers: ConfigProviderExport[];
+  endpoints: ConfigEndpointExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
@@ -345,8 +379,9 @@ export interface ConfigImportRequest {
 
 export interface ConfigImportResponse {
   providers_imported: number;
-  models_imported: number;
   endpoints_imported: number;
+  models_imported: number;
+  connections_imported: number;
 }
 
 export interface AuditLogListItem {
@@ -355,6 +390,7 @@ export interface AuditLogListItem {
   provider_id: number;
   model_id: string;
   endpoint_id: number | null;
+  connection_id: number | null;
   endpoint_base_url: string | null;
   endpoint_description: string | null;
   request_method: string;
@@ -373,6 +409,7 @@ export interface AuditLogDetail {
   provider_id: number;
   model_id: string;
   endpoint_id: number | null;
+  connection_id: number | null;
   endpoint_base_url: string | null;
   endpoint_description: string | null;
   request_method: string;
@@ -399,6 +436,7 @@ export interface AuditLogParams {
   model_id?: string;
   status_code?: number;
   endpoint_id?: number;
+  connection_id?: number;
   from_time?: string;
   to_time?: string;
   limit?: number;
@@ -447,7 +485,7 @@ export interface SpendingReportParams {
   to_time?: string;
   provider_type?: string;
   model_id?: string;
-  endpoint_id?: number;
+  connection_id?: number;
   group_by?: SpendingGroupBy;
   limit?: number;
   offset?: number;

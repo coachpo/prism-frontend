@@ -10,7 +10,7 @@ import type {
   EndpointFxMapping,
   CostingSettingsUpdate,
   ModelConfigListItem,
-  Endpoint,
+  Connection,
 } from "@/lib/types";
 import { ConfigImportSchema } from "@/lib/configImportValidation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -83,7 +83,7 @@ export function SettingsPage() {
   const [costingLoading, setCostingLoading] = useState(false);
   const [costingSaving, setCostingSaving] = useState(false);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
-  const [mappingEndpoints, setMappingEndpoints] = useState<Endpoint[]>([]);
+  const [mappingConnections, setMappingConnections] = useState<Connection[]>([]);
   const [mappingLoading, setMappingLoading] = useState(false);
   const [mappingModelId, setMappingModelId] = useState("");
   const [mappingEndpointId, setMappingEndpointId] = useState("");
@@ -147,15 +147,15 @@ export function SettingsPage() {
     }
   };
 
-  const loadMappingEndpoints = async (modelConfigId: number) => {
+  const loadMappingConnections = async (modelConfigId: number) => {
     setMappingLoading(true);
     setMappingEndpointId("");
     try {
       const model = await api.models.get(modelConfigId);
-      setMappingEndpoints(model.endpoints ?? []);
+      setMappingConnections(model.connections ?? []);
     } catch {
-      setMappingEndpoints([]);
-      toast.error("Failed to load endpoints for selected model");
+      setMappingConnections([]);
+      toast.error("Failed to load connections for selected model");
     } finally {
       setMappingLoading(false);
     }
@@ -380,7 +380,7 @@ export function SettingsPage() {
     try {
       const result = await api.config.import(parsedConfig);
       toast.success(
-        `Imported ${result.providers_imported} providers, ${result.models_imported} models, ${result.endpoints_imported} endpoints`
+        `Imported ${result.providers_imported} providers, ${result.endpoints_imported} endpoints, ${result.models_imported} models, ${result.connections_imported} connections`
       );
       setSelectedFile(null);
       setParsedConfig(null);
@@ -467,6 +467,21 @@ export function SettingsPage() {
   const modelLabelMap = new Map(
     nativeModels.map((model) => [model.model_id, model.display_name || model.model_id])
   );
+  const mappingEndpointOptions = Array.from(
+    new Map(
+      mappingConnections.map((connection) => [
+        connection.endpoint_id,
+        {
+          endpointId: connection.endpoint_id,
+          label:
+            connection.endpoint?.name ||
+            connection.endpoint?.base_url ||
+            connection.description ||
+            `Endpoint #${connection.endpoint_id}`,
+        },
+      ])
+    ).values()
+  ).sort((a, b) => a.endpointId - b.endpointId);
 
   return (
     <div className="space-y-6">
@@ -625,7 +640,7 @@ export function SettingsPage() {
                             (model) => model.model_id === value
                           );
                           if (selectedModel) {
-                            loadMappingEndpoints(selectedModel.id);
+                            loadMappingConnections(selectedModel.id);
                           }
                         }}
                       >
@@ -655,9 +670,12 @@ export function SettingsPage() {
                           />
                         </SelectTrigger>
                         <SelectContent>
-                          {mappingEndpoints.map((endpoint) => (
-                            <SelectItem key={endpoint.id} value={String(endpoint.id)}>
-                              #{endpoint.id} {endpoint.description || endpoint.base_url}
+                          {mappingEndpointOptions.map((endpoint) => (
+                            <SelectItem
+                              key={endpoint.endpointId}
+                              value={String(endpoint.endpointId)}
+                            >
+                              #{endpoint.endpointId} {endpoint.label}
                             </SelectItem>
                           ))}
                         </SelectContent>

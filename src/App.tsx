@@ -6,6 +6,7 @@ import { ModelDetailPage } from "@/pages/ModelDetailPage";
 import { StatisticsPage } from "@/pages/StatisticsPage";
 import { AuditPage } from "@/pages/AuditPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { EndpointsPage } from "@/pages/EndpointsPage";
 import "./App.css";
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/models" element={<ModelsPage />} />
           <Route path="/models/:id" element={<ModelDetailPage />} />
+          <Route path="/endpoints" element={<EndpointsPage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/audit" element={<AuditPage />} />
           <Route path="/settings" element={<SettingsPage />} />

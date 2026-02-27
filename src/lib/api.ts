@@ -8,13 +8,16 @@ import type {
   Endpoint,
   EndpointCreate,
   EndpointUpdate,
+  Connection,
+  ConnectionCreate,
+  ConnectionUpdate,
   HealthCheckResponse,
-  EndpointOwnerResponse,
+  ConnectionOwnerResponse,
   RequestLogListResponse,
   StatsSummary,
   StatsRequestParams,
   StatsSummaryParams,
-  EndpointSuccessRate,
+  ConnectionSuccessRate,
   ConfigExportResponse,
   ConfigImportRequest,
   ConfigImportResponse,
@@ -81,10 +84,9 @@ export const api = {
   },
 
   endpoints: {
-    list: (modelConfigId: number) =>
-      request<Endpoint[]>(`/api/models/${modelConfigId}/endpoints`),
-    create: (modelConfigId: number, data: EndpointCreate) =>
-      request<Endpoint>(`/api/models/${modelConfigId}/endpoints`, {
+    list: () => request<Endpoint[]>("/api/endpoints"),
+    create: (data: EndpointCreate) =>
+      request<Endpoint>("/api/endpoints", {
         method: "POST",
         body: JSON.stringify(data),
       }),
@@ -95,12 +97,29 @@ export const api = {
       }),
     delete: (id: number) =>
       request<void>(`/api/endpoints/${id}`, { method: "DELETE" }),
+  },
+
+  connections: {
+    list: (modelConfigId: number) =>
+      request<Connection[]>(`/api/models/${modelConfigId}/connections`),
+    create: (modelConfigId: number, data: ConnectionCreate) =>
+      request<Connection>(`/api/models/${modelConfigId}/connections`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: ConnectionUpdate) =>
+      request<Connection>(`/api/connections/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      request<void>(`/api/connections/${id}`, { method: "DELETE" }),
     healthCheck: (id: number) =>
-      request<HealthCheckResponse>(`/api/endpoints/${id}/health-check`, {
+      request<HealthCheckResponse>(`/api/connections/${id}/health-check`, {
         method: "POST",
       }),
     owner: (id: number) =>
-      request<EndpointOwnerResponse>(`/api/endpoints/${id}/owner`),
+      request<ConnectionOwnerResponse>(`/api/connections/${id}/owner`),
   },
 
   stats: {
@@ -128,8 +147,8 @@ export const api = {
         `/api/stats/summary${query ? `?${query}` : ""}`
       );
     },
-    endpointSuccessRates: () =>
-      request<EndpointSuccessRate[]>("/api/stats/endpoint-success-rates"),
+    connectionSuccessRates: () =>
+      request<ConnectionSuccessRate[]>("/api/stats/connection-success-rates"),
     spending: (params?: SpendingReportParams) => {
       const qs = new URLSearchParams();
       if (params) {

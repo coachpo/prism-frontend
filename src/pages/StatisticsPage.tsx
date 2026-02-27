@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { useEndpointNavigation } from "@/hooks/useEndpointNavigation";
+import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
 import {
   formatMoneyMicros,
   formatTokenCount,
@@ -35,11 +35,11 @@ import {
   Activity,
   AlertCircle,
   CircleHelp,
-  CircleDollarSign,
   Clock,
   Coins,
   Gauge,
   TrendingUp,
+  CircleDollarSign,
 } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { MetricCard } from "@/components/MetricCard";
@@ -47,8 +47,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { ProviderSelect } from "@/components/ProviderSelect";
 import { SpecialTokenCoverageStrip } from "@/components/statistics/SpecialTokenCoverageStrip";
-import { SpecialTokenSummaryCard } from "@/components/statistics/SpecialTokenSummaryCard";
 import { TokenMetricCell } from "@/components/statistics/TokenMetricCell";
+import { TopSpendingCard } from "@/components/statistics/TopSpendingCard";
 import { cn } from "@/lib/utils";
 import {
   Area,
@@ -234,10 +234,10 @@ export function StatisticsPage() {
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const { navigateToEndpoint } = useEndpointNavigation();
+  const { navigateToConnection } = useConnectionNavigation();
 
   const [modelId, setModelId] = useState("");
-  const [endpointId, setEndpointId] = useState("");
+  const [connectionId, setConnectionId] = useState("");
   const [providerType, setProviderType] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d" | "all">(
     "24h"
@@ -255,7 +255,7 @@ export function StatisticsPage() {
   const [spendingTo, setSpendingTo] = useState("");
   const [spendingProviderType, setSpendingProviderType] = useState("all");
   const [spendingModelId, setSpendingModelId] = useState("");
-  const [spendingEndpointId, setSpendingEndpointId] = useState("");
+  const [spendingConnectionId, setSpendingConnectionId] = useState("");
   const [spendingGroupBy, setSpendingGroupBy] =
     useState<SpendingGroupBy>("model");
   const [spendingLimit, setSpendingLimit] = useState(25);
@@ -284,7 +284,7 @@ export function StatisticsPage() {
           const params = {
             model_id: modelId || undefined,
             provider_type: providerType === "all" ? undefined : providerType,
-            endpoint_id: endpointId ? Number.parseInt(endpointId, 10) : undefined,
+            connection_id: connectionId ? Number.parseInt(connectionId, 10) : undefined,
             from_time: fromTime,
             limit: 500,
           };
@@ -306,7 +306,7 @@ export function StatisticsPage() {
     }, 450);
 
     return () => clearTimeout(timeout);
-  }, [modelId, endpointId, providerType, timeRange]);
+  }, [modelId, connectionId, providerType, timeRange]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -327,8 +327,8 @@ export function StatisticsPage() {
             provider_type:
               spendingProviderType === "all" ? undefined : spendingProviderType,
             model_id: spendingModelId || undefined,
-            endpoint_id: spendingEndpointId
-              ? Number.parseInt(spendingEndpointId, 10)
+            connection_id: spendingConnectionId
+              ? Number.parseInt(spendingConnectionId, 10)
               : undefined,
             group_by: spendingGroupBy,
             limit: spendingLimit,
@@ -357,7 +357,7 @@ export function StatisticsPage() {
     spendingTo,
     spendingProviderType,
     spendingModelId,
-    spendingEndpointId,
+    spendingConnectionId,
     spendingGroupBy,
     spendingLimit,
     spendingOffset,
@@ -492,9 +492,9 @@ export function StatisticsPage() {
               className="h-8 w-full text-xs sm:w-44"
             />
             <Input
-              placeholder="Endpoint ID"
-              value={endpointId}
-              onChange={(e) => setEndpointId(e.target.value)}
+              placeholder="Connection ID"
+              value={connectionId}
+              onChange={(e) => setConnectionId(e.target.value)}
               className="h-8 w-full text-xs sm:w-28"
               type="number"
               min="1"
@@ -716,7 +716,7 @@ export function StatisticsPage() {
                           Provider
                         </TableHead>
                         <TableHead className="text-xs hidden lg:table-cell">
-                          Endpoint
+                          Connection
                         </TableHead>
                         <TableHead className="text-xs">Status</TableHead>
                         <TableHead className="text-xs hidden md:table-cell">
@@ -793,7 +793,7 @@ export function StatisticsPage() {
                     <TableBody>
                       {requestLogRows.map((log) => {
                         const errorMsg = formatErrorDetail(log.error_detail);
-                        const endpointLogId = log.endpoint_id;
+                        const endpointLogId = log.connection_id;
                         const reportCurrencySymbol = log.report_currency_symbol || "$";
                         const reportCurrencyCode = log.report_currency_code || undefined;
 
@@ -821,14 +821,14 @@ export function StatisticsPage() {
                                 </span>
                               ) : log.endpoint_description ? (
                                 <button
-                                  onClick={() => navigateToEndpoint(endpointLogId)}
+                                  onClick={() => navigateToConnection(endpointLogId)}
                                   className="text-primary hover:underline cursor-pointer"
                                 >
                                   {log.endpoint_description}
                                 </button>
                               ) : (
                                 <button
-                                  onClick={() => navigateToEndpoint(endpointLogId)}
+                                  onClick={() => navigateToConnection(endpointLogId)}
                                   className="text-muted-foreground hover:text-primary cursor-pointer"
                                 >
                                   #{endpointLogId}
@@ -1154,15 +1154,15 @@ export function StatisticsPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">Endpoint ID</span>
+                  <span className="text-xs text-muted-foreground">Connection ID</span>
                   <Input
                     className="h-8 text-xs"
                     type="number"
                     min="1"
                     placeholder="optional"
-                    value={spendingEndpointId}
+                    value={spendingConnectionId}
                     onChange={(e) => {
-                      setSpendingEndpointId(e.target.value);
+                      setSpendingConnectionId(e.target.value);
                       setSpendingOffset(0);
                     }}
                   />
@@ -1243,7 +1243,7 @@ export function StatisticsPage() {
                       setSpendingTo("");
                       setSpendingProviderType("all");
                       setSpendingModelId("");
-                      setSpendingEndpointId("");
+                      setSpendingConnectionId("");
                       setSpendingGroupBy("model");
                       setSpendingLimit(25);
                       setSpendingOffset(0);
@@ -1257,260 +1257,185 @@ export function StatisticsPage() {
             </CardContent>
           </Card>
 
-          {spendingError ? (
-            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {spendingError && (
+            <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
               {spendingError}
             </div>
-          ) : null}
+          )}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              label="Total Spend"
-              value={
-                spending
-                  ? formatMoneyMicros(
-                      spending.summary.total_cost_micros,
-                      reportSymbol,
-                      reportCode,
-                      2,
-                      4
-                    )
-                  : "-"
-              }
-              detail={spending ? `${reportCode} report currency` : undefined}
-              icon={<CircleDollarSign className="h-4 w-4" />}
-            />
-            <MetricCard
-              label="Successful Requests"
-              value={spending?.summary.successful_request_count ?? 0}
-              detail={
-                spending
-                  ? `Priced: ${spending.summary.priced_request_count} / Unpriced: ${spending.summary.unpriced_request_count}`
-                  : undefined
-              }
-              icon={<Activity className="h-4 w-4" />}
-            />
-            <MetricCard
-              label="Avg Cost / Success"
-              value={
-                spending
-                  ? formatMoneyMicros(
-                      spending.summary.avg_cost_per_successful_request_micros,
-                      reportSymbol,
-                      reportCode,
-                      2,
-                      4
-                    )
-                  : "-"
-              }
-              detail={
-                spending
-                  ? `${spending.summary.successful_request_count.toLocaleString()} successful requests`
-                  : undefined
-              }
-              icon={<Gauge className="h-4 w-4" />}
-            />
-            <MetricCard
-              label="Total Tokens"
-              value={formatTokenCount(spending?.summary.total_tokens)}
-              detail={
-                spending
-                  ? `In ${formatTokenCount(spending.summary.total_input_tokens)} / Out ${formatTokenCount(spending.summary.total_output_tokens)}`
-                  : undefined
-              }
-              icon={<Coins className="h-4 w-4" />}
-            />
-            <SpecialTokenSummaryCard
-              cachedInputTokens={spending?.summary.total_cache_read_input_tokens}
-              cacheCreationTokens={spending?.summary.total_cache_creation_input_tokens}
-              reasoningTokens={spending?.summary.total_reasoning_tokens}
-            />
-          </div>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Grouped Spend</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {spendingLoading && !spending ? (
-                <div className="p-4">
-                  <Skeleton className="h-40 rounded-lg" />
-                </div>
-              ) : !spending || spending.groups.length === 0 ? (
-                <EmptyState
-                  icon={<Coins className="h-6 w-6" />}
-                  title="No spending data"
-                  description="Configure endpoint pricing and send successful requests to generate spending reports."
+          {spendingLoading && !spending ? (
+            <div className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-[100px] rounded-xl" />
+                ))}
+              </div>
+              <Skeleton className="h-[400px] rounded-xl" />
+            </div>
+          ) : spending ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                  label="Total Cost"
+                  value={formatMoneyMicros(
+                    spending.summary.total_cost_micros,
+                    reportSymbol,
+                    reportCode
+                  )}
+                  detail={`${spending.summary.successful_request_count.toLocaleString()} requests`}
+                  icon={<CircleDollarSign className="h-4 w-4" />}
                 />
-              ) : (
-                <>
-                  <div className="overflow-x-auto scrollbar-thin">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Group</TableHead>
-                          <TableHead>Total Cost</TableHead>
-                          <TableHead>Requests</TableHead>
-                          <TableHead>Priced</TableHead>
-                          <TableHead>Unpriced</TableHead>
-                          <TableHead>Total Tokens</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {spending.groups.map((row) => (
-                          <TableRow key={row.key}>
-                            <TableCell className="font-medium">{row.key}</TableCell>
-                            <TableCell className="tabular-nums">
-                              {formatMoneyMicros(
-                                row.total_cost_micros,
-                                reportSymbol,
-                                reportCode,
-                                2,
-                                6
-                              )}
-                            </TableCell>
-                            <TableCell>{row.total_requests.toLocaleString()}</TableCell>
-                            <TableCell>{row.priced_requests.toLocaleString()}</TableCell>
-                            <TableCell>{row.unpriced_requests.toLocaleString()}</TableCell>
-                            <TableCell>{row.total_tokens.toLocaleString()}</TableCell>
+                <MetricCard
+                  label="Avg Cost / Req"
+                  value={formatMoneyMicros(
+                    spending.summary.avg_cost_per_successful_request_micros,
+                    reportSymbol,
+                    reportCode,
+                    4
+                  )}
+                  detail="Successful only"
+                  icon={<TrendingUp className="h-4 w-4" />}
+                />
+                <MetricCard
+                  label="Total Tokens"
+                  value={spending.summary.total_tokens.toLocaleString()}
+                  detail={`In: ${spending.summary.total_input_tokens.toLocaleString()} / Out: ${spending.summary.total_output_tokens.toLocaleString()}`}
+                  icon={<Coins className="h-4 w-4" />}
+                />
+                <MetricCard
+                  label="Priced Requests"
+                  value={`${(
+                    (spending.summary.priced_request_count /
+                      (spending.summary.successful_request_count || 1)) *
+                    100
+                  ).toFixed(1)}%`}
+                  detail={`${spending.summary.unpriced_request_count.toLocaleString()} unpriced`}
+                  icon={<Activity className="h-4 w-4" />}
+                />
+              </div>
+
+              {spending.groups.length > 0 ? (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">
+                      Spending Breakdown
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Group</TableHead>
+                            <TableHead className="text-right">Requests</TableHead>
+                            <TableHead className="text-right">Tokens</TableHead>
+                            <TableHead className="text-right">Cost</TableHead>
+                            <TableHead className="text-right">% of Total</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t p-3">
-                    <p className="text-xs text-muted-foreground">
-                      Showing {spendingOffset + 1}-
-                      {Math.min(spendingOffset + spendingLimit, spending.groups_total)} of{" "}
-                      {spending.groups_total}
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={spendingOffset === 0}
-                        onClick={() =>
-                          setSpendingOffset(Math.max(0, spendingOffset - spendingLimit))
-                        }
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!canPaginateForward}
-                        onClick={() => setSpendingOffset(spendingOffset + spendingLimit)}
-                      >
-                        Next
-                      </Button>
+                        </TableHeader>
+                        <TableBody>
+                          {spending.groups.map((group) => {
+                            const percent =
+                              spending.summary.total_cost_micros > 0
+                                ? (group.total_cost_micros /
+                                    spending.summary.total_cost_micros) *
+                                  100
+                                : 0;
+                            return (
+                              <TableRow key={group.key}>
+                                <TableCell className="font-medium">
+                                  {group.key}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {group.total_requests.toLocaleString()}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {group.total_tokens.toLocaleString()}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {formatMoneyMicros(
+                                    group.total_cost_micros,
+                                    reportSymbol,
+                                    reportCode
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums text-muted-foreground">
+                                  {percent.toFixed(1)}%
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
                     </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">
-                  Top Spending Models
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {spending?.top_spending_models.length ? (
-                  spending.top_spending_models.map((row) => (
-                    <div
-                      key={row.model_id}
-                      className="flex items-center justify-between rounded border px-2 py-1.5"
-                    >
-                      <span className="text-sm font-medium truncate pr-2">
-                        {row.model_id}
-                      </span>
-                      <span className="text-xs tabular-nums text-muted-foreground">
-                        {formatMoneyMicros(
-                          row.total_cost_micros,
-                          reportSymbol,
-                          reportCode,
-                          2,
-                          4
-                        )}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No priced models yet.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">
-                  Top Spending Endpoints
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {spending?.top_spending_endpoints.length ? (
-                  spending.top_spending_endpoints.map((row) => (
-                    <div
-                      key={`${row.endpoint_id}-${row.endpoint_label}`}
-                      className="flex items-center justify-between rounded border px-2 py-1.5"
-                    >
-                      <span className="text-sm font-medium truncate pr-2">
-                        {row.endpoint_label}
-                      </span>
-                      <span className="text-xs tabular-nums text-muted-foreground">
-                        {formatMoneyMicros(
-                          row.total_cost_micros,
-                          reportSymbol,
-                          reportCode,
-                          2,
-                          4
-                        )}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No priced endpoints yet.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">
-                  Unpriced Request Reasons
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {spending && Object.keys(spending.unpriced_breakdown).length > 0 ? (
-                  Object.entries(spending.unpriced_breakdown)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([reason, count]) => (
-                      <div
-                        key={reason}
-                        className="flex items-center justify-between rounded border px-2 py-1.5"
-                      >
-                        <span className="text-sm truncate pr-2">
-                          {formatUnpricedReasonLabel(reason)}
-                        </span>
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                          {count.toLocaleString()}
-                        </span>
+                    <div className="flex items-center justify-between border-t px-4 py-3">
+                      <p className="text-xs text-muted-foreground">
+                        {spendingOffset + 1}–
+                        {Math.min(
+                          spendingOffset + spendingLimit,
+                          spending.groups_total
+                        )}{" "}
+                        of {spending.groups_total}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={spendingOffset === 0}
+                          onClick={() =>
+                            setSpendingOffset(
+                              Math.max(0, spendingOffset - spendingLimit)
+                            )
+                          }
+                        >
+                          Prev
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!canPaginateForward}
+                          onClick={() =>
+                            setSpendingOffset(spendingOffset + spendingLimit)
+                          }
+                        >
+                          Next
+                        </Button>
                       </div>
-                    ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No unpriced requests in selected range.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <EmptyState
+                  icon={<CircleDollarSign className="h-6 w-6" />}
+                  title="No spending data found"
+                  description="Try adjusting your filters or time range."
+                />
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <TopSpendingCard
+                  title="Top Models by Cost"
+                  items={spending.top_spending_models.map((m) => ({
+                    label: m.model_id,
+                    costMicros: m.total_cost_micros,
+                  }))}
+                  totalCostMicros={spending.summary.total_cost_micros}
+                  currencySymbol={reportSymbol}
+                  currencyCode={reportCode}
+                />
+                <TopSpendingCard
+                  title="Top Endpoints by Cost"
+                  items={spending.top_spending_endpoints.map((c) => ({
+                    label: c.endpoint_label,
+                    costMicros: c.total_cost_micros,
+                  }))}
+                  totalCostMicros={spending.summary.total_cost_micros}
+                  currencySymbol={reportSymbol}
+                  currencyCode={reportCode}
+                />
+              </div>
+            </>
+          ) : null}
         </TabsContent>
       </Tabs>
     </div>

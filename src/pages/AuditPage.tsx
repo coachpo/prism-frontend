@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { api } from "@/lib/api";
-import { useEndpointNavigation } from "@/hooks/useEndpointNavigation";
+import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
 import type { AuditLogListItem, AuditLogDetail, AuditLogParams, Provider } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -77,7 +77,7 @@ export function AuditPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const { navigateToEndpoint } = useEndpointNavigation();
+  const { navigateToConnection } = useConnectionNavigation();
 
   const [selectedLog, setSelectedLog] = useState<AuditLogDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -85,7 +85,7 @@ export function AuditPage() {
 
   const [providerId, setProviderId] = useState<string>("all");
   const [modelId, setModelId] = useState("");
-  const [endpointId, setEndpointId] = useState("");
+  const [connectionId, setConnectionId] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -104,7 +104,7 @@ export function AuditPage() {
         const params: AuditLogParams = { limit, offset };
         if (providerId !== "all") params.provider_id = parseInt(providerId);
         if (modelId) params.model_id = modelId;
-        if (endpointId) params.endpoint_id = parseInt(endpointId);
+        if (connectionId) params.connection_id = parseInt(connectionId);
         if (dateFrom) params.from_time = new Date(dateFrom).toISOString();
         if (dateTo) params.to_time = new Date(dateTo).toISOString();
 
@@ -124,7 +124,7 @@ export function AuditPage() {
       }
     };
     fetchLogs();
-  }, [providerId, modelId, endpointId, statusFilter, dateFrom, dateTo, limit, offset]);
+  }, [providerId, modelId, connectionId, statusFilter, dateFrom, dateTo, limit, offset]);
 
   const metrics = useMemo(() => {
     if (logs.length === 0) return { avgDuration: 0, errorRate: 0 };
@@ -157,17 +157,17 @@ export function AuditPage() {
   const clearFilters = () => {
     setProviderId("all");
     setModelId("");
-    setEndpointId("");
+    setConnectionId("");
     setStatusFilter("all");
     setDateFrom("");
     setDateTo("");
     setOffset(0);
   };
 
-  const hasFilters = providerId !== "all" || modelId || endpointId || statusFilter !== "all" || dateFrom || dateTo;
+  const hasFilters = providerId !== "all" || modelId || connectionId || statusFilter !== "all" || dateFrom || dateTo;
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
-  const selectedEndpointId = selectedLog?.endpoint_id ?? null;
+  const selectedConnectionId = selectedLog?.connection_id ?? null;
 
   if (loading && logs.length === 0) {
     return (
@@ -220,10 +220,10 @@ export function AuditPage() {
             />
 
             <Input
-              placeholder="Endpoint ID"
+              placeholder="Connection ID"
               type="number"
-              value={endpointId}
-              onChange={(e) => { setEndpointId(e.target.value); setOffset(0); }}
+              value={connectionId}
+              onChange={(e) => { setConnectionId(e.target.value); setOffset(0); }}
               className="w-full sm:w-[120px]"
             />
 
@@ -391,16 +391,16 @@ export function AuditPage() {
             {selectedLog && (
               <SheetDescription className="text-xs">
                 {new Date(selectedLog.created_at).toLocaleString()} · {selectedLog.duration_ms}ms
-                {selectedEndpointId === null ? (
-                  <span> · Endpoint unavailable</span>
+                {selectedConnectionId === null ? (
+                  <span> · Connection unavailable</span>
                 ) : (
                   <>
                     {" · "}
                     <button
                       className="text-primary hover:underline"
-                      onClick={() => navigateToEndpoint(selectedEndpointId)}
+                      onClick={() => navigateToConnection(selectedConnectionId)}
                     >
-                      Endpoint #{selectedEndpointId}
+                      Connection #{selectedConnectionId}
                     </button>
                   </>
                 )}

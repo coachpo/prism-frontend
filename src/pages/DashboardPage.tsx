@@ -25,7 +25,7 @@ export function DashboardPage() {
   }, []);
 
   const totalModels = models.length;
-  const activeEndpoints = models.reduce((sum, m) => sum + m.active_endpoint_count, 0);
+  const activeConnections = models.reduce((sum, m) => sum + m.active_connection_count, 0);
   const activeProviders = new Set(models.map((m) => m.provider.provider_type)).size;
 
   if (loading) {
@@ -55,7 +55,7 @@ export function DashboardPage() {
         />
         <MetricCard
           label="Active Endpoints"
-          value={activeEndpoints}
+          value={activeConnections}
           detail="Across all models"
           icon={<Zap className="h-4 w-4" />}
           className="[&_[data-slot=icon]]:bg-chart-2/15 [&_[data-slot=icon]]:text-chart-2"
@@ -117,11 +117,11 @@ export function DashboardPage() {
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">Endpoints</p>
                         <p className="text-sm font-medium">
-                          {model.active_endpoint_count}/{model.endpoint_count}
+                          {model.active_connection_count}/{model.connection_count}
                         </p>
                       </div>
 
-                      {model.endpoint_count > 0 && (
+                      {model.connection_count > 0 && (
                         <ValueBadge
                           label={`${successRate.toFixed(0)}%`}
                           intent={successRate >= 90 ? "success" : successRate >= 50 ? "warning" : "danger"}
