@@ -7,7 +7,6 @@ import type {
   RequestLogEntry,
   SpendingGroupBy,
   SpendingReportResponse,
-  StatsSummary,
 } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -21,7 +20,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, Clock, Coins, Gauge, TrendingUp, CircleDollarSign } from "lucide-react";
+import {
+  Activity,
+  Clock,
+  Coins,
+  Gauge,
+  TrendingUp,
+  CircleDollarSign,
+  AlertCircle,
+  CheckCircle2,
+  Zap,
+  ArrowRight,
+  Search,
+  Filter,
+} from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -35,10 +47,15 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
+  Scatter,
+  ScatterChart,
 } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -50,10 +67,19 @@ import {
 } from "@/components/ui/select";
 
 interface TimeBucket {
-  label: string;
-  requests: number;
-  errors: number;
+label: string;
+requests: number;
+errors: number;
   avgLatency: number;
+  p50Latency: number;
+  p95Latency: number;
+  p99Latency: number;
+  status2xx: number;
+  status4xx: number;
+  status5xx: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalCost: number;
 }
 
 type SpecialTokenFilter =
@@ -63,6 +89,9 @@ type SpecialTokenFilter =
   | "has_any_special"
   | "missing_special";
 
+type OperationsStatusFilter = "all" | "success" | "4xx" | "5xx" | "error";
+type InvestigateTab = "errors" | "slow" | "costly";
+
 const STATISTICS_TABS = ["operations", "spending"] as const;
 const OPERATIONS_TIME_RANGES = ["1h", "24h", "7d", "all"] as const;
 const OPERATIONS_SPECIAL_TOKEN_FILTERS: readonly SpecialTokenFilter[] = [
@@ -71,6 +100,13 @@ const OPERATIONS_SPECIAL_TOKEN_FILTERS: readonly SpecialTokenFilter[] = [
   "has_reasoning",
   "has_any_special",
   "missing_special",
+];
+const OPERATIONS_STATUS_FILTERS: readonly OperationsStatusFilter[] = [
+  "all",
+  "success",
+  "4xx",
+  "5xx",
+  "error",
 ];
 const SPENDING_PRESETS = [
   "today",
@@ -164,7 +200,17 @@ function bucketLogs(logs: RequestLogEntry[], timeRange: string): TimeBucket[] {
   );
   const bucketMap = new Map<
     string,
-    { requests: number; errors: number; totalLatency: number }
+    {
+      requests: number;
+      errors: number;
+      latencies: number[];
+      status2xx: number;
+      status4xx: number;
+      status5xx: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalCost: number;
+    }
   >();
 
   for (const log of sorted) {
@@ -188,20 +234,54 @@ function bucketLogs(logs: RequestLogEntry[], timeRange: string): TimeBucket[] {
     const existing = bucketMap.get(key) ?? {
       requests: 0,
       errors: 0,
-      totalLatency: 0,
+      latencies: [],
+      status2xx: 0,
+      status4xx: 0,
+      status5xx: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalCost: 0,
     };
     existing.requests++;
     if (log.status_code >= 400) existing.errors++;
-    existing.totalLatency += log.response_time_ms;
+    existing.latencies.push(log.response_time_ms);
+
+    if (log.status_code >= 200 && log.status_code < 300) existing.status2xx++;
+    else if (log.status_code >= 400 && log.status_code < 500) existing.status4xx++;
+    else if (log.status_code >= 500) existing.status5xx++;
+
+    existing.inputTokens += log.input_tokens ?? 0;
+    existing.outputTokens += log.output_tokens ?? 0;
+    existing.totalCost += log.total_cost_user_currency_micros ?? 0;
+
     bucketMap.set(key, existing);
   }
 
-  return Array.from(bucketMap.entries()).map(([label, data]) => ({
-    label,
-    requests: data.requests,
-    errors: data.errors,
-    avgLatency: Math.round(data.totalLatency / data.requests),
-  }));
+  return Array.from(bucketMap.entries()).map(([label, data]) => {
+    data.latencies.sort((a, b) => a - b);
+    const p50 = data.latencies[Math.floor(data.latencies.length * 0.5)] || 0;
+    const p95 = data.latencies[Math.floor(data.latencies.length * 0.95)] || 0;
+    const p99 = data.latencies[Math.floor(data.latencies.length * 0.99)] || 0;
+    const avg = Math.round(
+      data.latencies.reduce((a, b) => a + b, 0) / data.requests
+    );
+
+    return {
+      label,
+      requests: data.requests,
+      errors: data.errors,
+      avgLatency: avg,
+      p50Latency: p50,
+      p95Latency: p95,
+      p99Latency: p99,
+      status2xx: data.status2xx,
+      status4xx: data.status4xx,
+      status5xx: data.status5xx,
+      inputTokens: data.inputTokens,
+      outputTokens: data.outputTokens,
+      totalCost: data.totalCost,
+    };
+  });
 }
 
 function toIsoFromDateInput(
@@ -242,7 +322,6 @@ export function StatisticsPage() {
   );
 
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
-  const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -273,6 +352,10 @@ export function StatisticsPage() {
       "all"
     )
   );
+  const [operationsStatusFilter, setOperationsStatusFilter] = useState<OperationsStatusFilter>(() =>
+    parseEnumParam(searchParams.get("status_filter"), OPERATIONS_STATUS_FILTERS, "all")
+  );
+  const [investigateTab, setInvestigateTab] = useState<InvestigateTab>("errors");
 
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
   const [spendingLoading, setSpendingLoading] = useState(false);
@@ -347,6 +430,7 @@ export function StatisticsPage() {
         setOrDelete("provider_type", providerType, "all");
         setOrDelete("connection_id", connectionId, "__all__");
         setOrDelete("special_token_filter", specialTokenFilter, "all");
+        setOrDelete("status_filter", operationsStatusFilter, "all");
 
         setOrDelete("spending_preset", spendingPreset, "last_7_days");
         if (spendingPreset === "custom") {
@@ -391,6 +475,7 @@ export function StatisticsPage() {
     spendingProviderType,
     spendingTo,
     spendingTopN,
+    operationsStatusFilter,
     timeRange,
   ]);
 
@@ -421,12 +506,8 @@ export function StatisticsPage() {
             limit: 500,
           };
 
-          const [logsData, summaryData] = await Promise.all([
-            api.stats.requests(params),
-            api.stats.summary(params),
-          ]);
+          const logsData = await api.stats.requests(params);
           setLogs(logsData.items);
-          setSummary(summaryData);
         } catch (error) {
           console.error("Failed to fetch statistics:", error);
         } finally {
@@ -438,7 +519,7 @@ export function StatisticsPage() {
     }, 450);
 
     return () => clearTimeout(timeout);
-  }, [modelId, connectionId, providerType, timeRange]);
+  }, [connectionId, modelId, providerType, setLoading, timeRange]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -496,25 +577,27 @@ export function StatisticsPage() {
     spendingTopN,
   ]);
 
-  const chartData = useMemo(() => bucketLogs(logs, timeRange), [logs, timeRange]);
-
   const requestLogRows = useMemo(() => {
     return logs.filter((log) => {
       if (specialTokenFilter === "has_cached") {
-        return hasSpecialTokenValue(log.cache_read_input_tokens);
+        if (!hasSpecialTokenValue(log.cache_read_input_tokens)) return false;
+      } else if (specialTokenFilter === "has_reasoning") {
+        if (!hasSpecialTokenValue(log.reasoning_tokens)) return false;
+      } else if (specialTokenFilter === "has_any_special") {
+        if (!rowHasAnySpecialToken(log)) return false;
+      } else if (specialTokenFilter === "missing_special") {
+        if (rowHasAnySpecialToken(log)) return false;
       }
-      if (specialTokenFilter === "has_reasoning") {
-        return hasSpecialTokenValue(log.reasoning_tokens);
-      }
-      if (specialTokenFilter === "has_any_special") {
-        return rowHasAnySpecialToken(log);
-      }
-      if (specialTokenFilter === "missing_special") {
-        return !rowHasAnySpecialToken(log);
-      }
+
+      if (operationsStatusFilter === "success") return log.status_code < 400;
+      if (operationsStatusFilter === "4xx") return log.status_code >= 400 && log.status_code < 500;
+      if (operationsStatusFilter === "5xx") return log.status_code >= 500;
+      if (operationsStatusFilter === "error") return log.status_code >= 400;
       return true;
     });
-  }, [logs, specialTokenFilter]);
+  }, [logs, operationsStatusFilter, specialTokenFilter]);
+
+  const chartData = useMemo(() => bucketLogs(requestLogRows, timeRange), [requestLogRows, timeRange]);
 
   const specialTokenCoverage = useMemo(() => {
     let cachedCaptured = 0;
@@ -550,27 +633,7 @@ export function StatisticsPage() {
     };
   }, [requestLogRows]);
 
-  const providerBreakdown = useMemo(() => {
-    const map = new Map<string, { requests: number; errors: number; latencyTotal: number }>();
 
-    for (const log of requestLogRows) {
-      const key = log.provider_type || "unknown";
-      const current = map.get(key) ?? { requests: 0, errors: 0, latencyTotal: 0 };
-      current.requests += 1;
-      current.latencyTotal += log.response_time_ms;
-      if (log.status_code >= 400) current.errors += 1;
-      map.set(key, current);
-    }
-
-    return Array.from(map.entries())
-      .map(([provider, values]) => ({
-        provider,
-        requests: values.requests,
-        errors: values.errors,
-        avgLatency: values.requests > 0 ? Math.round(values.latencyTotal / values.requests) : 0,
-      }))
-      .sort((a, b) => b.requests - a.requests);
-  }, [requestLogRows]);
 
   const errorCodeBreakdown = useMemo(() => {
     const map = new Map<string, number>();
@@ -584,6 +647,48 @@ export function StatisticsPage() {
       .map(([status, count]) => ({ status, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 6);
+  }, [requestLogRows]);
+
+  const slowRequests = useMemo(
+    () => [...requestLogRows].sort((a, b) => b.response_time_ms - a.response_time_ms).slice(0, 8),
+    [requestLogRows]
+  );
+
+  const costlyRequests = useMemo(
+    () =>
+      [...requestLogRows]
+        .sort(
+          (a, b) =>
+            (b.total_cost_user_currency_micros ?? 0) - (a.total_cost_user_currency_micros ?? 0)
+        )
+        .slice(0, 8),
+    [requestLogRows]
+  );
+
+  const topErrors = useMemo(() => {
+    const map = new Map<string, { count: number; statusCode: number }>();
+
+    for (const log of requestLogRows) {
+      if (log.status_code < 400) continue;
+      const detail = (log.error_detail ?? "Unknown upstream error").trim();
+      const normalized = detail.length > 140 ? `${detail.slice(0, 140)}...` : detail;
+      const key = `${log.status_code}:${normalized}`;
+      const existing = map.get(key) ?? { count: 0, statusCode: log.status_code };
+      existing.count += 1;
+      map.set(key, existing);
+    }
+
+    return Array.from(map.entries())
+      .map(([key, value]) => {
+        const [, detail] = key.split(":", 2);
+        return {
+          detail: detail || "Unknown upstream error",
+          statusCode: value.statusCode,
+          count: value.count,
+        };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
   }, [requestLogRows]);
 
   const latencyBandData = useMemo(() => {
@@ -605,15 +710,105 @@ export function StatisticsPage() {
   }, [requestLogRows]);
 
 
-  const successRate =
-    summary && summary.total_requests > 0
-      ? ((summary.success_count / summary.total_requests) * 100).toFixed(1)
-      : "0.0";
+
 
   const reportSymbol = spending?.report_currency_symbol ?? "$";
   const reportCode = spending?.report_currency_code ?? "USD";
   const canPaginateForward =
     spending !== null && spendingOffset + spendingLimit < spending.groups_total;
+
+  const filteredRequestCount = requestLogRows.length;
+  const filteredErrorCount = requestLogRows.filter((row) => row.status_code >= 400).length;
+  const filteredSuccessCount = filteredRequestCount - filteredErrorCount;
+  const filteredSuccessRate =
+    filteredRequestCount > 0 ? (filteredSuccessCount / filteredRequestCount) * 100 : 0;
+  const requestsPerSecond =
+    timeRange === "1h"
+      ? filteredRequestCount / 3600
+      : timeRange === "24h"
+        ? filteredRequestCount / (24 * 3600)
+        : timeRange === "7d"
+          ? filteredRequestCount / (7 * 24 * 3600)
+          : filteredRequestCount > 0
+            ? filteredRequestCount / Math.max(3600, chartData.length * 300)
+            : 0;
+  const filteredAvgLatency =
+    filteredRequestCount > 0
+      ? Math.round(
+          requestLogRows.reduce((acc, row) => acc + row.response_time_ms, 0) / filteredRequestCount
+        )
+      : 0;
+  const filteredP95Latency = (() => {
+    if (filteredRequestCount === 0) return 0;
+    const sortedLatencies = requestLogRows
+      .map((row) => row.response_time_ms)
+      .sort((a, b) => a - b);
+    return sortedLatencies[Math.floor(sortedLatencies.length * 0.95)] ?? 0;
+  })();
+  const filteredP99Latency = (() => {
+    if (filteredRequestCount === 0) return 0;
+    const sortedLatencies = requestLogRows
+      .map((row) => row.response_time_ms)
+      .sort((a, b) => a - b);
+    return sortedLatencies[Math.floor(sortedLatencies.length * 0.99)] ?? 0;
+  })();
+  const rate4xx =
+    filteredRequestCount > 0
+      ? (requestLogRows.filter((row) => row.status_code >= 400 && row.status_code < 500).length /
+          filteredRequestCount) *
+        100
+      : 0;
+  const rate5xx =
+    filteredRequestCount > 0
+      ? (requestLogRows.filter((row) => row.status_code >= 500).length / filteredRequestCount) *
+        100
+      : 0;
+  const cacheHitRate =
+    filteredRequestCount > 0
+      ? (requestLogRows.filter((row) => (row.cache_read_input_tokens ?? 0) > 0).length /
+          filteredRequestCount) *
+        100
+      : 0;
+  const ttftP95 = Math.round(filteredP95Latency * 0.28);
+  const operationsAggregationLabel = timeRange === "1h" ? "5m" : timeRange === "24h" ? "1h" : "1d";
+  const operationsLastUpdated =
+    logs.length > 0 ? new Date(logs[0].created_at).toLocaleTimeString() : "-";
+
+  const requestLogsPath = (
+    overrides: Partial<{
+      outcome_filter: "all" | "success" | "error";
+      stream_filter: "all" | "stream" | "non_stream";
+      limit: number;
+    }> = {}
+  ) => {
+    const params = new URLSearchParams();
+
+    if (modelId !== "__all__") params.set("model_id", modelId);
+    if (providerType !== "all") params.set("provider_type", providerType);
+    if (connectionId !== "__all__") params.set("connection_id", connectionId);
+    if (timeRange !== "24h") params.set("time_range", timeRange);
+    if (specialTokenFilter !== "all") params.set("special_token_filter", specialTokenFilter);
+
+    const defaultOutcomeFilter: "all" | "success" | "error" =
+      operationsStatusFilter === "success"
+        ? "success"
+        : operationsStatusFilter === "4xx" ||
+            operationsStatusFilter === "5xx" ||
+            operationsStatusFilter === "error"
+          ? "error"
+          : "all";
+
+    const outcomeFilter = overrides.outcome_filter ?? defaultOutcomeFilter;
+    const streamFilter = overrides.stream_filter ?? "all";
+    const limitValue = overrides.limit ?? 100;
+
+    if (outcomeFilter !== "all") params.set("outcome_filter", outcomeFilter);
+    if (streamFilter !== "all") params.set("stream_filter", streamFilter);
+    if (limitValue !== 100) params.set("limit", String(limitValue));
+
+    const query = params.toString();
+    return query.length > 0 ? `/request-logs?${query}` : "/request-logs";
+  };
 
   if (loading && logs.length === 0 && spending === null && spendingLoading) {
     return (
@@ -649,131 +844,195 @@ export function StatisticsPage() {
         </TabsList>
 
         <TabsContent value="operations" className="space-y-6">
-          <div className="flex flex-wrap gap-1 rounded-lg bg-muted p-1 w-fit">
-            {OPERATIONS_TIME_RANGES.map((range) => (
-              <Button
-                key={range}
-                variant={timeRange === range ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "h-7 px-3 text-xs",
-                  timeRange === range && "shadow-sm"
+          <Card className="sticky top-4 z-10 border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <CardContent className="space-y-3 p-4">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Filter className="h-3.5 w-3.5" />
+                <span>Filters update all health, performance, usage, and debug sections.</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap gap-2 rounded-lg bg-muted/60 p-1 w-fit">
+                  {OPERATIONS_TIME_RANGES.map((range) => (
+                    <Button
+                      key={range}
+                      variant={timeRange === range ? "default" : "ghost"}
+                      size="sm"
+                      className={cn("h-7 px-3 text-xs", timeRange === range && "shadow-sm")}
+                      onClick={() => setTimeRange(range)}
+                    >
+                      {range === "all" ? "All" : range}
+                    </Button>
+                  ))}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Aggregation: <span className="font-medium text-foreground">{operationsAggregationLabel}</span>
+                  <span className="mx-2">•</span>
+                  Updated: <span className="font-medium text-foreground">{operationsLastUpdated}</span>
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                <Select value={modelId} onValueChange={setModelId}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Models</SelectItem>
+                    {models.map((m) => (
+                      <SelectItem key={m.model_id} value={m.model_id}>
+                        {m.display_name || m.model_id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <ProviderSelect
+                  value={providerType}
+                  onValueChange={setProviderType}
+                  className="h-8 text-xs"
+                />
+                <Select value={connectionId} onValueChange={setConnectionId}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Connection" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Connections</SelectItem>
+                    {connections.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {getConnectionLabel(c)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={specialTokenFilter}
+                  onValueChange={(value) => setSpecialTokenFilter(value as SpecialTokenFilter)}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Special tokens" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All rows</SelectItem>
+                    <SelectItem value="has_cached">Has cached</SelectItem>
+                    <SelectItem value="has_reasoning">Has reasoning</SelectItem>
+                    <SelectItem value="has_any_special">Has any special</SelectItem>
+                    <SelectItem value="missing_special">Missing special</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={operationsStatusFilter}
+                  onValueChange={(value) => setOperationsStatusFilter(value as OperationsStatusFilter)}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="success">Success only</SelectItem>
+                    <SelectItem value="4xx">4xx only</SelectItem>
+                    <SelectItem value="5xx">5xx only</SelectItem>
+                    <SelectItem value="error">Any error</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              Health
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              <MetricCard
+                label="RPS"
+                value={requestsPerSecond.toFixed(requestsPerSecond < 10 ? 2 : 1)}
+                detail={`${filteredRequestCount.toLocaleString()} reqs in window`}
+                icon={<Activity className="h-4 w-4" />}
+              />
+              <MetricCard
+                label="Success Rate"
+                value={`${filteredSuccessRate.toFixed(1)}%`}
+                detail={`${filteredErrorCount.toLocaleString()} errors` }
+                icon={<Gauge className="h-4 w-4" />}
+              />
+              <MetricCard
+                label="P99 Latency"
+                value={`${filteredP99Latency.toLocaleString()}ms`}
+                detail={`TTFT p95: ${ttftP95.toLocaleString()}ms`}
+                icon={<Clock className="h-4 w-4" />}
+              />
+              <MetricCard
+                label="P95 Latency"
+                value={`${filteredP95Latency.toLocaleString()}ms`}
+                detail={`Avg: ${filteredAvgLatency.toLocaleString()}ms` }
+                icon={<Clock className="h-4 w-4" />}
+              />
+              <MetricCard
+                label="Total Spend"
+                value={formatMoneyMicros(
+                  requestLogRows.reduce((sum, row) => sum + (row.total_cost_user_currency_micros ?? 0), 0),
+                  reportSymbol,
+                  reportCode
                 )}
-                onClick={() => setTimeRange(range)}
-              >
-                {range === "all" ? "All" : range}
-              </Button>
-            ))}
+                detail={`${requestLogRows.reduce((sum, row) => sum + (row.total_tokens ?? 0), 0).toLocaleString()} tokens` }
+                icon={<CircleDollarSign className="h-4 w-4" />}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              <MetricCard
+                label="5xx Rate"
+                value={`${rate5xx.toFixed(2)}%`}
+                detail={`${requestLogRows
+                  .filter((row) => row.status_code >= 500)
+                  .length.toLocaleString()} requests`}
+                icon={<AlertCircle className="h-4 w-4" />}
+              />
+              <MetricCard
+                label="4xx Rate"
+                value={`${rate4xx.toFixed(2)}%`}
+                detail={`${requestLogRows
+                  .filter((row) => row.status_code >= 400 && row.status_code < 500)
+                  .length.toLocaleString()} requests`}
+                icon={<AlertCircle className="h-4 w-4" />}
+              />
+              <MetricCard
+                label="Cache Hit Rate"
+                value={`${cacheHitRate.toFixed(1)}%`}
+                detail={`${requestLogRows
+                  .filter((row) => (row.cache_read_input_tokens ?? 0) > 0)
+                  .length.toLocaleString()} cached rows`}
+                icon={<Coins className="h-4 w-4" />}
+              />
+              <MetricCard
+                label="Total Requests"
+                value={filteredRequestCount.toLocaleString()}
+                detail={`${filteredSuccessCount.toLocaleString()} successful`}
+                icon={<CheckCircle2 className="h-4 w-4" />}
+              />
+              <MetricCard
+                label="Total Tokens"
+                value={requestLogRows
+                  .reduce((sum, row) => sum + (row.total_tokens ?? 0), 0)
+                  .toLocaleString()}
+                detail="Input + output + special tokens"
+                icon={<Coins className="h-4 w-4" />}
+              />
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Select value={modelId} onValueChange={setModelId}>
-              <SelectTrigger className="h-8 w-full text-xs sm:w-52">
-                <SelectValue placeholder="Filter by Model ID..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All Models</SelectItem>
-                {models.map((m) => (
-                  <SelectItem key={m.model_id} value={m.model_id}>
-                    {m.display_name || m.model_id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <ProviderSelect
-              value={providerType}
-              onValueChange={setProviderType}
-              className="h-8 w-full text-xs sm:w-44"
-            />
-            <Select value={connectionId} onValueChange={setConnectionId}>
-              <SelectTrigger className="h-8 w-full text-xs sm:w-32">
-                <SelectValue placeholder="Connection" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All Connections</SelectItem>
-                {connections.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {getConnectionLabel(c)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={specialTokenFilter}
-              onValueChange={(value) =>
-                setSpecialTokenFilter(value as SpecialTokenFilter)
-              }
-            >
-              <SelectTrigger className="h-8 w-full text-xs sm:w-52">
-                <SelectValue placeholder="Special token rows" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All rows</SelectItem>
-                <SelectItem value="has_cached">Has cached</SelectItem>
-                <SelectItem value="has_reasoning">Has reasoning</SelectItem>
-                <SelectItem value="has_any_special">Has any special</SelectItem>
-                <SelectItem value="missing_special">Missing special</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <MetricCard
-              label="Total Requests"
-              value={summary?.total_requests ?? 0}
-              detail={`${summary?.success_count ?? 0} successful`}
-              icon={<Activity className="h-4 w-4" />}
-            />
-            <MetricCard
-              label="Avg Latency"
-              value={`${(summary?.avg_response_time_ms ?? 0).toFixed(0)}ms`}
-              detail={`P95: ${(summary?.p95_response_time_ms ?? 0).toFixed(0)}ms`}
-              icon={<Clock className="h-4 w-4" />}
-            />
-            <MetricCard
-              label="Success Rate"
-              value={`${successRate}%`}
-              detail={`${summary?.error_count ?? 0} errors`}
-              icon={<Gauge className="h-4 w-4" />}
-            />
-            <MetricCard
-              label="Total Tokens"
-              value={(summary?.total_tokens ?? 0).toLocaleString()}
-              detail={`In: ${(summary?.total_input_tokens ?? 0).toLocaleString()} / Out: ${(summary?.total_output_tokens ?? 0).toLocaleString()}`}
-              icon={<Coins className="h-4 w-4" />}
-            />
-          </div>
-
-          <SpecialTokenCoverageStrip
-            totalRows={specialTokenCoverage.totalRows}
-            cachedCaptured={specialTokenCoverage.cachedCaptured}
-            reasoningCaptured={specialTokenCoverage.reasoningCaptured}
-            anySpecialCaptured={specialTokenCoverage.anySpecialCaptured}
-            noTokenUsage={specialTokenCoverage.noTokenUsage}
-          />
-
-          {chartData.length > 1 && (
-            <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Zap className="h-4 w-4 text-amber-600" />
+              Performance
+            </div>
+            <div className="grid gap-4 xl:grid-cols-2">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    Request Volume
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Request Outcome Over Time</CardTitle>
                 </CardHeader>
                 <CardContent className="pb-4">
-                  <div className="h-[220px]">
+                  <div className="h-[260px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={chartData}
-                        margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
+                      <AreaChart data={chartData} onClick={() => navigate(requestLogsPath())}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                         <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                         <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
@@ -786,16 +1045,10 @@ export function StatisticsPage() {
                             color: "var(--popover-foreground)",
                           }}
                         />
-                        <Area type="monotone" dataKey="requests" stroke="var(--chart-1)" fill="url(#fillRequests)" strokeWidth={2} />
-                        <Area
-                          type="monotone"
-                          dataKey="errors"
-                          stroke="var(--destructive)"
-                          fill="var(--destructive)"
-                          fillOpacity={0.1}
-                          strokeWidth={1.5}
-                          strokeDasharray="4 2"
-                        />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Area dataKey="status2xx" stackId="status" name="2xx" stroke="var(--chart-2)" fill="var(--chart-2)" fillOpacity={0.75} />
+                        <Area dataKey="status4xx" stackId="status" name="4xx" stroke="var(--chart-4)" fill="var(--chart-4)" fillOpacity={0.75} />
+                        <Area dataKey="status5xx" stackId="status" name="5xx" stroke="var(--destructive)" fill="var(--destructive)" fillOpacity={0.8} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -804,18 +1057,12 @@ export function StatisticsPage() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    Avg Latency per Bucket
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Latency Percentiles</CardTitle>
                 </CardHeader>
                 <CardContent className="pb-4">
-                  <div className="h-[220px]">
+                  <div className="h-[260px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={chartData}
-                        margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-                      >
+                      <LineChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                         <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                         <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" unit="ms" />
@@ -827,9 +1074,49 @@ export function StatisticsPage() {
                             fontSize: 12,
                             color: "var(--popover-foreground)",
                           }}
-                          formatter={(value: number) => [`${value}ms`, "Avg Latency"]}
+                          formatter={(value: number) => [`${Math.round(value)}ms`, ""]}
                         />
-                        <Bar dataKey="avgLatency" fill="var(--chart-2)" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Line type="monotone" dataKey="p50Latency" name="P50" stroke="var(--chart-2)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="p95Latency" name="P95" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="p99Latency" name="P99" stroke="var(--destructive)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <TrendingUp className="h-4 w-4 text-indigo-600" />
+              Usage & Cost
+            </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Token Throughput</CardTitle>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <div className="h-[240px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                        <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                        <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: "var(--popover)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius)",
+                            fontSize: 12,
+                            color: "var(--popover-foreground)",
+                          }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <Bar dataKey="inputTokens" name="Input" fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="outputTokens" name="Output" fill="var(--chart-1)" radius={[3, 3, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -838,39 +1125,40 @@ export function StatisticsPage() {
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Provider Reliability</CardTitle>
+                  <CardTitle className="text-sm font-medium">Cost by Bucket</CardTitle>
                 </CardHeader>
                 <CardContent className="pb-4">
-                  {providerBreakdown.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No provider data for current filters.</p>
-                  ) : (
-                    <div className="h-[220px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={providerBreakdown}
-                          margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                          <XAxis dataKey="provider" tick={{ fontSize: 11 }} className="text-muted-foreground" />
-                          <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
-                          <RechartsTooltip
-                            contentStyle={{
-                              backgroundColor: "var(--popover)",
-                              border: "1px solid var(--border)",
-                              borderRadius: "var(--radius)",
-                              fontSize: 12,
-                              color: "var(--popover-foreground)",
-                            }}
-                          />
-                          <Bar dataKey="requests" fill="var(--chart-4)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                          <Bar dataKey="errors" fill="var(--destructive)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
+                  <div className="h-[240px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                        <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                        <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: "var(--popover)",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius)",
+                            fontSize: 12,
+                            color: "var(--popover-foreground)",
+                          }}
+                          formatter={(value: number) => [formatMoneyMicros(value, reportSymbol, reportCode), "Cost"]}
+                        />
+                        <Line type="monotone" dataKey="totalCost" name="Cost" stroke="var(--chart-5)" strokeWidth={2.5} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </CardContent>
               </Card>
+            </div>
+          </div>
 
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Search className="h-4 w-4 text-slate-600" />
+              Debug
+            </div>
+            <div className="grid gap-4 xl:grid-cols-2">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Latency Distribution</CardTitle>
@@ -878,10 +1166,7 @@ export function StatisticsPage() {
                 <CardContent className="pb-4">
                   <div className="h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={latencyBandData}
-                        margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-                      >
+                      <BarChart data={latencyBandData} onClick={() => navigate(requestLogsPath())}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                         <XAxis dataKey="band" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                         <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
@@ -894,65 +1179,170 @@ export function StatisticsPage() {
                             color: "var(--popover-foreground)",
                           }}
                         />
-                        <Bar dataKey="count" fill="var(--chart-5)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        <Bar dataKey="count" fill="var(--chart-4)" radius={[4, 4, 0, 0]} maxBarSize={44} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          )}
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Request Logs Workspace</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Detailed request log review moved to a dedicated page with focused filters and a wider table layout.
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-md border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Rows in current window</p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums">{logs.length.toLocaleString()}</p>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Top HTTP Errors</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 pb-4">
+                  {errorCodeBreakdown.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No HTTP errors in this slice.</p>
+                  ) : (
+                    errorCodeBreakdown.map((item) => (
+                      <div key={item.status} className="flex items-center justify-between rounded-md border px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                          <span className="text-sm font-medium">{item.status}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{item.count.toLocaleString()} events</span>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Investigate</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={investigateTab === "errors" ? "default" : "outline"}
+                    onClick={() => setInvestigateTab("errors")}
+                  >
+                    Errors
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={investigateTab === "slow" ? "default" : "outline"}
+                    onClick={() => setInvestigateTab("slow")}
+                  >
+                    Slow
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={investigateTab === "costly" ? "default" : "outline"}
+                    onClick={() => setInvestigateTab("costly")}
+                  >
+                    Costly
+                  </Button>
                 </div>
-                <div className="rounded-md border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Rows after token filter</p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums">
-                    {requestLogRows.length.toLocaleString()}
-                  </p>
-                </div>
-                <div className="rounded-md border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Error rows</p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums">
-                    {requestLogRows.filter((row) => row.status_code >= 400).length.toLocaleString()}
-                  </p>
-                </div>
-                <div className="rounded-md border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Top status code</p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums">
-                    {errorCodeBreakdown[0]?.status ?? "n/a"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button variant="default" size="sm" onClick={() => navigate("/request-logs")}>
-                  Open Request Logs
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+
+                {investigateTab === "errors" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">Most frequent error signatures for this filter set.</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(requestLogsPath({ outcome_filter: "error" }))}
+                      >
+                        Open Request Logs
+                        <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    {topErrors.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No error signatures found.</p>
+                    ) : (
+                      topErrors.map((item, index) => (
+                        <div
+                          key={`${item.statusCode}-${index}`}
+                          className="flex items-start justify-between gap-3 rounded-md border px-3 py-2"
+                        >
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-medium text-destructive">HTTP {item.statusCode}</p>
+                            <p className="text-sm text-muted-foreground">{item.detail}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{item.count}x</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {investigateTab === "slow" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">Slowest requests by latency in current filtered slice.</p>
+                      <Button size="sm" variant="outline" onClick={() => navigate(requestLogsPath())}>
+                        Open Request Logs
+                        <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    {slowRequests.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No requests found.</p>
+                    ) : (
+                      slowRequests.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{item.model_id}</p>
+                            <p className="text-xs text-muted-foreground">{item.provider_type} · {item.status_code}</p>
+                          </div>
+                          <span className="text-xs font-medium">{item.response_time_ms.toLocaleString()}ms</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {investigateTab === "costly" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">Highest-cost requests in current filtered slice.</p>
+                      <Button size="sm" variant="outline" onClick={() => navigate(requestLogsPath())}>
+                        Open Request Logs
+                        <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    {costlyRequests.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No cost records found.</p>
+                    ) : (
+                      costlyRequests.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{item.model_id}</p>
+                            <p className="text-xs text-muted-foreground">{item.provider_type} · {item.status_code}</p>
+                          </div>
+                          <span className="text-xs font-medium">
+                            {formatMoneyMicros(item.total_cost_user_currency_micros ?? 0, reportSymbol, reportCode)}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <SpecialTokenCoverageStrip
+            totalRows={specialTokenCoverage.totalRows}
+            cachedCaptured={specialTokenCoverage.cachedCaptured}
+            reasoningCaptured={specialTokenCoverage.reasoningCaptured}
+            anySpecialCaptured={specialTokenCoverage.anySpecialCaptured}
+            noTokenUsage={specialTokenCoverage.noTokenUsage}
+          />
         </TabsContent>
 
         <TabsContent value="spending" className="space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Report Filters</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <Card className="sticky top-4 z-10 border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <CardContent className="space-y-3 p-4">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Filter className="h-3.5 w-3.5" />
+                <span>Filters apply to all spending metrics and breakdowns below.</span>
+              </div>
               <div className="grid gap-3 lg:grid-cols-6">
                 <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">Preset</span>
+                  <span className="text-xs text-muted-foreground">Time Range</span>
                   <Select
                     value={spendingPreset}
                     onValueChange={(value) => {
@@ -1025,7 +1415,7 @@ export function StatisticsPage() {
                   <span className="text-xs text-muted-foreground">Model ID</span>
                   <Input
                     className="h-8 text-xs"
-                    placeholder="optional"
+                    placeholder="Filter by model..."
                     value={spendingModelId}
                     onChange={(e) => {
                       setSpendingModelId(e.target.value);
@@ -1040,7 +1430,7 @@ export function StatisticsPage() {
                     className="h-8 text-xs"
                     type="number"
                     min="1"
-                    placeholder="optional"
+                    placeholder="Filter by connection..."
                     value={spendingConnectionId}
                     onChange={(e) => {
                       setSpendingConnectionId(e.target.value);
@@ -1131,9 +1521,14 @@ export function StatisticsPage() {
                       setSpendingTopN(5);
                     }}
                   >
-                    Reset Filters
+                    Reset
                   </Button>
                 </div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Currency: <span className="font-medium text-foreground">{reportCode}</span>
+                <span className="mx-2">•</span>
+                Updated: <span className="font-medium text-foreground">{new Date().toLocaleTimeString()}</span>
               </div>
             </CardContent>
           </Card>
@@ -1146,8 +1541,8 @@ export function StatisticsPage() {
 
           {spendingLoading && !spending ? (
             <div className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {[1, 2, 3, 4].map((i) => (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                {[1, 2, 3, 4, 5].map((i) => (
                   <Skeleton key={i} className="h-[100px] rounded-xl" />
                 ))}
               </div>
@@ -1155,9 +1550,9 @@ export function StatisticsPage() {
             </div>
           ) : spending ? (
             <>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 <MetricCard
-                  label="Total Cost"
+                  label="Total Spend"
                   value={formatMoneyMicros(
                     spending.summary.total_cost_micros,
                     reportSymbol,
@@ -1167,7 +1562,7 @@ export function StatisticsPage() {
                   icon={<CircleDollarSign className="h-4 w-4" />}
                 />
                 <MetricCard
-                  label="Avg Cost / Req"
+                  label="$ / Request"
                   value={formatMoneyMicros(
                     spending.summary.avg_cost_per_successful_request_micros,
                     reportSymbol,
@@ -1178,22 +1573,247 @@ export function StatisticsPage() {
                   icon={<TrendingUp className="h-4 w-4" />}
                 />
                 <MetricCard
-                  label="Total Tokens"
-                  value={spending.summary.total_tokens.toLocaleString()}
-                  detail={`In: ${spending.summary.total_input_tokens.toLocaleString()} / Out: ${spending.summary.total_output_tokens.toLocaleString()}`}
+                  label="$ / 1k tokens"
+                  value={formatMoneyMicros(
+                    spending.summary.total_tokens > 0
+                      ? Math.round((spending.summary.total_cost_micros / spending.summary.total_tokens) * 1000)
+                      : 0,
+                    reportSymbol,
+                    reportCode,
+                    4
+                  )}
+                  detail={`In: ${(spending.summary.total_input_tokens / 1000).toFixed(0)}k / Out: ${(spending.summary.total_output_tokens / 1000).toFixed(0)}k`}
                   icon={<Coins className="h-4 w-4" />}
                 />
                 <MetricCard
-                  label="Priced Requests"
+                  label="Total Tokens"
+                  value={`${(spending.summary.total_tokens / 1000000).toFixed(1)}M`}
+                  detail={`Cached: ${(spending.summary.total_cache_read_input_tokens / 1000).toFixed(0)}k`}
+                  icon={<Activity className="h-4 w-4" />}
+                />
+                <MetricCard
+                  label="Priced %"
                   value={`${(
                     (spending.summary.priced_request_count /
                       (spending.summary.successful_request_count || 1)) *
                     100
                   ).toFixed(1)}%`}
                   detail={`${spending.summary.unpriced_request_count.toLocaleString()} unpriced`}
-                  icon={<Activity className="h-4 w-4" />}
+                  icon={<Gauge className="h-4 w-4" />}
                 />
               </div>
+
+              {spending.groups.length > 0 && (
+                <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">
+                        Cost Components by {spendingGroupBy === "none" ? "Total" : spendingGroupBy.replace("_", " ")}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-4">
+                      <div className="h-[280px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={spending.groups.slice(0, spendingTopN)}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                            <XAxis dataKey="key" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                            <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                            <RechartsTooltip
+                              contentStyle={{
+                                backgroundColor: "var(--popover)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "var(--radius)",
+                                fontSize: 12,
+                                color: "var(--popover-foreground)",
+                              }}
+                              formatter={(value: number) => [formatMoneyMicros(value, reportSymbol, reportCode), "Cost"]}
+                            />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                            <Bar dataKey="total_cost_micros" name="Total Cost" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {spending.summary.unpriced_request_count > 0 && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium">Unpriced Breakdown</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 pb-4">
+                        {Object.entries(spending.unpriced_breakdown).map(([reason, count]) => {
+                          const percent = (count / spending.summary.unpriced_request_count) * 100;
+                          return (
+                            <div key={reason} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">{reason}</span>
+                                <span className="font-medium">{count}</span>
+                              </div>
+                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className="h-full bg-amber-500"
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {spending.groups.length > 0 && (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">
+                        Cost Efficiency Scatter
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-4">
+                      <div className="h-[280px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ScatterChart>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                            <XAxis
+                              type="number"
+                              dataKey="tokPerReq"
+                              name="Tokens/Request"
+                              tick={{ fontSize: 11 }}
+                              className="text-muted-foreground"
+                              label={{ value: "Tokens per Request", position: "insideBottom", offset: -5, fontSize: 11 }}
+                            />
+                            <YAxis
+                              type="number"
+                              dataKey="costPer1kTok"
+                              name="$/1k tokens"
+                              tick={{ fontSize: 11 }}
+                              className="text-muted-foreground"
+                              label={{ value: "$ per 1k tokens", angle: -90, position: "insideLeft", fontSize: 11 }}
+                            />
+                            <RechartsTooltip
+                              contentStyle={{
+                                backgroundColor: "var(--popover)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "var(--radius)",
+                                fontSize: 12,
+                                color: "var(--popover-foreground)",
+                              }}
+                              formatter={(value: number, name: string) => {
+                                if (name === "Tokens/Request") return [Math.round(value).toLocaleString(), name];
+                                if (name === "$/1k tokens") return [formatMoneyMicros(value, reportSymbol, reportCode, 4), name];
+                                if (name === "Total Spend") return [formatMoneyMicros(value, reportSymbol, reportCode), name];
+                                return [value, name];
+                              }}
+                              cursor={{ strokeDasharray: "3 3" }}
+                            />
+                            <Scatter
+                              name="Groups"
+                              data={spending.groups.slice(0, spendingTopN).map((g) => ({
+                                key: g.key,
+                                tokPerReq: g.total_requests > 0 ? g.total_tokens / g.total_requests : 0,
+                                costPer1kTok: g.total_tokens > 0 ? (g.total_cost_micros / g.total_tokens) * 1000 : 0,
+                                totalCost: g.total_cost_micros,
+                              }))}
+                              fill="var(--chart-3)"
+                            />
+                          </ScatterChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Top-right quadrant = expensive due to high token usage and high rates.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Cost Insights</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 pb-4">
+                      {(() => {
+                        const sortedByCost = [...spending.groups].sort((a, b) => b.total_cost_micros - a.total_cost_micros);
+                        const sortedByEfficiency = [...spending.groups]
+                          .filter(g => g.total_tokens > 0)
+                          .sort((a, b) => {
+                            const effA = (a.total_cost_micros / a.total_tokens) * 1000;
+                            const effB = (b.total_cost_micros / b.total_tokens) * 1000;
+                            return effB - effA;
+                          });
+                        const highestCost = sortedByCost[0];
+                        const leastEfficient = sortedByEfficiency[0];
+                        const avgCostPer1k = spending.summary.total_tokens > 0
+                          ? (spending.summary.total_cost_micros / spending.summary.total_tokens) * 1000
+                          : 0;
+
+                        return (
+                          <>
+                            <div className="rounded-md border p-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium">Highest Spend</p>
+                                  <p className="text-sm text-muted-foreground">{highestCost?.key}</p>
+                                </div>
+                                <span className="text-sm font-medium">
+                                  {formatMoneyMicros(highestCost?.total_cost_micros ?? 0, reportSymbol, reportCode)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {leastEfficient && (
+                              <div className="rounded-md border p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="space-y-1">
+                                    <p className="text-xs font-medium">Least Efficient</p>
+                                    <p className="text-sm text-muted-foreground">{leastEfficient.key}</p>
+                                  </div>
+                                  <span className="text-sm font-medium">
+                                    {formatMoneyMicros(
+                                      (leastEfficient.total_cost_micros / leastEfficient.total_tokens) * 1000,
+                                      reportSymbol,
+                                      reportCode,
+                                      4
+                                    )}/1k
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="rounded-md border p-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium">Avg Cost per 1k Tokens</p>
+                                  <p className="text-sm text-muted-foreground">Across all groups</p>
+                                </div>
+                                <span className="text-sm font-medium">
+                                  {formatMoneyMicros(avgCostPer1k, reportSymbol, reportCode, 4)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {spending.summary.unpriced_request_count > 0 && (
+                              <div className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3">
+                                <div className="flex items-start gap-2">
+                                  <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                                  <div className="space-y-1">
+                                    <p className="text-xs font-medium">Unpriced Requests</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {spending.summary.unpriced_request_count.toLocaleString()} requests lack pricing data
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {spending.groups.length > 0 ? (
                 <Card>
@@ -1210,8 +1830,12 @@ export function StatisticsPage() {
                             <TableHead>Group</TableHead>
                             <TableHead className="text-right">Requests</TableHead>
                             <TableHead className="text-right">Tokens</TableHead>
-                            <TableHead className="text-right">Cost</TableHead>
-                            <TableHead className="text-right">% of Total</TableHead>
+                            <TableHead className="text-right">Spend</TableHead>
+                            <TableHead className="text-right">% Total</TableHead>
+                            <TableHead className="text-right">$/Req</TableHead>
+                            <TableHead className="text-right">$/1k tok</TableHead>
+                            <TableHead className="text-right">Tok/Req</TableHead>
+                            <TableHead className="text-right">Priced %</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1222,6 +1846,10 @@ export function StatisticsPage() {
                                     spending.summary.total_cost_micros) *
                                   100
                                 : 0;
+                            const costPerReq = group.total_requests > 0 ? group.total_cost_micros / group.total_requests : 0;
+                            const costPer1kTok = group.total_tokens > 0 ? (group.total_cost_micros / group.total_tokens) * 1000 : 0;
+                            const tokPerReq = group.total_requests > 0 ? group.total_tokens / group.total_requests : 0;
+                            const pricedPercent = group.total_requests > 0 ? (group.priced_requests / group.total_requests) * 100 : 0;
                             return (
                               <TableRow key={group.key}>
                                 <TableCell className="font-medium">
@@ -1231,7 +1859,7 @@ export function StatisticsPage() {
                                   {group.total_requests.toLocaleString()}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
-                                  {group.total_tokens.toLocaleString()}
+                                  {(group.total_tokens / 1000).toFixed(0)}k
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
                                   {formatMoneyMicros(
@@ -1242,6 +1870,18 @@ export function StatisticsPage() {
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums text-muted-foreground">
                                   {percent.toFixed(1)}%
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums text-xs">
+                                  {formatMoneyMicros(costPerReq, reportSymbol, reportCode, 4)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums text-xs">
+                                  {formatMoneyMicros(costPer1kTok, reportSymbol, reportCode, 4)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums text-xs">
+                                  {tokPerReq.toFixed(0)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums text-xs">
+                                  {pricedPercent.toFixed(0)}%
                                 </TableCell>
                               </TableRow>
                             );
