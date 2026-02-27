@@ -3,11 +3,11 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { cn, formatProviderType, formatLabel } from "@/lib/utils";
 import {
-  formatMissingSpecialTokenPolicyLabel,
   formatPricingUnitLabel,
   isValidCurrencyCode,
+  formatMoneyMicros,
 } from "@/lib/costing";
-import type { ModelConfig, Connection, ConnectionCreate, ConnectionUpdate, ConnectionSuccessRate, Endpoint, EndpointCreate } from "@/lib/types";
+import type { ModelConfig, Connection, ConnectionCreate, ConnectionUpdate, ConnectionSuccessRate, Endpoint, EndpointCreate, SpendingSummary, ModelConfigUpdate } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge, TypeBadge, ValueBadge } from "@/components/StatusBadge";
@@ -49,6 +49,9 @@ export function ModelDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [model, setModel] = useState<ModelConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditModelDialogOpen, setIsEditModelDialogOpen] = useState(false);
+  const [spending, setSpending] = useState<SpendingSummary | null>(null);
+  const [spendingLoading, setSpendingLoading] = useState(false);
   
   // Connection state
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -96,6 +99,22 @@ export function ModelDetailPage() {
 
   const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
 
+  const fetchSpending = useCallback(async (modelId: string) => {
+    setSpendingLoading(true);
+    try {
+      const data = await api.stats.spending({
+        model_id: modelId,
+        group_by: "endpoint",
+        preset: "all" // Get all-time spending by default for the model detail view
+      });
+      setSpending(data.summary);
+    } catch (error) {
+      console.error("Failed to fetch spending", error);
+    } finally {
+      setSpendingLoading(false);
+    }
+  }, []);
+
   const fetchModel = useCallback(async () => {
     if (!id) return;
     try {
@@ -111,6 +130,9 @@ export function ModelDetailPage() {
       const rateMap = new Map<number, ConnectionSuccessRate>();
       for (const r of rates) rateMap.set(r.connection_id, r);
       setSuccessRates(rateMap);
+      
+      // Fetch spending data
+      fetchSpending(data.model_id);
     } catch (error) {
       toast.error("Failed to fetch model details");
       console.error(error);
@@ -118,7 +140,7 @@ export function ModelDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, navigate]);
+  }, [id, navigate, fetchSpending]);
 
   useEffect(() => { fetchModel(); }, [fetchModel]);
 
@@ -350,6 +372,27 @@ export function ModelDetailPage() {
     }
   };
 
+  const handleEditModelSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!model) return;
+    
+    const formData = new FormData(e.currentTarget);
+    const updateData: ModelConfigUpdate = {
+      display_name: formData.get("display_name") as string || null,
+      model_id: formData.get("model_id") as string,
+      redirect_to: model.model_type === "proxy" ? (formData.get("redirect_to") as string || null) : null,
+    };
+
+    try {
+      await api.models.update(model.id, updateData);
+      toast.success("Model updated");
+      setIsEditModelDialogOpen(false);
+      fetchModel();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update model");
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -398,64 +441,125 @@ export function ModelDetailPage() {
             <p className="text-xs text-muted-foreground mt-0.5 font-mono">{model.model_id}</p>
           )}
         </div>
-      </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Provider</p>
-              <div className="flex items-center gap-2">
-                <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                <span className="text-sm font-medium">{formatProviderType(model.provider.provider_type)}</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setIsEditModelDialogOpen(true)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsEditModelDialogOpen(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit Model
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4">Configuration</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Provider</p>
+                <div className="flex items-center gap-2">
+                  <ProviderIcon providerType={model.provider.provider_type} size={14} />
+                  <span className="text-sm font-medium">{formatProviderType(model.provider.provider_type)}</span>
+                </div>
               </div>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
-                {model.model_type === "proxy" ? "Redirects To" : "Load Balancing"}
-              </p>
-              <span className="text-sm font-medium">
-                {model.model_type === "proxy" ? (
-                  <span className="flex items-center gap-1">
-                    <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                    <span className="font-mono text-xs">{model.redirect_to}</span>
-                  </span>
-                ) : (
-                  formatLabel(model.lb_strategy)
-                )}
-              </span>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Recovery Policy</p>
-              <span className="text-sm font-medium">
-                {model.model_type === "native" && model.lb_strategy === "failover" ? (
-                  model.failover_recovery_enabled ? (
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      Enabled ({model.failover_recovery_cooldown_seconds}s)
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  {model.model_type === "proxy" ? "Redirects To" : "Load Balancing"}
+                </p>
+                <span className="text-sm font-medium">
+                  {model.model_type === "proxy" ? (
+                    <span className="flex items-center gap-1">
+                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-mono text-xs">{model.redirect_to}</span>
                     </span>
                   ) : (
-                    <span className="text-muted-foreground">Disabled</span>
-                  )
-                ) : (
-                  <span className="text-muted-foreground">N/A</span>
-                )}
-              </span>
+                    formatLabel(model.lb_strategy)
+                  )}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Recovery Policy</p>
+                <span className="text-sm font-medium">
+                  {model.model_type === "native" && model.lb_strategy === "failover" ? (
+                    model.failover_recovery_enabled ? (
+                      <span className="text-emerald-600 dark:text-emerald-400">
+                        Enabled ({model.failover_recovery_cooldown_seconds}s)
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Disabled</span>
+                    )
+                  ) : (
+                    <span className="text-muted-foreground">N/A</span>
+                  )}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Created</p>
+                <span className="text-sm font-medium">
+                  {new Date(model.created_at).toLocaleDateString()}
+                </span>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Connections</p>
-              <span className="text-sm font-medium">
-                {connections.filter(c => c.is_active).length} active / {connections.length} total
-              </span>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Created</p>
-              <span className="text-sm font-medium">
-                {new Date(model.created_at).toLocaleDateString()}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Coins className="h-4 w-4" />
+              Cost Overview
+            </h3>
+            {spendingLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            ) : spending ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Total Cost</p>
+                  <p className="text-2xl font-bold tracking-tight">
+                    {formatMoneyMicros(spending.total_cost_micros, "$")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Requests</p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">
+                      {spending.successful_request_count.toLocaleString()} successful
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {spending.total_tokens.toLocaleString()} tokens
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-2 pt-2 border-t">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Avg Cost / Request</span>
+                    <span className="font-medium font-mono">
+                      {formatMoneyMicros(spending.avg_cost_per_successful_request_micros, "$", undefined, 4, 6)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[100px] text-muted-foreground">
+                <p className="text-sm">No cost data available</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-base font-semibold">
@@ -534,20 +638,18 @@ export function ModelDetailPage() {
                         label={conn.pricing_enabled ? "Pricing On" : "Pricing Off"}
                         intent={conn.pricing_enabled ? "success" : "muted"}
                       />
-                      {conn.pricing_enabled && conn.pricing_unit && (
-                        <ValueBadge
-                          label={formatPricingUnitLabel(conn.pricing_unit)}
-                          intent="info"
-                        />
-                      )}
-                      {conn.pricing_enabled && conn.pricing_currency_code && (
-                        <ValueBadge label={conn.pricing_currency_code} intent="accent" />
-                      )}
                       {conn.pricing_enabled && (
-                        <ValueBadge
-                          label={formatMissingSpecialTokenPolicyLabel(conn.missing_special_token_price_policy)}
-                          intent={conn.missing_special_token_price_policy === "ZERO_COST" ? "warning" : "info"}
-                        />
+                        <div className="flex items-center gap-1">
+                          {conn.pricing_unit && (
+                            <ValueBadge
+                              label={formatPricingUnitLabel(conn.pricing_unit)}
+                              intent="info"
+                            />
+                          )}
+                          {conn.pricing_currency_code && (
+                            <ValueBadge label={conn.pricing_currency_code} intent="accent" />
+                          )}
+                        </div>
                       )}
                       {!conn.is_active && (
                         <StatusBadge label="Inactive" intent="muted" />
@@ -555,9 +657,38 @@ export function ModelDetailPage() {
                     </div>
                     <p className="text-xs text-muted-foreground font-mono break-all">{endpoint?.base_url}</p>
                     {conn.pricing_enabled ? (
-                      <p className="text-[11px] text-muted-foreground">
-                        Input {conn.input_price ?? "0"} / Output {conn.output_price ?? "0"} / Cached {conn.cached_input_price ?? "0"} / Cache Create {conn.cache_creation_price ?? "0"} / Reasoning {conn.reasoning_price ?? "0"}
-                      </p>
+                      <div className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Input:</span>
+                          <span className="font-mono font-medium">{conn.input_price ?? "0"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Output:</span>
+                          <span className="font-mono font-medium">{conn.output_price ?? "0"}</span>
+                        </div>
+                        {(conn.cached_input_price || conn.cache_creation_price || conn.reasoning_price) && (
+                          <div className="pt-1 mt-1 border-t border-border/50 grid grid-cols-3 gap-2">
+                            {conn.cached_input_price && (
+                              <div>
+                                <span className="block text-[10px] text-muted-foreground">Cached</span>
+                                <span className="font-mono">{conn.cached_input_price}</span>
+                              </div>
+                            )}
+                            {conn.cache_creation_price && (
+                              <div>
+                                <span className="block text-[10px] text-muted-foreground">Create</span>
+                                <span className="font-mono">{conn.cache_creation_price}</span>
+                              </div>
+                            )}
+                            {conn.reasoning_price && (
+                              <div>
+                                <span className="block text-[10px] text-muted-foreground">Reasoning</span>
+                                <span className="font-mono">{conn.reasoning_price}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ) : null}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>Key: {maskedKey}</span>
@@ -1042,6 +1173,54 @@ export function ModelDetailPage() {
               </p>
               <p className="mt-1 text-xs opacity-90">{dialogTestResult.detail}</p>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isEditModelDialogOpen} onOpenChange={setIsEditModelDialogOpen}>
+        <DialogContent>
+          {model && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Edit Model</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleEditModelSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-display-name">Display Name</Label>
+                  <Input
+                    id="edit-display-name"
+                    name="display_name"
+                    defaultValue={model.display_name || ""}
+                    placeholder="Friendly name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-model-id">Model ID</Label>
+                  <Input
+                    id="edit-model-id"
+                    name="model_id"
+                    defaultValue={model.model_id}
+                    required
+                  />
+                </div>
+                {model.model_type === "proxy" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-redirect-to">Redirect To</Label>
+                    <Input
+                      id="edit-redirect-to"
+                      name="redirect_to"
+                      defaultValue={model.redirect_to || ""}
+                      placeholder="Target model ID"
+                    />
+                  </div>
+                )}
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsEditModelDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Save Changes</Button>
+                </DialogFooter>
+              </form>
+            </>
           )}
         </DialogContent>
       </Dialog>

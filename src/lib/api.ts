@@ -68,6 +68,8 @@ export const api = {
 
   models: {
     list: () => request<ModelConfigListItem[]>("/api/models"),
+    byEndpoint: (endpointId: number) =>
+      request<ModelConfigListItem[]>(`/api/models/by-endpoint/${endpointId}`),
     get: (id: number) => request<ModelConfig>(`/api/models/${id}`),
     create: (data: ModelConfigCreate) =>
       request<ModelConfig>("/api/models", {

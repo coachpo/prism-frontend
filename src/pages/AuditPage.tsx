@@ -84,15 +84,40 @@ export function AuditPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const [providerId, setProviderId] = useState<string>("all");
-  const [modelId, setModelId] = useState("");
-  const [connectionId, setConnectionId] = useState("");
+  const [modelId, setModelId] = useState("__all__");
+  const [connectionId, setConnectionId] = useState("__all__");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
   const [limit] = useState(50);
   const [offset, setOffset] = useState(0);
+  const [models, setModels] = useState<{ model_id: string; display_name: string | null }[]>([]);
+  const [connections, setConnections] = useState<{ id: number }[]>([]);
 
+  // Fetch models and connections for filter dropdowns
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const [modelsData, logsData] = await Promise.all([
+          api.models.list(),
+          api.audit.list({ limit: 200 }),
+        ]);
+        setModels(modelsData.map(m => ({ model_id: m.model_id, display_name: m.display_name })));
+        const uniqueConnections = Array.from(
+          new Set(
+            logsData.items
+              .map((log) => log.connection_id)
+              .filter((id): id is number => id !== null)
+          )
+        ).map((id) => ({ id }));
+        setConnections(uniqueConnections);
+      } catch (error) {
+        console.error("Failed to fetch filter options:", error);
+      }
+    };
+    fetchFilters();
+  }, []);
   useEffect(() => {
     api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
   }, []);
@@ -103,8 +128,8 @@ export function AuditPage() {
       try {
         const params: AuditLogParams = { limit, offset };
         if (providerId !== "all") params.provider_id = parseInt(providerId);
-        if (modelId) params.model_id = modelId;
-        if (connectionId) params.connection_id = parseInt(connectionId);
+        if (modelId && modelId !== "__all__") params.model_id = modelId;
+        if (connectionId && connectionId !== "__all__") params.connection_id = parseInt(connectionId);
         if (dateFrom) params.from_time = new Date(dateFrom).toISOString();
         if (dateTo) params.to_time = new Date(dateTo).toISOString();
 
@@ -212,20 +237,33 @@ export function AuditPage() {
           <div className="flex flex-wrap items-center gap-2">
             <ProviderSelect value={providerId} onValueChange={(v) => { setProviderId(v); setOffset(0); }} valueType="provider_id" providers={providers} className="w-full sm:w-[160px]" />
 
-            <Input
-              placeholder="Model ID"
-              value={modelId}
-              onChange={(e) => { setModelId(e.target.value); setOffset(0); }}
-              className="w-full sm:w-[140px]"
-            />
+            <Select value={modelId} onValueChange={(v) => { setModelId(v); setOffset(0); }}>
+              <SelectTrigger className="w-full sm:w-[140px]">
+                <SelectValue placeholder="Model ID" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Models</SelectItem>
+                {models.map((m) => (
+                  <SelectItem key={m.model_id} value={m.model_id}>
+                    {m.display_name || m.model_id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <Input
-              placeholder="Connection ID"
-              type="number"
-              value={connectionId}
-              onChange={(e) => { setConnectionId(e.target.value); setOffset(0); }}
-              className="w-full sm:w-[120px]"
-            />
+            <Select value={connectionId} onValueChange={(v) => { setConnectionId(v); setOffset(0); }}>
+              <SelectTrigger className="w-full sm:w-[120px]">
+                <SelectValue placeholder="Connection ID" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Connections</SelectItem>
+                {connections.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setOffset(0); }}>
               <SelectTrigger className="w-full sm:w-[120px]">

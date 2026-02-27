@@ -1,15 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { Endpoint } from "@/lib/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import type { Endpoint, ModelConfigListItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, Plug, AlertTriangle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -34,6 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+
 const endpointSchema = z.object({
   name: z.string().min(1, "Name is required"),
   base_url: z.string().url("Must be a valid URL"),
@@ -44,6 +40,7 @@ type EndpointFormValues = z.infer<typeof endpointSchema>;
 
 export function EndpointsPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
+  const [endpointModels, setEndpointModels] = useState<Record<number, ModelConfigListItem[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
@@ -53,6 +50,19 @@ export function EndpointsPage() {
     try {
       const data = await api.endpoints.list();
       setEndpoints(data);
+      
+      // Fetch models for each endpoint
+      const modelsMap: Record<number, ModelConfigListItem[]> = {};
+      await Promise.all(data.map(async (ep) => {
+        try {
+          const models = await api.models.byEndpoint(ep.id);
+          modelsMap[ep.id] = models;
+        } catch (e) {
+          console.error(`Failed to fetch models for endpoint ${ep.id}`, e);
+          modelsMap[ep.id] = [];
+        }
+      }));
+      setEndpointModels(modelsMap);
     } catch {
       toast.error("Failed to load endpoints");
     } finally {
@@ -133,9 +143,9 @@ export function EndpointsPage() {
       )}
 
       {isLoading ? (
-        <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 w-full animate-pulse rounded-lg bg-muted" />
+            <Skeleton key={i} className="h-[200px] rounded-xl" />
           ))}
         </div>
       ) : endpoints.length === 0 ? (
@@ -151,53 +161,85 @@ export function EndpointsPage() {
           }
         />
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Base URL</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {endpoints.map((endpoint) => (
-                <TableRow key={endpoint.id}>
-                  <TableCell className="font-medium">{endpoint.name}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {endpoint.base_url}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(endpoint.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditingEndpoint(endpoint)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this endpoint?")) {
-                            handleDelete(endpoint.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {endpoints.map((endpoint) => {
+            const models = endpointModels[endpoint.id] || [];
+            const maskedKey = endpoint.api_key.length > 8
+              ? `${endpoint.api_key.slice(0, 4)}••••••${endpoint.api_key.slice(-4)}`
+              : "••••••";
+
+            return (
+              <Card key={endpoint.id} className="flex flex-col">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                  <CardTitle className="text-base font-medium truncate pr-2">
+                    {endpoint.name}
+                  </CardTitle>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground"
+                      onClick={() => setEditingEndpoint(endpoint)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this endpoint?")) {
+                          handleDelete(endpoint.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground font-mono break-all">
+                      {endpoint.base_url}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Key: <span className="font-mono">{maskedKey}</span>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Used by {models.length} model{models.length !== 1 ? "s" : ""}
+                    </p>
+                    {models.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {models.slice(0, 5).map((m) => (
+                          <Badge key={m.id} variant="secondary" className="text-[10px] font-normal">
+                            {m.display_name || m.model_id}
+                          </Badge>
+                        ))}
+                        {models.length > 5 && (
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                            +{models.length - 5} more
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        Not attached to any models
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-2 mt-auto">
+                    <p className="text-[10px] text-muted-foreground">
+                      Created {new Date(endpoint.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

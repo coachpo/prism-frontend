@@ -236,8 +236,8 @@ export function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   const { navigateToConnection } = useConnectionNavigation();
 
-  const [modelId, setModelId] = useState("");
-  const [connectionId, setConnectionId] = useState("");
+  const [modelId, setModelId] = useState("__all__");
+  const [connectionId, setConnectionId] = useState("__all__");
   const [providerType, setProviderType] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d" | "all">(
     "24h"
@@ -261,6 +261,34 @@ export function StatisticsPage() {
   const [spendingLimit, setSpendingLimit] = useState(25);
   const [spendingOffset, setSpendingOffset] = useState(0);
   const [spendingTopN, setSpendingTopN] = useState(5);
+  const [models, setModels] = useState<{ model_id: string; display_name: string | null }[]>([]);
+  const [connections, setConnections] = useState<{ id: number; endpoint_id: number }[]>([]);
+
+
+  // Fetch models and connections for filter dropdowns
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const [modelsData, connectionsData] = await Promise.all([
+          api.models.list(),
+          api.stats.requests({ limit: 500 }), // Get recent connections from logs
+        ]);
+        setModels(modelsData.map(m => ({ model_id: m.model_id, display_name: m.display_name })));
+        // Extract unique connection IDs from logs
+        const uniqueConnections = Array.from(
+          new Set(
+            connectionsData.items
+              .map((log) => log.connection_id)
+              .filter((id): id is number => id !== null)
+          )
+        ).map((id) => ({ id, endpoint_id: 0 })); // endpoint_id not needed for filter
+        setConnections(uniqueConnections);
+      } catch (error) {
+        console.error("Failed to fetch filter options:", error);
+      }
+    };
+    fetchFilters();
+  }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -282,9 +310,9 @@ export function StatisticsPage() {
           }
 
           const params = {
-            model_id: modelId || undefined,
+            model_id: modelId && modelId !== "__all__" ? modelId : undefined,
             provider_type: providerType === "all" ? undefined : providerType,
-            connection_id: connectionId ? Number.parseInt(connectionId, 10) : undefined,
+            connection_id: connectionId && connectionId !== "__all__" ? Number.parseInt(connectionId, 10) : undefined,
             from_time: fromTime,
             limit: 500,
           };
@@ -480,25 +508,37 @@ export function StatisticsPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Input
-              placeholder="Filter by Model ID..."
-              value={modelId}
-              onChange={(e) => setModelId(e.target.value)}
-              className="h-8 w-full text-xs sm:w-52"
-            />
+            <Select value={modelId} onValueChange={setModelId}>
+              <SelectTrigger className="h-8 w-full text-xs sm:w-52">
+                <SelectValue placeholder="Filter by Model ID..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Models</SelectItem>
+                {models.map((m) => (
+                  <SelectItem key={m.model_id} value={m.model_id}>
+                    {m.display_name || m.model_id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <ProviderSelect
               value={providerType}
               onValueChange={setProviderType}
               className="h-8 w-full text-xs sm:w-44"
             />
-            <Input
-              placeholder="Connection ID"
-              value={connectionId}
-              onChange={(e) => setConnectionId(e.target.value)}
-              className="h-8 w-full text-xs sm:w-28"
-              type="number"
-              min="1"
-            />
+            <Select value={connectionId} onValueChange={setConnectionId}>
+              <SelectTrigger className="h-8 w-full text-xs sm:w-32">
+                <SelectValue placeholder="Connection ID" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Connections</SelectItem>
+                {connections.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select
               value={specialTokenFilter}
               onValueChange={(value) =>
@@ -706,7 +746,7 @@ export function StatisticsPage() {
                   }
                 />
               ) : (
-                <div className="overflow-x-auto scrollbar-thin">
+                <div className="max-h-[500px] overflow-auto scrollbar-thin">
                   <Table>
                     <TableHeader>
                       <TableRow>
