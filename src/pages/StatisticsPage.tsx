@@ -65,6 +65,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TimeBucket {
 label: string;
@@ -191,6 +192,32 @@ function rowHasAnySpecialToken(log: RequestLogEntry): boolean {
     hasSpecialTokenValue(log.reasoning_tokens)
   );
 }
+
+function parseErrorDetailMessage(detail: string | null): string {
+  const fallback = "Unknown upstream error";
+  if (!detail) return fallback;
+
+  const trimmed = detail.trim();
+  if (!trimmed) return fallback;
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    const message =
+      parsed?.error?.message ??
+      parsed?.error?.msg ??
+      parsed?.detail ??
+      parsed?.message;
+
+    if (typeof message === "string" && message.trim().length > 0) {
+      return message.trim();
+    }
+  } catch {
+    // keep raw detail for non-JSON payloads
+  }
+
+  return trimmed;
+}
+
 function bucketLogs(logs: RequestLogEntry[], timeRange: string): TimeBucket[] {
   if (logs.length === 0) return [];
 
@@ -666,27 +693,27 @@ export function StatisticsPage() {
   );
 
   const topErrors = useMemo(() => {
-    const map = new Map<string, { count: number; statusCode: number }>();
+    const map = new Map<
+      string,
+      { count: number; statusCode: number; detail: string; rawDetail: string }
+    >();
 
     for (const log of requestLogRows) {
       if (log.status_code < 400) continue;
-      const detail = (log.error_detail ?? "Unknown upstream error").trim();
-      const normalized = detail.length > 140 ? `${detail.slice(0, 140)}...` : detail;
-      const key = `${log.status_code}:${normalized}`;
-      const existing = map.get(key) ?? { count: 0, statusCode: log.status_code };
+      const rawDetail = (log.error_detail ?? "").trim();
+      const detail = parseErrorDetailMessage(rawDetail || null);
+      const key = `${log.status_code}\u0000${detail}`;
+      const existing = map.get(key) ?? {
+        count: 0,
+        statusCode: log.status_code,
+        detail,
+        rawDetail: rawDetail || detail,
+      };
       existing.count += 1;
       map.set(key, existing);
     }
 
-    return Array.from(map.entries())
-      .map(([key, value]) => {
-        const [, detail] = key.split(":", 2);
-        return {
-          detail: detail || "Unknown upstream error",
-          statusCode: value.statusCode,
-          count: value.count,
-        };
-      })
+    return Array.from(map.values())
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
   }, [requestLogRows]);
@@ -1260,7 +1287,18 @@ export function StatisticsPage() {
                         >
                           <div className="space-y-0.5">
                             <p className="text-xs font-medium text-destructive">HTTP {item.statusCode}</p>
-                            <p className="text-sm text-muted-foreground">{item.detail}</p>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <p className="cursor-help truncate text-sm text-muted-foreground">
+                                  {item.detail}
+                                </p>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="start" className="max-w-md">
+                                <pre className="whitespace-pre-wrap break-words text-xs">
+                                  {item.rawDetail}
+                                </pre>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                           <span className="text-xs text-muted-foreground">{item.count}x</span>
                         </div>
