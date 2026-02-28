@@ -368,7 +368,7 @@ function renderTableHeader(column: ColumnId): React.ReactNode {
     case "provider":
       return "Provider";
     case "endpoint":
-      return "Endpoint";
+      return "Connection";
     case "status":
       return "Status";
     case "latency":

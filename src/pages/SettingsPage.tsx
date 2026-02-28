@@ -2,6 +2,7 @@ import { Globe } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { isValidCurrencyCode, isValidPositiveDecimalString } from "@/lib/costing";
 import type {
@@ -79,6 +80,7 @@ export function SettingsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const auditConfigurationRef = useRef<HTMLDivElement | null>(null);
+  const [isAuditConfigurationFocused, setIsAuditConfigurationFocused] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "requests" | "audits"; days: number | null; deleteAll: boolean } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -121,16 +123,26 @@ export function SettingsPage() {
     fetchModels();
   }, []);
   useEffect(() => {
-    if (location.hash !== "#audit-configuration") return;
+    if (location.hash !== "#audit-configuration") {
+      setIsAuditConfigurationFocused(false);
+      return;
+    }
 
+    setIsAuditConfigurationFocused(true);
     const frameId = window.requestAnimationFrame(() => {
       const target = auditConfigurationRef.current;
       if (!target) return;
       target.scrollIntoView({ behavior: "smooth", block: "start" });
       target.focus({ preventScroll: true });
     });
+    const clearHighlightTimer = window.setTimeout(() => {
+      setIsAuditConfigurationFocused(false);
+    }, 3000);
 
-    return () => window.cancelAnimationFrame(frameId);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(clearHighlightTimer);
+    };
   }, [location.hash]);
 
   const fetchRules = async () => {
@@ -846,7 +858,15 @@ export function SettingsPage() {
         </Card>
 
 
-        <Card id="audit-configuration" ref={auditConfigurationRef} tabIndex={-1}>
+        <Card
+          id="audit-configuration"
+          ref={auditConfigurationRef}
+          tabIndex={-1}
+          className={cn(
+            "transition-all duration-300",
+            isAuditConfigurationFocused && "ring-2 ring-primary/50 bg-primary/5"
+          )}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Shield className="h-4 w-4" />
