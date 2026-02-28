@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { useProfileContext } from "@/context/ProfileContext";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Pencil, Trash2, Plug, AlertTriangle } from "lucide-react";
@@ -45,6 +46,7 @@ export function EndpointsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { revision } = useProfileContext();
 
   const fetchEndpoints = async () => {
     try {
@@ -72,7 +74,7 @@ export function EndpointsPage() {
 
   useEffect(() => {
     fetchEndpoints();
-  }, []);
+  }, [revision]);
 
   const handleCreate = async (values: EndpointFormValues) => {
     try {

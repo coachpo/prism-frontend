@@ -29,6 +29,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useProfileContext } from "@/context/ProfileContext";
 
 type ModelColumnKey =
   | "provider"
@@ -69,6 +70,7 @@ const formatLatencyCell = (value: number | null): string => {
 };
 export function ModelsPage() {
   const navigate = useNavigate();
+  const { revision } = useProfileContext();
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,7 +114,7 @@ export function ModelsPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [revision]);
 
   useEffect(() => {
     let cancelled = false;

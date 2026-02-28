@@ -66,6 +66,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useProfileContext } from "@/context/ProfileContext";
 
 interface TimeBucket {
 label: string;
@@ -351,6 +352,7 @@ export function StatisticsPage() {
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { revision } = useProfileContext();
 
   const initialOperationsModelId = searchParams.get("model_id");
   const initialOperationsProviderType = searchParams.get("provider_type");
@@ -437,7 +439,7 @@ export function StatisticsPage() {
       }
     };
     fetchFilters();
-  }, []);
+  }, [revision]);
 
   useEffect(() => {
     setSearchParams(
@@ -546,7 +548,7 @@ export function StatisticsPage() {
     }, 450);
 
     return () => clearTimeout(timeout);
-  }, [connectionId, modelId, providerType, setLoading, timeRange]);
+  }, [connectionId, modelId, providerType, setLoading, timeRange, revision]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -602,8 +604,12 @@ export function StatisticsPage() {
     spendingLimit,
     spendingOffset,
     spendingTopN,
+    revision,
   ]);
 
+  useEffect(() => {
+    setSpendingOffset(0);
+  }, [revision]);
   const requestLogRows = useMemo(() => {
     return logs.filter((log) => {
       if (specialTokenFilter === "has_cached") {

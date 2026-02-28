@@ -1,5 +1,31 @@
 // TypeScript types matching backend Pydantic schemas exactly
 
+export interface Profile {
+  id: number;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  version: number;
+  created_at: string;
+  deleted_at: string | null;
+  updated_at: string;
+}
+
+export interface ProfileCreate {
+  name: string;
+  description?: string | null;
+}
+
+export interface ProfileUpdate {
+  name?: string;
+  description?: string | null;
+}
+
+export interface ProfileActivateRequest {
+  expected_active_profile_id: number;
+  expected_active_profile_version: number;
+}
+
 // --- Provider ---
 export interface Provider {
   id: number;
@@ -206,6 +232,7 @@ export interface ModelConfigUpdate {
 export interface RequestLogEntry {
   id: number;
   model_id: string;
+  profile_id: number;
   provider_type: string;
   endpoint_id: number | null;
   connection_id: number | null;
@@ -311,6 +338,7 @@ export interface ConnectionSuccessRate {
 
 export interface ConfigEndpointExport {
   endpoint_id?: number | null;
+  endpoint_ref?: string | null;
   name: string;
   base_url: string;
   api_key: string;
@@ -318,7 +346,9 @@ export interface ConfigEndpointExport {
 
 export interface ConfigConnectionExport {
   connection_id?: number | null;
-  endpoint_id: number;
+  connection_ref?: string | null;
+  endpoint_id?: number | null;
+  endpoint_ref?: string | null;
   is_active: boolean;
   priority: number;
   name: string | null;
@@ -360,7 +390,8 @@ export interface ConfigProviderExport {
 
 export interface ConfigEndpointFxRateExport {
   model_id: string;
-  endpoint_id: number;
+  endpoint_id?: number | null;
+  endpoint_ref?: string | null;
   fx_rate: string;
 }
 
@@ -372,7 +403,7 @@ export interface ConfigUserSettingsExport {
 }
 
 export interface ConfigExportResponse {
-  version: 6;
+  version: 6 | 7;
   exported_at: string;
   providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
@@ -382,15 +413,15 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 6;
+  version: 6 | 7;
   exported_at?: string;
   providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
+  mode?: "replace" | "merge";
 }
-
 export interface ConfigImportResponse {
   providers_imported: number;
   endpoints_imported: number;
@@ -401,6 +432,7 @@ export interface ConfigImportResponse {
 export interface AuditLogListItem {
   id: number;
   request_log_id: number | null;
+  profile_id: number;
   provider_id: number;
   model_id: string;
   endpoint_id: number | null;
@@ -420,6 +452,7 @@ export interface AuditLogListItem {
 export interface AuditLogDetail {
   id: number;
   request_log_id: number | null;
+  profile_id: number;
   provider_id: number;
   model_id: string;
   endpoint_id: number | null;

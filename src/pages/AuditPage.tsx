@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
+import { useProfileContext } from "@/context/ProfileContext";
 import type {
   AuditLogDetail,
   AuditLogListItem,
@@ -300,6 +301,7 @@ export function AuditPage() {
   const navigate = useNavigate();
   const { navigateToConnection } = useConnectionNavigation();
   const { format: formatTime } = useTimezone();
+  const { revision } = useProfileContext();
 
   const [logs, setLogs] = useState<AuditLogListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -339,14 +341,14 @@ export function AuditPage() {
     };
 
     fetchFilters();
-  }, []);
+  }, [revision]);
 
   useEffect(() => {
     api.providers
       .list()
       .then(setProviders)
       .catch(() => toast.error("Failed to load providers"));
-  }, []);
+  }, [revision]);
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -387,8 +389,11 @@ export function AuditPage() {
     };
 
     fetchLogs();
-  }, [providerId, modelId, connectionId, statusFilter, dateFrom, dateTo, offset]);
+  }, [providerId, modelId, connectionId, statusFilter, dateFrom, dateTo, offset, revision]);
 
+  useEffect(() => {
+    setOffset(0);
+  }, [revision]);
   const metrics = useMemo(() => {
     if (logs.length === 0) {
       return {

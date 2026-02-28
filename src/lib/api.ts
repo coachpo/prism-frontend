@@ -34,18 +34,38 @@ import type {
   HeaderBlocklistRuleUpdate,
   SpendingReportParams,
   SpendingReportResponse,
+  Profile,
+  ProfileCreate,
+  ProfileUpdate,
+  ProfileActivateRequest,
 } from "./types";
 
 const rawApiBase = import.meta.env.VITE_API_BASE?.trim();
 const API_BASE = rawApiBase ? rawApiBase.replace(/\/+$/, "") : "";
 
+let currentProfileId: number | null = null;
+
+export function setApiProfileId(profileId: number | null) {
+  currentProfileId = profileId;
+}
+
+export function getApiProfileId(): number | null {
+  return currentProfileId;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string>),
+  };
+
+  if (path.startsWith("/api/") && currentProfileId !== null) {
+    headers["X-Profile-Id"] = String(currentProfileId);
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
+    headers,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
@@ -57,6 +77,28 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 // --- Providers ---
 export const api = {
+  profiles: {
+    list: () => request<Profile[]>("/api/profiles"),
+    getActive: () => request<Profile>("/api/profiles/active"),
+    create: (data: ProfileCreate) =>
+      request<Profile>("/api/profiles", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: ProfileUpdate) =>
+      request<Profile>(`/api/profiles/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      request<void>(`/api/profiles/${id}`, { method: "DELETE" }),
+    activate: (id: number, payload: ProfileActivateRequest) =>
+      request<Profile>(`/api/profiles/${id}/activate`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+  },
+
   providers: {
     list: () => request<Provider[]>("/api/providers"),
     get: (id: number) => request<Provider>(`/api/providers/${id}`),

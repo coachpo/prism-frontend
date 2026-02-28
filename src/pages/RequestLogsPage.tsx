@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState, type ComponentType } from "reac
 import { useSearchParams } from "react-router-dom";
 import { useTimezone } from "@/hooks/useTimezone";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
+import { useProfileContext } from "@/context/ProfileContext";
 import { api } from "@/lib/api";
 import { formatMoneyMicros, formatTokenCount, formatUnpricedReasonLabel } from "@/lib/costing";
 import type { ConnectionDropdownItem, Endpoint, RequestLogEntry } from "@/lib/types";
@@ -416,6 +417,7 @@ export function RequestLogsPage() {
   const { format: formatTime } = useTimezone();
   const { navigateToConnection } = useConnectionNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { revision } = useProfileContext();
 
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -504,7 +506,7 @@ export function RequestLogsPage() {
     };
 
     fetchFilters();
-  }, []);
+  }, [revision]);
 
   useEffect(() => {
     setSearchParams(
@@ -576,6 +578,9 @@ export function RequestLogsPage() {
   ]);
 
   useEffect(() => {
+    setOffset(0);
+  }, [revision]);
+  useEffect(() => {
     const timeout = setTimeout(() => {
       const fetchLogs = async () => {
         setLoading(true);
@@ -613,7 +618,7 @@ export function RequestLogsPage() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [connectionId, endpointId, limit, modelId, offset, providerType, timeRange]);
+  }, [connectionId, endpointId, limit, modelId, offset, providerType, timeRange, revision]);
 
   const filteredAndSortedRows = useMemo(() => {
     let result = logs.filter((log) => {

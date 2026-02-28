@@ -1,14 +1,29 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import type { ConnectionOwnerResponse } from "@/lib/types";
+import { useProfileContext } from "@/context/ProfileContext";
 import { toast } from "sonner";
 
-const ownerCache = new Map<number, ConnectionOwnerResponse>();
+const ownerCacheByProfile = new Map<number, Map<number, ConnectionOwnerResponse>>();
 
 export function useConnectionNavigation() {
   const navigate = useNavigate();
   const navigatingRef = useRef(false);
+  const { selectedProfileId } = useProfileContext();
+
+  const ownerCache = useMemo(() => {
+    if (selectedProfileId === null) {
+      return new Map<number, ConnectionOwnerResponse>();
+    }
+
+    const existing = ownerCacheByProfile.get(selectedProfileId);
+    if (existing) return existing;
+
+    const created = new Map<number, ConnectionOwnerResponse>();
+    ownerCacheByProfile.set(selectedProfileId, created);
+    return created;
+  }, [selectedProfileId]);
 
   const navigateToConnection = useCallback(
     async (connectionId: number) => {
@@ -28,7 +43,7 @@ export function useConnectionNavigation() {
         navigatingRef.current = false;
       }
     },
-    [navigate]
+    [navigate, ownerCache]
   );
 
   return { navigateToConnection };

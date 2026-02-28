@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, Activity, Loader2, X, ChevronRight, Shield, Coins, Info, Gauge, Route } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
+import { useProfileContext } from "@/context/ProfileContext";
 import { EmptyState } from "@/components/EmptyState";
 import {
   Collapsible,
@@ -81,6 +82,7 @@ const getConnectionName = (connection: Pick<Connection, "name" | "description">)
 export function ModelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { revision } = useProfileContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [model, setModel] = useState<ModelConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,7 +180,7 @@ export function ModelDetailPage() {
     }
   }, [id, navigate, fetchSpending]);
 
-  useEffect(() => { fetchModel(); }, [fetchModel]);
+  useEffect(() => { fetchModel(); }, [fetchModel, revision]);
 
   useEffect(() => {
     if (!model) return;
@@ -324,7 +326,7 @@ export function ModelDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [model, connections]);
+  }, [model, connections, revision]);
 
   const modelKpis = useMemo(() => {
     return {

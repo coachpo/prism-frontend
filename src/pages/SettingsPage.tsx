@@ -1,6 +1,7 @@
 import { Globe } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { useProfileContext } from "@/context/ProfileContext";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
@@ -73,6 +74,7 @@ const getConnectionName = (connection: Pick<Connection, "name" | "description">)
 
 export function SettingsPage() {
   const location = useLocation();
+  const { selectedProfile, revision, bumpRevision } = useProfileContext();
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -121,7 +123,7 @@ export function SettingsPage() {
     fetchRules();
     fetchCostingSettings();
     fetchModels();
-  }, []);
+  }, [revision]);
   useEffect(() => {
     if (location.hash !== "#audit-configuration") {
       setIsAuditConfigurationFocused(false);
@@ -432,6 +434,7 @@ export function SettingsPage() {
       setSelectedFile(null);
       setParsedConfig(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      bumpRevision();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Import failed");
     } finally {
@@ -537,7 +540,7 @@ export function SettingsPage() {
       <div className="space-y-1">
         <h3 className="text-base font-semibold">Configuration Backup</h3>
         <p className="text-sm text-muted-foreground">
-          Export or import your gateway configuration as JSON.
+          Export or import configuration for the currently selected profile.
         </p>
       </div>
 
@@ -570,8 +573,9 @@ export function SettingsPage() {
               Import
             </CardTitle>
             <CardDescription className="text-xs">
-              Upload a JSON backup to replace all current configuration. This will DELETE all
-              existing providers, models, endpoints, and user-defined settings.
+              Upload a JSON backup to replace configuration in the selected profile only. Other profiles are not changed.
+              Providers remain global and are not deleted globally by this import.
+              Current target: {selectedProfile ? `${selectedProfile.name} (#${selectedProfile.id})` : "No profile selected"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -587,7 +591,7 @@ export function SettingsPage() {
             />
             {selectedFile && parsedConfig && (
               <p className="text-sm text-muted-foreground">
-                {parsedConfig.providers?.length ?? 0} providers, {parsedConfig.models?.length ?? 0} models
+                Target {selectedProfile ? `${selectedProfile.name} (#${selectedProfile.id})` : "selected profile"}: {parsedConfig.providers?.length ?? 0} providers, {parsedConfig.models?.length ?? 0} models
               </p>
             )}
             <Button
@@ -1183,9 +1187,9 @@ export function SettingsPage() {
           <DialogHeader>
             <DialogTitle>Confirm Import</DialogTitle>
             <DialogDescription>
-              This will replace ALL existing configuration
-              ({parsedConfig?.providers?.length ?? 0} providers, {parsedConfig?.models?.length ?? 0} models).
-              This cannot be undone.
+              This will replace configuration in the selected profile only
+              ({selectedProfile ? `${selectedProfile.name} (#${selectedProfile.id})` : "no profile selected"}; {parsedConfig?.providers?.length ?? 0} providers, {parsedConfig?.models?.length ?? 0} models).
+              Other profiles remain unchanged. Providers stay global and are not deleted globally. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

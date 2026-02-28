@@ -5,11 +5,13 @@ React 19 SPA dashboard for managing LLM proxy configuration — models, endpoint
 ```
 src/
 ├── main.tsx                    # Entry: StrictMode + ThemeProvider + TooltipProvider + Toaster + App
-├── App.tsx                     # BrowserRouter with 6 routes inside AppLayout
-├── pages/                      # 6 page components (4800 lines total)
+├── App.tsx                     # BrowserRouter with 8 routes inside AppLayout
+├── pages/                      # 8 page components
 │   ├── DashboardPage.tsx       # Overview of all models with health badges — 149 lines
 │   ├── ModelsPage.tsx          # Model CRUD list with provider filter — 556 lines
 │   ├── ModelDetailPage.tsx     # Single model: endpoints, health checks, pricing config — 926 lines
+│   ├── EndpointsPage.tsx       # Global endpoint management (Base URL + API Key)
+│   ├── RequestLogsPage.tsx     # Request logs with filters and pagination
 │   ├── StatisticsPage.tsx      # Request logs + aggregated stats + spending reports with recharts — 1261 lines
 │   ├── AuditPage.tsx           # Audit log viewer with detail modal + cost display — 514 lines
 │   └── SettingsPage.tsx        # Provider audit toggles + header blocklist + costing settings + config export/import — 1192 lines
@@ -29,6 +31,8 @@ src/
 │   ├── SwitchController.tsx    # react-hook-form controlled Switch wrapper — 38 lines
 │   └── ui/                     # shadcn/ui primitives (22 components)
 ├── hooks/
+│   └── ProfileContext.tsx  # Profile state management and switching
+├── context/                # React contexts
 │   └── useEndpointNavigation.ts # Navigate to model detail with endpoint focus + owner cache — 35 lines
 ├── lib/
 │   ├── api.ts                  # Typed fetch wrapper — all backend API calls (7 namespaces) — 225 lines
@@ -58,6 +62,9 @@ src/
 | Format costs | `lib/costing.ts` | `formatMoneyMicros()`, `microsToDecimal()`, pricing/FX enum labels |
 | Config import validation | `lib/configImportValidation.ts` | Zod schema validates JSON before sending to backend |
 | Provider dropdown | `components/ProviderSelect.tsx` | Reusable select with provider icons, supports type or ID value |
+|| Endpoints page | `pages/EndpointsPage.tsx` | Global endpoint management (Base URL + API Key) |
+|| Request logs page | `pages/RequestLogsPage.tsx` | Dedicated request logs view with filters |
+|| Profile management | `context/ProfileContext.tsx` | Profile state, switching, active profile tracking |
 ## CONVENTIONS
 - Import paths use `@/` alias (resolves to `src/`)
 - All API calls go through `lib/api.ts` — never use raw `fetch()` in components

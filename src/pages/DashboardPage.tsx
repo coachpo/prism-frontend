@@ -27,9 +27,11 @@ import { EmptyState } from "@/components/EmptyState";
 import { formatMoneyMicros } from "@/lib/costing";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useProfileContext } from "@/context/ProfileContext";
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const { revision } = useProfileContext();
   const [loading, setLoading] = useState(true);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
@@ -39,6 +41,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       const from24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
       try {
@@ -63,7 +66,7 @@ export function DashboardPage() {
     };
 
     fetchData();
-  }, []);
+  }, [revision]);
 
   const activeModels = models.filter((model) => model.is_enabled).length;
   const totalRequests = stats?.total_requests ?? 0;
