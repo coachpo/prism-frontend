@@ -897,6 +897,7 @@ export function ModelDetailPage() {
                     <div className="space-y-2 pt-1">
                       <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <span>Success rate (24h)</span>
+                        <span className="text-[10px]">n={(metrics24h?.request_count_24h ?? 0).toLocaleString()}</span>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -904,12 +905,11 @@ export function ModelDetailPage() {
                             </TooltipTrigger>
                             <TooltipContent className="pointer-events-none">
                               <p className="text-xs">
-                                Success rate = successful requests / total requests for this connection in the last 24 hours.
+                                Success rate = successful requests / total requests for this connection in the last 24 hours. n = total requests counted in that 24h window.
                               </p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <span className="text-[10px]">n={(metrics24h?.request_count_24h ?? 0).toLocaleString()}</span>
                       </div>
                       <Link
                         to={buildRequestLogsPath({
