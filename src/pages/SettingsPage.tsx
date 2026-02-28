@@ -1,5 +1,6 @@
 import { Globe } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { z } from "zod";
 import { isValidCurrencyCode, isValidPositiveDecimalString } from "@/lib/costing";
@@ -20,7 +21,19 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Download, Upload, AlertTriangle, Shield, Trash2, Ban, Lock, Plus, Pencil, ChevronRight, Coins } from "lucide-react";
+import {
+  Download,
+  Upload,
+  AlertTriangle,
+  Shield,
+  Trash2,
+  Ban,
+  Lock,
+  Plus,
+  Pencil,
+  ChevronRight,
+  Coins,
+} from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -58,12 +71,14 @@ const getConnectionName = (connection: Pick<Connection, "name" | "description">)
   connection.name || connection.description || "";
 
 export function SettingsPage() {
+  const location = useLocation();
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [parsedConfig, setParsedConfig] = useState<ConfigImportRequest | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const auditConfigurationRef = useRef<HTMLDivElement | null>(null);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "requests" | "audits"; days: number | null; deleteAll: boolean } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -105,6 +120,18 @@ export function SettingsPage() {
     fetchCostingSettings();
     fetchModels();
   }, []);
+  useEffect(() => {
+    if (location.hash !== "#audit-configuration") return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      const target = auditConfigurationRef.current;
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      target.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [location.hash]);
 
   const fetchRules = async () => {
     setLoadingRules(true);
@@ -819,7 +846,7 @@ export function SettingsPage() {
         </Card>
 
 
-        <Card>
+        <Card id="audit-configuration" ref={auditConfigurationRef} tabIndex={-1}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Shield className="h-4 w-4" />
