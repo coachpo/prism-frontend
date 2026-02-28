@@ -26,7 +26,6 @@ const ConnectionExportSchema = z.object({
     auth_type: z.string().nullable(),
     custom_headers: z.record(z.string(), z.string()).nullable(),
     pricing_enabled: z.boolean().optional().default(false),
-    pricing_unit: z.enum(["PER_1K", "PER_1M"]).nullable().optional(),
     pricing_currency_code: z.string().nullable().optional(),
     input_price: z.string().nullable().optional(),
     output_price: z.string().nullable().optional(),
@@ -81,7 +80,7 @@ const UserSettingsExportSchema = z.object({
 
 
 export const ConfigImportSchema = z.object({
-  version: z.literal(5),
+  version: z.literal(6),
   exported_at: z.string().optional(),
   providers: z.array(ProviderExportSchema),
   endpoints: z.array(EndpointExportSchema),

@@ -1629,10 +1629,10 @@ export function StatisticsPage() {
                   icon={<TrendingUp className="h-4 w-4" />}
                 />
                 <MetricCard
-                  label="$ / 1k tokens"
+                  label="$ / 1M tokens"
                   value={formatMoneyMicros(
                     spending.summary.total_tokens > 0
-                      ? Math.round((spending.summary.total_cost_micros / spending.summary.total_tokens) * 1000)
+                      ? Math.round((spending.summary.total_cost_micros / spending.summary.total_tokens) * 1_000_000)
                       : 0,
                     reportSymbol,
                     reportCode,
@@ -1744,11 +1744,11 @@ export function StatisticsPage() {
                             />
                             <YAxis
                               type="number"
-                              dataKey="costPer1kTok"
-                              name="$/1k tokens"
+                              dataKey="costPer1MTok"
+                              name="$/1M tokens"
                               tick={{ fontSize: 11 }}
                               className="text-muted-foreground"
-                              label={{ value: "$ per 1k tokens", angle: -90, position: "insideLeft", fontSize: 11 }}
+                              label={{ value: "$ per 1M tokens", angle: -90, position: "insideLeft", fontSize: 11 }}
                             />
                             <RechartsTooltip
                               contentStyle={{
@@ -1760,7 +1760,7 @@ export function StatisticsPage() {
                               }}
                               formatter={(value: number, name: string) => {
                                 if (name === "Tokens/Request") return [Math.round(value).toLocaleString(), name];
-                                if (name === "$/1k tokens") return [formatMoneyMicros(value, reportSymbol, reportCode, 4), name];
+                                if (name === "$/1M tokens") return [formatMoneyMicros(value, reportSymbol, reportCode, 4), name];
                                 if (name === "Total Spend") return [formatMoneyMicros(value, reportSymbol, reportCode), name];
                                 return [value, name];
                               }}
@@ -1771,7 +1771,7 @@ export function StatisticsPage() {
                               data={spending.groups.slice(0, spendingTopN).map((g) => ({
                                 key: g.key,
                                 tokPerReq: g.total_requests > 0 ? g.total_tokens / g.total_requests : 0,
-                                costPer1kTok: g.total_tokens > 0 ? (g.total_cost_micros / g.total_tokens) * 1000 : 0,
+                                costPer1MTok: g.total_tokens > 0 ? (g.total_cost_micros / g.total_tokens) * 1_000_000 : 0,
                                 totalCost: g.total_cost_micros,
                               }))}
                               fill="var(--chart-3)"
@@ -1795,14 +1795,14 @@ export function StatisticsPage() {
                         const sortedByEfficiency = [...spending.groups]
                           .filter(g => g.total_tokens > 0)
                           .sort((a, b) => {
-                            const effA = (a.total_cost_micros / a.total_tokens) * 1000;
-                            const effB = (b.total_cost_micros / b.total_tokens) * 1000;
+                            const effA = (a.total_cost_micros / a.total_tokens) * 1_000_000;
+                            const effB = (b.total_cost_micros / b.total_tokens) * 1_000_000;
                             return effB - effA;
                           });
                         const highestCost = sortedByCost[0];
                         const leastEfficient = sortedByEfficiency[0];
-                        const avgCostPer1k = spending.summary.total_tokens > 0
-                          ? (spending.summary.total_cost_micros / spending.summary.total_tokens) * 1000
+                        const avgCostPer1M = spending.summary.total_tokens > 0
+                          ? (spending.summary.total_cost_micros / spending.summary.total_tokens) * 1_000_000
                           : 0;
 
                         return (
@@ -1828,11 +1828,11 @@ export function StatisticsPage() {
                                   </div>
                                   <span className="text-sm font-medium">
                                     {formatMoneyMicros(
-                                      (leastEfficient.total_cost_micros / leastEfficient.total_tokens) * 1000,
+                                      (leastEfficient.total_cost_micros / leastEfficient.total_tokens) * 1_000_000,
                                       reportSymbol,
                                       reportCode,
                                       4
-                                    )}/1k
+                                    )}/1M
                                   </span>
                                 </div>
                               </div>
@@ -1841,11 +1841,11 @@ export function StatisticsPage() {
                             <div className="rounded-md border p-3">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="space-y-1">
-                                  <p className="text-xs font-medium">Avg Cost per 1k Tokens</p>
+                                  <p className="text-xs font-medium">Avg Cost per 1M Tokens</p>
                                   <p className="text-sm text-muted-foreground">Across all groups</p>
                                 </div>
                                 <span className="text-sm font-medium">
-                                  {formatMoneyMicros(avgCostPer1k, reportSymbol, reportCode, 4)}
+                                  {formatMoneyMicros(avgCostPer1M, reportSymbol, reportCode, 4)}
                                 </span>
                               </div>
                             </div>
@@ -1889,7 +1889,7 @@ export function StatisticsPage() {
                             <TableHead className="text-right">Spend</TableHead>
                             <TableHead className="text-right">% Total</TableHead>
                             <TableHead className="text-right">$/Req</TableHead>
-                            <TableHead className="text-right">$/1k tok</TableHead>
+                            <TableHead className="text-right">$/1M tok</TableHead>
                             <TableHead className="text-right">Tok/Req</TableHead>
                             <TableHead className="text-right">Priced %</TableHead>
                           </TableRow>
@@ -1903,7 +1903,7 @@ export function StatisticsPage() {
                                   100
                                 : 0;
                             const costPerReq = group.total_requests > 0 ? group.total_cost_micros / group.total_requests : 0;
-                            const costPer1kTok = group.total_tokens > 0 ? (group.total_cost_micros / group.total_tokens) * 1000 : 0;
+                            const costPer1MTok = group.total_tokens > 0 ? (group.total_cost_micros / group.total_tokens) * 1_000_000 : 0;
                             const tokPerReq = group.total_requests > 0 ? group.total_tokens / group.total_requests : 0;
                             const pricedPercent = group.total_requests > 0 ? (group.priced_requests / group.total_requests) * 100 : 0;
                             return (
@@ -1931,7 +1931,7 @@ export function StatisticsPage() {
                                   {formatMoneyMicros(costPerReq, reportSymbol, reportCode, 4)}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums text-xs">
-                                  {formatMoneyMicros(costPer1kTok, reportSymbol, reportCode, 4)}
+                                  {formatMoneyMicros(costPer1MTok, reportSymbol, reportCode, 4)}
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums text-xs">
                                   {tokPerReq.toFixed(0)}

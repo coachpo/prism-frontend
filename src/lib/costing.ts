@@ -1,7 +1,6 @@
 const MICRO_FACTOR = 1_000_000;
 
 const PRICING_UNIT_LABELS: Record<string, string> = {
-  PER_1K: "Per 1K tokens",
   PER_1M: "Per 1M tokens",
 };
 

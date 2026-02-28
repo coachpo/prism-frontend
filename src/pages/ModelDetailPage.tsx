@@ -3,7 +3,6 @@ import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom"
 import { api } from "@/lib/api";
 import { cn, formatProviderType, formatLabel } from "@/lib/utils";
 import {
-  formatPricingUnitLabel,
   isValidCurrencyCode,
   formatMoneyMicros,
 } from "@/lib/costing";
@@ -127,7 +126,6 @@ export function ModelDetailPage() {
     is_active: true,
     custom_headers: null,
     pricing_enabled: false,
-    pricing_unit: "PER_1M",
     pricing_currency_code: "USD",
     input_price: null,
     output_price: null,
@@ -359,9 +357,6 @@ export function ModelDetailPage() {
     if (!isValidCurrencyCode(currency)) {
       return "Pricing currency must be a valid 3-letter code (for example, USD).";
     }
-    if (!connectionForm.pricing_unit) {
-      return "Pricing unit is required when pricing is enabled.";
-    }
 
     const decimalFields = [
       ["Input price", connectionForm.input_price],
@@ -395,7 +390,6 @@ export function ModelDetailPage() {
         is_active: connection.is_active,
         custom_headers: connection.custom_headers,
         pricing_enabled: connection.pricing_enabled,
-        pricing_unit: connection.pricing_unit ?? "PER_1M",
         pricing_currency_code: connection.pricing_currency_code || "USD",
         input_price: connection.input_price,
         output_price: connection.output_price,
@@ -418,7 +412,6 @@ export function ModelDetailPage() {
         is_active: true,
         custom_headers: null,
         pricing_enabled: false,
-        pricing_unit: "PER_1M",
         pricing_currency_code: "USD",
         input_price: null,
         output_price: null,
@@ -886,12 +879,10 @@ export function ModelDetailPage() {
                       />
                       {conn.pricing_enabled && (
                         <div className="flex items-center gap-1">
-                          {conn.pricing_unit && (
-                            <ValueBadge
-                              label={formatPricingUnitLabel(conn.pricing_unit)}
-                              intent="info"
-                            />
-                          )}
+                          <ValueBadge
+                            label="Per 1M tokens"
+                            intent="info"
+                          />
                           {conn.pricing_currency_code && (
                             <ValueBadge label={conn.pricing_currency_code} intent="accent" />
                           )}
@@ -1226,7 +1217,6 @@ export function ModelDetailPage() {
                       ...connectionForm,
                       pricing_enabled: checked,
                       ...(checked && {
-                        pricing_unit: connectionForm.pricing_unit ?? "PER_1M",
                         pricing_currency_code: connectionForm.pricing_currency_code || "USD",
                       }),
                     })
@@ -1236,24 +1226,12 @@ export function ModelDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="pricing-unit">Pricing Unit</Label>
-                    <Select
-                      value={connectionForm.pricing_unit ?? "PER_1M"}
-                      onValueChange={(value) =>
-                        setConnectionForm({
-                          ...connectionForm,
-                          pricing_unit: value as "PER_1K" | "PER_1M",
-                        })
-                      }
-                      disabled={!connectionForm.pricing_enabled}
-                    >
-                      <SelectTrigger id="pricing-unit">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PER_1K">Per 1K tokens</SelectItem>
-                        <SelectItem value="PER_1M">Per 1M tokens</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      id="pricing-unit"
+                      value="Per 1M tokens"
+                      disabled
+                      readOnly
+                    />
                   </div>
 
                   <div className="space-y-2">

@@ -52,7 +52,6 @@ export interface Connection {
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
   pricing_enabled: boolean;
-  pricing_unit: "PER_1K" | "PER_1M" | null;
   pricing_currency_code: string | null;
   input_price: string | null;
   output_price: string | null;
@@ -79,7 +78,6 @@ export interface ConnectionCreate {
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_enabled?: boolean;
-  pricing_unit?: "PER_1K" | "PER_1M" | null;
   pricing_currency_code?: string | null;
   input_price?: string | null;
   output_price?: string | null;
@@ -100,7 +98,6 @@ export interface ConnectionUpdate {
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_enabled?: boolean;
-  pricing_unit?: "PER_1K" | "PER_1M" | null;
   pricing_currency_code?: string | null;
   input_price?: string | null;
   output_price?: string | null;
@@ -329,7 +326,6 @@ export interface ConfigConnectionExport {
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
   pricing_enabled: boolean;
-  pricing_unit: "PER_1K" | "PER_1M" | null;
   pricing_currency_code: string | null;
   input_price: string | null;
   output_price: string | null;
@@ -376,7 +372,7 @@ export interface ConfigUserSettingsExport {
 }
 
 export interface ConfigExportResponse {
-  version: 5;
+  version: 6;
   exported_at: string;
   providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
@@ -386,7 +382,7 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 5;
+  version: 6;
   exported_at?: string;
   providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
