@@ -107,7 +107,7 @@ export function ModelDetailPage() {
   const [connectionMetrics24h, setConnectionMetrics24h] = useState<Map<number, ConnectionDerivedMetrics>>(new Map());
   const [focusedConnectionId, setFocusedConnectionId] = useState<number | null>(null);
   const [connectionCardRefs] = useState<Map<number, HTMLDivElement>>(new Map());
-  const focusHandled = useRef(false);
+  const focusTimeoutRef = useRef<number | null>(null);
 
   // Global endpoints for selection
   const [globalEndpoints, setGlobalEndpoints] = useState<Endpoint[]>([]);
@@ -183,21 +183,62 @@ export function ModelDetailPage() {
   useEffect(() => { fetchModel(); }, [fetchModel]);
 
   useEffect(() => {
-    if (!model || focusHandled.current) return;
+    if (!model) return;
     const focusId = searchParams.get("focus_connection_id");
     if (!focusId) return;
-    const cid = parseInt(focusId);
+    const cid = Number.parseInt(focusId, 10);
+    if (!Number.isFinite(cid)) return;
+
     setFocusedConnectionId(cid);
-    focusHandled.current = true;
-    setSearchParams({}, { replace: true });
-    setTimeout(() => {
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("focus_connection_id");
+    setSearchParams(nextSearchParams, { replace: true });
+
+    let cancelled = false;
+    let animationFrameId: number | null = null;
+    let attempts = 0;
+
+    const focusConnectionCard = () => {
+      if (cancelled) return;
+
       const el = connectionCardRefs.get(cid);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setTimeout(() => setFocusedConnectionId(null), 3000);
+      if (!el) {
+        attempts += 1;
+        if (attempts >= 30) {
+          setFocusedConnectionId(null);
+          return;
+        }
+        animationFrameId = window.requestAnimationFrame(focusConnectionCard);
+        return;
       }
-    }, 200);
+
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.focus({ preventScroll: true });
+
+      if (focusTimeoutRef.current !== null) {
+        window.clearTimeout(focusTimeoutRef.current);
+      }
+      focusTimeoutRef.current = window.setTimeout(() => {
+        setFocusedConnectionId(null);
+        focusTimeoutRef.current = null;
+      }, 3000);
+    };
+
+    animationFrameId = window.requestAnimationFrame(focusConnectionCard);
+
+    return () => {
+      cancelled = true;
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      if (focusTimeoutRef.current !== null) {
+        window.clearTimeout(focusTimeoutRef.current);
+        focusTimeoutRef.current = null;
+      }
+    };
   }, [model, searchParams, setSearchParams, connectionCardRefs]);
+
   useEffect(() => {
     if (!model) return;
     let cancelled = false;
@@ -810,9 +851,16 @@ export function ModelDetailPage() {
             return (
               <div
                 key={conn.id}
-                ref={(el) => { if (el) connectionCardRefs.get(conn.id); }}
+                ref={(el) => {
+                  if (el) {
+                    connectionCardRefs.set(conn.id, el);
+                  } else {
+                    connectionCardRefs.delete(conn.id);
+                  }
+                }}
+                tabIndex={-1}
                 className={cn(
-                  "rounded-lg border p-4 transition-all duration-300",
+                  "rounded-lg border p-4 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   isFocused && "ring-2 ring-primary/50 bg-primary/5",
                   !isFocused && "hover:border-border/80"
                 )}
