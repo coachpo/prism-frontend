@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
-import { formatProviderType, formatLabel } from "@/lib/utils";
+import { formatProviderType, formatLabel, cn } from "@/lib/utils";
+import { formatMoneyMicros } from "@/lib/costing";
 import type { ModelConfigListItem, Provider, ModelConfigCreate, ModelConfigUpdate, LoadBalancingStrategy } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SwitchController } from "@/components/SwitchController";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, MoreHorizontal, Search, Server } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreHorizontal, Search, Server, Columns3 } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
@@ -24,8 +25,48 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+type ModelColumnKey =
+  | "provider"
+  | "type"
+  | "strategy"
+  | "endpoints"
+  | "success"
+  | "p95"
+  | "requests"
+  | "spend"
+  | "status";
+
+type ModelDerivedMetric = {
+  success_rate: number | null;
+  request_count_24h: number;
+  p95_latency_ms: number | null;
+};
+
+const DEFAULT_VISIBLE_COLUMNS: Record<ModelColumnKey, boolean> = {
+  provider: true,
+  type: true,
+  strategy: true,
+  endpoints: true,
+  success: true,
+  p95: true,
+  requests: true,
+  spend: true,
+  status: true,
+};
+
+const getLast24hFromTime = (): string =>
+  new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+const formatLatencyCell = (value: number | null): string => {
+  if (value === null || !Number.isFinite(value)) return "-";
+  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 1 : 2)}s`;
+  return `${Math.round(value)}ms`;
+};
 export function ModelsPage() {
   const navigate = useNavigate();
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
@@ -38,6 +79,10 @@ export function ModelsPage() {
   const [providerFilter, setProviderFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [visibleColumns, setVisibleColumns] = useState<Record<ModelColumnKey, boolean>>(DEFAULT_VISIBLE_COLUMNS);
+  const [modelMetrics24h, setModelMetrics24h] = useState<Record<number, ModelDerivedMetric>>({});
+  const [modelSpend30dMicros, setModelSpend30dMicros] = useState<Record<number, number>>({});
+  const [metricsLoading, setMetricsLoading] = useState(false);
 
   const [formData, setFormData] = useState<ModelConfigCreate>({
     provider_id: 0,
@@ -68,6 +113,76 @@ export function ModelsPage() {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchModelMetrics = async () => {
+      if (models.length === 0) {
+        setModelMetrics24h({});
+        setModelSpend30dMicros({});
+        return;
+      }
+
+      setMetricsLoading(true);
+      const fromTime = getLast24hFromTime();
+
+      try {
+        const rows = await Promise.all(
+          models.map(async (model) => {
+            try {
+              const [summary, spending] = await Promise.all([
+                api.stats.summary({ model_id: model.model_id, from_time: fromTime }),
+                api.stats.spending({ model_id: model.model_id, preset: "30d", group_by: "none" }),
+              ]);
+              return {
+                id: model.id,
+                success_rate: summary.success_rate,
+                request_count_24h: summary.total_requests,
+                p95_latency_ms: summary.p95_response_time_ms,
+                spend_30d_micros: spending.summary.total_cost_micros,
+              };
+            } catch {
+              return {
+                id: model.id,
+                success_rate: null,
+                request_count_24h: 0,
+                p95_latency_ms: null,
+                spend_30d_micros: 0,
+              };
+            }
+          })
+        );
+
+        if (cancelled) return;
+
+        const nextMetrics: Record<number, ModelDerivedMetric> = {};
+        const nextSpend: Record<number, number> = {};
+
+        for (const row of rows) {
+          nextMetrics[row.id] = {
+            success_rate: row.success_rate,
+            request_count_24h: row.request_count_24h,
+            p95_latency_ms: row.p95_latency_ms,
+          };
+          nextSpend[row.id] = row.spend_30d_micros;
+        }
+
+        setModelMetrics24h(nextMetrics);
+        setModelSpend30dMicros(nextSpend);
+      } finally {
+        if (!cancelled) {
+          setMetricsLoading(false);
+        }
+      }
+    };
+
+    fetchModelMetrics();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [models]);
 
   const handleOpenDialog = (model?: ModelConfigListItem) => {
     if (model) {
@@ -161,6 +276,20 @@ export function ModelsPage() {
     if (typeFilter !== "all" && m.model_type !== typeFilter) return false;
     return true;
   });
+  const activeColumns = useMemo(
+    () => ({
+      provider: visibleColumns.provider,
+      type: visibleColumns.type,
+      strategy: visibleColumns.strategy,
+      endpoints: visibleColumns.endpoints,
+      success: visibleColumns.success,
+      p95: visibleColumns.p95,
+      requests: visibleColumns.requests,
+      spend: visibleColumns.spend,
+      status: visibleColumns.status,
+    }),
+    [visibleColumns]
+  );
 
   if (loading) {
     return (
@@ -216,6 +345,94 @@ export function ModelsPage() {
             <SelectItem value="proxy">Proxy</SelectItem>
           </SelectContent>
         </Select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9 gap-2">
+              <Columns3 className="h-4 w-4" />
+              Columns
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Visible Columns</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.provider}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, provider: Boolean(checked) }))
+              }
+            >
+              Provider
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.type}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, type: Boolean(checked) }))
+              }
+            >
+              Type
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.strategy}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, strategy: Boolean(checked) }))
+              }
+            >
+              Strategy
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.endpoints}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, endpoints: Boolean(checked) }))
+              }
+            >
+              Endpoints
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.success}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, success: Boolean(checked) }))
+              }
+            >
+              Success (24h)
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.p95}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, p95: Boolean(checked) }))
+              }
+            >
+              P95 (24h)
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.requests}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, requests: Boolean(checked) }))
+              }
+            >
+              Requests (24h)
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.spend}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, spend: Boolean(checked) }))
+              }
+            >
+              Spend (30d)
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.status}
+              onCheckedChange={(checked) =>
+                setVisibleColumns((prev) => ({ ...prev, status: Boolean(checked) }))
+              }
+            >
+              Status
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)}>
+              Reset Defaults
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Card>
@@ -232,91 +449,182 @@ export function ModelsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Model</TableHead>
-                  <TableHead className="hidden sm:table-cell">Provider</TableHead>
-                  <TableHead className="hidden md:table-cell">Type</TableHead>
-                  <TableHead className="hidden lg:table-cell">Strategy</TableHead>
-                  <TableHead className="hidden md:table-cell text-center">Endpoints</TableHead>
-                  <TableHead>Status</TableHead>
+                  {activeColumns.provider && (
+                    <TableHead className="hidden sm:table-cell">Provider</TableHead>
+                  )}
+                  {activeColumns.type && (
+                    <TableHead className="hidden md:table-cell">Type</TableHead>
+                  )}
+                  {activeColumns.strategy && (
+                    <TableHead className="hidden lg:table-cell">Strategy</TableHead>
+                  )}
+                  {activeColumns.endpoints && (
+                    <TableHead className="hidden md:table-cell text-center">Endpoints</TableHead>
+                  )}
+                  {activeColumns.success && (
+                    <TableHead className="hidden lg:table-cell text-right">Success (24h)</TableHead>
+                  )}
+                  {activeColumns.p95 && (
+                    <TableHead className="hidden lg:table-cell text-right">P95 (24h)</TableHead>
+                  )}
+                  {activeColumns.requests && (
+                    <TableHead className="hidden lg:table-cell text-right">Requests (24h)</TableHead>
+                  )}
+                  {activeColumns.spend && (
+                    <TableHead className="hidden xl:table-cell text-right">Spend (30d)</TableHead>
+                  )}
+                  {activeColumns.status && <TableHead>Status</TableHead>}
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((model) => (
-                  <TableRow
-                    key={model.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/models/${model.id}`)}
-                  >
-                    <TableCell>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="sm:hidden">
+                {filtered.map((model) => {
+                  const metrics24h = modelMetrics24h[model.id];
+                  const successRate = metrics24h?.success_rate ?? null;
+                  const requestCount = metrics24h?.request_count_24h ?? 0;
+                  const p95LatencyMs = metrics24h?.p95_latency_ms ?? null;
+                  const spend30dMicros = modelSpend30dMicros[model.id] ?? 0;
+
+                  return (
+                    <TableRow
+                      key={model.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/models/${model.id}`)}
+                    >
+                      <TableCell>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="sm:hidden">
+                              <ProviderIcon providerType={model.provider.provider_type} size={14} />
+                            </span>
+                            <span className="text-sm font-medium truncate">
+                              {model.display_name || model.model_id}
+                            </span>
+                          </div>
+                          {(model.display_name || (model.model_type === "proxy" && model.redirect_to)) && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                              {model.model_type === "proxy" && model.redirect_to
+                                ? `Resolves to ${model.redirect_to}`
+                                : model.model_id}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {activeColumns.provider && (
+                        <TableCell className="hidden sm:table-cell">
+                          <div className="flex items-center gap-1.5">
                             <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                          </span>
-                          <span className="text-sm font-medium truncate">
-                            {model.display_name || model.model_id}
-                          </span>
-                        </div>
-                        {(model.display_name || (model.model_type === "proxy" && model.redirect_to)) && (
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">
-                            {model.model_type === "proxy" && model.redirect_to
-                              ? `${model.model_id} → ${model.redirect_to}`
-                              : model.model_id}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <div className="flex items-center gap-1.5">
-                        <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                        <span className="text-sm">{formatProviderType(model.provider.provider_type)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {model.model_type === "proxy" ? (
-                        <div className="flex items-center">
-                      <TypeBadge label="Proxy" intent="accent" />
-                        </div>
-                      ) : (
-                        <TypeBadge label="Native" intent="info" />
+                            <span className="text-sm">{formatProviderType(model.provider.provider_type)}</span>
+                          </div>
+                        </TableCell>
                       )}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <span className="text-xs text-muted-foreground">{formatLabel(model.lb_strategy)}</span>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-center">
+
+                      {activeColumns.type && (
+                        <TableCell className="hidden md:table-cell">
+                          {model.model_type === "proxy" ? (
+                            <div className="flex items-center">
+                              <TypeBadge label="Proxy" intent="accent" />
+                            </div>
+                          ) : (
+                            <TypeBadge label="Native" intent="info" />
+                          )}
+                        </TableCell>
+                      )}
+
+                      {activeColumns.strategy && (
+                        <TableCell className="hidden lg:table-cell">
+                          <span className="text-xs text-muted-foreground">{formatLabel(model.lb_strategy)}</span>
+                        </TableCell>
+                      )}
+
+                      {activeColumns.endpoints && (
+                        <TableCell className="hidden md:table-cell text-center">
                       <span className="text-sm tabular-nums">{model.active_connection_count}/{model.connection_count}</span>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        label={model.is_enabled ? "On" : "Off"}
-                        intent={model.is_enabled ? "success" : "muted"}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenuItem onClick={() => handleOpenDialog(model)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteTarget(model)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </TableCell>
+                      )}
+
+                      {activeColumns.success && (
+                        <TableCell className="hidden lg:table-cell text-right">
+                          {metricsLoading && !metrics24h ? (
+                            <span className="text-sm tabular-nums text-muted-foreground">...</span>
+                          ) : (
+                            <span
+                              className={cn(
+                                "text-sm tabular-nums",
+                                successRate === null
+                                  ? "text-muted-foreground"
+                                  : successRate >= 95
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : successRate >= 80
+                                      ? "text-amber-600 dark:text-amber-400"
+                                      : "text-red-600 dark:text-red-400"
+                              )}
+                            >
+                              {successRate === null ? "-" : `${successRate.toFixed(1)}%`}
+                            </span>
+                          )}
+                        </TableCell>
+                      )}
+
+                      {activeColumns.p95 && (
+                        <TableCell className="hidden lg:table-cell text-right text-sm tabular-nums text-muted-foreground">
+                          {metricsLoading ? "..." : formatLatencyCell(p95LatencyMs)}
+                        </TableCell>
+                      )}
+
+                      {activeColumns.requests && (
+                        <TableCell className="hidden lg:table-cell text-right text-sm tabular-nums text-muted-foreground">
+                          {metricsLoading && !metrics24h
+                            ? "..."
+                            : requestCount > 0
+                              ? requestCount.toLocaleString()
+                              : "-"}
+                        </TableCell>
+                      )}
+
+                      {activeColumns.spend && (
+                        <TableCell className="hidden xl:table-cell text-right text-sm tabular-nums">
+                          {metricsLoading
+                            ? "..."
+                            : formatMoneyMicros(spend30dMicros, "$", undefined, 2, 6)}
+                        </TableCell>
+                      )}
+
+                      {activeColumns.status && (
+                        <TableCell>
+                          <StatusBadge
+                            label={model.is_enabled ? "On" : "Off"}
+                            intent={model.is_enabled ? "success" : "muted"}
+                          />
+                        </TableCell>
+                      )}
+
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={() => handleOpenDialog(model)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteTarget(model)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

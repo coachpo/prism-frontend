@@ -1,14 +1,40 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense, type ReactElement } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { ModelsPage } from "@/pages/ModelsPage";
-import { ModelDetailPage } from "@/pages/ModelDetailPage";
-import { StatisticsPage } from "@/pages/StatisticsPage";
-import { RequestLogsPage } from "@/pages/RequestLogsPage";
-import { AuditPage } from "@/pages/AuditPage";
-import { SettingsPage } from "@/pages/SettingsPage";
-import { EndpointsPage } from "@/pages/EndpointsPage";
 import "./App.css";
+
+const DashboardPage = lazy(() =>
+  import("@/pages/DashboardPage").then((module) => ({ default: module.DashboardPage }))
+);
+const ModelsPage = lazy(() =>
+  import("@/pages/ModelsPage").then((module) => ({ default: module.ModelsPage }))
+);
+const ModelDetailPage = lazy(() =>
+  import("@/pages/ModelDetailPage").then((module) => ({ default: module.ModelDetailPage }))
+);
+const EndpointsPage = lazy(() =>
+  import("@/pages/EndpointsPage").then((module) => ({ default: module.EndpointsPage }))
+);
+const StatisticsPage = lazy(() =>
+  import("@/pages/StatisticsPage").then((module) => ({ default: module.StatisticsPage }))
+);
+const RequestLogsPage = lazy(() =>
+  import("@/pages/RequestLogsPage").then((module) => ({ default: module.RequestLogsPage }))
+);
+const AuditPage = lazy(() =>
+  import("@/pages/AuditPage").then((module) => ({ default: module.AuditPage }))
+);
+const SettingsPage = lazy(() =>
+  import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage }))
+);
+
+const routeFallback = (
+  <div className="py-10 text-center text-sm text-muted-foreground">Loading...</div>
+);
+
+function withRouteSuspense(element: ReactElement) {
+  return <Suspense fallback={routeFallback}>{element}</Suspense>;
+}
 
 function App() {
   return (
@@ -16,14 +42,14 @@ function App() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/models" element={<ModelsPage />} />
-          <Route path="/models/:id" element={<ModelDetailPage />} />
-          <Route path="/endpoints" element={<EndpointsPage />} />
-          <Route path="/statistics" element={<StatisticsPage />} />
-          <Route path="/request-logs" element={<RequestLogsPage />} />
-          <Route path="/audit" element={<AuditPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/dashboard" element={withRouteSuspense(<DashboardPage />)} />
+          <Route path="/models" element={withRouteSuspense(<ModelsPage />)} />
+          <Route path="/models/:id" element={withRouteSuspense(<ModelDetailPage />)} />
+          <Route path="/endpoints" element={withRouteSuspense(<EndpointsPage />)} />
+          <Route path="/statistics" element={withRouteSuspense(<StatisticsPage />)} />
+          <Route path="/request-logs" element={withRouteSuspense(<RequestLogsPage />)} />
+          <Route path="/audit" element={withRouteSuspense(<AuditPage />)} />
+          <Route path="/settings" element={withRouteSuspense(<SettingsPage />)} />
         </Route>
       </Routes>
     </BrowserRouter>
@@ -31,4 +57,3 @@ function App() {
 }
 
 export default App;
-

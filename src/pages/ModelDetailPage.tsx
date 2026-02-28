@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { cn, formatProviderType, formatLabel } from "@/lib/utils";
 import {
@@ -7,7 +7,7 @@ import {
   isValidCurrencyCode,
   formatMoneyMicros,
 } from "@/lib/costing";
-import type { ModelConfig, Connection, ConnectionCreate, ConnectionUpdate, ConnectionSuccessRate, Endpoint, EndpointCreate, SpendingSummary, ModelConfigUpdate } from "@/lib/types";
+import type { ModelConfig, Connection, ConnectionCreate, ConnectionUpdate, Endpoint, EndpointCreate, SpendingSummary, ModelConfigUpdate, StatsSummary } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge, TypeBadge, ValueBadge } from "@/components/StatusBadge";
@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, Activity, Loader2, X, ChevronRight, Shield, Coins } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, Activity, Loader2, X, ChevronRight, Shield, Coins, Info, Gauge, Route } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { EmptyState } from "@/components/EmptyState";
 import {
@@ -43,6 +43,40 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+type ConnectionDerivedMetrics = {
+  success_rate_24h: number | null;
+  p95_latency_ms: number | null;
+  five_xx_rate: number | null;
+  request_count_24h: number;
+  heuristic_failover_events: number;
+  last_failover_like_at: string | null;
+};
+
+const get24hFromTime = (): string =>
+  new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+const formatLatencyForDisplay = (value: number | null): string => {
+  if (value === null || !Number.isFinite(value)) return "-";
+  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 1 : 2)}s`;
+  return `${Math.round(value)}ms`;
+};
+
+const buildRequestLogsPath = (params: {
+  modelId: string;
+  connectionId?: number;
+  outcomeFilter?: "all" | "success" | "error";
+  timeRange?: "1h" | "24h" | "7d" | "all";
+}): string => {
+  const search = new URLSearchParams();
+  search.set("model_id", params.modelId);
+  search.set("time_range", params.timeRange ?? "24h");
+  search.set("outcome_filter", params.outcomeFilter ?? "all");
+  if (params.connectionId !== undefined) {
+    search.set("connection_id", String(params.connectionId));
+  }
+  const query = search.toString();
+  return query.length > 0 ? `/request-logs?${query}` : "/request-logs";
+};
 const getConnectionName = (connection: Pick<Connection, "name" | "description">): string =>
   connection.name || connection.description || "";
 export function ModelDetailPage() {
@@ -54,6 +88,11 @@ export function ModelDetailPage() {
   const [isEditModelDialogOpen, setIsEditModelDialogOpen] = useState(false);
   const [spending, setSpending] = useState<SpendingSummary | null>(null);
   const [spendingLoading, setSpendingLoading] = useState(false);
+  const [spendingCurrencySymbol, setSpendingCurrencySymbol] = useState("$");
+  const [spendingCurrencyCode, setSpendingCurrencyCode] = useState("USD");
+  const [kpiSummary24h, setKpiSummary24h] = useState<StatsSummary | null>(null);
+  const [kpiSpend24hMicros, setKpiSpend24hMicros] = useState<number | null>(null);
+  const [metrics24hLoading, setMetrics24hLoading] = useState(false);
   
   // Connection state
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -65,7 +104,7 @@ export function ModelDetailPage() {
   const [dialogTestResult, setDialogTestResult] = useState<{ status: string; detail: string } | null>(null);
   const [pricingSectionOpen, setPricingSectionOpen] = useState(false);
   const [pricingValidationError, setPricingValidationError] = useState<string | null>(null);
-  const [successRates, setSuccessRates] = useState<Map<number, ConnectionSuccessRate>>(new Map());
+  const [connectionMetrics24h, setConnectionMetrics24h] = useState<Map<number, ConnectionDerivedMetrics>>(new Map());
   const [focusedConnectionId, setFocusedConnectionId] = useState<number | null>(null);
   const [connectionCardRefs] = useState<Map<number, HTMLDivElement>>(new Map());
   const focusHandled = useRef(false);
@@ -110,6 +149,8 @@ export function ModelDetailPage() {
         preset: "all" // Get all-time spending by default for the model detail view
       });
       setSpending(data.summary);
+      setSpendingCurrencySymbol(data.report_currency_symbol || "$");
+      setSpendingCurrencyCode(data.report_currency_code || "USD");
     } catch (error) {
       console.error("Failed to fetch spending", error);
     } finally {
@@ -120,19 +161,14 @@ export function ModelDetailPage() {
   const fetchModel = useCallback(async () => {
     if (!id) return;
     try {
-      const [data, rates, endpointsList] = await Promise.all([
+      const [data, endpointsList] = await Promise.all([
         api.models.get(parseInt(id)),
-        api.stats.connectionSuccessRates(),
         api.endpoints.list(),
       ]);
       setModel(data);
       setConnections(data.connections || []);
       setGlobalEndpoints(endpointsList);
-      
-      const rateMap = new Map<number, ConnectionSuccessRate>();
-      for (const r of rates) rateMap.set(r.connection_id, r);
-      setSuccessRates(rateMap);
-      
+
       // Fetch spending data
       fetchSpending(data.model_id);
     } catch (error) {
@@ -162,6 +198,103 @@ export function ModelDetailPage() {
       }
     }, 200);
   }, [model, searchParams, setSearchParams, connectionCardRefs]);
+  useEffect(() => {
+    if (!model) return;
+    let cancelled = false;
+
+    const fetch24hMetrics = async () => {
+      const fromTime = get24hFromTime();
+      setMetrics24hLoading(true);
+
+      try {
+        const [summary24h, spend24h, perConnection] = await Promise.all([
+          api.stats.summary({ model_id: model.model_id, from_time: fromTime }),
+          api.stats.spending({
+            model_id: model.model_id,
+            from_time: fromTime,
+            preset: "custom",
+            group_by: "none",
+          }),
+          Promise.all(
+            connections.map(async (conn) => {
+              const [connectionSummary, recentLogs] = await Promise.all([
+                api.stats.summary({
+                  model_id: model.model_id,
+                  connection_id: conn.id,
+                  from_time: fromTime,
+                }),
+                api.stats.requests({
+                  model_id: model.model_id,
+                  connection_id: conn.id,
+                  from_time: fromTime,
+                  limit: 200,
+                }),
+              ]);
+
+              const logs = recentLogs.items;
+              const fiveXxCount = logs.filter((row) => row.status_code >= 500).length;
+              const sampledCount = logs.length;
+              const latestFailoverLike = logs
+                .filter((row) => row.status_code >= 500)
+                .sort(
+                  (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                )[0]?.created_at ?? null;
+
+              return {
+                connectionId: conn.id,
+                successRate24h: connectionSummary.success_rate,
+                p95LatencyMs: connectionSummary.p95_response_time_ms,
+                requestCount24h: connectionSummary.total_requests,
+                fiveXxRate:
+                  sampledCount > 0 ? (fiveXxCount / sampledCount) * 100 : null,
+                heuristicFailoverEvents: fiveXxCount,
+                lastFailoverLikeAt: latestFailoverLike,
+              };
+            })
+          ),
+        ]);
+
+        if (cancelled) return;
+
+        const nextConnectionMetrics = new Map<number, ConnectionDerivedMetrics>();
+        for (const row of perConnection) {
+          nextConnectionMetrics.set(row.connectionId, {
+            success_rate_24h: row.successRate24h,
+            p95_latency_ms: row.p95LatencyMs,
+            five_xx_rate: row.fiveXxRate,
+            request_count_24h: row.requestCount24h,
+            heuristic_failover_events: row.heuristicFailoverEvents,
+            last_failover_like_at: row.lastFailoverLikeAt,
+          });
+        }
+
+        setConnectionMetrics24h(nextConnectionMetrics);
+        setKpiSummary24h(summary24h);
+        setKpiSpend24hMicros(spend24h.summary.total_cost_micros);
+      } catch (error) {
+        console.error("Failed to fetch 24h model metrics", error);
+      } finally {
+        if (!cancelled) {
+          setMetrics24hLoading(false);
+        }
+      }
+    };
+
+    fetch24hMetrics();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [model, connections]);
+
+  const modelKpis = useMemo(() => {
+    return {
+      successRate: kpiSummary24h?.success_rate ?? null,
+      p95LatencyMs: kpiSummary24h?.p95_response_time_ms ?? null,
+      requestCount24h: kpiSummary24h?.total_requests ?? 0,
+      spend24hMicros: kpiSpend24hMicros,
+    };
+  }, [kpiSummary24h, kpiSpend24hMicros]);
 
   const normalizeOptionalDecimal = (value: string | null | undefined): string | null => {
     if (value === null || value === undefined) {
@@ -529,9 +662,15 @@ export function ModelDetailPage() {
             ) : spending ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Total Cost</p>
+                  <p className="text-xs text-muted-foreground mb-1">Total Cost ({spendingCurrencyCode})</p>
                   <p className="text-2xl font-bold tracking-tight">
-                    {formatMoneyMicros(spending.total_cost_micros, "$")}
+                    {formatMoneyMicros(
+                      spending.total_cost_micros,
+                      spendingCurrencySymbol,
+                      spendingCurrencyCode,
+                      2,
+                      6
+                    )}
                   </p>
                 </div>
                 <div>
@@ -549,7 +688,13 @@ export function ModelDetailPage() {
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Avg Cost / Request</span>
                     <span className="font-medium font-mono">
-                      {formatMoneyMicros(spending.avg_cost_per_successful_request_micros, "$", undefined, 4, 6)}
+                      {formatMoneyMicros(
+                        spending.avg_cost_per_successful_request_micros,
+                        spendingCurrencySymbol,
+                        spendingCurrencyCode,
+                        4,
+                        6
+                      )}
                     </span>
                   </div>
                 </div>
@@ -562,6 +707,57 @@ export function ModelDetailPage() {
           </CardContent>
         </Card>
       </div>
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Gauge className="h-4 w-4" />
+            Model KPIs (24h)
+          </h3>
+          {metrics24hLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-md border p-3">
+                <p className="text-[11px] text-muted-foreground">Success rate (24h)</p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {modelKpis.successRate === null ? "-" : `${modelKpis.successRate.toFixed(1)}%`}
+                </p>
+              </div>
+              <div className="rounded-md border p-3">
+                <p className="text-[11px] text-muted-foreground">P95 latency (24h)</p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {formatLatencyForDisplay(modelKpis.p95LatencyMs)}
+                </p>
+              </div>
+              <div className="rounded-md border p-3">
+                <p className="text-[11px] text-muted-foreground">Requests (24h)</p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {modelKpis.requestCount24h.toLocaleString()}
+                </p>
+              </div>
+              <div className="rounded-md border p-3">
+                <p className="text-[11px] text-muted-foreground">Spend (24h, {spendingCurrencyCode})</p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {modelKpis.spend24hMicros === null
+                    ? "-"
+                    : formatMoneyMicros(
+                        modelKpis.spend24hMicros,
+                        spendingCurrencySymbol,
+                        spendingCurrencyCode,
+                        2,
+                        6
+                      )}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-base font-semibold">
@@ -602,10 +798,10 @@ export function ModelDetailPage() {
       ) : (
         <div className="space-y-2">
           {filteredConnections.map((conn) => {
-            const rate = successRates.get(conn.id);
+            const metrics24h = connectionMetrics24h.get(conn.id);
             const isChecking = healthCheckingIds.has(conn.id);
             const isFocused = focusedConnectionId === conn.id;
-            const successRate = rate?.success_rate ?? 0;
+            const successRate = metrics24h?.success_rate_24h ?? null;
             const endpoint = conn.endpoint;
             const maskedKey = endpoint?.api_key && endpoint.api_key.length > 8
               ? `${endpoint.api_key.slice(0, 4)}••••••${endpoint.api_key.slice(-4)}`
@@ -698,40 +894,94 @@ export function ModelDetailPage() {
                         <span>Checked {new Date(conn.last_health_check).toLocaleTimeString()}</span>
                       )}
                     </div>
-                    {rate && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center gap-2 pt-0.5">
-                              <Progress
-                                value={successRate}
-                                className={cn(
-                                  "h-1.5",
-                                  successRate >= 95 ? "[&>[data-slot=progress-indicator]]:bg-emerald-500" :
-                                  successRate >= 80 ? "[&>[data-slot=progress-indicator]]:bg-amber-500" :
-                                  "[&>[data-slot=progress-indicator]]:bg-red-500"
-                                )}
-                              />
-                              <span className={cn(
-                                "text-[10px] font-medium tabular-nums shrink-0",
-                                successRate >= 95 ? "text-emerald-600 dark:text-emerald-400" :
-                                successRate >= 80 ? "text-amber-600 dark:text-amber-400" :
-                                "text-red-600 dark:text-red-400"
-                              )}>
-                                {successRate.toFixed(1)}%
-                              </span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent className="pointer-events-none">
-                            <p className="text-xs">
-                              {rate.total_requests > 0
-                                ? `${rate.success_count}/${rate.total_requests} requests succeeded`
-                                : "No requests yet"}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <span>Success rate (24h)</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3.5 w-3.5" />
+                            </TooltipTrigger>
+                            <TooltipContent className="pointer-events-none">
+                              <p className="text-xs">
+                                Success rate = successful requests / total requests for this connection in the last 24 hours.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <span className="text-[10px]">n={(metrics24h?.request_count_24h ?? 0).toLocaleString()}</span>
+                      </div>
+                      <Link
+                        to={buildRequestLogsPath({
+                          modelId: model.model_id,
+                          connectionId: conn.id,
+                          timeRange: "24h",
+                          outcomeFilter: "all",
+                        })}
+                        className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <div className="flex items-center gap-2 pt-0.5 hover:opacity-90">
+                          <Progress
+                            value={successRate ?? 0}
+                            className={cn(
+                              "h-1.5",
+                              successRate === null
+                                ? "[&>[data-slot=progress-indicator]]:bg-muted-foreground/40"
+                                : successRate >= 95
+                                  ? "[&>[data-slot=progress-indicator]]:bg-emerald-500"
+                                  : successRate >= 80
+                                    ? "[&>[data-slot=progress-indicator]]:bg-amber-500"
+                                    : "[&>[data-slot=progress-indicator]]:bg-red-500"
+                            )}
+                          />
+                          <span className={cn(
+                            "text-[10px] font-medium tabular-nums shrink-0",
+                            successRate === null
+                              ? "text-muted-foreground"
+                              : successRate >= 95
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : successRate >= 80
+                                  ? "text-amber-600 dark:text-amber-400"
+                                  : "text-red-600 dark:text-red-400"
+                          )}>
+                            {successRate === null ? "-" : `${successRate.toFixed(1)}%`}
+                          </span>
+                        </div>
+                      </Link>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div className="rounded border px-2 py-1.5">
+                          <p className="text-muted-foreground">P95 latency (24h)</p>
+                          <p className="font-medium tabular-nums">
+                            {formatLatencyForDisplay(metrics24h?.p95_latency_ms ?? null)}
+                          </p>
+                        </div>
+                        <div className="rounded border px-2 py-1.5">
+                          <p className="text-muted-foreground">5xx rate (sampled)</p>
+                          <p className="font-medium tabular-nums">
+                            {metrics24h?.five_xx_rate === null ||
+                            metrics24h?.five_xx_rate === undefined
+                              ? "-"
+                              : `${metrics24h.five_xx_rate.toFixed(1)}%`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="rounded border border-dashed px-2 py-1.5 text-[11px] text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Route className="h-3.5 w-3.5" />
+                          Failover-like signals (derived from 5xx)
+                        </div>
+                        <div className="mt-1 flex items-center gap-3">
+                          <span>
+                            Events: {metrics24h?.heuristic_failover_events ?? 0}
+                          </span>
+                          <span>
+                            Last: {metrics24h?.last_failover_like_at
+                              ? new Date(metrics24h.last_failover_like_at).toLocaleString()
+                              : "-"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
