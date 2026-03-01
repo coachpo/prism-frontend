@@ -135,7 +135,7 @@ export function ModelsPage() {
             try {
               const [summary, spending] = await Promise.all([
                 api.stats.summary({ model_id: model.model_id, from_time: fromTime }),
-                api.stats.spending({ model_id: model.model_id, preset: "30d", group_by: "none" }),
+                api.stats.spending({ model_id: model.model_id, preset: "last_30_days", group_by: "none" }),
               ]);
               return {
                 id: model.id,

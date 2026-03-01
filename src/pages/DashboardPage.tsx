@@ -50,7 +50,7 @@ export function DashboardPage() {
             api.models.list(),
             api.stats.summary({ from_time: from24h }),
             api.stats.summary({ from_time: from24h, group_by: "provider" }),
-            api.stats.spending({ preset: "30d", top_n: 5 }),
+            api.stats.spending({ preset: "last_30_days", top_n: 5 }),
             api.stats.requests({ limit: 12 }),
           ]);
         setModels(modelsData);

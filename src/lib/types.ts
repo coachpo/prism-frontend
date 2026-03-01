@@ -522,7 +522,7 @@ export type SpendingGroupBy =
   | "model_endpoint";
 
 export interface SpendingReportParams {
-  preset?: "today" | "24h" | "last_7_days" | "7d" | "last_30_days" | "30d" | "custom" | "all";
+  preset?: "today" | "last_7_days" | "last_30_days" | "custom" | "all";
   from_time?: string;
   to_time?: string;
   provider_type?: string;

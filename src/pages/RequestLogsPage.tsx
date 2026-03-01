@@ -541,7 +541,6 @@ export function RequestLogsPage() {
         setOrDelete("view", view, "overview");
         setOrDelete("triage", triage, "none");
         setOrDelete("search", searchQuery, "");
-        next.delete("endpoint");
         setOrDelete("latency_bucket", latencyBucket, "all");
         if (showPricedOnly) next.set("priced_only", "true");
         else next.delete("priced_only");
