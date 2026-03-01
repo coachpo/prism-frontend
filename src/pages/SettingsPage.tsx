@@ -1582,7 +1582,7 @@ export function SettingsPage() {
                   <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2 text-sm">
                       <Shield className="h-4 w-4" />
-                      Audit Configuration
+                      Audit & Privacy
                     </CardTitle>
                     <CardDescription className="text-xs">
                       Configure provider-level audit capture and privacy defaults.
@@ -1672,7 +1672,7 @@ export function SettingsPage() {
 
                             <div className="flex flex-col items-start gap-2 md:items-end">
                               <p className="text-xs text-muted-foreground">
-                                Audit: {auditStatus} - Bodies: {bodiesStatus}
+                                Audit: {auditStatus} · Bodies: {bodiesStatus}
                               </p>
                               <div className="flex items-center gap-5">
                                 <div className="flex items-center gap-2">
