@@ -29,7 +29,7 @@ function formatEnumLabel(
   if (value === null || value === undefined || value === "") {
     return fallback;
   }
-  return labels[value] ?? value;
+  return labels[value] ?? fallback;
 }
 
 export function microsToDecimal(micros: number | null | undefined): number {

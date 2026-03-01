@@ -18,5 +18,5 @@ const PROVIDER_TYPE_LABELS: Record<string, string> = {
 };
 
 export function formatProviderType(providerType: string): string {
-  return PROVIDER_TYPE_LABELS[providerType] ?? providerType;
+  return PROVIDER_TYPE_LABELS[providerType] ?? "-";
 }

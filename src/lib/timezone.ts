@@ -1,8 +1,5 @@
 import { api } from "@/lib/api";
 
-export function getBrowserTimezone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
 
 export async function getUserTimezonePreference(): Promise<string | null> {
   const settings = await api.settings.costing.get();
