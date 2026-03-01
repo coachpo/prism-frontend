@@ -53,6 +53,59 @@ export function getApiProfileId(): number | null {
   return currentProfileId;
 }
 
+function extractErrorMessage(body: unknown, fallback: string): string {
+  if (!body || typeof body !== "object") {
+    return fallback;
+  }
+
+  const payload = body as Record<string, unknown>;
+  const detail = payload.detail;
+
+  if (typeof detail === "string" && detail.trim().length > 0) {
+    return detail;
+  }
+
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0];
+    if (typeof first === "string" && first.trim().length > 0) {
+      return first;
+    }
+    if (first && typeof first === "object") {
+      const firstDetail = first as Record<string, unknown>;
+      if (typeof firstDetail.msg === "string" && firstDetail.msg.trim().length > 0) {
+        return firstDetail.msg;
+      }
+    }
+  }
+
+  if (detail && typeof detail === "object") {
+    const detailObject = detail as Record<string, unknown>;
+    if (typeof detailObject.message === "string" && detailObject.message.trim().length > 0) {
+      return detailObject.message;
+    }
+  }
+
+  if (typeof payload.message === "string" && payload.message.trim().length > 0) {
+    return payload.message;
+  }
+
+  if (typeof payload.error === "string" && payload.error.trim().length > 0) {
+    return payload.error;
+  }
+
+  if (payload.error && typeof payload.error === "object") {
+    const errorObject = payload.error as Record<string, unknown>;
+    if (typeof errorObject.message === "string" && errorObject.message.trim().length > 0) {
+      return errorObject.message;
+    }
+    if (typeof errorObject.detail === "string" && errorObject.detail.trim().length > 0) {
+      return errorObject.detail;
+    }
+  }
+
+  return fallback;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -68,8 +121,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers,
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(body.detail ?? `HTTP ${res.status}`);
+    const fallbackMessage = `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`;
+    const body = await res.json().catch(() => null);
+    throw new Error(extractErrorMessage(body, fallbackMessage));
   }
   if (res.status === 204) return undefined as T;
   return res.json();

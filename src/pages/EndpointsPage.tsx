@@ -106,11 +106,19 @@ export function EndpointsPage() {
       setDeleteError(null);
       fetchEndpoints();
     } catch (error) {
-      if (error instanceof Error && (error.message.includes("dependency") || error.message.includes("409"))) {
-        setDeleteError(error.message);
-      } else {
-        toast.error(error instanceof Error ? error.message : "Failed to delete endpoint");
+      if (error instanceof Error) {
+        const normalizedMessage = error.message.toLowerCase();
+        if (
+          normalizedMessage.includes("dependency") ||
+          normalizedMessage.includes("409") ||
+          normalizedMessage.includes("cannot delete endpoint") ||
+          normalizedMessage.includes("referenced by connections")
+        ) {
+          setDeleteError(error.message);
+          return;
+        }
       }
+      toast.error(error instanceof Error ? error.message : "Failed to delete endpoint");
     }
   };
 

@@ -1,88 +1,78 @@
 # FRONTEND KNOWLEDGE BASE
 ## OVERVIEW
-React 19 SPA dashboard for managing LLM proxy configuration — models, endpoints, health, request statistics, spending reports, audit logs, and costing settings. Built with Vite 7, TypeScript 5.9, TailwindCSS 4, and shadcn/ui (new-york style).
+React 19 + TypeScript dashboard for Prism management workflows: profiles, models, endpoints, connections, statistics, request logs, audit logs, and settings. Built with Vite 7, Tailwind CSS 4, shadcn/ui, and React Router.
+
 ## STRUCTURE
 ```
 src/
-├── main.tsx                    # Entry: StrictMode + ThemeProvider + TooltipProvider + Toaster + App
-├── App.tsx                     # BrowserRouter with 8 routes inside AppLayout
-├── pages/                      # 8 page components
-│   ├── DashboardPage.tsx       # Overview of all models with health badges — 149 lines
-│   ├── ModelsPage.tsx          # Model CRUD list with provider filter — 556 lines
-│   ├── ModelDetailPage.tsx     # Single model: endpoints, health checks, pricing config — 926 lines
-│   ├── EndpointsPage.tsx       # Global endpoint management (Base URL + API Key)
-│   ├── RequestLogsPage.tsx     # Request logs with filters and pagination
-│   ├── StatisticsPage.tsx      # Request logs + aggregated stats + spending reports with recharts — 1261 lines
-│   ├── AuditPage.tsx           # Audit log viewer with detail modal + cost display — 514 lines
-│   └── SettingsPage.tsx        # Provider audit toggles + header blocklist + costing settings + config export/import — 1192 lines
-├── components/
-│   ├── layout/AppLayout.tsx    # Responsive sidebar nav (collapsible drawer on mobile, fixed on lg+) — 105 lines
-│   ├── statistics/             # Token visualization components (3 files)
-│   │   ├── SpecialTokenCoverageStrip.tsx  # Token coverage visualization
-│   │   ├── SpecialTokenSummaryCard.tsx    # Token summary card
-│   │   └── TokenMetricCell.tsx            # Token metric cell
-│   ├── EmptyState.tsx          # Reusable empty state with icon, title, description, action — 26 lines
-│   ├── MetricCard.tsx          # Metric display card with icon, trend, click handler — 55 lines
-│   ├── PageHeader.tsx          # Reusable page header with title, description, actions — 25 lines
-│   ├── ProviderIcon.tsx        # SVG brand icons for OpenAI, Anthropic, Gemini — 51 lines
-│   ├── ProviderSelect.tsx      # Reusable provider dropdown (supports provider_type or provider_id value) — 70 lines
-│   ├── StatusBadge.tsx         # Semantic color-coded badges (8 intent variants) — 60 lines
-│   ├── ThemeToggle.tsx         # Dark/light mode toggle (next-themes) — 20 lines
-│   ├── SwitchController.tsx    # react-hook-form controlled Switch wrapper — 38 lines
-│   └── ui/                     # shadcn/ui primitives (22 components)
-├── hooks/
-│   └── ProfileContext.tsx  # Profile state management and switching
-├── context/                # React contexts
-│   └── useEndpointNavigation.ts # Navigate to model detail with endpoint focus + owner cache — 35 lines
-├── lib/
-│   ├── api.ts                  # Typed fetch wrapper — all backend API calls (7 namespaces) — 225 lines
-│   ├── types.ts                # TypeScript interfaces mirroring backend schemas — 529 lines
-│   ├── utils.ts                # cn() + formatLabel() + formatProviderType() — 22 lines
-│   ├── costing.ts              # formatMoneyMicros(), microsToDecimal(), enum label formatters — 100 lines
-│   └── configImportValidation.ts # Zod schema for client-side config import validation — 79 lines
-└── assets/                     # Static assets (SVGs)
+|- main.tsx                        # Bootstraps ThemeProvider, TooltipProvider, Toaster, App
+|- App.tsx                         # BrowserRouter with ProfileProvider + AppLayout + 8 lazy routes
+|- context/
+|  `- ProfileContext.tsx           # Selected vs active profile state, localStorage persistence, API header sync
+|- hooks/
+|  |- useConnectionNavigation.ts   # Resolve connection owner and navigate to /models/:id with focus_connection_id
+|  `- useTimezone.ts               # Timezone preference loader keyed by profile revision
+|- lib/
+|  |- api.ts                       # Central request wrapper + all /api namespace calls + X-Profile-Id injection
+|  |- types.ts                     # Frontend schema contracts (snake_case, backend-aligned)
+|  |- costing.ts                   # Micros/currency/pricing formatting helpers
+|  |- timezone.ts                  # Timezone preference + timestamp formatting helpers
+|  |- configImportValidation.ts    # Zod validator for config import payload (version 1)
+|  `- utils.ts                     # Shared UI helpers
+|- components/
+|  |- layout/AppLayout.tsx         # Sidebar, profile switcher, selected/active mismatch UX, profile CRUD dialogs
+|  |- statistics/                  # Special-token + top spending UI helpers (4 files)
+|  |- ui/                          # shadcn/ui primitives
+|  `- *.tsx                        # Shared app components (MetricCard, PageHeader, ProviderSelect, etc.)
+|- pages/
+|  |- DashboardPage.tsx
+|  |- ModelsPage.tsx
+|  |- ModelDetailPage.tsx
+|  |- EndpointsPage.tsx
+|  |- StatisticsPage.tsx
+|  |- RequestLogsPage.tsx
+|  |- AuditPage.tsx
+|  `- SettingsPage.tsx
+|- App.css
+|- index.css
+`- assets/
 ```
+
+> Current route map (`App.tsx`):
+- `/` -> redirect to `/dashboard`
+- `/dashboard` -> `DashboardPage`
+- `/models` -> `ModelsPage`
+- `/models/:id` -> `ModelDetailPage`
+- `/endpoints` -> `EndpointsPage`
+- `/statistics` -> `StatisticsPage`
+- `/request-logs` -> `RequestLogsPage`
+- `/audit` -> `AuditPage`
+- `/settings` -> `SettingsPage`
+
 ## WHERE TO LOOK
 | Task | Location | Notes |
-|------|----------|-------|
-| Add API call | `lib/api.ts` | Add to `api` object, use `request<T>()` helper |
-| Add/change types | `lib/types.ts` | Must match backend Pydantic schemas exactly (snake_case fields) |
-| Add page | `App.tsx` (route) + `pages/` (component) + `AppLayout` (nav link) |
-| Add UI component | `pnpm dlx shadcn add <name>` | Installs to `components/ui/` |
-| Add reusable component | `components/` | See EmptyState, MetricCard, PageHeader, StatusBadge, ProviderSelect for patterns |
-| Change API base URL | `VITE_API_BASE` env var | Default: same-origin `""` (local dev uses Vite proxy to backend) |
-| Theming | `index.css` + `next-themes` | CSS variables (oklch color space) for light/dark, `--radius: 0.625rem` |
-| Audit UI | `pages/AuditPage.tsx` | Log list + detail modal with request/response bodies + cost display |
-| Provider settings | `pages/SettingsPage.tsx` | Audit toggles + costing settings + header blocklist + config export/import |
-| Spending reports | `pages/StatisticsPage.tsx` | Spending tab with recharts, group-by, time presets, top models/endpoints |
-| Pricing config | `pages/ModelDetailPage.tsx` | Per-endpoint pricing form (unit, currency, 5 price fields, policy) |
-| Charts/graphs | `pages/StatisticsPage.tsx` | Uses `recharts` library |
-| Navigate to endpoint | `hooks/useEndpointNavigation.ts` | Resolves endpoint → model via API, caches owner |
-| Format labels | `lib/utils.ts` | `formatLabel()` for snake_case→Title Case, `formatProviderType()` for display names |
-| Format costs | `lib/costing.ts` | `formatMoneyMicros()`, `microsToDecimal()`, pricing/FX enum labels |
-| Config import validation | `lib/configImportValidation.ts` | Zod schema validates JSON before sending to backend |
-| Provider dropdown | `components/ProviderSelect.tsx` | Reusable select with provider icons, supports type or ID value |
-|| Endpoints page | `pages/EndpointsPage.tsx` | Global endpoint management (Base URL + API Key) |
-|| Request logs page | `pages/RequestLogsPage.tsx` | Dedicated request logs view with filters |
-|| Profile management | `context/ProfileContext.tsx` | Profile state, switching, active profile tracking |
+|---|---|---|
+| Profile scope behavior | `src/context/ProfileContext.tsx`, `src/lib/api.ts` | `selectedProfileId` persisted as `prism.selectedProfileId`; `X-Profile-Id` added only for `/api/*` |
+| Navigation to owning model | `src/hooks/useConnectionNavigation.ts` | Caches by profile (`Map<profileId, Map<connectionId, owner>>`) |
+| Global shell + profile UX | `src/components/layout/AppLayout.tsx` | Shows selected/active mismatch and explicit activate action |
+| API calls | `src/lib/api.ts` | All page-level backend calls should go through this module |
+| Type alignment | `src/lib/types.ts` | Keep backend schema parity; snake_case keys are intentional |
+| Config import UX + validation | `src/pages/SettingsPage.tsx`, `src/lib/configImportValidation.ts` | Validates canonical config contract before POST |
+| Spending and operations views | `src/pages/StatisticsPage.tsx`, `src/pages/RequestLogsPage.tsx` | URL-synced filters and grouped analytics |
+| Cost formatting | `src/lib/costing.ts` | Use helpers instead of rendering raw micros |
+| Timezone behavior | `src/hooks/useTimezone.ts`, `src/lib/timezone.ts` | Time formatting follows backend preference with browser fallback |
+
 ## CONVENTIONS
-- Import paths use `@/` alias (resolves to `src/`)
-- All API calls go through `lib/api.ts` — never use raw `fetch()` in components
-- Types in `lib/types.ts` use `snake_case` field names to match backend JSON responses
-- Forms use `react-hook-form` + `zod` for validation
-- Toast notifications via `sonner`
-- Icons from `lucide-react`; provider brand icons via `components/ProviderIcon.tsx`
-- Responsive layout: collapsible sidebar drawer on mobile, fixed on lg+
-- No global state management — all state is local (useState) or URL-based (React Router params)
-- All data fetched fresh from backend on page load — no client-side cache (except `useEndpointNavigation` owner cache)
-- Package manager: pnpm 10.30.1 (pinned via `packageManager` field in package.json)
-- No test framework configured — lint only (`pnpm run lint`)
-- Costs displayed via `lib/costing.ts` helpers — always convert micros to decimal for display
-- shadcn/ui components: badge, button, card, chart, collapsible, dialog, dropdown-menu, form, input, label, popover, progress, scroll-area, select, separator, sheet, skeleton, sonner, switch, table, tabs, tooltip
+- Prefer `@/` imports for `src` modules; relative imports still exist in a few local files and are acceptable when simple.
+- Route/page data fetching should use `src/lib/api.ts`; do not introduce ad hoc fetch wrappers in pages.
+- `ProfileContext` is the app-wide state for profile selection and activation UX; use it instead of duplicating profile state.
+- `selected profile` (management scope) and `active profile` (runtime proxy scope) are intentionally different concepts in UI copy and behavior.
+- Forms are mixed by design: some flows use `react-hook-form` + `zod`, others use local component state.
+- Package manager is `pnpm` (`packageManager: pnpm@10.30.1`).
+
 ## ANTI-PATTERNS
-- Don't add providers beyond OpenAI/Anthropic/Gemini — backend only supports these three
-- Don't create types that diverge from backend schemas — `lib/types.ts` is the single source of truth for the frontend
-- Don't use `localStorage` for API state — all state is fetched fresh from backend on page load
-- Don't use `npm` or `npx` — this project uses pnpm (e.g., `pnpm dlx shadcn add <component>`, not `npx shadcn add`)
-- Don't use relative imports — always use `@/` path alias
-- Don't display raw micros values — always use `formatMoneyMicros()` or `microsToDecimal()` from `lib/costing.ts`
+- Do not bypass `src/lib/api.ts` for Prism backend requests in feature pages.
+- Do not assume selected profile equals active runtime profile in UI logic.
+- Do not remove confirmation guards around destructive Settings actions (import restore, delete retention operations).
+- Do not add unsupported provider types in frontend enums/selectors (`openai`, `anthropic`, `gemini` only).
+- Do not render raw micros values in user-facing spending/cost fields when helpers exist.
