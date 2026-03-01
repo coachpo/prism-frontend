@@ -10,7 +10,6 @@ const MISSING_SPECIAL_TOKEN_POLICY_LABELS: Record<string, string> = {
 };
 
 const UNPRICED_REASON_LABELS: Record<string, string> = {
-  LEGACY_NO_COST_DATA: "Legacy (no cost data)",
   PRICING_DISABLED: "Pricing disabled",
   MISSING_PRICE_DATA: "Missing price data",
   MISSING_ENDPOINT: "Missing endpoint",

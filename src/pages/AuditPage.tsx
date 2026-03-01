@@ -294,8 +294,8 @@ function BodyInspector({ content, emptyMessage }: BodyInspectorProps) {
 }
 
 const getConnectionLabel = (
-  connection: Pick<ConnectionDropdownItem, "id" | "name" | "description">
-): string => connection.name || connection.description || `Connection #${connection.id}`;
+  connection: Pick<ConnectionDropdownItem, "id" | "name">
+): string => connection.name ?? `Connection #${connection.id}`;
 
 export function AuditPage() {
   const navigate = useNavigate();

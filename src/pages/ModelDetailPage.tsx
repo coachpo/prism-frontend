@@ -77,8 +77,8 @@ const buildRequestLogsPath = (params: {
   const query = search.toString();
   return query.length > 0 ? `/request-logs?${query}` : "/request-logs";
 };
-const getConnectionName = (connection: Pick<Connection, "name" | "description">): string =>
-  connection.name || connection.description || "";
+const getConnectionName = (connection: Pick<Connection, "name">): string =>
+  connection.name ?? "";
 export function ModelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -135,7 +135,6 @@ export function ModelDetailPage() {
     cache_creation_price: null,
     reasoning_price: null,
     missing_special_token_price_policy: "MAP_TO_OUTPUT",
-    forward_stream_options: false,
   });
 
   const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
@@ -149,8 +148,8 @@ export function ModelDetailPage() {
         preset: "all" // Get all-time spending by default for the model detail view
       });
       setSpending(data.summary);
-      setSpendingCurrencySymbol(data.report_currency_symbol || "$");
-      setSpendingCurrencyCode(data.report_currency_code || "USD");
+      setSpendingCurrencySymbol(data.report_currency_symbol);
+      setSpendingCurrencyCode(data.report_currency_code);
     } catch (error) {
       console.error("Failed to fetch spending", error);
     } finally {
@@ -392,14 +391,13 @@ export function ModelDetailPage() {
         is_active: connection.is_active,
         custom_headers: connection.custom_headers,
         pricing_enabled: connection.pricing_enabled,
-        pricing_currency_code: connection.pricing_currency_code || "USD",
+        pricing_currency_code: connection.pricing_currency_code,
         input_price: connection.input_price,
         output_price: connection.output_price,
         cached_input_price: connection.cached_input_price,
         cache_creation_price: connection.cache_creation_price,
         reasoning_price: connection.reasoning_price,
         missing_special_token_price_policy: connection.missing_special_token_price_policy,
-        forward_stream_options: connection.forward_stream_options,
       });
       setPricingSectionOpen(connection.pricing_enabled);
       // When editing, we don't use createMode or newEndpointForm
@@ -421,7 +419,6 @@ export function ModelDetailPage() {
         cache_creation_price: null,
         reasoning_price: null,
         missing_special_token_price_policy: "MAP_TO_OUTPUT",
-        forward_stream_options: false,
       });
       setNewEndpointForm({
         name: "",
@@ -869,7 +866,7 @@ export function ModelDetailPage() {
                         conn.health_status === "unhealthy" ? "bg-red-500" : "bg-gray-400"
                       )} />
                       <span className="text-sm font-medium truncate">
-                        {getConnectionName(conn) || endpoint?.name || `Connection #${conn.id}`}
+                        {getConnectionName(conn) || `Connection #${conn.id}`}
                       </span>
                       <ValueBadge
                         label={`P${conn.priority}`}
@@ -1180,12 +1177,6 @@ export function ModelDetailPage() {
               checked={connectionForm.is_active ?? true}
               onCheckedChange={(checked) => setConnectionForm({ ...connectionForm, is_active: checked })}
             />
-            <SwitchController
-              label="Forward stream_options"
-              description="Pass stream_options to the upstream provider instead of stripping it"
-              checked={connectionForm.forward_stream_options ?? false}
-              onCheckedChange={(checked) => setConnectionForm({ ...connectionForm, forward_stream_options: checked })}
-            />
 
             <Collapsible
               open={pricingSectionOpen}
@@ -1218,9 +1209,6 @@ export function ModelDetailPage() {
                     setConnectionForm({
                       ...connectionForm,
                       pricing_enabled: checked,
-                      ...(checked && {
-                        pricing_currency_code: connectionForm.pricing_currency_code || "USD",
-                      }),
                     })
                   }
                 />

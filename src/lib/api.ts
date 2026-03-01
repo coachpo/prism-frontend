@@ -78,31 +78,6 @@ function extractErrorMessage(body: unknown, fallback: string): string {
     }
   }
 
-  if (detail && typeof detail === "object") {
-    const detailObject = detail as Record<string, unknown>;
-    if (typeof detailObject.message === "string" && detailObject.message.trim().length > 0) {
-      return detailObject.message;
-    }
-  }
-
-  if (typeof payload.message === "string" && payload.message.trim().length > 0) {
-    return payload.message;
-  }
-
-  if (typeof payload.error === "string" && payload.error.trim().length > 0) {
-    return payload.error;
-  }
-
-  if (payload.error && typeof payload.error === "object") {
-    const errorObject = payload.error as Record<string, unknown>;
-    if (typeof errorObject.message === "string" && errorObject.message.trim().length > 0) {
-      return errorObject.message;
-    }
-    if (typeof errorObject.detail === "string" && errorObject.detail.trim().length > 0) {
-      return errorObject.detail;
-    }
-  }
-
   return fallback;
 }
 

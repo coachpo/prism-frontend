@@ -1,14 +1,10 @@
 import { useEffect, useState } from "react";
 import { useProfileContext } from "@/context/ProfileContext";
-import {
-  formatTimestamp,
-  getBrowserTimezone,
-  getUserTimezonePreference,
-} from "@/lib/timezone";
+import { formatTimestamp, getUserTimezonePreference } from "@/lib/timezone";
 
 export function useTimezone() {
   const { revision } = useProfileContext();
-  const [timezone, setTimezone] = useState<string>(getBrowserTimezone());
+  const [timezone, setTimezone] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,6 +31,9 @@ export function useTimezone() {
   }, [revision]);
 
   const format = (isoString: string, options?: Intl.DateTimeFormatOptions) => {
+    if (!timezone) {
+      return "-";
+    }
     return formatTimestamp(isoString, timezone, options);
   };
 

@@ -4,16 +4,9 @@ export function getBrowserTimezone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-export async function getUserTimezonePreference(): Promise<string> {
-  try {
-    const settings = await api.settings.costing.get();
-    if (settings.timezone_preference) {
-      return settings.timezone_preference;
-    }
-  } catch (error) {
-    console.error("Failed to fetch timezone preference:", error);
-  }
-  return getBrowserTimezone();
+export async function getUserTimezonePreference(): Promise<string | null> {
+  const settings = await api.settings.costing.get();
+  return settings.timezone_preference ?? null;
 }
 
 export function formatTimestamp(

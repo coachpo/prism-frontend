@@ -16,34 +16,26 @@ const EndpointExportSchema = z.object({
 });
 
 const ConnectionExportSchema = z.object({
-    connection_ref: z.string(),
-    endpoint_ref: z.string(),
-    is_active: z.boolean(),
-    priority: z.number(),
-    name: z.string().nullable().optional(),
-    description: z.string().nullable().optional(),
-    auth_type: z.string().nullable(),
-    custom_headers: z.record(z.string(), z.string()).nullable(),
-    pricing_enabled: z.boolean().optional().default(false),
-    pricing_currency_code: z.string().nullable().optional(),
-    input_price: z.string().nullable().optional(),
-    output_price: z.string().nullable().optional(),
-    cached_input_price: z.string().nullable().optional(),
-    cache_creation_price: z.string().nullable().optional(),
-    reasoning_price: z.string().nullable().optional(),
-    missing_special_token_price_policy: z
-      .enum(["MAP_TO_OUTPUT", "ZERO_COST"])
-      .optional()
-      .default("MAP_TO_OUTPUT"),
-    pricing_config_version: z.number().optional().default(0),
-    forward_stream_options: z.boolean().optional().default(false),
-  })
-  .transform((value) => ({
-    ...value,
-    name: value.name ?? value.description ?? null,
-    description: value.description ?? value.name ?? null,
-  }));
-
+  connection_ref: z.string(),
+  endpoint_ref: z.string(),
+  is_active: z.boolean(),
+  priority: z.number(),
+  name: z.string().nullable(),
+  auth_type: z.string().nullable(),
+  custom_headers: z.record(z.string(), z.string()).nullable(),
+  pricing_enabled: z.boolean().optional().default(false),
+  pricing_currency_code: z.string().nullable().optional(),
+  input_price: z.string().nullable().optional(),
+  output_price: z.string().nullable().optional(),
+  cached_input_price: z.string().nullable().optional(),
+  cache_creation_price: z.string().nullable().optional(),
+  reasoning_price: z.string().nullable().optional(),
+  missing_special_token_price_policy: z
+    .enum(["MAP_TO_OUTPUT", "ZERO_COST"])
+    .optional()
+    .default("MAP_TO_OUTPUT"),
+  pricing_config_version: z.number().optional().default(0),
+});
 const ModelExportSchema = z.object({
   provider_type: z.string(),
   model_id: z.string(),
@@ -78,14 +70,14 @@ const UserSettingsExportSchema = z.object({
 });
 
 export const ConfigImportSchema = z.object({
-  version: z.literal(1),
+  config_version: z.literal("1"),
   exported_at: z.string().optional(),
   providers: z.array(ProviderExportSchema),
   endpoints: z.array(EndpointExportSchema),
   models: z.array(ModelExportSchema),
   user_settings: UserSettingsExportSchema.optional(),
   header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),
-  mode: z.literal("replace").optional(),
+  mode: z.literal("replace"),
 });
 
 export type ConfigImportSchemaType = z.infer<typeof ConfigImportSchema>;

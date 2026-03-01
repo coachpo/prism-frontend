@@ -74,7 +74,6 @@ export interface Connection {
   is_active: boolean;
   priority: number;
   name: string | null;
-  description: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
   pricing_enabled: boolean;
@@ -85,7 +84,6 @@ export interface Connection {
   cache_creation_price: string | null;
   reasoning_price: string | null;
   missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
-  forward_stream_options: boolean;
   pricing_config_version: number;
   health_status: string;
   health_detail: string | null;
@@ -100,7 +98,6 @@ export interface ConnectionCreate {
   is_active?: boolean;
   priority?: number;
   name?: string | null;
-  description?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_enabled?: boolean;
@@ -111,7 +108,7 @@ export interface ConnectionCreate {
   cache_creation_price?: string | null;
   reasoning_price?: string | null;
   missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
-  forward_stream_options?: boolean;
+  pricing_config_version?: number;
 }
 
 export interface ConnectionUpdate {
@@ -120,7 +117,6 @@ export interface ConnectionUpdate {
   is_active?: boolean;
   priority?: number;
   name?: string | null;
-  description?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_enabled?: boolean;
@@ -131,7 +127,7 @@ export interface ConnectionUpdate {
   cache_creation_price?: string | null;
   reasoning_price?: string | null;
   missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
-  forward_stream_options?: boolean;
+  pricing_config_version?: number;
 }
 
 export interface HealthCheckResponse {
@@ -147,7 +143,6 @@ export interface ConnectionOwnerResponse {
   model_config_id: number;
   model_id: string;
   connection_name: string | null;
-  connection_description: string | null;
   endpoint_id: number;
   endpoint_name: string;
   endpoint_base_url: string;
@@ -157,7 +152,6 @@ export interface ConnectionDropdownItem {
   id: number;
   endpoint_id: number;
   name: string | null;
-  description: string | null;
 }
 
 export interface ConnectionDropdownResponse {
@@ -352,7 +346,6 @@ export interface ConfigConnectionExport {
   is_active: boolean;
   priority: number;
   name: string | null;
-  description: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
   pricing_enabled: boolean;
@@ -364,7 +357,6 @@ export interface ConfigConnectionExport {
   reasoning_price: string | null;
   missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
   pricing_config_version: number;
-  forward_stream_options: boolean;
 }
 
 export interface ConfigModelExport {
@@ -403,7 +395,8 @@ export interface ConfigUserSettingsExport {
 }
 
 export interface ConfigExportResponse {
-  version: 1;
+  config_version: "1";
+  mode: "replace";
   exported_at: string;
   providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
@@ -413,14 +406,14 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 1;
+  config_version: "1";
   exported_at?: string;
   providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
-  mode?: "replace";
+  mode: "replace";
 }
 export interface ConfigImportResponse {
   providers_imported: number;

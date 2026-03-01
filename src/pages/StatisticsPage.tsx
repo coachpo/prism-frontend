@@ -177,9 +177,9 @@ function parseSpendingLimitParam(value: string | null): number {
 }
 
 function getConnectionLabel(
-  connection: Pick<ConnectionDropdownItem, "id" | "name" | "description">
+  connection: Pick<ConnectionDropdownItem, "id" | "name">
  ): string {
-  return connection.name || connection.description || `Connection #${connection.id}`;
+  return connection.name ?? `Connection #${connection.id}`;
 }
 
 function hasSpecialTokenValue(value: number | null | undefined): boolean {

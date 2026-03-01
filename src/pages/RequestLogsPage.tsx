@@ -300,8 +300,18 @@ function rowHasAnySpecialToken(log: RequestLogEntry): boolean {
   );
 }
 
-function getConnectionLabel(connection: Pick<ConnectionDropdownItem, "id" | "name" | "description">): string {
-  return connection.name || connection.description || `Connection #${connection.id}`;
+function getConnectionLabel(connection: Pick<ConnectionDropdownItem, "id" | "name">): string {
+  return connection.name ?? `Connection #${connection.id}`;
+}
+
+function getDisplayCurrency(log: Pick<RequestLogEntry, "report_currency_symbol" | "report_currency_code">): {
+  symbol: string;
+  code: string | undefined;
+} {
+  return {
+    symbol: log.report_currency_symbol ?? "$",
+    code: log.report_currency_code ?? undefined,
+  };
 }
 
 function formatErrorDetail(detail: string | null): string | null {
@@ -723,8 +733,7 @@ export function RequestLogsPage() {
 
   const renderCell = (column: ColumnId, log: RequestLogEntry) => {
     const endpointLogId = log.connection_id;
-    const reportCurrencySymbol = log.report_currency_symbol || "$";
-    const reportCurrencyCode = log.report_currency_code || undefined;
+    const { symbol: reportCurrencySymbol, code: reportCurrencyCode } = getDisplayCurrency(log);
     const errorMsg = formatErrorDetail(log.error_detail);
 
     switch (column) {
@@ -1478,8 +1487,8 @@ export function RequestLogsPage() {
                       <Coins className="h-3.5 w-3.5" />
                       {formatMoneyMicros(
                         selectedLog.total_cost_user_currency_micros,
-                        selectedLog.report_currency_symbol || "$",
-                        selectedLog.report_currency_code || undefined,
+                        getDisplayCurrency(selectedLog).symbol,
+                        getDisplayCurrency(selectedLog).code,
                         2,
                         6
                       )}
@@ -1555,13 +1564,13 @@ export function RequestLogsPage() {
                       <div className="rounded-md border p-3">
                         <p className="text-muted-foreground">Input Cost</p>
                         <p className="mt-1 font-mono">
-                          {formatMoneyMicros(selectedLog.input_cost_micros, selectedLog.report_currency_symbol || "$")}
+                          {formatMoneyMicros(selectedLog.input_cost_micros, getDisplayCurrency(selectedLog).symbol)}
                         </p>
                       </div>
                       <div className="rounded-md border p-3">
                         <p className="text-muted-foreground">Output Cost</p>
                         <p className="mt-1 font-mono">
-                          {formatMoneyMicros(selectedLog.output_cost_micros, selectedLog.report_currency_symbol || "$")}
+                          {formatMoneyMicros(selectedLog.output_cost_micros, getDisplayCurrency(selectedLog).symbol)}
                         </p>
                       </div>
                       <div className="rounded-md border p-3">
@@ -1569,7 +1578,7 @@ export function RequestLogsPage() {
                         <p className="mt-1 font-mono">
                           {formatMoneyMicros(
                             selectedLog.cache_read_input_cost_micros,
-                            selectedLog.report_currency_symbol || "$"
+                            getDisplayCurrency(selectedLog).symbol
                           )}
                         </p>
                       </div>
@@ -1578,14 +1587,14 @@ export function RequestLogsPage() {
                         <p className="mt-1 font-mono">
                           {formatMoneyMicros(
                             selectedLog.cache_creation_input_cost_micros,
-                            selectedLog.report_currency_symbol || "$"
+                            getDisplayCurrency(selectedLog).symbol
                           )}
                         </p>
                       </div>
                       <div className="rounded-md border p-3">
                         <p className="text-muted-foreground">Reasoning Cost</p>
                         <p className="mt-1 font-mono">
-                          {formatMoneyMicros(selectedLog.reasoning_cost_micros, selectedLog.report_currency_symbol || "$")}
+                          {formatMoneyMicros(selectedLog.reasoning_cost_micros, getDisplayCurrency(selectedLog).symbol)}
                         </p>
                       </div>
                       <div className="rounded-md border p-3">
@@ -1593,8 +1602,8 @@ export function RequestLogsPage() {
                         <p className="mt-1 font-mono font-semibold">
                           {formatMoneyMicros(
                             selectedLog.total_cost_user_currency_micros,
-                            selectedLog.report_currency_symbol || "$",
-                            selectedLog.report_currency_code || undefined,
+                            getDisplayCurrency(selectedLog).symbol,
+                            getDisplayCurrency(selectedLog).code,
                             2,
                             6
                           )}

@@ -94,9 +94,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             ? null
             : fetchedProfiles.find((profile) => profile.id === persistedId) ?? null;
 
-        const fallbackProfile = fetchedProfiles[0] ?? null;
-        const targetProfile = persistedProfile ?? fetchedActiveProfile ?? fallbackProfile;
-
+        const targetProfile = persistedProfile ?? fetchedActiveProfile;
         if (targetProfile) {
           setSelectedProfileId(targetProfile.id);
           setApiProfileId(targetProfile.id);
@@ -182,8 +180,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       if (selectedProfileId === id) {
         const nextActiveProfile =
-          refreshedProfiles.find((profile) => profile.is_active) ?? refreshedProfiles[0] ?? null;
-
+          refreshedProfiles.find((profile) => profile.is_active) ?? null;
         if (nextActiveProfile) {
           setSelectedProfileId(nextActiveProfile.id);
           setApiProfileId(nextActiveProfile.id);

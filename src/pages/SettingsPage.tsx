@@ -94,8 +94,8 @@ const DEFAULT_COSTING_FORM: CostingSettingsUpdate = {
   endpoint_fx_mappings: [],
 };
 
-const getConnectionName = (connection: Pick<Connection, "name" | "description">): string =>
-  connection.name || connection.description || "";
+const getConnectionName = (connection: Pick<Connection, "name">): string =>
+  connection.name ?? "";
 
 const getMappingKey = (mapping: EndpointFxMapping): string =>
   `${mapping.model_id}::${mapping.endpoint_id}`;
