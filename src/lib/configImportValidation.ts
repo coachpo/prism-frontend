@@ -9,18 +9,15 @@ const ProviderExportSchema = z.object({
 });
 
 const EndpointExportSchema = z.object({
-  endpoint_id: z.number().nullable().optional(),
-  endpoint_ref: z.string().nullable().optional(),
+  endpoint_ref: z.string(),
   name: z.string(),
   base_url: z.string(),
   api_key: z.string(),
 });
 
 const ConnectionExportSchema = z.object({
-    connection_id: z.number().nullable().optional(),
-    connection_ref: z.string().nullable().optional(),
-    endpoint_id: z.number().nullable().optional(),
-    endpoint_ref: z.string().nullable().optional(),
+    connection_ref: z.string(),
+    endpoint_ref: z.string(),
     is_active: z.boolean(),
     priority: z.number(),
     name: z.string().nullable().optional(),
@@ -36,7 +33,7 @@ const ConnectionExportSchema = z.object({
     reasoning_price: z.string().nullable().optional(),
     missing_special_token_price_policy: z
       .enum(["MAP_TO_OUTPUT", "ZERO_COST"])
-.optional()
+      .optional()
       .default("MAP_TO_OUTPUT"),
     pricing_config_version: z.number().optional().default(0),
     forward_stream_options: z.boolean().optional().default(false),
@@ -70,8 +67,7 @@ const HeaderBlocklistRuleExportSchema = z.object({
 
 const EndpointFxRateExportSchema = z.object({
   model_id: z.string(),
-  endpoint_id: z.number().nullable().optional(),
-  endpoint_ref: z.string().nullable().optional(),
+  endpoint_ref: z.string(),
   fx_rate: z.string(),
 });
 
@@ -81,19 +77,15 @@ const UserSettingsExportSchema = z.object({
   endpoint_fx_mappings: z.array(EndpointFxRateExportSchema).optional().default([]),
 });
 
-  export const ConfigImportSchema = z.object({
-    version: z.union([z.literal(6), z.literal(7)]),
-    exported_at: z.string().optional(),
-    providers: z.array(ProviderExportSchema),
-    endpoints: z.array(EndpointExportSchema),
-    models: z.array(ModelExportSchema),
-    user_settings: UserSettingsExportSchema.optional(),
-    header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),
-    mode: z.enum(["replace", "merge"]).optional(),
-  })
-  .transform((value) => ({
-    ...value,
-    mode: value.version === 7 ? value.mode ?? "replace" : value.mode,
-  }));
+export const ConfigImportSchema = z.object({
+  version: z.literal(1),
+  exported_at: z.string().optional(),
+  providers: z.array(ProviderExportSchema),
+  endpoints: z.array(EndpointExportSchema),
+  models: z.array(ModelExportSchema),
+  user_settings: UserSettingsExportSchema.optional(),
+  header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),
+  mode: z.literal("replace").optional(),
+});
 
 export type ConfigImportSchemaType = z.infer<typeof ConfigImportSchema>;

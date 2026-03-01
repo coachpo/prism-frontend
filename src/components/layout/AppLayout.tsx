@@ -328,7 +328,7 @@ export function AppLayout() {
 
         <aside
           className={cn(
-            "fixed left-0 top-0 z-50 flex h-full w-[280px] flex-col bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-in-out",
+            "fixed left-0 top-0 z-50 flex h-full w-[min(88vw,320px)] flex-col bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-in-out lg:w-[320px]",
             "lg:translate-x-0",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
@@ -347,13 +347,37 @@ export function AppLayout() {
             </button>
           </div>
 
-          <div className="border-b border-sidebar-border px-3 py-3 text-[11px]">
-            <p className="mb-2 font-medium uppercase tracking-wide text-sidebar-foreground/45">
-              Profile status
-            </p>
-            <p className="text-sidebar-foreground/90">Selected: {selectedProfileName}</p>
-            <p className="mt-1 text-sidebar-foreground/65">Active runtime: {activeProfileName}</p>
-          </div>
+          <div className="border-b border-sidebar-border px-3 py-3">
+            <div className="rounded-lg border border-sidebar-border/80 bg-sidebar-accent/35 px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/55">
+                  Profile runtime
+                </p>
+                <span
+                  className={cn(
+                    "rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+                    hasMismatch
+                      ? "border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-200"
+                      : selectedProfile && activeProfile
+                        ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-200"
+                        : "border-sidebar-border/80 bg-sidebar-accent/50 text-sidebar-foreground/65"
+                  )}
+                >
+                  {hasMismatch ? "Mismatch" : selectedProfile && activeProfile ? "Aligned" : "Unavailable"}
+                </span>
+              </div>
+              <dl className="mt-2 grid grid-cols-[72px_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 text-xs">
+                <dt className="text-sidebar-foreground/60">Viewing</dt>
+                <dd className="truncate font-medium text-sidebar-foreground/95">
+                  {selectedProfileName}
+                </dd>
+                <dt className="text-sidebar-foreground/60">Runtime</dt>
+                <dd className="truncate font-medium text-sidebar-foreground/95">
+                  {activeProfileName}
+                </dd>
+              </dl>
+            </div>
+            </div>
 
           <nav className="flex-1 space-y-0.5 px-2 py-3">
             {navLinks.map(({ to, icon: Icon, label }) => (
@@ -381,7 +405,7 @@ export function AppLayout() {
           </div>
         </aside>
 
-        <div className="flex flex-1 flex-col lg:ml-[280px]">
+        <div className="flex flex-1 flex-col lg:ml-[320px]">
           <header className="sticky top-0 z-30 border-b bg-background/95 px-4 py-3 backdrop-blur-sm">
             <div className="mx-auto flex w-full max-w-screen-xl items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2.5">
@@ -416,6 +440,8 @@ export function AppLayout() {
                       variant="outline"
                       className="h-9 w-[min(76vw,320px)] justify-between gap-2 px-2.5 sm:w-[320px]"
                       disabled={isProfilePillBusy}
+                      role="combobox"
+                      aria-expanded={profileSwitcherOpen}
                       title={`Selected profile: ${selectedProfileName}. Active runtime: ${activeProfileName}.`}
 >
                       <span className="min-w-0 truncate text-sm">
@@ -450,7 +476,11 @@ export function AppLayout() {
                     </Button>
                   </PopoverTrigger>
 
-                  <PopoverContent align="end" className="w-[380px] max-w-[94vw] overflow-hidden p-0">
+                  <PopoverContent
+                    align="end"
+                    collisionPadding={8}
+                    className="z-[60] w-[var(--radix-popover-trigger-width)] max-w-[94vw] p-0"
+                  >
                     <div className="border-b px-3 py-2">
                       <p className="text-sm font-medium">Select profile</p>
                       <Input
@@ -488,7 +518,10 @@ export function AppLayout() {
                                   <div className="flex items-center gap-2">
                                     <span className="truncate text-sm font-medium">{profile.name}</span>
                                     {isActive ? (
-                                      <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                                      <Badge
+                                        variant="outline"
+                                        className="h-5 border-emerald-500/40 bg-emerald-500/15 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-200"
+                                      >
                                         ACTIVE
                                       </Badge>
                                     ) : null}

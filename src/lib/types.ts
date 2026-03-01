@@ -403,7 +403,7 @@ export interface ConfigUserSettingsExport {
 }
 
 export interface ConfigExportResponse {
-  version: 6 | 7;
+  version: 1;
   exported_at: string;
   providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
@@ -413,14 +413,14 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 6 | 7;
+  version: 1;
   exported_at?: string;
   providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
-  mode?: "replace" | "merge";
+  mode?: "replace";
 }
 export interface ConfigImportResponse {
   providers_imported: number;
