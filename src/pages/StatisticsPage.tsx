@@ -1272,7 +1272,7 @@ export function StatisticsPage() {
 
                 {investigateTab === "errors" && (
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-xs text-muted-foreground">Most frequent error signatures for this filter set.</p>
                       <Button
                         size="sm"
@@ -1291,7 +1291,7 @@ export function StatisticsPage() {
                           key={`${item.statusCode}-${index}`}
                           className="flex items-start justify-between gap-3 rounded-md border px-3 py-2"
                         >
-                          <div className="space-y-0.5">
+                          <div className="min-w-0 flex-1 space-y-0.5">
                             <p className="text-xs font-medium text-destructive">HTTP {item.statusCode}</p>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1306,7 +1306,7 @@ export function StatisticsPage() {
                               </TooltipContent>
                             </Tooltip>
                           </div>
-                          <span className="text-xs text-muted-foreground">{item.count}x</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">{item.count}x</span>
                         </div>
                       ))
                     )}
@@ -1315,7 +1315,7 @@ export function StatisticsPage() {
 
                 {investigateTab === "slow" && (
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-xs text-muted-foreground">Slowest requests by latency in current filtered slice.</p>
                       <Button size="sm" variant="outline" onClick={() => navigate(requestLogsPath())}>
                         Open Request Logs
@@ -1326,12 +1326,12 @@ export function StatisticsPage() {
                       <p className="text-xs text-muted-foreground">No requests found.</p>
                     ) : (
                       slowRequests.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                          <div>
-                            <p className="text-sm font-medium">{item.model_id}</p>
+                        <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{item.model_id}</p>
                             <p className="text-xs text-muted-foreground">{item.provider_type} · {item.status_code}</p>
                           </div>
-                          <span className="text-xs font-medium">{item.response_time_ms.toLocaleString()}ms</span>
+                          <span className="shrink-0 text-xs font-medium">{item.response_time_ms.toLocaleString()}ms</span>
                         </div>
                       ))
                     )}
@@ -1340,7 +1340,7 @@ export function StatisticsPage() {
 
                 {investigateTab === "costly" && (
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-xs text-muted-foreground">Highest-cost requests in current filtered slice.</p>
                       <Button size="sm" variant="outline" onClick={() => navigate(requestLogsPath())}>
                         Open Request Logs
@@ -1351,12 +1351,12 @@ export function StatisticsPage() {
                       <p className="text-xs text-muted-foreground">No cost records found.</p>
                     ) : (
                       costlyRequests.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                          <div>
-                            <p className="text-sm font-medium">{item.model_id}</p>
+                        <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{item.model_id}</p>
                             <p className="text-xs text-muted-foreground">{item.provider_type} · {item.status_code}</p>
                           </div>
-                          <span className="text-xs font-medium">
+                          <span className="shrink-0 text-xs font-medium">
                             {formatMoneyMicros(item.total_cost_user_currency_micros ?? 0, reportSymbol, reportCode)}
                           </span>
                         </div>
