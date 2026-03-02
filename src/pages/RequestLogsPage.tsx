@@ -121,6 +121,15 @@ const REQUEST_OUTCOME_FILTERS: readonly OutcomeFilter[] = ["all", "success", "er
 const REQUEST_STREAM_FILTERS: readonly StreamFilter[] = ["all", "stream", "non_stream"];
 const REQUEST_LIMIT_OPTIONS = [25, 50, 100, 200] as const;
 const DEFAULT_REQUEST_LIMIT = 100;
+const UNIVERSAL_TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+  hour12: true,
+};
 
 const LATENCY_BUCKETS: { value: LatencyBucket; label: string }[] = [
   { value: "all", label: "All latencies" },
@@ -746,13 +755,7 @@ export function RequestLogsPage() {
               allColumnsMode && "sticky left-0 z-20 bg-card shadow-[1px_0_0_0_var(--border)]"
             )}
           >
-            {formatTime(log.created_at, {
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "numeric",
-              second: "numeric",
-            })}
+            {formatTime(log.created_at, UNIVERSAL_TIMESTAMP_FORMAT)}
           </TableCell>
         );
       case "model":
@@ -1446,10 +1449,7 @@ export function RequestLogsPage() {
                       #{selectedLog.id}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {formatTime(selectedLog.created_at, {
-                        dateStyle: "medium",
-                        timeStyle: "medium",
-                      })}
+                      {formatTime(selectedLog.created_at, UNIVERSAL_TIMESTAMP_FORMAT)}
                     </span>
                   </div>
 
@@ -1510,7 +1510,7 @@ export function RequestLogsPage() {
                     <div className="rounded-md border bg-muted/20 p-3 text-xs space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Request received</span>
-                        <span className="font-mono">{formatTime(selectedLog.created_at, { timeStyle: "medium" })}</span>
+                        <span className="font-mono">{formatTime(selectedLog.created_at, UNIVERSAL_TIMESTAMP_FORMAT)}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Response completed</span>

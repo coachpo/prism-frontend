@@ -75,6 +75,16 @@ import { EmptyState } from "@/components/EmptyState";
 import { ProviderSelect } from "@/components/ProviderSelect";
 import { toast } from "sonner";
 
+const UNIVERSAL_TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+  hour12: true,
+};
+
 function formatJson(raw: string | null): string {
   if (!raw) return "";
   try {
@@ -123,7 +133,7 @@ function toDatetimeLocalValue(date: Date): string {
 function formatFilterDate(value: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString();
+  return new Intl.DateTimeFormat("en-US", UNIVERSAL_TIMESTAMP_FORMAT).format(parsed);
 }
 
 type HighlightSegment = {
@@ -988,11 +998,7 @@ export function AuditPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="whitespace-nowrap text-xs text-muted-foreground">
-                            {formatTime(log.created_at, {
-                              hour: "numeric",
-                              minute: "numeric",
-                              second: "numeric",
-                            })}
+                            {formatTime(log.created_at, UNIVERSAL_TIMESTAMP_FORMAT)}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -1104,7 +1110,7 @@ export function AuditPage() {
                     label="Timestamp"
                     value={
                       <span className="text-muted-foreground">
-                        {formatTime(selectedLog.created_at, { dateStyle: "medium", timeStyle: "medium" })}
+                        {formatTime(selectedLog.created_at, UNIVERSAL_TIMESTAMP_FORMAT)}
                       </span>
                     }
                   />

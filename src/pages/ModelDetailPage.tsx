@@ -6,7 +6,7 @@ import {
   isValidCurrencyCode,
   formatMoneyMicros,
 } from "@/lib/costing";
-import type { ModelConfig, Connection, ConnectionCreate, ConnectionUpdate, Endpoint, EndpointCreate, SpendingSummary, ModelConfigUpdate, StatsSummary } from "@/lib/types";
+import type { ModelConfig, ModelConfigListItem, Connection, ConnectionCreate, ConnectionUpdate, Endpoint, EndpointCreate, SpendingSummary, ModelConfigUpdate, StatsSummary } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge, TypeBadge, ValueBadge } from "@/components/StatusBadge";
@@ -91,6 +91,8 @@ export function ModelDetailPage() {
   const [model, setModel] = useState<ModelConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModelDialogOpen, setIsEditModelDialogOpen] = useState(false);
+  const [allModels, setAllModels] = useState<ModelConfigListItem[]>([]);
+  const [editRedirectTo, setEditRedirectTo] = useState("");
   const [spending, setSpending] = useState<SpendingSummary | null>(null);
   const [spendingLoading, setSpendingLoading] = useState(false);
   const [spendingCurrencySymbol, setSpendingCurrencySymbol] = useState("$");
@@ -164,13 +166,15 @@ export function ModelDetailPage() {
   const fetchModel = useCallback(async () => {
     if (!id) return;
     try {
-      const [data, endpointsList] = await Promise.all([
+      const [data, endpointsList, modelsList] = await Promise.all([
         api.models.get(parseInt(id)),
         api.endpoints.list(),
+        api.models.list(),
       ]);
       setModel(data);
       setConnections(data.connections || []);
       setGlobalEndpoints(endpointsList);
+      setAllModels(modelsList);
 
       // Fetch spending data
       fetchSpending(data.model_id);
@@ -184,6 +188,11 @@ export function ModelDetailPage() {
   }, [id, navigate, fetchSpending]);
 
   useEffect(() => { fetchModel(); }, [fetchModel, revision]);
+
+  useEffect(() => {
+    if (!isEditModelDialogOpen || !model || model.model_type !== "proxy") return;
+    setEditRedirectTo(model.redirect_to || "");
+  }, [isEditModelDialogOpen, model]);
 
   useEffect(() => {
     if (!model) return;
@@ -339,6 +348,34 @@ export function ModelDetailPage() {
       spend24hMicros: kpiSpend24hMicros,
     };
   }, [kpiSummary24h, kpiSpend24hMicros]);
+
+  const redirectTargetOptions = useMemo(() => {
+    if (!model || model.model_type !== "proxy") return [];
+
+    const nativeTargets = allModels
+      .filter((candidate) => (
+        candidate.provider_id === model.provider_id &&
+        candidate.model_type === "native"
+      ))
+      .map((candidate) => ({
+        modelId: candidate.model_id,
+        label: candidate.display_name
+          ? `${candidate.display_name} (${candidate.model_id})`
+          : candidate.model_id,
+      }));
+
+    if (
+      model.redirect_to &&
+      !nativeTargets.some((target) => target.modelId === model.redirect_to)
+    ) {
+      return [
+        { modelId: model.redirect_to, label: `${model.redirect_to} (current target)` },
+        ...nativeTargets,
+      ];
+    }
+
+    return nativeTargets;
+  }, [allModels, model]);
 
   const normalizeOptionalDecimal = (value: string | null | undefined): string | null => {
     if (value === null || value === undefined) {
@@ -552,7 +589,7 @@ export function ModelDetailPage() {
     const updateData: ModelConfigUpdate = {
       display_name: formData.get("display_name") as string || null,
       model_id: formData.get("model_id") as string,
-      redirect_to: model.model_type === "proxy" ? (formData.get("redirect_to") as string || null) : null,
+      redirect_to: model.model_type === "proxy" ? (editRedirectTo || null) : null,
     };
 
     try {
@@ -614,23 +651,10 @@ export function ModelDetailPage() {
           )}
         </div>
 
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setIsEditModelDialogOpen(true)}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setIsEditModelDialogOpen(true)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit Model
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setIsEditModelDialogOpen(true)}>
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -1453,7 +1477,7 @@ export function ModelDetailPage() {
           {model && (
             <>
               <DialogHeader>
-                <DialogTitle>Edit Model</DialogTitle>
+                <DialogTitle>Model Settings</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleEditModelSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -1477,12 +1501,24 @@ export function ModelDetailPage() {
                 {model.model_type === "proxy" && (
                   <div className="space-y-2">
                     <Label htmlFor="edit-redirect-to">Redirect To</Label>
-                    <Input
-                      id="edit-redirect-to"
-                      name="redirect_to"
-                      defaultValue={model.redirect_to || ""}
-                      placeholder="Target model ID"
-                    />
+                    {redirectTargetOptions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No native models available for this provider. Create a native model first.
+                      </p>
+                    ) : (
+                      <Select value={editRedirectTo || undefined} onValueChange={setEditRedirectTo}>
+                        <SelectTrigger id="edit-redirect-to">
+                          <SelectValue placeholder="Select target model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {redirectTargetOptions.map((target) => (
+                            <SelectItem key={target.modelId} value={target.modelId}>
+                              {target.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 )}
                 <DialogFooter>
