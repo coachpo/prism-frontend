@@ -35,7 +35,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navLinks = [
@@ -479,9 +478,9 @@ export function AppLayout() {
                   <PopoverContent
                     align="end"
                     collisionPadding={8}
-                    className="z-[60] w-[var(--radix-popover-trigger-width)] max-w-[94vw] p-0"
+                    className="z-[60] flex max-h-[min(82vh,34rem)] w-[var(--radix-popover-trigger-width)] max-w-[94vw] flex-col overflow-hidden p-0"
                   >
-                    <div className="border-b px-3 py-2">
+                    <div className="shrink-0 border-b px-3 py-2">
                       <p className="text-sm font-medium">Select profile</p>
                       <Input
                         className="mt-2"
@@ -491,7 +490,7 @@ export function AppLayout() {
                       />
                     </div>
 
-                    <ScrollArea className="max-h-64">
+                    <div className="min-h-0 flex-1 overflow-y-auto">
                       <div className="space-y-1 p-2">
                         {filteredProfiles.length === 0 ? (
                           <p className="rounded-md border px-3 py-6 text-center text-sm text-muted-foreground">
@@ -508,7 +507,7 @@ export function AppLayout() {
                                 type="button"
                                 onClick={() => handleSelectProfile(profile.id)}
                                 className={cn(
-                                  "flex w-full items-start gap-2 rounded-md border px-3 py-2 text-left transition-colors",
+                                  "flex w-full items-start gap-2 rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
                                   isSelected
                                     ? "border-primary/50 bg-primary/5"
                                     : "border-transparent hover:bg-accent"
@@ -545,10 +544,10 @@ export function AppLayout() {
                           })
                         )}
                       </div>
-                    </ScrollArea>
+                    </div>
 
                     {hasMismatch ? (
-                      <div className="border-t px-3 py-2">
+                      <div className="shrink-0 border-t px-3 py-2">
                         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-800 dark:text-amber-200">
                           <p className="inline-flex items-start gap-1.5">
                             <AlertTriangle className="mt-0.5 h-3.5 w-3.5" />
@@ -579,7 +578,7 @@ export function AppLayout() {
                       </div>
                     ) : null}
 
-                    <div className="border-t p-2">
+                    <div className="shrink-0 border-t p-2">
                       <div className="space-y-1">
                         <Button
                           variant="ghost"
