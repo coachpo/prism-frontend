@@ -81,6 +81,7 @@ const SETTINGS_SECTIONS = [
   { id: "audit-configuration", label: "Audit & Privacy" },
   { id: "retention-deletion", label: "Retention & Deletion" },
 ] as const;
+const SETTINGS_SECTION_IDS = new Set<string>(SETTINGS_SECTIONS.map((section) => section.id));
 
 const DELETE_CONFIRM_KEYWORD = "DELETE";
 const FX_RATE_MAX_DECIMALS = 6;
@@ -262,6 +263,10 @@ export function SettingsPage() {
   const [editingMappingKey, setEditingMappingKey] = useState<string | null>(null);
   const [editingMappingFxRate, setEditingMappingFxRate] = useState("");
   const [costingForm, setCostingForm] = useState<CostingSettingsUpdate>(DEFAULT_COSTING_FORM);
+  const [activeSectionId, setActiveSectionId] = useState<string>(() => {
+    const hashSection = location.hash.replace("#", "");
+    return SETTINGS_SECTION_IDS.has(hashSection) ? hashSection : SETTINGS_SECTIONS[0].id;
+  });
 
   useEffect(() => {
     api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
@@ -275,6 +280,9 @@ export function SettingsPage() {
     if (!hash) {
       setIsAuditConfigurationFocused(false);
       return;
+    }
+    if (SETTINGS_SECTION_IDS.has(hash)) {
+      setActiveSectionId(hash);
     }
 
     const target = document.getElementById(hash);
@@ -291,9 +299,6 @@ export function SettingsPage() {
 
     const frameId = window.requestAnimationFrame(() => {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
-      if (target instanceof HTMLElement) {
-        target.focus({ preventScroll: true });
-      }
     });
 
     if (hash !== "audit-configuration") {
@@ -311,6 +316,56 @@ export function SettingsPage() {
       window.clearTimeout(clearHighlightTimer);
     };
   }, [location.hash]);
+
+  useEffect(() => {
+    const sections = SETTINGS_SECTIONS.map((section) => document.getElementById(section.id)).filter(
+      (section): section is HTMLElement => section instanceof HTMLElement
+    );
+    if (sections.length === 0) {
+      return;
+    }
+
+    const scrollContainerCandidate = sections[0]?.closest("main");
+    const scrollContainer =
+      scrollContainerCandidate instanceof HTMLElement ? scrollContainerCandidate : null;
+
+    const markerOffset = 96;
+    const updateActiveSection = () => {
+      const markerTop = scrollContainer
+        ? scrollContainer.getBoundingClientRect().top + markerOffset
+        : markerOffset;
+
+      let nextSectionId = sections[0]?.id ?? "";
+      let smallestDistance = Number.POSITIVE_INFINITY;
+
+      for (const section of sections) {
+        const distance = Math.abs(section.getBoundingClientRect().top - markerTop);
+        if (distance < smallestDistance) {
+          smallestDistance = distance;
+          nextSectionId = section.id;
+        }
+      }
+
+      const nearBottom = scrollContainer
+        ? scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 4
+        : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      if (nearBottom) {
+        nextSectionId = sections[sections.length - 1].id;
+      }
+
+      setActiveSectionId((current) => (current === nextSectionId ? current : nextSectionId));
+    };
+
+    updateActiveSection();
+    const scrollTarget: EventTarget = scrollContainer ?? window;
+    scrollTarget.addEventListener("scroll", updateActiveSection, { passive: true });
+    window.addEventListener("resize", updateActiveSection);
+
+    return () => {
+      scrollTarget.removeEventListener("scroll", updateActiveSection);
+      window.removeEventListener("resize", updateActiveSection);
+    };
+  }, []);
 
   useEffect(() => {
     if (!recentlySavedSection) {
@@ -483,11 +538,9 @@ export function SettingsPage() {
       return;
     }
 
+    setActiveSectionId(sectionId);
     window.history.replaceState(null, "", `#${sectionId}`);
     target.scrollIntoView({ behavior: "smooth", block: "start" });
-    if (target instanceof HTMLElement) {
-      target.focus({ preventScroll: true });
-    }
   };
 
   const handleAddFxMapping = () => {
@@ -992,8 +1045,6 @@ export function SettingsPage() {
     return null;
   };
 
-  const activeSection = location.hash.replace("#", "");
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -1029,7 +1080,7 @@ export function SettingsPage() {
                 <Button
                   key={section.id}
                   type="button"
-                  variant={activeSection === section.id ? "secondary" : "ghost"}
+                  variant={activeSectionId === section.id ? "secondary" : "ghost"}
                   className="w-full justify-start"
                   onClick={() => handleJumpToSection(section.id)}
                 >
