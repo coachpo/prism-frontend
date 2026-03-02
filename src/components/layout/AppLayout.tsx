@@ -742,12 +742,12 @@ export function AppLayout() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile-create-description">Description</Label>
+              <Label htmlFor="profile-create-description">Description (Optional)</Label>
               <Input
                 id="profile-create-description"
                 value={descriptionInput}
                 onChange={(event) => setDescriptionInput(event.target.value)}
-                placeholder="Optional description"
+                placeholder="Optional"
               />
             </div>
           </div>
@@ -781,12 +781,12 @@ export function AppLayout() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile-edit-description">Description</Label>
+              <Label htmlFor="profile-edit-description">Description (Optional)</Label>
               <Input
                 id="profile-edit-description"
                 value={descriptionInput}
                 onChange={(event) => setDescriptionInput(event.target.value)}
-                placeholder="Optional description"
+                placeholder="Optional"
               />
             </div>
           </div>
