@@ -731,7 +731,7 @@ function EndpointDialog({
                       <button
                         type="button"
                         aria-label={showApiKey ? "Hide API key" : "Show API key"}
-                        className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-r-md border-l border-input text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                        className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-r-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                         onClick={() => setShowApiKey((prev) => !prev)}
                       >
                         {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
