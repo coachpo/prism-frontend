@@ -180,20 +180,8 @@ function getHighlightSegments(text: string, query: string): { segments: Highligh
   return { segments, count };
 }
 
-async function copyTextToClipboard(text: string): Promise<boolean> {
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // Fall through to legacy fallback for insecure contexts.
-    }
-  }
-
-  if (typeof document === "undefined") {
-    return false;
-  }
-
+function fallbackCopyText(text: string): boolean {
+  if (typeof document === "undefined") return false;
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.setAttribute("readonly", "");
@@ -202,6 +190,7 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
   textarea.style.left = "-9999px";
   textarea.style.top = "0";
   document.body.appendChild(textarea);
+  textarea.focus();
   textarea.select();
   textarea.setSelectionRange(0, textarea.value.length);
 
@@ -212,6 +201,24 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
   } finally {
     document.body.removeChild(textarea);
   }
+}
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  // Try the synchronous fallback first so copy still works in restricted/insecure contexts.
+  if (fallbackCopyText(text)) {
+    return true;
+  }
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall back when clipboard permission is denied.
+    }
+  }
+
+  return false;
 }
 
 function CopyButton({
@@ -1087,11 +1094,6 @@ export function AuditPage() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-1">
-                    <CopyButton
-                      text={selectedLog.request_url}
-                      successMessage="Request URL copied"
-                      ariaLabel="Copy request URL"
-                    />
                     <CopyButton
                       text={selectedLogPayload}
                       successMessage="Audit details copied"
