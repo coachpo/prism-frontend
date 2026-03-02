@@ -86,12 +86,22 @@ export function AppLayout() {
   const selectedIsActive =
     selectedProfile !== null && activeProfile !== null && selectedProfile.id === activeProfile.id;
   const hasMismatch = selectedProfile !== null && activeProfile !== null && !selectedIsActive;
+  const selectedIsDefault = selectedProfile?.is_default ?? false;
+  const selectedIsEditable = selectedProfile?.is_editable ?? true;
   const selectedProfileName = selectedProfile?.name ?? (hasProfiles ? "Select profile" : "No profiles");
   const activeProfileName = activeProfile?.name ?? "none";
-  const deleteDisabledReason = selectedIsActive
-    ? "Active runtime profile cannot be deleted."
-    : !selectedProfile
-      ? "Select a profile to delete."
+  const deleteDisabledReason = selectedIsDefault
+    ? "Default profile cannot be deleted."
+    : selectedIsActive
+      ? "Active runtime profile cannot be deleted."
+      : !selectedProfile
+        ? "Select a profile to delete."
+        : null;
+
+  const editDisabledReason = !selectedProfile
+    ? "Select a profile to edit."
+    : !selectedIsEditable
+      ? "Default profile is locked and cannot be edited."
       : null;
   const deleteConfirmTarget = useMemo(
     () => `delete ${selectedProfile?.name ?? ""}`.trim().toLowerCase(),
@@ -264,6 +274,10 @@ export function AppLayout() {
 
   const handleDeleteProfile = async () => {
     if (!selectedProfile) return;
+    if (selectedIsDefault) {
+      toast.error("Default profile cannot be deleted");
+      return;
+    }
     if (selectedIsActive) {
       toast.error("Active profile cannot be deleted");
       return;
@@ -306,7 +320,7 @@ export function AppLayout() {
   };
 
   const openDeleteDialog = () => {
-    if (!selectedProfile || selectedIsActive) return;
+    if (!selectedProfile || selectedIsActive || selectedIsDefault) return;
     setProfileSwitcherOpen(false);
     setDeleteConfirmInput("");
     setDeleteOpen(true);
@@ -564,13 +578,29 @@ export function AppLayout() {
                                     {profile.description?.trim() || "No description"}
                                   </p>
                                 </div>
-                                <div className="ml-2 flex min-w-[112px] shrink-0 items-center justify-end gap-2">
+                                <div className="ml-2 flex min-w-[132px] shrink-0 items-center justify-end gap-2">
                                   {isActive ? (
                                     <Badge
                                       variant="outline"
                                       className="h-5 shrink-0 border-emerald-500/40 bg-emerald-500/15 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-200"
                                     >
                                       Active
+                                    </Badge>
+                                  ) : null}
+                                  {profile.is_default ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="h-5 shrink-0 border-sky-500/40 bg-sky-500/10 px-1.5 text-[10px] text-sky-700 dark:text-sky-200"
+                                    >
+                                      Default
+                                    </Badge>
+                                  ) : null}
+                                  {!profile.is_editable ? (
+                                    <Badge
+                                      variant="outline"
+                                      className="h-5 shrink-0 border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] text-amber-700 dark:text-amber-200"
+                                    >
+                                      Locked
                                     </Badge>
                                   ) : null}
                                   <Check
@@ -598,24 +628,6 @@ export function AppLayout() {
                                 traffic is served by <strong>{activeProfileName}</strong>.
                               </span>
                             </p>
-                            <div className="mt-2 flex flex-col-reverse gap-1.5 sm:flex-row sm:items-center sm:justify-end">
-                              <Button
-                                size="sm"
-                                variant="link"
-                                className="h-7 px-1.5 text-xs text-amber-900 dark:text-amber-100"
-                                onClick={handleManageProfiles}
-                              >
-                                Learn more
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="h-7 px-2.5 text-xs"
-                                onClick={openActivateDialog}
-                                disabled={isActivating}
-                              >
-                                Activate selected
-                              </Button>
-                            </div>
                           </div>
                         </div>
                       ) : null}
@@ -627,7 +639,8 @@ export function AppLayout() {
                               variant="secondary"
                               className="h-8 w-full justify-start"
                               onClick={openEditDialog}
-                              disabled={!selectedProfile}
+                              disabled={Boolean(editDisabledReason)}
+                              title={editDisabledReason ?? undefined}
                             >
                               <Pencil className="mr-2 h-3.5 w-3.5" />
                               Edit selected
@@ -816,7 +829,11 @@ export function AppLayout() {
               irreversible.
             </DialogDescription>
           </DialogHeader>
-          {selectedIsActive ? (
+          {selectedIsDefault ? (
+            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              Default profile cannot be deleted.
+            </p>
+          ) : selectedIsActive ? (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               Active profile cannot be deleted. Activate a different profile first.
             </p>
@@ -838,7 +855,7 @@ export function AppLayout() {
             <Button
               variant="destructive"
               onClick={handleDeleteProfile}
-              disabled={isDeleting || selectedIsActive || !selectedProfile}
+              disabled={isDeleting || selectedIsActive || selectedIsDefault || !selectedProfile}
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>

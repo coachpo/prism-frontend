@@ -5,6 +5,8 @@ export interface Profile {
   name: string;
   description: string | null;
   is_active: boolean;
+  is_default: boolean;
+  is_editable: boolean;
   version: number;
   created_at: string;
   deleted_at: string | null;
