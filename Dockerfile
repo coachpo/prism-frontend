@@ -13,7 +13,9 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 ARG VITE_API_BASE=
+ARG VITE_GIT_REVISION=unknown
 ENV VITE_API_BASE=$VITE_API_BASE
+ENV VITE_GIT_REVISION=$VITE_GIT_REVISION
 RUN pnpm run build
 
 FROM node:20-alpine AS runner

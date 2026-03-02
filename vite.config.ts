@@ -8,6 +8,12 @@ const HEALTH_RESPONSE = JSON.stringify({ status: "ok" })
 const GIT_REVISION = resolveGitRevision()
 
 function resolveGitRevision() {
+  const revisionFromEnv =
+    process.env.VITE_GIT_REVISION?.trim() || process.env.GIT_REVISION?.trim()
+  if (revisionFromEnv) {
+    return revisionFromEnv
+  }
+
   try {
     return execSync("git rev-parse --short HEAD", {
       cwd: __dirname,
