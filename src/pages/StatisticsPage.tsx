@@ -1541,10 +1541,11 @@ export function StatisticsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
+                      {SPENDING_LIMIT_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={String(option)}>
+                          {option}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1578,7 +1579,7 @@ export function StatisticsPage() {
                       setSpendingModelId("");
                       setSpendingConnectionId("");
                       setSpendingGroupBy("model");
-                      setSpendingLimit(25);
+                      setSpendingLimit(DEFAULT_SPENDING_LIMIT);
                       setSpendingOffset(0);
                       setSpendingTopN(5);
                     }}

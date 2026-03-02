@@ -515,12 +515,14 @@ export function AppLayout() {
                                 )}
                               >
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="truncate text-sm font-medium">{profile.name}</span>
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                                      {profile.name}
+                                    </span>
                                     {isActive ? (
                                       <Badge
                                         variant="outline"
-                                        className="h-5 border-emerald-500/40 bg-emerald-500/15 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-200"
+                                        className="h-5 shrink-0 border-emerald-500/40 bg-emerald-500/15 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-200"
                                       >
                                         ACTIVE
                                       </Badge>
@@ -534,7 +536,7 @@ export function AppLayout() {
                                 </div>
                                 <Check
                                   className={cn(
-                                    "mt-0.5 h-4 w-4 text-primary transition-opacity",
+                                    "mt-0.5 h-4 w-4 shrink-0 text-primary transition-opacity",
                                     isSelected ? "opacity-100" : "opacity-0"
                                   )}
                                 />
