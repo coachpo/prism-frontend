@@ -374,14 +374,6 @@ export interface ConfigModelExport {
   connections: ConfigConnectionExport[];
 }
 
-export interface ConfigProviderExport {
-  name: string;
-  provider_type: string;
-  description: string | null;
-  audit_enabled: boolean;
-  audit_capture_bodies: boolean;
-}
-
 export interface ConfigEndpointFxRateExport {
   model_id: string;
   endpoint_id?: number | null;
@@ -400,7 +392,6 @@ export interface ConfigExportResponse {
   config_version: "1";
   mode: "replace";
   exported_at: string;
-  providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
@@ -410,7 +401,6 @@ export interface ConfigExportResponse {
 export interface ConfigImportRequest {
   config_version: "1";
   exported_at?: string;
-  providers: ConfigProviderExport[];
   endpoints: ConfigEndpointExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
@@ -418,7 +408,6 @@ export interface ConfigImportRequest {
   mode: "replace";
 }
 export interface ConfigImportResponse {
-  providers_imported: number;
   endpoints_imported: number;
   models_imported: number;
   connections_imported: number;
@@ -611,5 +600,4 @@ export interface HeaderBlocklistRuleExport {
   match_type: "exact" | "prefix";
   pattern: string;
   enabled: boolean;
-  is_system: boolean;
 }

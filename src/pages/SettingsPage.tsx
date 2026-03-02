@@ -82,7 +82,6 @@ const SETTINGS_SECTIONS = [
   { id: "retention-deletion", label: "Retention & Deletion" },
 ] as const;
 
-const IMPORT_CONFIRM_KEYWORDS = new Set(["IMPORT", "RESTORE"]);
 const DELETE_CONFIRM_KEYWORD = "DELETE";
 const FX_RATE_MAX_DECIMALS = 6;
 const TIMEZONE_PREVIEW_SOURCE = new Date("2026-02-27T21:39:00Z");
@@ -215,8 +214,6 @@ export function SettingsPage() {
   const [exportSecretsAcknowledged, setExportSecretsAcknowledged] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [parsedConfig, setParsedConfig] = useState<ConfigImportRequest | null>(null);
-  const [importConfirmPhrase, setImportConfirmPhrase] = useState("");
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const auditConfigurationRef = useRef<HTMLDivElement | null>(null);
@@ -420,25 +417,18 @@ export function SettingsPage() {
   const timezonePreviewText = formatTimezonePreview(timezonePreviewZone);
 
   const importSummary = useMemo(() => {
-    const providersCount = parsedConfig?.providers?.length ?? 0;
     const endpointsCount = parsedConfig?.endpoints?.length ?? 0;
     const modelsCount = parsedConfig?.models?.length ?? 0;
     const connectionsCount =
       parsedConfig?.models?.reduce((total, model) => total + (model.connections?.length ?? 0), 0) ??
       0;
-    const customRulesCount =
-      parsedConfig?.header_blocklist_rules?.filter((rule) => !rule.is_system).length ?? 0;
     return {
-      providersCount,
       endpointsCount,
       modelsCount,
       connectionsCount,
-      customRulesCount,
     };
   }, [parsedConfig]);
 
-  const importPhraseNormalized = importConfirmPhrase.trim().toUpperCase();
-  const isImportPhraseValid = IMPORT_CONFIRM_KEYWORDS.has(importPhraseNormalized);
   const deletePhraseNormalized = deleteConfirmPhrase.trim().toUpperCase();
   const isDeletePhraseValid = deletePhraseNormalized === DELETE_CONFIRM_KEYWORD;
 
@@ -852,7 +842,6 @@ export function SettingsPage() {
     }
 
     setSelectedFile(file);
-    setConfirmOpen(false);
 
     try {
       const text = await file.text();
@@ -880,7 +869,7 @@ export function SettingsPage() {
   };
 
   const handleImport = async () => {
-    if (!parsedConfig || !isImportPhraseValid) {
+    if (!parsedConfig) {
       return;
     }
 
@@ -888,12 +877,10 @@ export function SettingsPage() {
     try {
       const result = await api.config.import(parsedConfig);
       toast.success(
-        `Imported ${result.providers_imported} providers, ${result.endpoints_imported} endpoints, ${result.models_imported} models, ${result.connections_imported} connections`
+        `Imported ${result.endpoints_imported} endpoints, ${result.models_imported} models, ${result.connections_imported} connections`
       );
       setSelectedFile(null);
       setParsedConfig(null);
-      setImportConfirmPhrase("");
-      setConfirmOpen(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -1070,7 +1057,7 @@ export function SettingsPage() {
                     Export
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Download providers, models, endpoints, blocklist rules, and reporting settings.
+                    Download models, endpoints, blocklist rules, and reporting settings.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -1108,34 +1095,10 @@ export function SettingsPage() {
                     Import
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Restore configuration from a version 1 JSON backup file.
+                    Upload a version 1 JSON backup file and restore this profile's configuration.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>This affects {selectedProfileLabel} and its runtime traffic.</span>
-                  </div>
-
-                  <div className="rounded-md border px-3 py-3 text-sm">
-                    <p className="font-medium">What will be replaced</p>
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
-                      <li>Provider audit defaults and privacy settings</li>
-                      <li>Model, endpoint, and connection routing configuration</li>
-                      <li>Header blocklist custom rules and reporting preferences</li>
-                    </ul>
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => void handleExport()}
-                    disabled={!exportSecretsAcknowledged || exporting}
-                  >
-                    Export Backup First
-                  </Button>
-
                   <Input
                     ref={fileInputRef}
                     type="file"
@@ -1145,24 +1108,14 @@ export function SettingsPage() {
 
                   {selectedFile && parsedConfig && (
                     <p className="text-sm text-muted-foreground">
-                      Loaded {selectedFile.name}: {importSummary.providersCount} providers, {" "}
+                      Loaded {selectedFile.name}: {importSummary.endpointsCount} endpoints,{" "}
                       {importSummary.modelsCount} models, {importSummary.connectionsCount} connections.
                     </p>
                   )}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="import-confirm-input">Type IMPORT or RESTORE to continue</Label>
-                    <Input
-                      id="import-confirm-input"
-                      value={importConfirmPhrase}
-                      onChange={(event) => setImportConfirmPhrase(event.target.value)}
-                      placeholder="IMPORT"
-                    />
-                  </div>
-
                   <Button
-                    onClick={() => setConfirmOpen(true)}
-                    disabled={!parsedConfig || importing || !isImportPhraseValid}
+                    onClick={() => void handleImport()}
+                    disabled={!parsedConfig || importing}
                     variant="destructive"
                     className="w-full"
                   >
@@ -1989,47 +1942,6 @@ export function SettingsPage() {
           </section>
         </div>
       </div>
-
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Import</DialogTitle>
-            <DialogDescription>
-              Restore configuration for {selectedProfileLabel} from this backup file.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 text-sm">
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive">
-              This affects {selectedProfileLabel} and its runtime traffic.
-            </div>
-
-            <div>
-              <p className="font-medium">Backup contents</p>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
-                <li>{importSummary.providersCount} providers</li>
-                <li>{importSummary.endpointsCount} endpoints</li>
-                <li>{importSummary.modelsCount} models</li>
-                <li>{importSummary.connectionsCount} connections</li>
-                <li>{importSummary.customRulesCount} custom blocklist rules</li>
-              </ul>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => void handleImport()}
-              disabled={!parsedConfig || importing || !isImportPhraseValid}
-            >
-              {importing ? "Importing..." : "Restore Configuration"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={Boolean(deleteConfirm)}

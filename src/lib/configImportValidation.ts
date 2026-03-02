@@ -1,13 +1,5 @@
 import { z } from "zod";
 
-const ProviderExportSchema = z.object({
-  name: z.string(),
-  provider_type: z.string(),
-  description: z.string().nullable(),
-  audit_enabled: z.boolean(),
-  audit_capture_bodies: z.boolean(),
-});
-
 const EndpointExportSchema = z.object({
   endpoint_ref: z.string(),
   name: z.string(),
@@ -54,7 +46,6 @@ const HeaderBlocklistRuleExportSchema = z.object({
   match_type: z.enum(["exact", "prefix"]),
   pattern: z.string(),
   enabled: z.boolean(),
-  is_system: z.boolean(),
 });
 
 const EndpointFxRateExportSchema = z.object({
@@ -72,7 +63,6 @@ const UserSettingsExportSchema = z.object({
 export const ConfigImportSchema = z.object({
   config_version: z.literal("1"),
   exported_at: z.string().optional(),
-  providers: z.array(ProviderExportSchema),
   endpoints: z.array(EndpointExportSchema),
   models: z.array(ModelExportSchema),
   user_settings: UserSettingsExportSchema.optional(),
