@@ -18,7 +18,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useProfileContext } from "@/context/ProfileContext";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, Plug, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Plug, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -290,6 +290,7 @@ function EndpointDialog({
   title,
   submitLabel,
 }: EndpointDialogProps) {
+  const [showApiKey, setShowApiKey] = useState(false);
   const form = useForm<EndpointFormValues>({
     resolver: zodResolver(endpointSchema),
     defaultValues: {
@@ -319,8 +320,15 @@ function EndpointDialog({
     await onSubmit(values);
   };
 
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setShowApiKey(false);
+    }
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -363,7 +371,22 @@ function EndpointDialog({
                 <FormItem>
                   <FormLabel>API Key</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="sk-..." {...field} />
+                    <div className="relative">
+                      <Input
+                        type={showApiKey ? "text" : "password"}
+                        className="pr-10"
+                        placeholder="sk-..."
+                        {...field}
+                      />
+                      <button
+                        type="button"
+                        aria-label={showApiKey ? "Hide API key" : "Show API key"}
+                        className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-r-md border-l border-input text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                        onClick={() => setShowApiKey((prev) => !prev)}
+                      >
+                        {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

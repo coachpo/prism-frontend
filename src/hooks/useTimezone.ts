@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import { useProfileContext } from "@/context/ProfileContext";
 import { formatTimestamp, getUserTimezonePreference } from "@/lib/timezone";
 
+function getBrowserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
 export function useTimezone() {
   const { revision } = useProfileContext();
   const [timezone, setTimezone] = useState<string | null>(null);
@@ -15,7 +23,7 @@ export function useTimezone() {
       try {
         const tz = await getUserTimezonePreference();
         if (!mounted) return;
-        setTimezone(tz);
+        setTimezone(tz ?? getBrowserTimezone());
       } finally {
         if (mounted) {
           setLoading(false);
@@ -31,10 +39,8 @@ export function useTimezone() {
   }, [revision]);
 
   const format = (isoString: string, options?: Intl.DateTimeFormatOptions) => {
-    if (!timezone) {
-      return "-";
-    }
-    return formatTimestamp(isoString, timezone, options);
+    const effectiveTimezone = timezone ?? getBrowserTimezone();
+    return formatTimestamp(isoString, effectiveTimezone, options);
   };
 
   return {
@@ -43,8 +49,9 @@ export function useTimezone() {
     loading,
     refresh: async () => {
       const tz = await getUserTimezonePreference();
-      setTimezone(tz);
-      return tz;
+      const effectiveTimezone = tz ?? getBrowserTimezone();
+      setTimezone(effectiveTimezone);
+      return effectiveTimezone;
     },
   };
 }

@@ -219,9 +219,18 @@ export function ModelsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.provider_id) {
+      toast.error("Please select a provider");
+      return;
+    }
+    if (formData.model_type === "proxy" && !formData.redirect_to) {
+      toast.error("Please select a native target model for proxy type");
+      return;
+    }
     try {
       if (editingModel) {
         const updateData: ModelConfigUpdate = {
+          provider_id: formData.provider_id,
           display_name: formData.display_name || null,
           model_type: formData.model_type,
           redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
@@ -639,19 +648,29 @@ export function ModelsPage() {
             <DialogTitle>{editingModel ? "Edit Model" : "New Model"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!editingModel && (
-              <div className="space-y-2">
-                <Label>Provider</Label>
-                <ProviderSelect
-                  value={String(formData.provider_id)}
-                  onValueChange={(v) => setFormData({ ...formData, provider_id: parseInt(v), redirect_to: null })}
-                  valueType="provider_id"
-                  providers={providers}
-                  showAll={false}
-                  placeholder="Select provider"
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Provider</Label>
+              <ProviderSelect
+                value={String(formData.provider_id)}
+                onValueChange={(v) =>
+                  setFormData((prev) => {
+                    const nextProviderId = Number.parseInt(v, 10);
+                    return {
+                      ...prev,
+                      provider_id: nextProviderId,
+                      redirect_to:
+                        prev.model_type === "proxy" && nextProviderId !== prev.provider_id
+                          ? null
+                          : prev.redirect_to,
+                    };
+                  })
+                }
+                valueType="provider_id"
+                providers={providers}
+                showAll={false}
+                placeholder="Select provider"
+              />
+            </div>
 
             {!editingModel && (
               <div className="space-y-2">

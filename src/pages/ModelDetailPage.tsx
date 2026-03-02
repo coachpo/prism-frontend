@@ -6,7 +6,19 @@ import {
   isValidCurrencyCode,
   formatMoneyMicros,
 } from "@/lib/costing";
-import type { ModelConfig, ModelConfigListItem, Connection, ConnectionCreate, ConnectionUpdate, Endpoint, EndpointCreate, SpendingSummary, ModelConfigUpdate, StatsSummary } from "@/lib/types";
+import type {
+  ModelConfig,
+  ModelConfigListItem,
+  Connection,
+  ConnectionCreate,
+  ConnectionUpdate,
+  Endpoint,
+  EndpointCreate,
+  SpendingSummary,
+  ModelConfigUpdate,
+  StatsSummary,
+  HealthCheckResponse,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge, TypeBadge, ValueBadge } from "@/components/StatusBadge";
@@ -35,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,8 +94,19 @@ const buildRequestLogsPath = (params: {
   const query = search.toString();
   return query.length > 0 ? `/request-logs?${query}` : "/request-logs";
 };
-const getConnectionName = (connection: Pick<Connection, "name">): string =>
-  connection.name ?? "";
+const getConnectionName = (
+  connection: Pick<Connection, "id" | "name" | "endpoint">
+): string => {
+  const explicitName = connection.name?.trim();
+  if (explicitName && explicitName.length > 0) {
+    return explicitName;
+  }
+  const endpointName = connection.endpoint?.name?.trim();
+  if (endpointName && endpointName.length > 0) {
+    return endpointName;
+  }
+  return `Connection ${connection.id}`;
+};
 export function ModelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -115,6 +139,7 @@ export function ModelDetailPage() {
   const [focusedConnectionId, setFocusedConnectionId] = useState<number | null>(null);
   const [connectionCardRefs] = useState<Map<number, HTMLDivElement>>(new Map());
   const focusTimeoutRef = useRef<number | null>(null);
+  const autoHealthCheckKeyRef = useRef<string | null>(null);
 
   // Global endpoints for selection
   const [globalEndpoints, setGlobalEndpoints] = useState<Endpoint[]>([]);
@@ -186,6 +211,58 @@ export function ModelDetailPage() {
       setLoading(false);
     }
   }, [id, navigate, fetchSpending]);
+
+  const runHealthChecks = useCallback(async (connectionIds: number[]) => {
+    if (connectionIds.length === 0) {
+      return { successfulChecks: new Map<number, HealthCheckResponse>(), failedCount: 0 };
+    }
+
+    setHealthCheckingIds((prev) => {
+      const next = new Set(prev);
+      connectionIds.forEach((connectionId) => next.add(connectionId));
+      return next;
+    });
+
+    const results = await Promise.allSettled(
+      connectionIds.map(async (connectionId) => ({
+        connectionId,
+        response: await api.connections.healthCheck(connectionId),
+      }))
+    );
+
+    const successfulChecks = new Map<number, HealthCheckResponse>();
+    let failedCount = 0;
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        successfulChecks.set(result.value.connectionId, result.value.response);
+      } else {
+        failedCount += 1;
+      }
+    }
+
+    setConnections((prevConnections) =>
+      prevConnections.map((connection) => {
+        const check = successfulChecks.get(connection.id);
+        if (!check) return connection;
+
+        return {
+          ...connection,
+          health_status: check.health_status,
+          health_detail: check.detail,
+          last_health_check: check.checked_at,
+        };
+      })
+    );
+
+    setHealthCheckingIds((prev) => {
+      const next = new Set(prev);
+      connectionIds.forEach((connectionId) => next.delete(connectionId));
+      return next;
+    });
+
+    return { successfulChecks, failedCount };
+  }, []);
 
   useEffect(() => { fetchModel(); }, [fetchModel, revision]);
 
@@ -340,6 +417,56 @@ export function ModelDetailPage() {
     };
   }, [model, connections, revision]);
 
+  useEffect(() => {
+    autoHealthCheckKeyRef.current = null;
+  }, [id, revision]);
+
+  useEffect(() => {
+    if (!id || loading) {
+      return;
+    }
+
+    const connectionIds = [...connections]
+      .map((connection) => connection.id)
+      .sort((a, b) => a - b);
+    if (connectionIds.length === 0) {
+      return;
+    }
+
+    const endpointIdsHash = connectionIds.join(",");
+    const runKey = `${id}:${revision}:${endpointIdsHash}`;
+    if (autoHealthCheckKeyRef.current === runKey) {
+      return;
+    }
+    autoHealthCheckKeyRef.current = runKey;
+
+    let cancelled = false;
+
+    const runAutoHealthChecks = async () => {
+      const { failedCount } = await runHealthChecks(connectionIds);
+      if (cancelled) {
+        return;
+      }
+      if (failedCount > 0) {
+        toast.warning(
+          `Auto health check could not verify ${failedCount} connection${failedCount === 1 ? "" : "s"}.`
+        );
+      }
+    };
+
+    runAutoHealthChecks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    id,
+    revision,
+    loading,
+    connections,
+    runHealthChecks,
+  ]);
+
   const modelKpis = useMemo(() => {
     return {
       successRate: kpiSummary24h?.success_rate ?? null,
@@ -376,6 +503,24 @@ export function ModelDetailPage() {
 
     return nativeTargets;
   }, [allModels, model]);
+
+  const selectedEndpoint = useMemo(() => {
+    const parsedEndpointId = Number.parseInt(selectedEndpointId, 10);
+    if (!Number.isFinite(parsedEndpointId)) {
+      return null;
+    }
+    return globalEndpoints.find((endpoint) => endpoint.id === parsedEndpointId) ?? null;
+  }, [globalEndpoints, selectedEndpointId]);
+
+  const endpointSourceDefaultName = useMemo(() => {
+    if (createMode === "select") {
+      const selectedName = selectedEndpoint?.name?.trim();
+      return selectedName && selectedName.length > 0 ? selectedName : null;
+    }
+
+    const inlineEndpointName = newEndpointForm.name.trim();
+    return inlineEndpointName.length > 0 ? inlineEndpointName : null;
+  }, [createMode, newEndpointForm.name, selectedEndpoint]);
 
   const normalizeOptionalDecimal = (value: string | null | undefined): string | null => {
     if (value === null || value === undefined) {
@@ -428,7 +573,7 @@ export function ModelDetailPage() {
       setConnectionForm({
         endpoint_id: connection.endpoint_id,
         priority: connection.priority,
-        name: getConnectionName(connection),
+        name: connection.name ?? "",
         is_active: connection.is_active,
         custom_headers: connection.custom_headers,
         pricing_enabled: connection.pricing_enabled,
@@ -441,7 +586,11 @@ export function ModelDetailPage() {
         missing_special_token_price_policy: connection.missing_special_token_price_policy,
       });
       setPricingSectionOpen(connection.pricing_enabled);
-      // When editing, we don't use createMode or newEndpointForm
+      setNewEndpointForm({
+        name: "",
+        base_url: "",
+        api_key: "",
+      });
       setCreateMode("select");
       setSelectedEndpointId(String(connection.endpoint_id));
     } else {
@@ -490,8 +639,14 @@ export function ModelDetailPage() {
 
     setPricingValidationError(null);
 
+    const typedConnectionName = (connectionForm.name ?? "").trim();
+    const resolvedConnectionName = typedConnectionName.length > 0
+      ? typedConnectionName
+      : (!editingConnection ? endpointSourceDefaultName : null);
+
     const payload: ConnectionCreate = {
       ...connectionForm,
+      name: resolvedConnectionName,
       custom_headers: customHeaders,
       pricing_currency_code: connectionForm.pricing_currency_code
         ? connectionForm.pricing_currency_code.trim().toUpperCase()
@@ -503,20 +658,20 @@ export function ModelDetailPage() {
       reasoning_price: normalizeOptionalDecimal(connectionForm.reasoning_price),
     };
 
-    if (!editingConnection) {
-      if (createMode === "select") {
-        if (!selectedEndpointId) {
-          toast.error("Please select an endpoint");
-          return;
-        }
-        payload.endpoint_id = parseInt(selectedEndpointId);
-      } else {
-        if (!newEndpointForm.name || !newEndpointForm.base_url || !newEndpointForm.api_key) {
-          toast.error("Please fill in all endpoint fields");
-          return;
-        }
-        payload.endpoint_create = newEndpointForm;
+    if (createMode === "select") {
+      if (!selectedEndpointId) {
+        toast.error("Please select an endpoint");
+        return;
       }
+      payload.endpoint_id = parseInt(selectedEndpointId, 10);
+      delete payload.endpoint_create;
+    } else {
+      if (!newEndpointForm.name || !newEndpointForm.base_url || !newEndpointForm.api_key) {
+        toast.error("Please fill in all endpoint fields");
+        return;
+      }
+      payload.endpoint_create = newEndpointForm;
+      delete payload.endpoint_id;
     }
 
     try {
@@ -546,15 +701,14 @@ export function ModelDetailPage() {
   };
 
   const handleHealthCheck = async (connectionId: number) => {
-    setHealthCheckingIds(prev => new Set(prev).add(connectionId));
-    try {
-      const result = await api.connections.healthCheck(connectionId);
+    const { successfulChecks, failedCount } = await runHealthChecks([connectionId]);
+    const result = successfulChecks.get(connectionId);
+
+    if (result) {
       toast.success(`Health: ${result.health_status} (${result.response_time_ms}ms)`);
-      fetchModel();
-    } catch {
+    }
+    if (failedCount > 0) {
       toast.error("Health check failed");
-    } finally {
-      setHealthCheckingIds(prev => { const s = new Set(prev); s.delete(connectionId); return s; });
     }
   };
 
@@ -627,36 +781,40 @@ export function ModelDetailPage() {
   )].sort((a, b) => a.priority - b.priority);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate("/models")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-semibold tracking-tight truncate">
-              {model.display_name || model.model_id}
-            </h1>
-            <TypeBadge
-              label={model.model_type}
-              intent={model.model_type === "proxy" ? "accent" : "info"}
-            />
-            <StatusBadge
-              label={model.is_enabled ? "Enabled" : "Disabled"}
-              intent={model.is_enabled ? "success" : "muted"}
-            />
+    <div className="space-y-8 pb-2">
+      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-background via-background to-primary/5 p-4 sm:p-5">
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-primary/10 to-transparent" />
+        <div className="relative flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full" onClick={() => navigate("/models")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-semibold tracking-tight truncate">
+                {model.display_name || model.model_id}
+              </h1>
+              <TypeBadge
+                label={model.model_type}
+                intent={model.model_type === "proxy" ? "accent" : "info"}
+              />
+              <StatusBadge
+                label={model.is_enabled ? "Enabled" : "Disabled"}
+                intent={model.is_enabled ? "success" : "muted"}
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground font-mono">
+              {model.display_name ? model.model_id : "Model configuration and connection routing"}
+            </p>
           </div>
-          {model.display_name && (
-            <p className="text-xs text-muted-foreground mt-0.5 font-mono">{model.model_id}</p>
-          )}
-        </div>
 
-        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setIsEditModelDialogOpen(true)}>
-          <Pencil className="h-4 w-4" />
-        </Button>
+          <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => setIsEditModelDialogOpen(true)}>
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+            Edit Model
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardContent className="p-4">
             <h3 className="font-semibold mb-4">Configuration</h3>
@@ -820,11 +978,16 @@ export function ModelDetailPage() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-base font-semibold">
-          Connections
-          <span className="ml-2 text-xs font-normal text-muted-foreground">({connections.length})</span>
-        </h2>
+      <div className="flex flex-col gap-3 rounded-xl border bg-card/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-base font-semibold">
+            Connections
+            <span className="ml-2 text-xs font-normal text-muted-foreground">({connections.length})</span>
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Health checks run automatically when this page opens. Use manual check for spot validation.
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           {connections.length > 3 && (
             <div className="relative">
@@ -857,7 +1020,7 @@ export function ModelDetailPage() {
           ) : undefined}
         />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filteredConnections.map((conn) => {
             const metrics24h = connectionMetrics24h.get(conn.id);
             const isChecking = healthCheckingIds.has(conn.id);
@@ -880,22 +1043,47 @@ export function ModelDetailPage() {
                 }}
                 tabIndex={-1}
                 className={cn(
-                  "rounded-lg border p-4 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                  isFocused && "ring-2 ring-primary/50 bg-primary/5",
-                  !isFocused && "hover:border-border/80"
+                  "rounded-xl border bg-card/90 p-4 shadow-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                  isFocused && "ring-2 ring-primary/50 bg-primary/5 shadow-md",
+                  !isFocused && "hover:border-border/80 hover:shadow-md"
                 )}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={cn(
-                        "inline-block h-2 w-2 rounded-full shrink-0",
-                        conn.health_status === "healthy" ? "bg-emerald-500" :
-                        conn.health_status === "unhealthy" ? "bg-red-500" : "bg-gray-400"
+                        "inline-flex h-2.5 w-2.5 rounded-full shrink-0 transition-all",
+                        isChecking
+                          ? "animate-pulse bg-sky-500 shadow-[0_0_0_4px_rgba(14,165,233,0.15)]"
+                          : conn.health_status === "healthy"
+                            ? "bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
+                            : conn.health_status === "unhealthy"
+                              ? "bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.15)]"
+                              : "bg-gray-400"
                       )} />
                       <span className="text-sm font-medium truncate">
                         {getConnectionName(conn)}
                       </span>
+                      <StatusBadge
+                        label={
+                          isChecking
+                            ? "Checking"
+                            : conn.health_status === "healthy"
+                              ? "Healthy"
+                              : conn.health_status === "unhealthy"
+                                ? "Unhealthy"
+                                : "Unknown"
+                        }
+                        intent={
+                          isChecking
+                            ? "info"
+                            : conn.health_status === "healthy"
+                              ? "success"
+                              : conn.health_status === "unhealthy"
+                                ? "danger"
+                                : "muted"
+                        }
+                      />
                       <ValueBadge
                         label={`P${conn.priority}`}
                         intent={conn.priority >= 10 ? "warning" : conn.priority >= 1 ? "info" : "muted"}
@@ -919,7 +1107,11 @@ export function ModelDetailPage() {
                         <StatusBadge label="Inactive" intent="muted" />
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground font-mono break-all">{endpoint?.base_url}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="truncate font-medium">{endpoint?.name ?? "Unknown endpoint"}</span>
+                      <span className="text-muted-foreground/70">•</span>
+                      <span className="font-mono break-all">{endpoint?.base_url}</span>
+                    </div>
                     {conn.pricing_enabled ? (
                       <div className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
                         <div className="flex justify-between">
@@ -956,8 +1148,15 @@ export function ModelDetailPage() {
                     ) : null}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>Key: {maskedKey}</span>
-                      {conn.last_health_check && (
+                      {isChecking ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Checking now...
+                        </span>
+                      ) : conn.last_health_check ? (
                         <span>Checked {new Date(conn.last_health_check).toLocaleTimeString()}</span>
+                      ) : (
+                        <span>Not checked yet</span>
                       )}
                     </div>
                     <div className="space-y-2 pt-1">
@@ -1088,96 +1287,94 @@ export function ModelDetailPage() {
       )}
 
       <Dialog open={isConnectionDialogOpen} onOpenChange={setIsConnectionDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingConnection ? "Edit Connection" : "Add Connection"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleConnectionSubmit} className="space-y-4">
-            {!editingConnection && (
-              <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
-                <div className="space-y-2">
-                  <Label>Endpoint Source</Label>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        id="mode-select"
-                        name="createMode"
-                        checked={createMode === "select"}
-                        onChange={() => setCreateMode("select")}
-                        className="text-primary"
-                      />
-                      <Label htmlFor="mode-select" className="font-normal cursor-pointer">Select Existing</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        id="mode-new"
-                        name="createMode"
-                        checked={createMode === "new"}
-                        onChange={() => setCreateMode("new")}
-                        className="text-primary"
-                      />
-                      <Label htmlFor="mode-new" className="font-normal cursor-pointer">Create New</Label>
-                    </div>
-                  </div>
+          <form onSubmit={handleConnectionSubmit} className="space-y-5">
+            <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Label className="text-sm font-medium">Endpoint Source</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {editingConnection
+                      ? "Switch this connection to another endpoint or create a new one."
+                      : "Choose an existing endpoint or create one inline for this connection."}
+                  </p>
                 </div>
-
-                {createMode === "select" ? (
-                  <div className="space-y-2">
-                    <Label>Select Endpoint</Label>
-                    <Select value={selectedEndpointId} onValueChange={setSelectedEndpointId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an endpoint..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {globalEndpoints.map((ep) => (
-                          <SelectItem key={ep.id} value={String(ep.id)}>
-                            {ep.name} ({ep.base_url})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {globalEndpoints.length === 0 && (
-                      <p className="text-xs text-muted-foreground">No global endpoints found.</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label>Name</Label>
-                      <Input
-                        placeholder="e.g. OpenAI Primary"
-                        value={newEndpointForm.name}
-                        onChange={(e) => setNewEndpointForm({ ...newEndpointForm, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Base URL</Label>
-                      <Input
-                        placeholder="https://api.openai.com/v1"
-                        value={newEndpointForm.base_url}
-                        onChange={(e) => setNewEndpointForm({ ...newEndpointForm, base_url: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>API Key</Label>
-                      <Input
-                        type="password"
-                        placeholder="sk-..."
-                        value={newEndpointForm.api_key}
-                        onChange={(e) => setNewEndpointForm({ ...newEndpointForm, api_key: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
+                {editingConnection && (
+                  <StatusBadge label="Editable" intent="info" />
                 )}
               </div>
-            )}
 
-            <div className="grid grid-cols-2 gap-4">
+              <Tabs
+                value={createMode}
+                onValueChange={(value) => setCreateMode(value as "select" | "new")}
+                className="gap-3"
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="select">Select Existing</TabsTrigger>
+                  <TabsTrigger value="new">Create New</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="select" className="space-y-2">
+                  <Label>Select Endpoint</Label>
+                  <Select value={selectedEndpointId} onValueChange={setSelectedEndpointId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an endpoint..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {globalEndpoints.map((endpoint) => (
+                        <SelectItem key={endpoint.id} value={String(endpoint.id)}>
+                          {endpoint.name} ({endpoint.base_url})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedEndpoint && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Selected: <span className="font-medium text-foreground">{selectedEndpoint.name}</span>
+                    </p>
+                  )}
+                  {globalEndpoints.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No global endpoints found.</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="new" className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Name</Label>
+                    <Input
+                      placeholder="e.g. OpenAI Primary"
+                      value={newEndpointForm.name}
+                      onChange={(e) => setNewEndpointForm({ ...newEndpointForm, name: e.target.value })}
+                      required={createMode === "new"}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Base URL</Label>
+                    <Input
+                      placeholder="https://api.openai.com/v1"
+                      value={newEndpointForm.base_url}
+                      onChange={(e) => setNewEndpointForm({ ...newEndpointForm, base_url: e.target.value })}
+                      required={createMode === "new"}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>API Key</Label>
+                    <Input
+                      type="password"
+                      placeholder="sk-..."
+                      value={newEndpointForm.api_key}
+                      onChange={(e) => setNewEndpointForm({ ...newEndpointForm, api_key: e.target.value })}
+                      required={createMode === "new"}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="conn-priority">Priority</Label>
                 <Input
@@ -1196,6 +1393,9 @@ export function ModelDetailPage() {
                   value={connectionForm.name || ""}
                   onChange={(e) => setConnectionForm({ ...connectionForm, name: e.target.value })}
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Leave blank to use endpoint name{endpointSourceDefaultName ? `: ${endpointSourceDefaultName}` : ""}.
+                </p>
               </div>
             </div>
 
