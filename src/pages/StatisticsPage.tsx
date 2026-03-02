@@ -1666,6 +1666,29 @@ export function StatisticsPage() {
                 />
               </div>
 
+              <div className="grid gap-4 md:grid-cols-2">
+                <TopSpendingCard
+                  title="Top Models by Cost"
+                  items={spending.top_spending_models.map((m) => ({
+                    label: m.model_id,
+                    costMicros: m.total_cost_micros,
+                  }))}
+                  totalCostMicros={spending.summary.total_cost_micros}
+                  currencySymbol={reportSymbol}
+                  currencyCode={reportCode}
+                />
+                <TopSpendingCard
+                  title="Top Endpoints by Cost"
+                  items={spending.top_spending_endpoints.map((c) => ({
+                    label: c.endpoint_label,
+                    costMicros: c.total_cost_micros,
+                  }))}
+                  totalCostMicros={spending.summary.total_cost_micros}
+                  currencySymbol={reportSymbol}
+                  currencyCode={reportCode}
+                />
+              </div>
+
               {spending.groups.length > 0 && (
                 <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
                   <Card>
@@ -1995,29 +2018,6 @@ export function StatisticsPage() {
                   description="Try adjusting your filters or time range."
                 />
               )}
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <TopSpendingCard
-                  title="Top Models by Cost"
-                  items={spending.top_spending_models.map((m) => ({
-                    label: m.model_id,
-                    costMicros: m.total_cost_micros,
-                  }))}
-                  totalCostMicros={spending.summary.total_cost_micros}
-                  currencySymbol={reportSymbol}
-                  currencyCode={reportCode}
-                />
-                <TopSpendingCard
-                  title="Top Endpoints by Cost"
-                  items={spending.top_spending_endpoints.map((c) => ({
-                    label: c.endpoint_label,
-                    costMicros: c.total_cost_micros,
-                  }))}
-                  totalCostMicros={spending.summary.total_cost_micros}
-                  currencySymbol={reportSymbol}
-                  currencyCode={reportCode}
-                />
-              </div>
             </>
           ) : null}
         </TabsContent>

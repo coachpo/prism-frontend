@@ -60,6 +60,7 @@ export function AppLayout() {
   const [activateOpen, setActivateOpen] = useState(false);
   const [profileSwitcherOpen, setProfileSwitcherOpen] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
   const [profileQuery, setProfileQuery] = useState("");
@@ -107,6 +108,7 @@ export function AppLayout() {
     () => `delete ${selectedProfile?.name ?? ""}`.trim().toLowerCase(),
     [selectedProfile?.name]
   );
+  const isDeleteConfirmMatch = deleteConfirmInput.trim().toLowerCase() === deleteConfirmTarget;
 
   const isProfileScopedPage = useMemo(
     () =>
@@ -274,18 +276,8 @@ export function AppLayout() {
 
   const handleDeleteProfile = async () => {
     if (!selectedProfile) return;
-    if (selectedIsDefault) {
-      toast.error("Default profile cannot be deleted");
-      return;
-    }
-    if (selectedIsActive) {
-      toast.error("Active profile cannot be deleted");
-      return;
-    }
-    if (deleteConfirmInput.trim().toLowerCase() !== deleteConfirmTarget) {
-      toast.error(`Type "${deleteConfirmTarget}" to confirm deletion`);
-      return;
-    }
+    if (!isDeleteConfirmMatch) return;
+    setDeleteError(null);
 
     setIsDeleting(true);
     try {
@@ -293,8 +285,9 @@ export function AppLayout() {
       toast.success(`Deleted profile ${selectedProfile.name}`);
       setDeleteOpen(false);
       setDeleteConfirmInput("");
+      setDeleteError(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete profile");
+      setDeleteError(error instanceof Error ? error.message : "Failed to delete profile");
     } finally {
       setIsDeleting(false);
     }
@@ -323,6 +316,7 @@ export function AppLayout() {
     if (!selectedProfile || selectedIsActive || selectedIsDefault) return;
     setProfileSwitcherOpen(false);
     setDeleteConfirmInput("");
+    setDeleteError(null);
     setDeleteOpen(true);
   };
 
@@ -392,16 +386,6 @@ export function AppLayout() {
                   {activeProfileName}
                 </dd>
               </dl>
-              {hasMismatch ? (
-                <Button
-                  size="sm"
-                  className="mt-2 h-7 w-full text-xs"
-                  onClick={openActivateDialog}
-                  disabled={isActivating}
-                >
-                  Activate profile
-                </Button>
-              ) : null}
             </div>
             </div>
 
@@ -453,7 +437,18 @@ export function AppLayout() {
                 ) : null}
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                {hasMismatch ? (
+                  <div className="max-w-[300px] rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-800 dark:text-amber-200">
+                    <p className="inline-flex items-start gap-1.5">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        You&apos;re viewing <strong>{selectedProfileName}</strong>, but runtime traffic is
+                        served by <strong>{activeProfileName}</strong>.
+                      </span>
+                    </p>
+                  </div>
+                ) : null}
                 <Popover
                   open={profileSwitcherOpen}
                   onOpenChange={setProfileSwitcherOpen}
@@ -466,7 +461,7 @@ export function AppLayout() {
                       role="combobox"
                       aria-expanded={profileSwitcherOpen}
                       title={`Selected profile: ${selectedProfileName}. Active runtime: ${activeProfileName}.`}
->
+                    >
                       <span className="flex min-w-0 items-center gap-2 truncate text-sm">
                         {hasNoProfiles ? (
                           <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500/80" />
@@ -484,12 +479,12 @@ export function AppLayout() {
                     </Button>
                   </PopoverTrigger>
 
-                  <PopoverContent
-                    align="end"
-                    collisionPadding={8}
-                    onOpenAutoFocus={(event) => event.preventDefault()}
-                    className="z-[60] flex h-[min(82vh,34rem)] w-[var(--radix-popover-trigger-width)] max-w-[94vw] flex-col overflow-hidden p-0"
-                  >
+                    <PopoverContent
+                      align="end"
+                      collisionPadding={8}
+                      onOpenAutoFocus={(event) => event.preventDefault()}
+                      className="z-[60] flex h-[min(82vh,34rem)] w-[var(--radix-popover-trigger-width)] max-w-[94vw] flex-col overflow-hidden p-0"
+                    >
                     <div className="shrink-0 border-b px-3 py-3">
                       <p className="text-sm font-semibold">Select profile</p>
                       <Input
@@ -618,20 +613,6 @@ export function AppLayout() {
                     </div>
 
                     <div className="shrink-0 border-t">
-                      {hasMismatch ? (
-                        <div className="border-b px-3 py-2">
-                          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-800 dark:text-amber-200">
-                            <p className="inline-flex items-start gap-1.5">
-                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                              <span>
-                                You&apos;re viewing <strong>{selectedProfileName}</strong>, but runtime
-                                traffic is served by <strong>{activeProfileName}</strong>.
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                      ) : null}
-
                       <div className="space-y-2 px-3 py-3">
                         {hasProfiles ? (
                           <>
@@ -682,7 +663,7 @@ export function AppLayout() {
                         ) : null}
                       </div>
                     </div>
-                  </PopoverContent>
+                    </PopoverContent>
                 </Popover>
 
                 {hasMismatch ? (
@@ -829,13 +810,9 @@ export function AppLayout() {
               irreversible.
             </DialogDescription>
           </DialogHeader>
-          {selectedIsDefault ? (
+          {deleteError ? (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Default profile cannot be deleted.
-            </p>
-          ) : selectedIsActive ? (
-            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Active profile cannot be deleted. Activate a different profile first.
+              {deleteError}
             </p>
           ) : null}
           <div className="space-y-2">
@@ -845,7 +822,10 @@ export function AppLayout() {
             <Input
               id="profile-delete-confirm"
               value={deleteConfirmInput}
-              onChange={(event) => setDeleteConfirmInput(event.target.value)}
+              onChange={(event) => {
+                setDeleteConfirmInput(event.target.value);
+                if (deleteError) setDeleteError(null);
+              }}
             />
           </div>
           <DialogFooter>
@@ -855,7 +835,7 @@ export function AppLayout() {
             <Button
               variant="destructive"
               onClick={handleDeleteProfile}
-              disabled={isDeleting || selectedIsActive || selectedIsDefault || !selectedProfile}
+              disabled={isDeleting || !selectedProfile || !isDeleteConfirmMatch}
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
