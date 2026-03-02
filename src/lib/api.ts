@@ -40,8 +40,11 @@ import type {
   ProfileActivateRequest,
 } from "./types";
 
-const rawApiBase = import.meta.env.VITE_API_BASE?.trim();
-const API_BASE = rawApiBase ? rawApiBase.replace(/\/+$/, "") : "";
+const rawApiBase = import.meta.env.VITE_API_BASE;
+if (!rawApiBase || rawApiBase.trim().length === 0) {
+  throw new Error("VITE_API_BASE must be set.");
+}
+const API_BASE = rawApiBase.trim();
 
 let currentProfileId: number | null = null;
 
@@ -53,32 +56,15 @@ export function getApiProfileId(): number | null {
   return currentProfileId;
 }
 
-function extractErrorMessage(body: unknown, fallback: string): string {
+function extractErrorMessage(body: unknown): string {
   if (!body || typeof body !== "object") {
-    return fallback;
+    return "Request failed";
   }
-
-  const payload = body as Record<string, unknown>;
-  const detail = payload.detail;
-
+  const detail = (body as { detail?: unknown }).detail;
   if (typeof detail === "string" && detail.trim().length > 0) {
     return detail;
   }
-
-  if (Array.isArray(detail) && detail.length > 0) {
-    const first = detail[0];
-    if (typeof first === "string" && first.trim().length > 0) {
-      return first;
-    }
-    if (first && typeof first === "object") {
-      const firstDetail = first as Record<string, unknown>;
-      if (typeof firstDetail.msg === "string" && firstDetail.msg.trim().length > 0) {
-        return firstDetail.msg;
-      }
-    }
-  }
-
-  return fallback;
+  return "Request failed";
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -96,11 +82,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers,
   });
   if (!res.ok) {
-    const fallbackMessage = `HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ""}`;
-    const body = await res.json().catch(() => null);
-    throw new Error(extractErrorMessage(body, fallbackMessage));
+    const body = await res.json();
+    throw new Error(extractErrorMessage(body));
   }
-  if (res.status === 204) return undefined as T;
   return res.json();
 }
 

@@ -295,7 +295,7 @@ function BodyInspector({ content, emptyMessage }: BodyInspectorProps) {
 
 const getConnectionLabel = (
   connection: Pick<ConnectionDropdownItem, "id" | "name">
-): string => connection.name ?? `Connection #${connection.id}`;
+): string => connection.name ?? "";
 
 export function AuditPage() {
   const navigate = useNavigate();
@@ -877,7 +877,7 @@ export function AuditPage() {
                           <div className="flex items-center gap-1.5">
                             {providerType ? <ProviderIcon providerType={providerType} size={12} /> : null}
                             <span className="text-xs text-muted-foreground">
-                              {provider?.name ?? `Provider #${log.provider_id}`}
+                              {provider?.name ?? ""}
                             </span>
                           </div>
                         </TableCell>

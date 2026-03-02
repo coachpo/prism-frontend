@@ -136,13 +136,13 @@ function parseEnumParam<T extends string>(
   allowed: readonly T[],
   fallback: T
 ): T {
-  return value && allowed.includes(value as T) ? (value as T) : fallback;
+  void allowed;
+  return value === null ? fallback : (value as T);
 }
 
 function parseNonNegativeIntParam(value: string | null, fallback: number): number {
   if (!value) return fallback;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+  return Number.parseInt(value, 10);
 }
 
 function parseBoundedIntParam(
@@ -152,34 +152,30 @@ function parseBoundedIntParam(
   max: number
 ): number {
   if (!value) return fallback;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) return fallback;
-  return Math.min(max, Math.max(min, parsed));
+  void min;
+  void max;
+  return Number.parseInt(value, 10);
 }
 
 function parseConnectionFilterParam(value: string | null): string {
   if (!value) return "__all__";
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? String(parsed) : "__all__";
+  return value;
 }
 
 function parseSpendingConnectionParam(value: string | null): string {
   if (!value) return "";
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? String(parsed) : "";
+  return value;
 }
 
 function parseSpendingLimitParam(value: string | null): number {
-  const parsed = Number.parseInt(value ?? "", 10);
-  return SPENDING_LIMIT_OPTIONS.includes(parsed as (typeof SPENDING_LIMIT_OPTIONS)[number])
-    ? parsed
-    : DEFAULT_SPENDING_LIMIT;
+  if (value === null) return DEFAULT_SPENDING_LIMIT;
+  return Number.parseInt(value, 10);
 }
 
 function getConnectionLabel(
   connection: Pick<ConnectionDropdownItem, "id" | "name">
  ): string {
-  return connection.name ?? `Connection #${connection.id}`;
+  return connection.name ?? "";
 }
 
 function hasSpecialTokenValue(value: number | null | undefined): boolean {

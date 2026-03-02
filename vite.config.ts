@@ -1,9 +1,24 @@
+import { execSync } from "node:child_process"
 import path from "path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 
 const HEALTH_RESPONSE = JSON.stringify({ status: "ok" })
+const GIT_REVISION = resolveGitRevision()
+
+function resolveGitRevision() {
+  try {
+    return execSync("git rev-parse --short HEAD", {
+      cwd: __dirname,
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim()
+  } catch {
+    return "unknown"
+  }
+}
 
 function createHealthMiddleware() {
   return (req: { method?: string; url?: string }, res: {
@@ -25,6 +40,9 @@ function createHealthMiddleware() {
 }
 
 export default defineConfig({
+  define: {
+    "import.meta.env.VITE_GIT_REVISION": JSON.stringify(GIT_REVISION),
+  },
   plugins: [
     react(),
     tailwindcss(),

@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, Activity, Loader2, X, ChevronRight, Shield, Coins, Info, Gauge, Route } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, Activity, Loader2, X, Shield, Coins, Info, Gauge, Route } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { useProfileContext } from "@/context/ProfileContext";
 import { EmptyState } from "@/components/EmptyState";
@@ -69,8 +69,12 @@ const buildRequestLogsPath = (params: {
 }): string => {
   const search = new URLSearchParams();
   search.set("model_id", params.modelId);
-  search.set("time_range", params.timeRange ?? "24h");
-  search.set("outcome_filter", params.outcomeFilter ?? "all");
+  if (params.timeRange) {
+    search.set("time_range", params.timeRange);
+  }
+  if (params.outcomeFilter) {
+    search.set("outcome_filter", params.outcomeFilter);
+  }
   if (params.connectionId !== undefined) {
     search.set("connection_id", String(params.connectionId));
   }
@@ -548,7 +552,6 @@ export function ModelDetailPage() {
     const updateData: ModelConfigUpdate = {
       display_name: formData.get("display_name") as string || null,
       model_id: formData.get("model_id") as string,
-      redirect_to: model.model_type === "proxy" ? (formData.get("redirect_to") as string || null) : null,
     };
 
     try {
@@ -598,7 +601,7 @@ export function ModelDetailPage() {
             </h1>
             <TypeBadge
               label={model.model_type}
-              intent={model.model_type === "proxy" ? "accent" : "info"}
+              intent="info"
             />
             <StatusBadge
               label={model.is_enabled ? "Enabled" : "Disabled"}
@@ -641,24 +644,15 @@ export function ModelDetailPage() {
                 </div>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  {model.model_type === "proxy" ? "Redirects To" : "Load Balancing"}
-                </p>
+                <p className="text-xs text-muted-foreground mb-1">Load Balancing</p>
                 <span className="text-sm font-medium">
-                  {model.model_type === "proxy" ? (
-                    <span className="flex items-center gap-1">
-                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-mono text-xs">{model.redirect_to}</span>
-                    </span>
-                  ) : (
-                    formatLabel(model.lb_strategy)
-                  )}
+                  {formatLabel(model.lb_strategy)}
                 </span>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Recovery Policy</p>
                 <span className="text-sm font-medium">
-                  {model.model_type === "native" && model.lb_strategy === "failover" ? (
+                  {model.lb_strategy === "failover" ? (
                     model.failover_recovery_enabled ? (
                       <span className="text-emerald-600 dark:text-emerald-400">
                         Enabled ({model.failover_recovery_cooldown_seconds}s)
@@ -866,7 +860,7 @@ export function ModelDetailPage() {
                         conn.health_status === "unhealthy" ? "bg-red-500" : "bg-gray-400"
                       )} />
                       <span className="text-sm font-medium truncate">
-                        {getConnectionName(conn) || `Connection #${conn.id}`}
+                        {getConnectionName(conn)}
                       </span>
                       <ValueBadge
                         label={`P${conn.priority}`}
@@ -1470,17 +1464,6 @@ export function ModelDetailPage() {
                     required
                   />
                 </div>
-                {model.model_type === "proxy" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-redirect-to">Redirect To</Label>
-                    <Input
-                      id="edit-redirect-to"
-                      name="redirect_to"
-                      defaultValue={model.redirect_to || ""}
-                      placeholder="Target model ID"
-                    />
-                  </div>
-                )}
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsEditModelDialogOpen(false)}>
                     Cancel

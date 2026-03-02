@@ -906,7 +906,7 @@ export function SettingsPage() {
           .map((issue: z.ZodIssue) => `${issue.path.join(".")}: ${issue.message}`)
           .join(", ");
         throw new Error(
-          `Invalid configuration. Only schema version 1 with replace mode is supported: ${errors}`
+          `Invalid configuration payload: ${errors}`
         );
       }
 

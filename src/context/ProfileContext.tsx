@@ -94,11 +94,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             ? null
             : fetchedProfiles.find((profile) => profile.id === persistedId) ?? null;
 
-        const targetProfile = persistedProfile ?? fetchedActiveProfile;
-        if (targetProfile) {
-          setSelectedProfileId(targetProfile.id);
-          setApiProfileId(targetProfile.id);
-          localStorage.setItem(STORAGE_KEY, String(targetProfile.id));
+        if (persistedProfile) {
+          setSelectedProfileId(persistedProfile.id);
+          setApiProfileId(persistedProfile.id);
+          localStorage.setItem(STORAGE_KEY, String(persistedProfile.id));
         } else {
           setSelectedProfileId(null);
           setApiProfileId(null);
@@ -159,7 +158,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       try {
         const updatedProfile = await api.profiles.activate(id, {
           expected_active_profile_id: activeProfile.id,
-          expected_active_profile_version: activeProfile.version,
         });
         await refreshProfiles();
         return updatedProfile;
@@ -176,22 +174,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const deleteProfile = useCallback(
     async (id: number) => {
       await api.profiles.delete(id);
-      const refreshedProfiles = await refreshProfiles();
+      await refreshProfiles();
 
       if (selectedProfileId === id) {
-        const nextActiveProfile =
-          refreshedProfiles.find((profile) => profile.is_active) ?? null;
-        if (nextActiveProfile) {
-          setSelectedProfileId(nextActiveProfile.id);
-          setApiProfileId(nextActiveProfile.id);
-          localStorage.setItem(STORAGE_KEY, String(nextActiveProfile.id));
-          bumpRevision();
-        } else {
-          setSelectedProfileId(null);
-          setApiProfileId(null);
-          localStorage.removeItem(STORAGE_KEY);
-          bumpRevision();
-        }
+        setSelectedProfileId(null);
+        setApiProfileId(null);
+        localStorage.removeItem(STORAGE_KEY);
+        bumpRevision();
       }
     },
     [bumpRevision, refreshProfiles, selectedProfileId]

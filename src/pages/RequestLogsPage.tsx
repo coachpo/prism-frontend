@@ -250,32 +250,28 @@ const VIEW_COLUMNS: Record<ViewType, ColumnId[]> = {
 };
 
 function parseEnumParam<T extends string>(value: string | null, allowed: readonly T[], fallback: T): T {
-  return value && allowed.includes(value as T) ? (value as T) : fallback;
+  void allowed;
+  return value === null ? fallback : (value as T);
 }
 
 function parseNonNegativeIntParam(value: string | null, fallback: number): number {
   if (!value) return fallback;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+  return Number.parseInt(value, 10);
 }
 
 function parseOptionalNumber(value: string | null): number | null {
   if (!value) return null;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  return Number.parseInt(value, 10);
 }
 
 function parseIdFilterParam(value: string | null): string {
   if (!value) return "__all__";
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? String(parsed) : "__all__";
+  return value;
 }
 
 function parseRequestLimitParam(value: string | null): number {
-  const parsed = Number.parseInt(value ?? "", 10);
-  return REQUEST_LIMIT_OPTIONS.includes(parsed as (typeof REQUEST_LIMIT_OPTIONS)[number])
-    ? parsed
-    : DEFAULT_REQUEST_LIMIT;
+  if (value === null) return DEFAULT_REQUEST_LIMIT;
+  return Number.parseInt(value, 10);
 }
 
 function parseBooleanParam(value: string | null): boolean {
@@ -301,7 +297,7 @@ function rowHasAnySpecialToken(log: RequestLogEntry): boolean {
 }
 
 function getConnectionLabel(connection: Pick<ConnectionDropdownItem, "id" | "name">): string {
-  return connection.name ?? `Connection #${connection.id}`;
+  return connection.name ?? "";
 }
 
 function getDisplayCurrency(log: Pick<RequestLogEntry, "report_currency_symbol" | "report_currency_code">): {

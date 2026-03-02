@@ -25,7 +25,6 @@ export interface ProfileUpdate {
 
 export interface ProfileActivateRequest {
   expected_active_profile_id: number;
-  expected_active_profile_version: number;
 }
 
 // --- Provider ---
@@ -161,7 +160,7 @@ export interface ConnectionDropdownResponse {
 }
 
 // --- Model Config ---
-export type ModelType = "native" | "proxy";
+export type ModelType = "native";
 export type LoadBalancingStrategy = "single" | "failover";
 
 export interface ModelConfig {
@@ -171,7 +170,6 @@ export interface ModelConfig {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
-  redirect_to: string | null;
   lb_strategy: LoadBalancingStrategy;
   is_enabled: boolean;
   failover_recovery_enabled: boolean;
@@ -188,7 +186,6 @@ export interface ModelConfigListItem {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
-  redirect_to: string | null;
   lb_strategy: LoadBalancingStrategy;
   is_enabled: boolean;
   failover_recovery_enabled: boolean;
@@ -206,7 +203,6 @@ export interface ModelConfigCreate {
   model_id: string;
   display_name?: string | null;
   model_type?: ModelType;
-  redirect_to?: string | null;
   lb_strategy?: LoadBalancingStrategy;
   is_enabled?: boolean;
   failover_recovery_enabled?: boolean;
@@ -218,7 +214,6 @@ export interface ModelConfigUpdate {
   model_id?: string;
   display_name?: string | null;
   model_type?: ModelType;
-  redirect_to?: string | null;
   lb_strategy?: LoadBalancingStrategy;
   is_enabled?: boolean;
   failover_recovery_enabled?: boolean;
@@ -333,18 +328,15 @@ export interface ConnectionSuccessRate {
 }
 
 export interface ConfigEndpointExport {
-  endpoint_id?: number | null;
-  endpoint_ref?: string | null;
+  endpoint_id: number;
   name: string;
   base_url: string;
   api_key: string;
 }
 
 export interface ConfigConnectionExport {
-  connection_id?: number | null;
-  connection_ref?: string | null;
-  endpoint_id?: number | null;
-  endpoint_ref?: string | null;
+  connection_id: number;
+  endpoint_id: number;
   is_active: boolean;
   priority: number;
   name: string | null;
@@ -366,7 +358,6 @@ export interface ConfigModelExport {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
-  redirect_to: string | null;
   lb_strategy: LoadBalancingStrategy;
   is_enabled: boolean;
   failover_recovery_enabled: boolean;
@@ -376,8 +367,7 @@ export interface ConfigModelExport {
 
 export interface ConfigEndpointFxRateExport {
   model_id: string;
-  endpoint_id?: number | null;
-  endpoint_ref?: string | null;
+  endpoint_id: number;
   fx_rate: string;
 }
 
@@ -389,8 +379,6 @@ export interface ConfigUserSettingsExport {
 }
 
 export interface ConfigExportResponse {
-  config_version: "1";
-  mode: "replace";
   exported_at: string;
   endpoints: ConfigEndpointExport[];
   models: ConfigModelExport[];
@@ -399,13 +387,11 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  config_version: "1";
   exported_at?: string;
   endpoints: ConfigEndpointExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
-  mode: "replace";
 }
 export interface ConfigImportResponse {
   endpoints_imported: number;

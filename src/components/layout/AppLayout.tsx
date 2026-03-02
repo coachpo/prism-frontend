@@ -48,6 +48,9 @@ const navLinks = [
 
 const PROFILE_SCOPED_PREFIXES = ["/models", "/endpoints", "/statistics", "/request-logs", "/audit"];
 const MAX_PROFILES = 10;
+const APP_VERSION = "v1.0";
+const GIT_REVISION = String(import.meta.env.VITE_GIT_REVISION ?? "unknown").trim() || "unknown";
+const VERSION_LABEL = `${APP_VERSION}-${GIT_REVISION}`;
 
 export function AppLayout() {
   const location = useLocation();
@@ -89,8 +92,8 @@ export function AppLayout() {
   const hasMismatch = selectedProfile !== null && activeProfile !== null && !selectedIsActive;
   const selectedIsDefault = selectedProfile?.is_default ?? false;
   const selectedIsEditable = selectedProfile?.is_editable ?? true;
-  const selectedProfileName = selectedProfile?.name ?? (hasProfiles ? "Select profile" : "No profiles");
-  const activeProfileName = activeProfile?.name ?? "none";
+  const selectedProfileName = selectedProfile?.name ?? "";
+  const activeProfileName = activeProfile?.name ?? "";
   const deleteDisabledReason = selectedIsDefault
     ? "Default profile cannot be deleted."
     : selectedIsActive
@@ -411,7 +414,7 @@ export function AppLayout() {
           </nav>
 
           <div className="border-t border-sidebar-border px-3 py-2.5">
-            <span className="text-[11px] font-medium text-sidebar-foreground/35">v1.0</span>
+            <span className="text-[11px] font-medium text-sidebar-foreground/35">{VERSION_LABEL}</span>
           </div>
         </aside>
 
