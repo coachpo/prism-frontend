@@ -91,6 +91,7 @@ export function ModelsPage() {
     model_id: "",
     display_name: "",
     model_type: "native",
+    redirect_to: null,
     lb_strategy: "single",
     is_enabled: true,
     failover_recovery_enabled: true,
@@ -193,6 +194,7 @@ export function ModelsPage() {
         model_id: model.model_id,
         display_name: model.display_name || "",
         model_type: model.model_type,
+        redirect_to: model.redirect_to,
         lb_strategy: model.lb_strategy,
         is_enabled: model.is_enabled,
         failover_recovery_enabled: model.failover_recovery_enabled,
@@ -205,6 +207,7 @@ export function ModelsPage() {
         model_id: "",
         display_name: "",
         model_type: "native",
+        redirect_to: null,
         lb_strategy: "single",
         is_enabled: true,
         failover_recovery_enabled: true,
@@ -221,19 +224,21 @@ export function ModelsPage() {
         const updateData: ModelConfigUpdate = {
           display_name: formData.display_name || null,
           model_type: formData.model_type,
-          lb_strategy: formData.lb_strategy,
+          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
+          lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
           is_enabled: formData.is_enabled,
-          failover_recovery_enabled: formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
-          failover_recovery_cooldown_seconds: formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
+          failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
+          failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
         };
         await api.models.update(editingModel.id, updateData);
         toast.success("Model updated");
       } else {
         const createData: ModelConfigCreate = {
           ...formData,
-          lb_strategy: formData.lb_strategy,
-          failover_recovery_enabled: formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
-          failover_recovery_cooldown_seconds: formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
+          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
+          lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
+          failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
+          failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
         };
         await api.models.create(createData);
         toast.success("Model created");
@@ -257,6 +262,11 @@ export function ModelsPage() {
     }
   };
 
+  const selectedProvider = providers.find(p => p.id === formData.provider_id);
+  const nativeModelsForProvider = models.filter(
+    m => m.model_type === "native" && m.provider_id === formData.provider_id && (!editingModel || m.model_id !== formData.model_id)
+  );
+
   const filtered = models.filter((m) => {
     if (search) {
       const q = search.toLowerCase();
@@ -265,7 +275,7 @@ export function ModelsPage() {
     if (providerFilter !== "all" && m.provider.provider_type !== providerFilter) return false;
     if (statusFilter === "enabled" && !m.is_enabled) return false;
     if (statusFilter === "disabled" && m.is_enabled) return false;
-    if (typeFilter !== "all" && m.model_type !== "native") return false;
+    if (typeFilter !== "all" && m.model_type !== typeFilter) return false;
     return true;
   });
   const activeColumns = useMemo(
@@ -334,6 +344,7 @@ export function ModelsPage() {
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="native">Native</SelectItem>
+            <SelectItem value="proxy">Proxy</SelectItem>
           </SelectContent>
         </Select>
         <DropdownMenu>
@@ -492,9 +503,11 @@ export function ModelsPage() {
                               {model.display_name || model.model_id}
                             </span>
                           </div>
-                          {model.display_name && (
+                          {(model.display_name || (model.model_type === "proxy" && model.redirect_to)) && (
                             <p className="text-xs text-muted-foreground truncate mt-0.5">
-                              {model.model_id}
+                              {model.model_type === "proxy" && model.redirect_to
+                                ? `Resolves to ${model.redirect_to}`
+                                : model.model_id}
                             </p>
                           )}
                         </div>
@@ -511,7 +524,13 @@ export function ModelsPage() {
 
                       {activeColumns.type && (
                         <TableCell className="hidden md:table-cell">
-                          <TypeBadge label="Native" intent="info" />
+                          {model.model_type === "proxy" ? (
+                            <div className="flex items-center">
+                              <TypeBadge label="Proxy" intent="accent" />
+                            </div>
+                          ) : (
+                            <TypeBadge label="Native" intent="info" />
+                          )}
                         </TableCell>
                       )}
 
@@ -625,7 +644,7 @@ export function ModelsPage() {
                 <Label>Provider</Label>
                 <ProviderSelect
                   value={String(formData.provider_id)}
-                  onValueChange={(v) => setFormData({ ...formData, provider_id: parseInt(v) })}
+                  onValueChange={(v) => setFormData({ ...formData, provider_id: parseInt(v), redirect_to: null })}
                   valueType="provider_id"
                   providers={providers}
                   showAll={false}
@@ -657,26 +676,67 @@ export function ModelsPage() {
 
             <div className="space-y-2">
               <Label>Type</Label>
-              <Input value="native" readOnly />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Load Balancing</Label>
               <Select
-                value={formData.lb_strategy}
-                onValueChange={(v) => setFormData({ ...formData, lb_strategy: v as LoadBalancingStrategy })}
+                value={formData.model_type}
+                onValueChange={(v) => setFormData({ ...formData, model_type: v as "native" | "proxy", redirect_to: v === "native" ? null : formData.redirect_to })}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="single">Single</SelectItem>
-
-                  <SelectItem value="failover">Failover</SelectItem>
+                  <SelectItem value="native">Native</SelectItem>
+                  <SelectItem value="proxy">Proxy</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {formData.lb_strategy === "failover" && (
+
+            {formData.model_type === "proxy" && (
+              <div className="space-y-2">
+                <Label>Redirect To</Label>
+                {nativeModelsForProvider.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No native models available for {selectedProvider?.name || "this provider"}. Create a native model first.
+                  </p>
+                ) : (
+                  <Select
+                    value={formData.redirect_to || ""}
+                    onValueChange={(val) => setFormData({ ...formData, redirect_to: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select target model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {nativeModelsForProvider.map((m) => (
+                        <SelectItem key={m.model_id} value={m.model_id}>
+                          {m.display_name || m.model_id}
+                          {m.display_name && ` (${m.model_id})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
+            {formData.model_type === "native" && (
+              <div className="space-y-2">
+                <Label>Load Balancing</Label>
+                <Select
+                  value={formData.lb_strategy}
+                  onValueChange={(v) => setFormData({ ...formData, lb_strategy: v as LoadBalancingStrategy })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">Single</SelectItem>
+
+                    <SelectItem value="failover">Failover</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {formData.model_type === "native" && formData.lb_strategy === "failover" && (
               <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
                 <div className="space-y-2">
                   <Label className="text-base font-medium">Recovery Policy</Label>

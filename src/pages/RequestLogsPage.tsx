@@ -1289,7 +1289,7 @@ export function RequestLogsPage() {
         </div>
 
         <div className="rounded-md border bg-card overflow-hidden relative flex-1 min-h-[420px] flex flex-col">
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto [scrollbar-gutter:stable] [&_[data-slot=table-container]]:overflow-x-visible">
             {loading ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 <div className="flex flex-col items-center gap-2">
@@ -1392,7 +1392,7 @@ export function RequestLogsPage() {
                     setOffset(0);
                   }}
                 >
-                  <SelectTrigger className="h-7 w-16 text-xs">
+                  <SelectTrigger className="h-7 min-w-[4.5rem] text-xs tabular-nums">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

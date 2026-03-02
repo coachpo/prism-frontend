@@ -1,5 +1,5 @@
 import { useTimezone } from "@/hooks/useTimezone";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -50,7 +51,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -170,24 +170,112 @@ function getHighlightSegments(text: string, query: string): { segments: Highligh
   return { segments, count };
 }
 
-function CopyButton({ text }: { text: string }) {
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to legacy fallback for insecure contexts.
+    }
+  }
+
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
+
+function CopyButton({
+  text,
+  successMessage = "Copied to clipboard",
+  ariaLabel = "Copy to clipboard",
+}: {
+  text: string;
+  successMessage?: string;
+  ariaLabel?: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(text).then(() => {
+    copyTextToClipboard(text).then((success) => {
+      if (!success) {
+        toast.error("Failed to copy");
+        return;
+      }
+      toast.success(successMessage);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
 
   return (
-    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCopy}>
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="h-7 w-7 shrink-0"
+      onClick={handleCopy}
+      aria-label={ariaLabel}
+    >
       {copied ? (
         <Check className="h-3.5 w-3.5 text-success" />
       ) : (
         <Copy className="h-3.5 w-3.5" />
       )}
     </Button>
+  );
+}
+
+function DetailMetaItem({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="space-y-1 rounded-md border bg-background/80 px-2.5 py-2">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="min-h-4 text-xs">{value}</div>
+    </div>
+  );
+}
+
+function DetailSection({
+  title,
+  subtitle,
+  action,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-2 rounded-xl border bg-card/80 p-3 sm:p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="space-y-1">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+          {subtitle ? <p className="text-[11px] text-muted-foreground">{subtitle}</p> : null}
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -221,7 +309,7 @@ function BodyInspector({ content, emptyMessage }: BodyInspectorProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/30 p-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/20 p-2 pr-3">
         <div className="flex items-center gap-1">
           <Button
             variant={mode === "pretty" ? "secondary" : "ghost"}
@@ -257,7 +345,7 @@ function BodyInspector({ content, emptyMessage }: BodyInspectorProps) {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Find in body"
-              className="h-7 w-[150px] pl-7 text-xs"
+              className="h-7 w-[160px] pl-7 text-xs"
               aria-label="Find in body"
             />
           </div>
@@ -266,13 +354,17 @@ function BodyInspector({ content, emptyMessage }: BodyInspectorProps) {
               {count} match{count === 1 ? "" : "es"}
             </span>
           ) : null}
-          <CopyButton text={displayContent} />
+          <CopyButton
+            text={displayContent}
+            successMessage="Body content copied"
+            ariaLabel="Copy body content"
+          />
         </div>
       </div>
 
       <pre
         className={cn(
-          "bg-muted p-3 rounded-lg text-xs font-mono overflow-auto max-h-[40vh] scrollbar-thin",
+          "max-h-[44vh] overflow-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs leading-relaxed scrollbar-thin",
           wrap ? "whitespace-pre-wrap break-all" : "whitespace-pre"
         )}
       >
@@ -534,6 +626,11 @@ export function AuditPage() {
   const rangeStart = total === 0 ? 0 : offset + 1;
   const rangeEnd = total === 0 ? 0 : Math.min(offset + limit, total);
   const selectedConnectionId = selectedLog?.connection_id ?? null;
+  const selectedRequestPath = selectedLog ? formatRequestPath(selectedLog.request_url) : "";
+  const selectedLogPayload = useMemo(
+    () => (selectedLog ? JSON.stringify(selectedLog, null, 2) : ""),
+    [selectedLog]
+  );
 
   const openDetail = async (id: number) => {
     setSelectedLogId(id);
@@ -855,12 +952,17 @@ export function AuditPage() {
                               </Tooltip>
                             </TooltipProvider>
                             <Button
+                              type="button"
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                navigator.clipboard.writeText(requestPath).then(() => {
+                                copyTextToClipboard(requestPath).then((success) => {
+                                  if (!success) {
+                                    toast.error("Failed to copy path");
+                                    return;
+                                  }
                                   toast.success("Path copied");
                                 });
                               }}
@@ -946,131 +1048,194 @@ export function AuditPage() {
       </Card>
 
       <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
-        <SheetContent className="flex w-full flex-col p-0 sm:max-w-xl">
-          <SheetHeader className="shrink-0 border-b px-6 py-4">
-            <div className="flex items-center justify-between gap-2">
-              <SheetTitle className="text-base">
-                {selectedLog ? `Audit Log #${selectedLog.id}` : "Loading..."}
-              </SheetTitle>
-              {selectedLog ? <CopyButton text={`Audit Log #${selectedLog.id}`} /> : null}
-            </div>
-            {selectedLog ? (
-              <SheetDescription className="text-xs">
-                {formatTime(selectedLog.created_at)}
-                {" · "}
-                {selectedLog.duration_ms}ms
-                {" · "}
-                {selectedLog.endpoint_id === null ? "Endpoint unavailable" : `Endpoint #${selectedLog.endpoint_id}`}
-                {" · "}
-                HTTP {selectedLog.response_status}
-                {selectedConnectionId === null ? (
-                  <span> · Connection unavailable</span>
-                ) : (
-                  <>
-                    {" · "}
-                    <button
-                      type="button"
-                      className="text-primary hover:underline"
-                      onClick={() => navigateToConnection(selectedConnectionId)}
-                    >
-                      Connection #{selectedConnectionId}
-                    </button>
-                  </>
-                )}
-              </SheetDescription>
-            ) : null}
-          </SheetHeader>
-
+        <SheetContent showCloseButton={false} className="flex w-full flex-col p-0 sm:max-w-2xl">
           {detailLoading ? (
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : selectedLog ? (
-            <div className="flex-1 overflow-hidden">
-              <div className="flex items-center gap-2 border-b bg-muted/30 px-6 py-3">
-                <ValueBadge
-                  label={selectedLog.request_method}
-                  intent={methodIntent(selectedLog.request_method)}
-                  className="text-xs"
-                />
-                <ValueBadge
-                  label={String(selectedLog.response_status)}
-                  intent={statusIntent(selectedLog.response_status)}
-                  className="text-xs"
-                />
-                <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
-                  {selectedLog.request_url}
-                </span>
-                {selectedLog.is_stream ? <TypeBadge label="Stream" /> : null}
-              </div>
-
-              <Tabs defaultValue="request" className="flex h-[calc(100%-48px)] flex-1 flex-col">
-                <TabsList className="mx-6 mt-3 w-fit">
-                  <TabsTrigger value="request">Request</TabsTrigger>
-                  <TabsTrigger value="response">Response</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="request" className="mt-0 flex-1 overflow-hidden px-6 pb-6">
-                  <ScrollArea className="h-full">
-                    <div className="space-y-4 pt-3">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground">Headers</span>
-                          <CopyButton text={formatJson(selectedLog.request_headers)} />
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">API keys are always redacted.</p>
-                        <pre className="max-h-[30vh] overflow-auto rounded-lg bg-muted p-3 font-mono text-xs whitespace-pre-wrap break-all scrollbar-thin">
-                          {formatJson(selectedLog.request_headers)}
-                        </pre>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground">Body</span>
-                        </div>
-                        <BodyInspector
-                          content={selectedLog.request_body}
-                          emptyMessage="Body capture disabled for this provider."
-                        />
-                      </div>
+            <>
+              <SheetHeader className="shrink-0 border-b bg-gradient-to-b from-muted/40 to-background px-5 py-4 sm:px-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="font-mono text-[11px]">
+                        Audit Log #{selectedLog.id}
+                      </Badge>
+                      <ValueBadge
+                        label={selectedLog.request_method}
+                        intent={methodIntent(selectedLog.request_method)}
+                        className="text-xs"
+                      />
+                      <ValueBadge
+                        label={String(selectedLog.response_status)}
+                        intent={statusIntent(selectedLog.response_status)}
+                        className="text-xs"
+                      />
+                      {selectedLog.is_stream ? <TypeBadge label="Stream" /> : null}
                     </div>
-                  </ScrollArea>
+                    <SheetTitle className="truncate text-base sm:text-lg">{selectedRequestPath}</SheetTitle>
+                    <SheetDescription className="text-[11px] leading-relaxed">
+                      <span className="break-all font-mono text-muted-foreground">{selectedLog.request_url}</span>
+                    </SheetDescription>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    <CopyButton
+                      text={selectedLog.request_url}
+                      successMessage="Request URL copied"
+                      ariaLabel="Copy request URL"
+                    />
+                    <CopyButton
+                      text={selectedLogPayload}
+                      successMessage="Audit details copied"
+                      ariaLabel="Copy full audit details"
+                    />
+                    <SheetClose asChild>
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Close details">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </SheetClose>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <DetailMetaItem
+                    label="Timestamp"
+                    value={
+                      <span className="text-muted-foreground">
+                        {formatTime(selectedLog.created_at, { dateStyle: "medium", timeStyle: "medium" })}
+                      </span>
+                    }
+                  />
+                  <DetailMetaItem
+                    label="Duration"
+                    value={<span className="font-mono tabular-nums text-muted-foreground">{selectedLog.duration_ms}ms</span>}
+                  />
+                  <DetailMetaItem
+                    label="Endpoint"
+                    value={
+                      selectedLog.endpoint_id === null ? (
+                        <span className="text-muted-foreground">Unavailable</span>
+                      ) : (
+                        <span className="font-mono text-muted-foreground">#{selectedLog.endpoint_id}</span>
+                      )
+                    }
+                  />
+                  <DetailMetaItem
+                    label="Connection"
+                    value={
+                      selectedConnectionId === null ? (
+                        <span className="text-muted-foreground">Unavailable</span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="font-mono text-primary hover:underline"
+                          onClick={() => navigateToConnection(selectedConnectionId)}
+                        >
+                          #{selectedConnectionId}
+                        </button>
+                      )
+                    }
+                  />
+                </div>
+              </SheetHeader>
+
+              <Tabs defaultValue="request" className="flex min-h-0 flex-1 flex-col">
+                <div className="shrink-0 border-b bg-background/95 px-5 py-2 backdrop-blur sm:px-6">
+                  <TabsList className="h-8 w-fit">
+                    <TabsTrigger value="request">Request</TabsTrigger>
+                    <TabsTrigger value="response">Response</TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <TabsContent value="request" className="mt-0 flex-1 overflow-y-auto px-5 py-4 [scrollbar-gutter:stable] sm:px-6">
+                  <div className="space-y-4 pr-3">
+                    <DetailSection
+                      title="Request URL"
+                      action={
+                        <CopyButton
+                          text={selectedLog.request_url}
+                          successMessage="Request URL copied"
+                          ariaLabel="Copy request URL from section"
+                        />
+                      }
+                    >
+                      <p className="break-all rounded-lg border bg-muted/40 px-3 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                        {selectedLog.request_url}
+                      </p>
+                    </DetailSection>
+
+                    <DetailSection
+                      title="Headers"
+                      subtitle="API keys are always redacted."
+                      action={
+                        <CopyButton
+                          text={formatJson(selectedLog.request_headers)}
+                          successMessage="Request headers copied"
+                          ariaLabel="Copy request headers"
+                        />
+                      }
+                    >
+                      <pre className="max-h-[28vh] overflow-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all scrollbar-thin">
+                        {formatJson(selectedLog.request_headers)}
+                      </pre>
+                    </DetailSection>
+
+                    <DetailSection title="Body">
+                      <BodyInspector
+                        content={selectedLog.request_body}
+                        emptyMessage="Body capture disabled for this provider."
+                      />
+                    </DetailSection>
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="response" className="mt-0 flex-1 overflow-hidden px-6 pb-6">
-                  <ScrollArea className="h-full">
-                    <div className="space-y-4 pt-3">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground">Headers</span>
-                          {selectedLog.response_headers ? (
-                            <CopyButton text={formatJson(selectedLog.response_headers)} />
-                          ) : null}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">API keys are always redacted.</p>
-                        <pre className="max-h-[30vh] overflow-auto rounded-lg bg-muted p-3 font-mono text-xs whitespace-pre-wrap break-all scrollbar-thin">
-                          {formatJson(selectedLog.response_headers)}
-                        </pre>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground">Body</span>
-                        </div>
-                        <BodyInspector
-                          content={selectedLog.response_body}
-                          emptyMessage={
-                            selectedLog.is_stream
-                              ? "Response body not recorded for streaming requests."
-                              : "Body capture disabled for this provider."
-                          }
+                <TabsContent value="response" className="mt-0 flex-1 overflow-y-auto px-5 py-4 [scrollbar-gutter:stable] sm:px-6">
+                  <div className="space-y-4 pr-3">
+                    <DetailSection title="Response Status">
+                      <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+                        <ValueBadge
+                          label={String(selectedLog.response_status)}
+                          intent={statusIntent(selectedLog.response_status)}
+                          className="text-xs"
                         />
+                        <p className="text-xs text-muted-foreground">Status returned by the upstream provider.</p>
                       </div>
-                    </div>
-                  </ScrollArea>
+                    </DetailSection>
+
+                    <DetailSection
+                      title="Headers"
+                      subtitle="API keys are always redacted."
+                      action={
+                        selectedLog.response_headers ? (
+                          <CopyButton
+                            text={formatJson(selectedLog.response_headers)}
+                            successMessage="Response headers copied"
+                            ariaLabel="Copy response headers"
+                          />
+                        ) : null
+                      }
+                    >
+                      <pre className="max-h-[28vh] overflow-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all scrollbar-thin">
+                        {formatJson(selectedLog.response_headers)}
+                      </pre>
+                    </DetailSection>
+
+                    <DetailSection title="Body">
+                      <BodyInspector
+                        content={selectedLog.response_body}
+                        emptyMessage={
+                          selectedLog.is_stream
+                            ? "Response body not recorded for streaming requests."
+                            : "Body capture disabled for this provider."
+                        }
+                      />
+                    </DetailSection>
+                  </div>
                 </TabsContent>
               </Tabs>
-            </div>
+            </>
           ) : (
             <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
               Failed to load details.

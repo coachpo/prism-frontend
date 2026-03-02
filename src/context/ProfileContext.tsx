@@ -37,6 +37,27 @@ function parseStoredProfileId(raw: string | null): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+function resolveSelectedProfile(
+  profiles: Profile[],
+  storedProfileId: number | null,
+  activeProfileId: number | null
+): Profile | null {
+  if (storedProfileId !== null) {
+    const storedProfile = profiles.find((profile) => profile.id === storedProfileId);
+    if (storedProfile) return storedProfile;
+  }
+
+  const defaultProfile = profiles.find((profile) => profile.is_default);
+  if (defaultProfile) return defaultProfile;
+
+  if (activeProfileId !== null) {
+    const activeProfile = profiles.find((profile) => profile.id === activeProfileId);
+    if (activeProfile) return activeProfile;
+  }
+
+  return profiles[0] ?? null;
+}
+
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
@@ -89,15 +110,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setActiveProfile(fetchedActiveProfile);
 
         const persistedId = parseStoredProfileId(localStorage.getItem(STORAGE_KEY));
-        const persistedProfile =
-          persistedId === null
-            ? null
-            : fetchedProfiles.find((profile) => profile.id === persistedId) ?? null;
+        const selectedProfile = resolveSelectedProfile(
+          fetchedProfiles,
+          persistedId,
+          fetchedActiveProfile?.id ?? null
+        );
 
-        if (persistedProfile) {
-          setSelectedProfileId(persistedProfile.id);
-          setApiProfileId(persistedProfile.id);
-          localStorage.setItem(STORAGE_KEY, String(persistedProfile.id));
+        if (selectedProfile) {
+          setSelectedProfileId(selectedProfile.id);
+          setApiProfileId(selectedProfile.id);
+          localStorage.setItem(STORAGE_KEY, String(selectedProfile.id));
         } else {
           setSelectedProfileId(null);
           setApiProfileId(null);

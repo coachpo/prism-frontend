@@ -160,7 +160,7 @@ export interface ConnectionDropdownResponse {
 }
 
 // --- Model Config ---
-export type ModelType = "native";
+export type ModelType = "native" | "proxy";
 export type LoadBalancingStrategy = "single" | "failover";
 
 export interface ModelConfig {
@@ -170,6 +170,7 @@ export interface ModelConfig {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
+  redirect_to: string | null;
   lb_strategy: LoadBalancingStrategy;
   is_enabled: boolean;
   failover_recovery_enabled: boolean;
@@ -186,6 +187,7 @@ export interface ModelConfigListItem {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
+  redirect_to: string | null;
   lb_strategy: LoadBalancingStrategy;
   is_enabled: boolean;
   failover_recovery_enabled: boolean;
@@ -203,6 +205,7 @@ export interface ModelConfigCreate {
   model_id: string;
   display_name?: string | null;
   model_type?: ModelType;
+  redirect_to?: string | null;
   lb_strategy?: LoadBalancingStrategy;
   is_enabled?: boolean;
   failover_recovery_enabled?: boolean;
@@ -214,6 +217,7 @@ export interface ModelConfigUpdate {
   model_id?: string;
   display_name?: string | null;
   model_type?: ModelType;
+  redirect_to?: string | null;
   lb_strategy?: LoadBalancingStrategy;
   is_enabled?: boolean;
   failover_recovery_enabled?: boolean;
@@ -358,6 +362,7 @@ export interface ConfigModelExport {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
+  redirect_to: string | null;
   lb_strategy: LoadBalancingStrategy;
   is_enabled: boolean;
   failover_recovery_enabled: boolean;
