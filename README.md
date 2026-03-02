@@ -108,6 +108,14 @@ Create a `.env` file in the frontend directory:
 
 The frontend uses `VITE_API_BASE` when set. If unset, it uses same-origin API paths (`/api`, `/v1`, `/v1beta`). In development, Vite proxies these paths to `http://localhost:8000` by default.
 
+When building Docker images, pass `VITE_API_BASE` as a build arg only if you need a cross-origin backend:
+
+```bash
+docker build \
+  --build-arg VITE_API_BASE=https://your-prism-domain.example \
+  -t prism-frontend:latest .
+```
+
 ---
 
 ## Key Features

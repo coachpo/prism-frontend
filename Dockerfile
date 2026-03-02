@@ -12,6 +12,8 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+ARG VITE_API_BASE=
+ENV VITE_API_BASE=$VITE_API_BASE
 RUN pnpm run build
 
 FROM node:20-alpine AS runner

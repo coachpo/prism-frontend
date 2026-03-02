@@ -41,10 +41,10 @@ import type {
 } from "./types";
 
 const rawApiBase = import.meta.env.VITE_API_BASE;
-if (!rawApiBase || rawApiBase.trim().length === 0) {
-  throw new Error("VITE_API_BASE must be set.");
-}
-const API_BASE = rawApiBase.trim();
+const API_BASE =
+  typeof rawApiBase === "string" && rawApiBase.trim().length > 0
+    ? rawApiBase.trim().replace(/\/+$/, "")
+    : "";
 
 let currentProfileId: number | null = null;
 
