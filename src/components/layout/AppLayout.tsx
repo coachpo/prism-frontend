@@ -35,7 +35,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navLinks = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -67,8 +66,6 @@ export function AppLayout() {
   const [isSaving, setIsSaving] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSelectingProfile, setIsSelectingProfile] = useState(false);
-  const profileSelectionTimerRef = useRef<number | null>(null);
   const selectedProfileButtonRef = useRef<HTMLButtonElement | null>(null);
   const profileSearchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -85,12 +82,12 @@ export function AppLayout() {
   } = useProfileContext();
 
   const canCreateProfile = profiles.length < MAX_PROFILES;
+  const hasProfiles = profiles.length > 0;
   const selectedIsActive =
     selectedProfile !== null && activeProfile !== null && selectedProfile.id === activeProfile.id;
   const hasMismatch = selectedProfile !== null && activeProfile !== null && !selectedIsActive;
-  const selectedProfileName = selectedProfile?.name ?? "No profile selected";
-  const activeProfileName = activeProfile?.name ?? "No active profile";
-  const isProfilePillBusy = isSelectingProfile || isActivating;
+  const selectedProfileName = selectedProfile?.name ?? (hasProfiles ? "Select profile" : "No profiles");
+  const activeProfileName = activeProfile?.name ?? "none";
   const deleteDisabledReason = selectedIsActive
     ? "Active runtime profile cannot be deleted."
     : !selectedProfile
@@ -118,6 +115,8 @@ export function AppLayout() {
       return nameMatch || descriptionMatch;
     });
   }, [profileQuery, profiles]);
+  const hasNoProfiles = !hasProfiles;
+  const hasNoMatches = hasProfiles && filteredProfiles.length === 0;
 
   useEffect(() => {
     if (!editOpen || !selectedProfile) return;
@@ -156,14 +155,6 @@ export function AppLayout() {
     };
   }, [profileSwitcherOpen, selectedProfileId]);
 
-  useEffect(() => {
-    return () => {
-      if (profileSelectionTimerRef.current !== null) {
-        window.clearTimeout(profileSelectionTimerRef.current);
-      }
-    };
-  }, []);
-
   const resetFormFields = () => {
     setNameInput("");
     setDescriptionInput("");
@@ -181,16 +172,8 @@ export function AppLayout() {
   };
 
   const applySelectedProfile = (profileId: number) => {
-    if (profileSelectionTimerRef.current !== null) {
-      window.clearTimeout(profileSelectionTimerRef.current);
-    }
-    setIsSelectingProfile(true);
     selectProfile(profileId);
     setProfileSwitcherOpen(false);
-    profileSelectionTimerRef.current = window.setTimeout(() => {
-      setIsSelectingProfile(false);
-      profileSelectionTimerRef.current = null;
-    }, 250);
   };
 
   const openCreateDialog = () => {
@@ -395,6 +378,16 @@ export function AppLayout() {
                   {activeProfileName}
                 </dd>
               </dl>
+              {hasMismatch ? (
+                <Button
+                  size="sm"
+                  className="mt-2 h-7 w-full text-xs"
+                  onClick={openActivateDialog}
+                  disabled={isActivating}
+                >
+                  Activate profile
+                </Button>
+              ) : null}
             </div>
             </div>
 
@@ -449,47 +442,29 @@ export function AppLayout() {
               <div className="flex shrink-0 items-center gap-2">
                 <Popover
                   open={profileSwitcherOpen}
-                  onOpenChange={(open) => {
-                    if (isProfilePillBusy) return;
-                    setProfileSwitcherOpen(open);
-                  }}
+                  onOpenChange={setProfileSwitcherOpen}
                 >
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className="h-9 w-[min(76vw,320px)] justify-between gap-2 px-2.5 sm:w-[320px]"
-                      disabled={isProfilePillBusy}
+                      disabled={isActivating}
                       role="combobox"
                       aria-expanded={profileSwitcherOpen}
                       title={`Selected profile: ${selectedProfileName}. Active runtime: ${activeProfileName}.`}
 >
-                      <span className="min-w-0 truncate text-sm">
-                        <span className="text-muted-foreground">Profile:</span>{" "}
-                        <span className="font-medium">{selectedProfileName}</span>
+                      <span className="flex min-w-0 items-center gap-2 truncate text-sm">
+                        {hasNoProfiles ? (
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500/80" />
+                        ) : null}
+                        <span className="text-muted-foreground">Profile:</span>
+                        <span className="truncate font-medium">{selectedProfileName}</span>
                       </span>
 
                       <span className="flex items-center gap-1.5">
-                        {isProfilePillBusy ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                        ) : selectedIsActive ? (
+                        {selectedIsActive ? (
                           <Badge className="h-5 px-1.5 text-[10px]">Active</Badge>
-                        ) : (
-                          <>
-                            <Badge
-                              variant="outline"
-                              className="h-5 border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] text-amber-700 dark:text-amber-200"
-                            >
-                              Not Active
-                            </Badge>
-                            <Badge
-                              variant="secondary"
-                              className="hidden h-5 max-w-[130px] px-1.5 text-[10px] text-muted-foreground md:inline-flex"
-                              title={`Active runtime: ${activeProfileName}`}
->
-                              <span className="truncate">Active: {activeProfileName}</span>
-                            </Badge>
-                          </>
-                        )}
+                        ) : null}
                         <ChevronsUpDown className="h-4 w-4 opacity-60" />
                       </span>
                     </Button>
@@ -499,10 +474,10 @@ export function AppLayout() {
                     align="end"
                     collisionPadding={8}
                     onOpenAutoFocus={(event) => event.preventDefault()}
-                    className="z-[60] flex max-h-[min(82vh,34rem)] w-[var(--radix-popover-trigger-width)] max-w-[94vw] flex-col overflow-hidden p-0"
+                    className="z-[60] flex h-[min(82vh,34rem)] w-[var(--radix-popover-trigger-width)] max-w-[94vw] flex-col overflow-hidden p-0"
                   >
-                    <div className="shrink-0 border-b px-3 py-2">
-                      <p className="text-sm font-medium">Select profile</p>
+                    <div className="shrink-0 border-b px-3 py-3">
+                      <p className="text-sm font-semibold">Select profile</p>
                       <Input
                         ref={profileSearchInputRef}
                         className="mt-2"
@@ -515,14 +490,54 @@ export function AppLayout() {
                       </p>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto">
-                      <div className="space-y-1 p-2">
-                        {filteredProfiles.length === 0 ? (
-                          <p className="rounded-md border px-3 py-6 text-center text-sm text-muted-foreground">
-                            No profiles found.
-                          </p>
-                        ) : (
-                          filteredProfiles.map((profile) => {
+                    <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+                      {hasNoProfiles ? (
+                        <div className="flex h-full items-center justify-center p-1">
+                          <div className="w-full rounded-lg border border-dashed bg-muted/30 px-4 py-6 text-center">
+                            <p className="text-sm font-medium">No profiles yet</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Create a profile to start routing traffic or running tests.
+                            </p>
+                            <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
+                              <Button
+                                size="sm"
+                                className="h-8"
+                                onClick={openCreateDialog}
+                                disabled={!canCreateProfile}
+                              >
+                                Create new profile
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="link"
+                                className="h-8 px-2 text-xs"
+                                onClick={handleManageProfiles}
+                              >
+                                Learn more
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : hasNoMatches ? (
+                        <div className="flex h-full items-center justify-center p-1">
+                          <div className="w-full rounded-lg border border-dashed bg-muted/30 px-4 py-6 text-center">
+                            <p className="text-sm font-medium">No matches</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Try a different search term.
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-3 h-8"
+                              onClick={() => setProfileQuery("")}
+                            >
+                              Clear search
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {filteredProfiles.map((profile) => {
                             const isSelected = selectedProfileId === profile.id;
                             const isActive = activeProfile?.id === profile.id;
 
@@ -533,10 +548,8 @@ export function AppLayout() {
                                 ref={isSelected ? selectedProfileButtonRef : null}
                                 onClick={() => handleSelectProfile(profile.id)}
                                 className={cn(
-                                  "relative flex w-full items-start gap-2 rounded-md border border-transparent px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
-                                  isSelected
-                                    ? "bg-primary/8 dark:bg-primary/12"
-                                    : "hover:bg-accent"
+                                  "relative flex w-full items-start gap-3 rounded-md border border-transparent pl-3 pr-2 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                                  isSelected ? "bg-accent/80" : "hover:bg-accent/55"
                                 )}
                               >
                                 {isSelected ? (
@@ -546,20 +559,18 @@ export function AppLayout() {
                                   />
                                 ) : null}
                                 <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-medium">{profile.name}</p>
-                                  {profile.description ? (
-                                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                      {profile.description}
-                                    </p>
-                                  ) : null}
+                                  <p className="truncate text-sm font-semibold">{profile.name}</p>
+                                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                    {profile.description?.trim() || "No description"}
+                                  </p>
                                 </div>
-                                <div className="ml-2 flex min-w-[96px] shrink-0 items-start justify-end gap-2 pt-0.5">
+                                <div className="ml-2 flex min-w-[112px] shrink-0 items-center justify-end gap-2">
                                   {isActive ? (
                                     <Badge
                                       variant="outline"
                                       className="h-5 shrink-0 border-emerald-500/40 bg-emerald-500/15 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-200"
                                     >
-                                      ACTIVE
+                                      Active
                                     </Badge>
                                   ) : null}
                                   <Check
@@ -571,88 +582,70 @@ export function AppLayout() {
                                 </div>
                               </button>
                             );
-                          })
-                        )}
-                      </div>
+                          })}
+                        </div>
+                      )}
                     </div>
 
-                    {hasMismatch ? (
-                      <div className="shrink-0 border-t border-b px-3 py-2">
-                        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-800 dark:text-amber-200">
-                          <p className="inline-flex items-start gap-1.5">
-                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5" />
-                            <span>
-                              You're viewing <strong>{selectedProfileName}</strong>, but runtime traffic is
-                              served by <strong>{activeProfileName}</strong>.
-                            </span>
-                          </p>
-                          <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5">
-                            <Button
-                              size="sm"
-                              className="h-7 px-2.5 text-xs"
-                              onClick={openActivateDialog}
-                              disabled={isActivating}
-                            >
-                              Activate Selected
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="link"
-                              className="h-7 px-1.5 text-xs text-amber-900 dark:text-amber-100"
-                              onClick={handleManageProfiles}
-                            >
-                              Learn more
-                            </Button>
+                    <div className="shrink-0 border-t">
+                      {hasMismatch ? (
+                        <div className="border-b px-3 py-2">
+                          <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-800 dark:text-amber-200">
+                            <p className="inline-flex items-start gap-1.5">
+                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                              <span>
+                                You&apos;re viewing <strong>{selectedProfileName}</strong>, but runtime
+                                traffic is served by <strong>{activeProfileName}</strong>.
+                              </span>
+                            </p>
+                            <div className="mt-2 flex flex-col-reverse gap-1.5 sm:flex-row sm:items-center sm:justify-end">
+                              <Button
+                                size="sm"
+                                variant="link"
+                                className="h-7 px-1.5 text-xs text-amber-900 dark:text-amber-100"
+                                onClick={handleManageProfiles}
+                              >
+                                Learn more
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-7 px-2.5 text-xs"
+                                onClick={openActivateDialog}
+                                disabled={isActivating}
+                              >
+                                Activate selected
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ) : null}
+                      ) : null}
 
-                    <div className="shrink-0 p-2">
-                      <div className="space-y-1.5">
-                        <Button
-                          variant="secondary"
-                          className="h-8 w-full justify-start"
-                          onClick={openEditDialog}
-                          disabled={!selectedProfile}
-                        >
-                          <Pencil className="mr-2 h-3.5 w-3.5" />
-                          Edit selected
-                        </Button>
-                      </div>
+                      <div className="space-y-2 px-3 py-3">
+                        {hasProfiles ? (
+                          <>
+                            <Button
+                              variant="secondary"
+                              className="h-8 w-full justify-start"
+                              onClick={openEditDialog}
+                              disabled={!selectedProfile}
+                            >
+                              <Pencil className="mr-2 h-3.5 w-3.5" />
+                              Edit selected
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="h-8 w-full justify-start text-destructive/75 hover:text-destructive"
+                              onClick={openDeleteDialog}
+                              disabled={Boolean(deleteDisabledReason)}
+                              title={deleteDisabledReason ?? undefined}
+                            >
+                              <Trash2 className="mr-2 h-3.5 w-3.5" />
+                              Delete selected
+                            </Button>
+                            <div className="my-1 border-t" />
+                          </>
+                        ) : null}
 
-                      <div className="mt-2 border-t pt-2">
-                        {deleteDisabledReason ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="block">
-                                <Button
-                                  variant="ghost"
-                                  className="h-8 w-full justify-start text-destructive/80 hover:text-destructive"
-                                  disabled
-                                >
-                                  <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                  Delete selected
-                                </Button>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="left">{deleteDisabledReason}</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            className="h-8 w-full justify-start text-destructive/80 hover:text-destructive"
-                            onClick={openDeleteDialog}
-                          >
-                            <Trash2 className="mr-2 h-3.5 w-3.5" />
-                            Delete selected
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="my-2 border-t" />
-
-                      <div className="space-y-1">
                         <Button
                           variant="ghost"
                           className="h-8 w-full justify-start"
@@ -668,16 +661,32 @@ export function AppLayout() {
                         >
                           Create new profile
                         </Button>
-                      </div>
 
-                      {!canCreateProfile ? (
-                        <p className="mt-2 px-2 text-xs text-amber-700 dark:text-amber-200">
-                          You've reached the limit (10). Delete an inactive profile to create a new one.
-                        </p>
-                      ) : null}
+                        {!canCreateProfile ? (
+                          <p className="px-1 text-xs text-amber-700 dark:text-amber-200">
+                            You&apos;ve reached the limit (10). Delete an inactive profile to create a new one.
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
                   </PopoverContent>
                 </Popover>
+
+                {hasMismatch ? (
+                  <Button className="h-9 px-3" onClick={openActivateDialog} disabled={isActivating}>
+                    {isActivating ? (
+                      <>
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                        Activating...
+                      </>
+                    ) : (
+                      <>
+                        <span className="sm:hidden">Activate</span>
+                        <span className="hidden sm:inline">Activate profile</span>
+                      </>
+                    )}
+                  </Button>
+                ) : null}
 
                 <ThemeToggle />
               </div>
