@@ -18,7 +18,19 @@ import { EmptyState } from "@/components/EmptyState";
 import { useProfileContext } from "@/context/ProfileContext";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, Plug, AlertTriangle, Eye, EyeOff, Boxes, Link2, Sparkles } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Plug,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  Boxes,
+  Link2,
+  Sparkles,
+  Copy,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -84,13 +96,69 @@ function formatDate(value: string): string {
   });
 }
 
+function buildDuplicateName(sourceName: string, existingNames: Set<string>): string {
+  const baseName = `${sourceName.trim()} copy`;
+  if (!existingNames.has(baseName)) {
+    return baseName;
+  }
+
+  let suffix = 2;
+  while (existingNames.has(`${baseName} ${suffix}`)) {
+    suffix += 1;
+  }
+  return `${baseName} ${suffix}`;
+}
+
+function fallbackCopyText(text: string): boolean {
+  if (typeof document === "undefined") return false;
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  // Try fallback first so copy still works in restricted/insecure contexts.
+  if (fallbackCopyText(text)) {
+    return true;
+  }
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // No-op: fall through to false.
+    }
+  }
+
+  return false;
+}
+
 export function EndpointsPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [endpointModels, setEndpointModels] = useState<Record<number, ModelConfigListItem[]>>({});
   const [revealedApiKeys, setRevealedApiKeys] = useState<Record<number, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeletingEndpoint, setIsDeletingEndpoint] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Endpoint | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { revision } = useProfileContext();
 
@@ -147,12 +215,15 @@ export function EndpointsPage() {
   };
 
   const handleDelete = async (id: number) => {
+    setIsDeletingEndpoint(true);
     try {
       await api.endpoints.delete(id);
       toast.success("Endpoint deleted");
+      setDeleteTarget(null);
       setDeleteError(null);
       fetchEndpoints();
     } catch (error) {
+      setDeleteTarget(null);
       if (error instanceof Error) {
         const normalizedMessage = error.message.toLowerCase();
         if (
@@ -166,7 +237,46 @@ export function EndpointsPage() {
         }
       }
       toast.error(error instanceof Error ? error.message : "Failed to delete endpoint");
+    } finally {
+      setIsDeletingEndpoint(false);
     }
+  };
+
+  const handleDuplicateEndpoint = async (endpoint: Endpoint) => {
+    const existingNames = new Set(endpoints.map((item) => item.name));
+    let nextName = buildDuplicateName(endpoint.name, existingNames);
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        const created = await api.endpoints.create({
+          name: nextName,
+          base_url: endpoint.base_url,
+          api_key: endpoint.api_key,
+        });
+        toast.success(`Endpoint duplicated as ${created.name}`);
+        fetchEndpoints();
+        return;
+      } catch (error) {
+        if (error instanceof Error && error.message.toLowerCase().includes("already exists")) {
+          existingNames.add(nextName);
+          nextName = buildDuplicateName(endpoint.name, existingNames);
+          continue;
+        }
+        toast.error(error instanceof Error ? error.message : "Failed to duplicate endpoint");
+        return;
+      }
+    }
+
+    toast.error("Failed to duplicate endpoint");
+  };
+
+  const handleCopyApiKey = async (endpoint: Endpoint) => {
+    const copied = await copyTextToClipboard(endpoint.api_key);
+    if (!copied) {
+      toast.error("Failed to copy API key");
+      return;
+    }
+    toast.success(`Copied API key for ${endpoint.name}`);
   };
 
   const totalAttachedModels = useMemo(
@@ -319,6 +429,17 @@ export function EndpointsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Duplicate endpoint ${endpoint.name}`}
+                        className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                        onClick={() => {
+                          void handleDuplicateEndpoint(endpoint);
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         aria-label={`Edit endpoint ${endpoint.name}`}
                         className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                         onClick={() => setEditingEndpoint(endpoint)}
@@ -330,11 +451,7 @@ export function EndpointsPage() {
                         size="icon"
                         aria-label={`Delete endpoint ${endpoint.name}`}
                         className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this endpoint?")) {
-                            handleDelete(endpoint.id);
-                          }
-                        }}
+                        onClick={() => setDeleteTarget(endpoint)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -362,21 +479,35 @@ export function EndpointsPage() {
                             {isApiKeyRevealed ? endpoint.api_key : maskedKey}
                           </p>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`${isApiKeyRevealed ? "Hide" : "Reveal"} API key for ${endpoint.name}`}
-                          className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                          onClick={() => {
-                            setRevealedApiKeys((prev) => ({
-                              ...prev,
-                              [endpoint.id]: !prev[endpoint.id],
-                            }));
-                          }}
-                        >
-                          {isApiKeyRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`${isApiKeyRevealed ? "Hide" : "Reveal"} API key for ${endpoint.name}`}
+                            className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                            onClick={() => {
+                              setRevealedApiKeys((prev) => ({
+                                ...prev,
+                                [endpoint.id]: !prev[endpoint.id],
+                              }));
+                            }}
+                          >
+                            {isApiKeyRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Copy API key for ${endpoint.name}`}
+                            className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                            onClick={() => {
+                              void handleCopyApiKey(endpoint);
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -451,6 +582,43 @@ export function EndpointsPage() {
         title="Edit Endpoint"
         submitLabel="Save Changes"
       />
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingEndpoint) {
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Endpoint</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deleteTarget?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={isDeletingEndpoint}
+              onClick={() => setDeleteTarget(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={isDeletingEndpoint || !deleteTarget}
+              onClick={() => {
+                if (!deleteTarget) return;
+                void handleDelete(deleteTarget.id);
+              }}
+            >
+              {isDeletingEndpoint ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
