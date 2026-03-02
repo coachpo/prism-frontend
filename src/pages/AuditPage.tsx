@@ -181,14 +181,20 @@ function getHighlightSegments(text: string, query: string): { segments: Highligh
 }
 
 function fallbackCopyText(text: string): boolean {
-  if (typeof document === "undefined") return false;
+  if (typeof document === "undefined" || !document.body) return false;
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.setAttribute("readonly", "");
+  textarea.setAttribute("aria-hidden", "true");
   textarea.style.position = "fixed";
   textarea.style.opacity = "0";
   textarea.style.left = "-9999px";
   textarea.style.top = "0";
+
+  const selection = document.getSelection();
+  const previousRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+  const activeElement = document.activeElement as HTMLElement | null;
+
   document.body.appendChild(textarea);
   textarea.focus();
   textarea.select();
@@ -200,16 +206,23 @@ function fallbackCopyText(text: string): boolean {
     return false;
   } finally {
     document.body.removeChild(textarea);
+    if (previousRange && selection) {
+      selection.removeAllRanges();
+      selection.addRange(previousRange);
+    }
+    if (activeElement) {
+      activeElement.focus();
+    }
   }
 }
 
 async function copyTextToClipboard(text: string): Promise<boolean> {
-  // Try the synchronous fallback first so copy still works in restricted/insecure contexts.
-  if (fallbackCopyText(text)) {
-    return true;
-  }
-
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+  if (
+    typeof window !== "undefined" &&
+    window.isSecureContext &&
+    typeof navigator !== "undefined" &&
+    navigator.clipboard?.writeText
+  ) {
     try {
       await navigator.clipboard.writeText(text);
       return true;
@@ -218,7 +231,7 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
     }
   }
 
-  return false;
+  return fallbackCopyText(text);
 }
 
 function CopyButton({
@@ -250,7 +263,10 @@ function CopyButton({
       variant="ghost"
       size="icon"
       className="h-7 w-7 shrink-0"
-      onClick={handleCopy}
+      onClick={(event) => {
+        event.stopPropagation();
+        handleCopy();
+      }}
       aria-label={ariaLabel}
     >
       {copied ? (
