@@ -59,8 +59,13 @@ function hashString(value: string): number {
   return hash;
 }
 
-function getModelBadgeClass(modelId: string): string {
-  return MODEL_BADGE_STYLES[hashString(modelId.toLowerCase()) % MODEL_BADGE_STYLES.length];
+function normalizeModelColorKey(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function getModelBadgeClass(model: ModelConfigListItem): string {
+  const colorKey = normalizeModelColorKey(model.display_name || model.model_id);
+  return MODEL_BADGE_STYLES[hashString(colorKey) % MODEL_BADGE_STYLES.length];
 }
 
 function getEndpointHost(baseUrl: string): string {
@@ -82,6 +87,7 @@ function formatDate(value: string): string {
 export function EndpointsPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [endpointModels, setEndpointModels] = useState<Record<number, ModelConfigListItem[]>>({});
+  const [revealedApiKeys, setRevealedApiKeys] = useState<Record<number, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
@@ -92,6 +98,7 @@ export function EndpointsPage() {
     try {
       const data = await api.endpoints.list();
       setEndpoints(data);
+      setRevealedApiKeys({});
 
       // Fetch attached models for each endpoint card.
       const modelsMap: Record<number, ModelConfigListItem[]> = {};
@@ -281,6 +288,7 @@ export function EndpointsPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {endpoints.map((endpoint) => {
             const models = endpointModels[endpoint.id] || [];
+            const isApiKeyRevealed = revealedApiKeys[endpoint.id] ?? false;
             const maskedKey = endpoint.api_key.length > 8
               ? `${endpoint.api_key.slice(0, 4)}••••••${endpoint.api_key.slice(-4)}`
               : "••••••";
@@ -345,10 +353,31 @@ export function EndpointsPage() {
                       </p>
                     </div>
                     <div className="rounded-lg border border-border/70 bg-background/80 p-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        API Key
-                      </p>
-                      <p className="mt-1 font-mono text-xs text-foreground/90">{maskedKey}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            API Key
+                          </p>
+                          <p className="mt-1 break-all font-mono text-xs text-foreground/90">
+                            {isApiKeyRevealed ? endpoint.api_key : maskedKey}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`${isApiKeyRevealed ? "Hide" : "Reveal"} API key for ${endpoint.name}`}
+                          className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                          onClick={() => {
+                            setRevealedApiKeys((prev) => ({
+                              ...prev,
+                              [endpoint.id]: !prev[endpoint.id],
+                            }));
+                          }}
+                        >
+                          {isApiKeyRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -372,7 +401,7 @@ export function EndpointsPage() {
                             variant="outline"
                             className={cn(
                               "rounded-full border px-2.5 py-0.5 text-[10px] font-medium",
-                              getModelBadgeClass(m.model_id)
+                              getModelBadgeClass(m)
                             )}
                           >
                             {m.display_name || m.model_id}
