@@ -6,6 +6,7 @@ import { defineConfig } from "vite"
 
 const HEALTH_RESPONSE = JSON.stringify({ status: "ok" })
 const GIT_REVISION = resolveGitRevision()
+const GIT_RUN_NUMBER = resolveGitRunNumber()
 
 function resolveGitRevision() {
   const revisionFromEnv =
@@ -24,6 +25,14 @@ function resolveGitRevision() {
   } catch {
     return "unknown"
   }
+}
+
+function resolveGitRunNumber() {
+  const runNumberFromEnv =
+    process.env.VITE_GIT_RUN_NUMBER?.trim() ||
+    process.env.GIT_RUN_NUMBER?.trim() ||
+    process.env.GITHUB_RUN_NUMBER?.trim()
+  return runNumberFromEnv || "local"
 }
 
 function createHealthMiddleware() {
@@ -47,6 +56,7 @@ function createHealthMiddleware() {
 
 export default defineConfig({
   define: {
+    "import.meta.env.VITE_GIT_RUN_NUMBER": JSON.stringify(GIT_RUN_NUMBER),
     "import.meta.env.VITE_GIT_REVISION": JSON.stringify(GIT_REVISION),
   },
   plugins: [

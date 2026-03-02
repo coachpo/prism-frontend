@@ -48,9 +48,11 @@ const navLinks = [
 
 const PROFILE_SCOPED_PREFIXES = ["/models", "/endpoints", "/statistics", "/request-logs", "/audit"];
 const MAX_PROFILES = 10;
-const APP_VERSION = "v1.0";
+const APP_VERSION_PREFIX = "v1";
+const GIT_RUN_NUMBER =
+  String(import.meta.env.VITE_GIT_RUN_NUMBER ?? "local").trim() || "local";
 const GIT_REVISION = String(import.meta.env.VITE_GIT_REVISION ?? "unknown").trim() || "unknown";
-const VERSION_LABEL = `${APP_VERSION}-${GIT_REVISION}`;
+const VERSION_LABEL = `${APP_VERSION_PREFIX}.${GIT_RUN_NUMBER}-${GIT_REVISION}`;
 
 export function AppLayout() {
   const location = useLocation();
