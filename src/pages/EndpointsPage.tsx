@@ -24,8 +24,6 @@ import {
   Trash2,
   Plug,
   AlertTriangle,
-  Eye,
-  EyeOff,
   Boxes,
   Link2,
   Sparkles,
@@ -140,7 +138,6 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
 export function EndpointsPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [endpointModels, setEndpointModels] = useState<Record<number, ModelConfigListItem[]>>({});
-  const [revealedApiKeys, setRevealedApiKeys] = useState<Record<number, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingEndpoint, setIsDeletingEndpoint] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -153,7 +150,6 @@ export function EndpointsPage() {
     try {
       const data = await api.endpoints.list();
       setEndpoints(data);
-      setRevealedApiKeys({});
 
       // Fetch attached models for each endpoint card.
       const modelsMap: Record<number, ModelConfigListItem[]> = {};
@@ -385,7 +381,6 @@ export function EndpointsPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {endpoints.map((endpoint) => {
             const models = endpointModels[endpoint.id] || [];
-            const isApiKeyRevealed = revealedApiKeys[endpoint.id] ?? false;
             const maskedKey = endpoint.api_key.length > 8
               ? `${endpoint.api_key.slice(0, 4)}••••••${endpoint.api_key.slice(-4)}`
               : "••••••";
@@ -459,25 +454,10 @@ export function EndpointsPage() {
                             API Key
                           </p>
                           <p className="mt-1 break-all font-mono text-xs text-foreground/90">
-                            {isApiKeyRevealed ? endpoint.api_key : maskedKey}
+                            {maskedKey}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`${isApiKeyRevealed ? "Hide" : "Reveal"} API key for ${endpoint.name}`}
-                            className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                            onClick={() => {
-                              setRevealedApiKeys((prev) => ({
-                                ...prev,
-                                [endpoint.id]: !prev[endpoint.id],
-                              }));
-                            }}
-                          >
-                            {isApiKeyRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
                           <Button
                             type="button"
                             variant="ghost"
@@ -623,7 +603,6 @@ function EndpointDialog({
   title,
   submitLabel,
 }: EndpointDialogProps) {
-  const [showApiKey, setShowApiKey] = useState(false);
   const form = useForm<EndpointFormValues>({
     resolver: zodResolver(endpointSchema),
     defaultValues: {
@@ -654,9 +633,6 @@ function EndpointDialog({
   };
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      setShowApiKey(false);
-    }
     onOpenChange(nextOpen);
   };
 
@@ -706,19 +682,10 @@ function EndpointDialog({
                   <FormControl>
                     <div className="relative">
                       <Input
-                        type={showApiKey ? "text" : "password"}
-                        className="pr-10"
+                        type="password"
                         placeholder="sk-..."
                         {...field}
                       />
-                      <button
-                        type="button"
-                        aria-label={showApiKey ? "Hide API key" : "Show API key"}
-                        className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-r-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                        onClick={() => setShowApiKey((prev) => !prev)}
-                      >
-                        {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
                     </div>
                   </FormControl>
                   <FormMessage />

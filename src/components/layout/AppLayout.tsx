@@ -94,8 +94,8 @@ export function AppLayout() {
   const hasMismatch = selectedProfile !== null && activeProfile !== null && !selectedIsActive;
   const selectedIsDefault = selectedProfile?.is_default ?? false;
   const selectedIsEditable = selectedProfile?.is_editable ?? true;
-  const selectedProfileName = selectedProfile?.name ?? "";
-  const activeProfileName = activeProfile?.name ?? "";
+  const selectedProfileName = selectedProfile?.name ?? "Unavailable";
+  const activeProfileName = activeProfile?.name ?? "Unavailable";
   const deleteDisabledReason = selectedIsDefault
     ? "Default profile cannot be deleted."
     : selectedIsActive

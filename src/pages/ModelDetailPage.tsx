@@ -20,7 +20,14 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge, TypeBadge, ValueBadge } from "@/components/StatusBadge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -1181,6 +1188,9 @@ export function ModelDetailPage() {
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingConnection ? "Edit Connection" : "Add Connection"}</DialogTitle>
+            <DialogDescription>
+              Configure endpoint source, routing priority, and optional pricing template for this connection.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleConnectionSubmit} className="space-y-5">
             <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
@@ -1429,6 +1439,9 @@ export function ModelDetailPage() {
             <>
               <DialogHeader>
                 <DialogTitle>Model Settings</DialogTitle>
+                <DialogDescription>
+                  Update model identity and proxy target behavior for this profile.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleEditModelSubmit} className="space-y-4">
                 <div className="space-y-2">

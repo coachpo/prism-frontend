@@ -75,22 +75,70 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setRevision((previous) => previous + 1);
   }, []);
 
-  const selectProfile = useCallback(
-    (profileId: number) => {
+  const commitSelectedProfileId = useCallback(
+    (profileId: number | null, options?: { bumpRevision?: boolean }) => {
       setSelectedProfileId(profileId);
       setApiProfileId(profileId);
-      localStorage.setItem(STORAGE_KEY, String(profileId));
-      bumpRevision();
+      if (profileId === null) {
+        localStorage.removeItem(STORAGE_KEY);
+      } else {
+        localStorage.setItem(STORAGE_KEY, String(profileId));
+      }
+      if (options?.bumpRevision) {
+        bumpRevision();
+      }
     },
     [bumpRevision]
+  );
+
+  const syncSelectedProfile = useCallback(
+    (
+      snapshotProfiles: Profile[],
+      activeProfileId: number | null,
+      options?: {
+        preferredProfileId?: number | null;
+        bumpRevisionOnChange?: boolean;
+      }
+    ): number | null => {
+      const candidate =
+        options?.preferredProfileId === undefined
+          ? selectedProfileId
+          : options.preferredProfileId;
+      const nextSelected = resolveSelectedProfile(
+        snapshotProfiles,
+        candidate,
+        activeProfileId
+      );
+      const nextSelectedId = nextSelected?.id ?? null;
+
+      commitSelectedProfileId(nextSelectedId, {
+        bumpRevision:
+          Boolean(options?.bumpRevisionOnChange) &&
+          nextSelectedId !== selectedProfileId,
+      });
+
+      return nextSelectedId;
+    },
+    [commitSelectedProfileId, selectedProfileId]
+  );
+
+  const selectProfile = useCallback(
+    (profileId: number) => {
+      commitSelectedProfileId(profileId, { bumpRevision: true });
+    },
+    [commitSelectedProfileId]
   );
 
   const refreshProfiles = useCallback(async () => {
     const data = await api.profiles.list();
     setProfiles(data);
-    setActiveProfile(data.find((profile) => profile.is_active) ?? null);
+    const nextActiveProfile = data.find((profile) => profile.is_active) ?? null;
+    setActiveProfile(nextActiveProfile);
+    syncSelectedProfile(data, nextActiveProfile?.id ?? null, {
+      bumpRevisionOnChange: true,
+    });
     return data;
-  }, []);
+  }, [syncSelectedProfile]);
 
   useEffect(() => {
     let mounted = true;
@@ -110,21 +158,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setActiveProfile(fetchedActiveProfile);
 
         const persistedId = parseStoredProfileId(localStorage.getItem(STORAGE_KEY));
-        const selectedProfile = resolveSelectedProfile(
+        syncSelectedProfile(
           fetchedProfiles,
-          persistedId,
-          fetchedActiveProfile?.id ?? null
+          fetchedActiveProfile?.id ?? null,
+          { preferredProfileId: persistedId }
         );
-
-        if (selectedProfile) {
-          setSelectedProfileId(selectedProfile.id);
-          setApiProfileId(selectedProfile.id);
-          localStorage.setItem(STORAGE_KEY, String(selectedProfile.id));
-        } else {
-          setSelectedProfileId(null);
-          setApiProfileId(null);
-          localStorage.removeItem(STORAGE_KEY);
-        }
       } catch (err) {
         if (mounted) {
           const message = err instanceof Error ? err.message : "Failed to initialize profiles";
@@ -142,7 +180,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [syncSelectedProfile]);
 
   const createProfile = useCallback(
     async (data: ProfileCreate) => {
@@ -196,16 +234,25 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const deleteProfile = useCallback(
     async (id: number) => {
       await api.profiles.delete(id);
-      await refreshProfiles();
 
       if (selectedProfileId === id) {
-        setSelectedProfileId(null);
-        setApiProfileId(null);
-        localStorage.removeItem(STORAGE_KEY);
-        bumpRevision();
+        const remainingProfiles = profiles.filter((profile) => profile.id !== id);
+        const remainingActiveProfileId =
+          activeProfile?.id === id ? null : activeProfile?.id ?? null;
+        syncSelectedProfile(remainingProfiles, remainingActiveProfileId, {
+          bumpRevisionOnChange: true,
+        });
       }
+
+      await refreshProfiles();
     },
-    [bumpRevision, refreshProfiles, selectedProfileId]
+    [
+      activeProfile?.id,
+      profiles,
+      refreshProfiles,
+      selectedProfileId,
+      syncSelectedProfile,
+    ]
   );
 
   if (isLoading) {

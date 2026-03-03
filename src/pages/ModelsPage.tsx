@@ -646,6 +646,9 @@ export function ModelsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editingModel ? "Edit Model" : "New Model"}</DialogTitle>
+            <DialogDescription>
+              Configure provider, routing type, and failover policy for this model.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
