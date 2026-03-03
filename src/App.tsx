@@ -28,6 +28,9 @@ const AuditPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage }))
 );
+const PricingTemplatesPage = lazy(() =>
+  import("@/pages/PricingTemplatesPage").then((module) => ({ default: module.PricingTemplatesPage }))
+);
 
 const routeFallback = (
   <div className="py-10 text-center text-sm text-muted-foreground">Loading...</div>
@@ -52,6 +55,7 @@ function App() {
             <Route path="/request-logs" element={withRouteSuspense(<RequestLogsPage />)} />
             <Route path="/audit" element={withRouteSuspense(<AuditPage />)} />
             <Route path="/settings" element={withRouteSuspense(<SettingsPage />)} />
+            <Route path="/pricing-templates" element={withRouteSuspense(<PricingTemplatesPage />)} />
           </Route>
         </Routes>
       </BrowserRouter>

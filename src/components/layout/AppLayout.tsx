@@ -20,6 +20,7 @@ import {
   Check,
   ChevronsUpDown,
   Loader2,
+  Coins,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -40,13 +41,14 @@ const navLinks = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/models", icon: Server, label: "Models" },
   { to: "/endpoints", icon: Plug, label: "Endpoints" },
+  { to: "/pricing-templates", icon: Coins, label: "Pricing Templates" },
   { to: "/statistics", icon: BarChart3, label: "Statistics" },
   { to: "/request-logs", icon: Logs, label: "Request Logs" },
   { to: "/audit", icon: FileSearch, label: "Audit" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
-const PROFILE_SCOPED_PREFIXES = ["/models", "/endpoints", "/statistics", "/request-logs", "/audit"];
+const PROFILE_SCOPED_PREFIXES = ["/models", "/endpoints", "/pricing-templates", "/statistics", "/request-logs", "/audit"];
 const MAX_PROFILES = 10;
 const APP_VERSION_PREFIX = "v1";
 const GIT_RUN_NUMBER =

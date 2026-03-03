@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useProfileContext } from "@/context/ProfileContext";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import { isValidCurrencyCode, isValidPositiveDecimalString } from "@/lib/costing";
 import { cn } from "@/lib/utils";
 import type {
@@ -30,10 +30,6 @@ import type {
   HeaderBlocklistRule,
   HeaderBlocklistRuleCreate,
   ModelConfigListItem,
-  PricingTemplate,
-  PricingTemplateConnectionUsageItem,
-  PricingTemplateCreate,
-  PricingTemplateUpdate,
   Provider,
 } from "@/lib/types";
 import { ConfigImportSchema } from "@/lib/configImportValidation";
@@ -80,7 +76,6 @@ import { toast } from "sonner";
 
 const SETTINGS_SECTIONS = [
   { id: "backup", label: "Backup" },
-  { id: "pricing-templates", label: "Pricing Templates" },
   { id: "billing-currency", label: "Billing & Currency" },
   { id: "timezone", label: "Timezone" },
   { id: "audit-configuration", label: "Audit & Privacy" },
@@ -99,103 +94,7 @@ const DEFAULT_COSTING_FORM: CostingSettingsUpdate = {
   endpoint_fx_mappings: [],
 };
 
-type PricingTemplateFormState = {
-  name: string;
-  description: string;
-  pricing_currency_code: string;
-  input_price: string;
-  output_price: string;
-  cached_input_price: string;
-  cache_creation_price: string;
-  reasoning_price: string;
-  missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
-};
 
-const DEFAULT_PRICING_TEMPLATE_FORM: PricingTemplateFormState = {
-  name: "",
-  description: "",
-  pricing_currency_code: "USD",
-  input_price: "",
-  output_price: "",
-  cached_input_price: "",
-  cache_creation_price: "",
-  reasoning_price: "",
-  missing_special_token_price_policy: "MAP_TO_OUTPUT",
-};
-
-const normalizeOptionalTemplatePrice = (value: string): string | null => {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-};
-
-const isNonNegativeDecimalString = (value: string): boolean => {
-  const trimmed = value.trim();
-  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
-    return false;
-  }
-  const parsed = Number(trimmed);
-  return Number.isFinite(parsed) && parsed >= 0;
-};
-
-const parsePricingTemplateUsageRows = (
-  detail: unknown
-): PricingTemplateConnectionUsageItem[] => {
-  if (!detail || typeof detail !== "object") {
-    return [];
-  }
-  const payload = detail as { connections?: unknown; detail?: unknown };
-  const maybeConnections =
-    payload.connections ??
-    (
-      payload.detail &&
-      typeof payload.detail === "object" &&
-      "connections" in payload.detail
-        ? (payload.detail as { connections?: unknown }).connections
-        : undefined
-    );
-  if (!Array.isArray(maybeConnections)) {
-    return [];
-  }
-
-  const rows: PricingTemplateConnectionUsageItem[] = [];
-  for (const connection of maybeConnections) {
-    if (!connection || typeof connection !== "object") {
-      continue;
-    }
-
-    const entry = connection as Record<string, unknown>;
-    const connectionId =
-      typeof entry.connection_id === "number" ? entry.connection_id : null;
-    const modelConfigId =
-      typeof entry.model_config_id === "number" ? entry.model_config_id : null;
-    const endpointId =
-      typeof entry.endpoint_id === "number" ? entry.endpoint_id : null;
-    if (connectionId === null || modelConfigId === null || endpointId === null) {
-      continue;
-    }
-
-    const modelId =
-      typeof entry.model_id === "string" && entry.model_id.trim().length > 0
-        ? entry.model_id
-        : "Unknown model";
-    const endpointName =
-      typeof entry.endpoint_name === "string" && entry.endpoint_name.trim().length > 0
-        ? entry.endpoint_name
-        : `Endpoint #${endpointId}`;
-
-    rows.push({
-      connection_id: connectionId,
-      connection_name:
-        typeof entry.connection_name === "string" ? entry.connection_name : null,
-      model_config_id: modelConfigId,
-      model_id: modelId,
-      endpoint_id: endpointId,
-      endpoint_name: endpointName,
-    });
-  }
-
-  return rows;
-};
 
 const getConnectionName = (connection: Pick<Connection, "name">): string =>
   connection.name ?? "";
@@ -350,19 +249,6 @@ export function SettingsPage() {
   const [systemRulesOpen, setSystemRulesOpen] = useState(false);
   const [userRulesOpen, setUserRulesOpen] = useState(true);
 
-  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
-  const [pricingTemplatesLoading, setPricingTemplatesLoading] = useState(false);
-  const [pricingTemplateDialogOpen, setPricingTemplateDialogOpen] = useState(false);
-  const [editingPricingTemplate, setEditingPricingTemplate] = useState<PricingTemplate | null>(null);
-  const [pricingTemplateForm, setPricingTemplateForm] = useState<PricingTemplateFormState>(DEFAULT_PRICING_TEMPLATE_FORM);
-  const [pricingTemplateSaving, setPricingTemplateSaving] = useState(false);
-  const [pricingTemplateUsageDialogOpen, setPricingTemplateUsageDialogOpen] = useState(false);
-  const [pricingTemplateUsageRows, setPricingTemplateUsageRows] = useState<PricingTemplateConnectionUsageItem[]>([]);
-  const [pricingTemplateUsageLoading, setPricingTemplateUsageLoading] = useState(false);
-  const [pricingTemplateUsageTemplate, setPricingTemplateUsageTemplate] = useState<PricingTemplate | null>(null);
-  const [deletePricingTemplateConfirm, setDeletePricingTemplateConfirm] = useState<PricingTemplate | null>(null);
-  const [deletePricingTemplateConflict, setDeletePricingTemplateConflict] = useState<PricingTemplateConnectionUsageItem[] | null>(null);
-  const [pricingTemplateDeleting, setPricingTemplateDeleting] = useState(false);
 
   const [costingUnavailable, setCostingUnavailable] = useState(false);
   const [costingLoading, setCostingLoading] = useState(false);
@@ -388,7 +274,6 @@ export function SettingsPage() {
   useEffect(() => {
     api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
     void fetchRules();
-    void fetchPricingTemplates();
     void fetchCostingSettings();
     void fetchModels();
   }, [revision]);
@@ -518,17 +403,6 @@ export function SettingsPage() {
     }
   };
 
-  const fetchPricingTemplates = async () => {
-    setPricingTemplatesLoading(true);
-    try {
-      const data = await api.pricingTemplates.list();
-      setPricingTemplates(data);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load pricing templates");
-    } finally {
-      setPricingTemplatesLoading(false);
-    }
-  };
 
   const fetchCostingSettings = async () => {
     setCostingLoading(true);
@@ -766,148 +640,6 @@ export function SettingsPage() {
     setEditingMappingFxRate("");
   };
 
-  const handleEditPricingTemplate = (template: PricingTemplate) => {
-    setEditingPricingTemplate(template);
-    setPricingTemplateForm({
-      name: template.name,
-      description: template.description ?? "",
-      pricing_currency_code: template.pricing_currency_code,
-      input_price: template.input_price,
-      output_price: template.output_price,
-      cached_input_price: template.cached_input_price ?? "",
-      cache_creation_price: template.cache_creation_price ?? "",
-      reasoning_price: template.reasoning_price ?? "",
-      missing_special_token_price_policy: template.missing_special_token_price_policy,
-    });
-    setPricingTemplateDialogOpen(true);
-  };
-
-  const handleSavePricingTemplate = async () => {
-    if (!pricingTemplateForm.name.trim()) {
-      toast.error("Name is required");
-      return;
-    }
-    if (!isValidCurrencyCode(pricingTemplateForm.pricing_currency_code)) {
-      toast.error("Pricing currency must be a valid 3-letter code (for example, USD)");
-      return;
-    }
-    if (!isNonNegativeDecimalString(pricingTemplateForm.input_price)) {
-      toast.error("Input price must be a non-negative number");
-      return;
-    }
-    if (!isNonNegativeDecimalString(pricingTemplateForm.output_price)) {
-      toast.error("Output price must be a non-negative number");
-      return;
-    }
-
-    const cachedInputPrice = normalizeOptionalTemplatePrice(pricingTemplateForm.cached_input_price);
-    if (cachedInputPrice && !isNonNegativeDecimalString(cachedInputPrice)) {
-      toast.error("Cached input price must be a non-negative number");
-      return;
-    }
-
-    const cacheCreationPrice = normalizeOptionalTemplatePrice(pricingTemplateForm.cache_creation_price);
-    if (cacheCreationPrice && !isNonNegativeDecimalString(cacheCreationPrice)) {
-      toast.error("Cache creation price must be a non-negative number");
-      return;
-    }
-
-    const reasoningPrice = normalizeOptionalTemplatePrice(pricingTemplateForm.reasoning_price);
-    if (reasoningPrice && !isNonNegativeDecimalString(reasoningPrice)) {
-      toast.error("Reasoning price must be a non-negative number");
-      return;
-    }
-
-    setPricingTemplateSaving(true);
-    try {
-      if (editingPricingTemplate) {
-        const payload: PricingTemplateUpdate = {
-          name: pricingTemplateForm.name.trim(),
-          description: pricingTemplateForm.description.trim() || null,
-          pricing_currency_code: pricingTemplateForm.pricing_currency_code.trim().toUpperCase(),
-          input_price: pricingTemplateForm.input_price.trim(),
-          output_price: pricingTemplateForm.output_price.trim(),
-          cached_input_price: cachedInputPrice,
-          cache_creation_price: cacheCreationPrice,
-          reasoning_price: reasoningPrice,
-          missing_special_token_price_policy: pricingTemplateForm.missing_special_token_price_policy,
-        };
-        await api.pricingTemplates.update(editingPricingTemplate.id, payload);
-        toast.success("Pricing template updated");
-      } else {
-        const payload: PricingTemplateCreate = {
-          name: pricingTemplateForm.name.trim(),
-          description: pricingTemplateForm.description.trim() || null,
-          pricing_currency_code: pricingTemplateForm.pricing_currency_code.trim().toUpperCase(),
-          input_price: pricingTemplateForm.input_price.trim(),
-          output_price: pricingTemplateForm.output_price.trim(),
-          cached_input_price: cachedInputPrice,
-          cache_creation_price: cacheCreationPrice,
-          reasoning_price: reasoningPrice,
-          missing_special_token_price_policy: pricingTemplateForm.missing_special_token_price_policy,
-        };
-        await api.pricingTemplates.create(payload);
-        toast.success("Pricing template created");
-      }
-      setPricingTemplateDialogOpen(false);
-      void fetchPricingTemplates();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save pricing template");
-    } finally {
-      setPricingTemplateSaving(false);
-    }
-  };
-
-  const handleViewPricingTemplateUsage = async (template: PricingTemplate) => {
-    setPricingTemplateUsageTemplate(template);
-    setPricingTemplateUsageDialogOpen(true);
-    setPricingTemplateUsageLoading(true);
-    try {
-      const data = await api.pricingTemplates.connections(template.id);
-      setPricingTemplateUsageRows(data.items);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load template usage");
-      setPricingTemplateUsageRows([]);
-    } finally {
-      setPricingTemplateUsageLoading(false);
-    }
-  };
-
-  const handleDeletePricingTemplateClick = async (template: PricingTemplate) => {
-    setDeletePricingTemplateConfirm(template);
-    setDeletePricingTemplateConflict(null);
-    setPricingTemplateUsageLoading(true);
-    try {
-      const data = await api.pricingTemplates.connections(template.id);
-      setPricingTemplateUsageRows(data.items);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load template usage");
-      setPricingTemplateUsageRows([]);
-    } finally {
-      setPricingTemplateUsageLoading(false);
-    }
-  };
-
-  const handleDeletePricingTemplate = async () => {
-    if (!deletePricingTemplateConfirm) return;
-    setPricingTemplateDeleting(true);
-    try {
-      await api.pricingTemplates.delete(deletePricingTemplateConfirm.id);
-      toast.success("Pricing template deleted");
-      setDeletePricingTemplateConfirm(null);
-      void fetchPricingTemplates();
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        const conflictRows = parsePricingTemplateUsageRows(error.detail);
-        setDeletePricingTemplateConflict(conflictRows);
-        toast.error("Cannot delete template because it is in use");
-      } else {
-        toast.error(error instanceof Error ? error.message : "Failed to delete pricing template");
-      }
-    } finally {
-      setPricingTemplateDeleting(false);
-    }
-  };
 
   const handleSaveCostingSettings = async (section: "billing" | "timezone") => {
     const baseline = savedCostingForm ?? normalizedCurrentCosting;
@@ -1450,116 +1182,6 @@ export function SettingsPage() {
             </div>
           </section>
 
-          <section id="pricing-templates" tabIndex={-1} className="scroll-mt-24">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2 text-sm">
-                      <Coins className="h-4 w-4" />
-                      Pricing Templates
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Manage reusable pricing templates for models and endpoints.
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        setEditingPricingTemplate(null);
-                        setPricingTemplateForm(DEFAULT_PRICING_TEMPLATE_FORM);
-                        setPricingTemplateDialogOpen(true);
-                      }}
-                    >
-                      <Plus className="mr-2 h-3.5 w-3.5" />
-                      Add Template
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {pricingTemplatesLoading ? (
-                  <div className="space-y-2">
-                    <div className="h-9 animate-pulse rounded bg-muted" />
-                    <div className="h-9 animate-pulse rounded bg-muted" />
-                    <div className="h-24 animate-pulse rounded bg-muted" />
-                  </div>
-                ) : pricingTemplates.length === 0 ? (
-                  <div className="rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground">
-                    No pricing templates configured.
-                  </div>
-                ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Currency</TableHead>
-                          <TableHead>Version</TableHead>
-                          <TableHead>Updated</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pricingTemplates.map((template) => (
-                          <TableRow key={template.id}>
-                            <TableCell className="font-medium">
-                              <div className="flex flex-col">
-                                <span>{template.name}</span>
-                                {template.description && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {template.description}
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>{template.pricing_currency_code}</TableCell>
-                            <TableCell>v{template.version}</TableCell>
-                            <TableCell>
-                              {new Date(template.updated_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleViewPricingTemplateUsage(template)}
-                                  title="View Usage"
-                                >
-                                  <Info className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleEditPricingTemplate(template)}
-                                  title="Edit Template"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                  onClick={() => handleDeletePricingTemplateClick(template)}
-                                  title="Delete Template"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
 
           <section id="billing-currency" tabIndex={-1} className="scroll-mt-24">
             <Card>
@@ -2443,265 +2065,6 @@ export function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={pricingTemplateDialogOpen} onOpenChange={setPricingTemplateDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{editingPricingTemplate ? "Edit Pricing Template" : "Add Pricing Template"}</DialogTitle>
-            <DialogDescription>
-              Configure token prices to be reused across multiple endpoints.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-name" className="text-right">Name</Label>
-              <Input
-                id="template-name"
-                value={pricingTemplateForm.name}
-                onChange={(e) => setPricingTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                className="col-span-3"
-                placeholder="e.g. GPT-4o Standard"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-desc" className="text-right">Description</Label>
-              <Input
-                id="template-desc"
-                value={pricingTemplateForm.description}
-                onChange={(e) => setPricingTemplateForm(prev => ({ ...prev, description: e.target.value }))}
-                className="col-span-3"
-                placeholder="Optional description"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-currency" className="text-right">Currency</Label>
-              <Input
-                id="template-currency"
-                value={pricingTemplateForm.pricing_currency_code}
-                onChange={(e) => setPricingTemplateForm(prev => ({ ...prev, pricing_currency_code: e.target.value.toUpperCase() }))}
-                className="col-span-3"
-                maxLength={3}
-                placeholder="USD"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-input" className="text-right">Input Price</Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Input
-                  id="template-input"
-                  value={pricingTemplateForm.input_price}
-                  onChange={(e) => setPricingTemplateForm(prev => ({ ...prev, input_price: e.target.value }))}
-                  placeholder="0.00"
-                  inputMode="decimal"
-                />
-                <span className="text-sm text-muted-foreground whitespace-nowrap">per 1M tokens</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-output" className="text-right">Output Price</Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Input
-                  id="template-output"
-                  value={pricingTemplateForm.output_price}
-                  onChange={(e) => setPricingTemplateForm(prev => ({ ...prev, output_price: e.target.value }))}
-                  placeholder="0.00"
-                  inputMode="decimal"
-                />
-                <span className="text-sm text-muted-foreground whitespace-nowrap">per 1M tokens</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-cached" className="text-right">Cached Input Price</Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Input
-                  id="template-cached"
-                  value={pricingTemplateForm.cached_input_price}
-                  onChange={(e) => setPricingTemplateForm(prev => ({ ...prev, cached_input_price: e.target.value }))}
-                  placeholder="Optional"
-                  inputMode="decimal"
-                />
-                <span className="text-sm text-muted-foreground whitespace-nowrap">per 1M tokens</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-cache-creation" className="text-right">Cache Creation Price</Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Input
-                  id="template-cache-creation"
-                  value={pricingTemplateForm.cache_creation_price}
-                  onChange={(e) => setPricingTemplateForm(prev => ({ ...prev, cache_creation_price: e.target.value }))}
-                  placeholder="Optional"
-                  inputMode="decimal"
-                />
-                <span className="text-sm text-muted-foreground whitespace-nowrap">per 1M tokens</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-reasoning" className="text-right">Reasoning Price</Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Input
-                  id="template-reasoning"
-                  value={pricingTemplateForm.reasoning_price}
-                  onChange={(e) => setPricingTemplateForm(prev => ({ ...prev, reasoning_price: e.target.value }))}
-                  placeholder="Optional"
-                  inputMode="decimal"
-                />
-                <span className="text-sm text-muted-foreground whitespace-nowrap">per 1M tokens</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="template-policy" className="text-right">Missing Special Token Policy</Label>
-              <Select
-                value={pricingTemplateForm.missing_special_token_price_policy}
-                onValueChange={(value: "MAP_TO_OUTPUT" | "ZERO_COST") => setPricingTemplateForm(prev => ({ ...prev, missing_special_token_price_policy: value }))}
-              >
-                <SelectTrigger className="col-span-3" id="template-policy">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MAP_TO_OUTPUT">Map to Output Price</SelectItem>
-                  <SelectItem value="ZERO_COST">Zero Cost</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPricingTemplateDialogOpen(false)}>Cancel</Button>
-            <Button onClick={() => void handleSavePricingTemplate()} disabled={pricingTemplateSaving}>
-              {pricingTemplateSaving ? "Saving..." : "Save Template"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={pricingTemplateUsageDialogOpen} onOpenChange={setPricingTemplateUsageDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Template Usage: {pricingTemplateUsageTemplate?.name}</DialogTitle>
-            <DialogDescription>
-              Connections currently using this pricing template.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {pricingTemplateUsageLoading ? (
-              <div className="flex justify-center py-8 text-sm text-muted-foreground">Loading usage...</div>
-            ) : pricingTemplateUsageRows.length === 0 ? (
-              <div className="rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground text-center">
-                This template is not currently used by any connections.
-              </div>
-            ) : (
-              <div className="rounded-md border max-h-[400px] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Connection</TableHead>
-                      <TableHead>Model</TableHead>
-                      <TableHead>Endpoint</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pricingTemplateUsageRows.map((row) => (
-                      <TableRow key={row.connection_id}>
-                        <TableCell className="font-medium">
-                          {row.connection_name || `Connection #${row.connection_id}`}
-                        </TableCell>
-                        <TableCell>{row.model_id}</TableCell>
-                        <TableCell>{row.endpoint_name}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setPricingTemplateUsageDialogOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={Boolean(deletePricingTemplateConfirm)} onOpenChange={(open) => { if (!open) { setDeletePricingTemplateConfirm(null); setDeletePricingTemplateConflict(null); } }}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Delete Pricing Template</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the template "{deletePricingTemplateConfirm?.name}"?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 space-y-4">
-            {deletePricingTemplateConflict ? (
-              <div className="space-y-3">
-                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  Cannot delete this template because it is currently used by the following connections. Please update these connections to use a different template or custom pricing first.
-                </div>
-                <div className="rounded-md border max-h-[300px] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Connection</TableHead>
-                        <TableHead>Model</TableHead>
-                        <TableHead>Endpoint</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {deletePricingTemplateConflict.map((row) => (
-                        <TableRow key={row.connection_id}>
-                          <TableCell className="font-medium">
-                            {row.connection_name || `Connection #${row.connection_id}`}
-                          </TableCell>
-                          <TableCell>{row.model_id}</TableCell>
-                          <TableCell>{row.endpoint_name}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            ) : pricingTemplateUsageLoading ? (
-              <div className="flex justify-center py-4 text-sm text-muted-foreground">Checking usage...</div>
-            ) : pricingTemplateUsageRows.length > 0 ? (
-              <div className="space-y-3">
-                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  Warning: This template is currently used by {pricingTemplateUsageRows.length} connection(s). Deleting it will fail unless you update them first.
-                </div>
-                <div className="rounded-md border max-h-[300px] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Connection</TableHead>
-                        <TableHead>Model</TableHead>
-                        <TableHead>Endpoint</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pricingTemplateUsageRows.map((row) => (
-                        <TableRow key={row.connection_id}>
-                          <TableCell className="font-medium">
-                            {row.connection_name || `Connection #${row.connection_id}`}
-                          </TableCell>
-                          <TableCell>{row.model_id}</TableCell>
-                          <TableCell>{row.endpoint_name}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm">This template is not currently in use and can be safely deleted.</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDeletePricingTemplateConfirm(null); setDeletePricingTemplateConflict(null); }}>Cancel</Button>
-            <Button
-              variant="destructive"
-              onClick={() => void handleDeletePricingTemplate()}
-              disabled={pricingTemplateDeleting || pricingTemplateUsageLoading || Boolean(deletePricingTemplateConflict)}
-            >
-              {pricingTemplateDeleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
         <DialogContent>
