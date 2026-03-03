@@ -6,7 +6,7 @@ React 19 + TypeScript dashboard for Prism management workflows: profiles, models
 ```
 src/
 |- main.tsx                        # Bootstraps ThemeProvider, TooltipProvider, Toaster, App
-|- App.tsx                         # BrowserRouter with ProfileProvider + AppLayout + 9 lazy routes
+|- App.tsx                         # BrowserRouter with ProfileProvider + AppLayout + root redirect + 9 lazy page routes
 |- context/
 |  `- ProfileContext.tsx           # Selected vs active profile state, localStorage persistence, API header sync
 |- hooks/
