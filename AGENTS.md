@@ -6,7 +6,7 @@ React 19 + TypeScript dashboard for Prism management workflows: profiles, models
 ```
 src/
 |- main.tsx                        # Bootstraps ThemeProvider, TooltipProvider, Toaster, App
-|- App.tsx                         # BrowserRouter with ProfileProvider + AppLayout + 8 lazy routes
+|- App.tsx                         # BrowserRouter with ProfileProvider + AppLayout + 9 lazy routes
 |- context/
 |  `- ProfileContext.tsx           # Selected vs active profile state, localStorage persistence, API header sync
 |- hooks/
@@ -17,7 +17,7 @@ src/
 |  |- types.ts                     # Frontend schema contracts (snake_case, backend-aligned)
 |  |- costing.ts                   # Micros/currency/pricing formatting helpers
 |  |- timezone.ts                  # Timezone preference + timestamp formatting helpers
-|  |- configImportValidation.ts    # Zod validator for config import payload (version 1)
+|  |- configImportValidation.ts    # Zod validator for config import payload (version 2)
 |  `- utils.ts                     # Shared UI helpers
 |- components/
 |  |- layout/AppLayout.tsx         # Sidebar, profile switcher, selected/active mismatch UX, profile CRUD dialogs
@@ -32,8 +32,8 @@ src/
 |  |- StatisticsPage.tsx
 |  |- RequestLogsPage.tsx
 |  |- AuditPage.tsx
-|  `- SettingsPage.tsx
-|- App.css
+|  |- SettingsPage.tsx
+|  `- PricingTemplatesPage.tsx
 |- index.css
 `- assets/
 ```
@@ -48,6 +48,7 @@ src/
 - `/request-logs` -> `RequestLogsPage`
 - `/audit` -> `AuditPage`
 - `/settings` -> `SettingsPage`
+- `/pricing-templates` -> `PricingTemplatesPage`
 
 ## WHERE TO LOOK
 | Task | Location | Notes |
