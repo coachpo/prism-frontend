@@ -28,10 +28,12 @@ import { formatMoneyMicros } from "@/lib/costing";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useProfileContext } from "@/context/ProfileContext";
+import { useTimezone } from "@/hooks/useTimezone";
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { revision } = useProfileContext();
+  const { format: formatTime } = useTimezone();
   const [loading, setLoading] = useState(true);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
@@ -277,7 +279,7 @@ export function DashboardPage() {
                       <div className="space-y-1">
                         <p className="text-sm font-medium leading-none">{req.model_id}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(req.created_at).toLocaleTimeString()} - {req.response_time_ms}ms
+                          {formatTime(req.created_at, { hour: "numeric", minute: "numeric", second: "numeric", hour12: true })} - {req.response_time_ms}ms
                         </p>
                       </div>
                     </div>

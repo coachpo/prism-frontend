@@ -16,13 +16,13 @@ export function MetricCard({ label, value, detail, icon, trend, className, onCli
   return (
     <Card
       className={cn(
-        "transition-all duration-200",
-        onClick && "cursor-pointer hover:shadow-md hover:border-primary/20",
+        "transition-colors duration-150",
+        onClick && "cursor-pointer hover:border-primary/30",
         className
       )}
       onClick={onClick}
     >
-      <CardContent className="p-5">
+      <CardContent className="p-[var(--density-metric-pad)]">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
@@ -44,7 +44,7 @@ export function MetricCard({ label, value, detail, icon, trend, className, onCli
             )}
           </div>
           {icon && (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div className="flex h-[var(--density-control-h)] w-[var(--density-control-h)] shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               {icon}
             </div>
           )}

@@ -752,7 +752,7 @@ export function RequestLogsPage() {
           <TableCell
             className={cn(
               "whitespace-nowrap py-2 text-muted-foreground font-mono w-[170px] min-w-[170px]",
-              allColumnsMode && "sticky left-0 z-20 bg-card shadow-[1px_0_0_0_var(--border)]"
+              allColumnsMode && "sticky left-0 z-20 border-r border-border/70 bg-card"
             )}
           >
             {formatTime(log.created_at, UNIVERSAL_TIMESTAMP_FORMAT)}
@@ -763,7 +763,7 @@ export function RequestLogsPage() {
           <TableCell
             className={cn(
               "py-2 max-w-[180px] w-[180px] min-w-[180px] truncate font-medium",
-              allColumnsMode && "sticky left-[170px] z-20 bg-card shadow-[1px_0_0_0_var(--border)]"
+              allColumnsMode && "sticky left-[170px] z-20 border-r border-border/70 bg-card"
             )}
             title={log.model_id}
           >
@@ -775,7 +775,7 @@ export function RequestLogsPage() {
           <TableCell
             className={cn(
               "py-2 w-[130px] min-w-[130px]",
-              allColumnsMode && "sticky left-[350px] z-20 bg-card shadow-[1px_0_0_0_var(--border)]"
+              allColumnsMode && "sticky left-[350px] z-20 border-r border-border/70 bg-card"
             )}
           >
             <div className="flex items-center gap-1.5">
@@ -786,7 +786,7 @@ export function RequestLogsPage() {
         );
       case "endpoint":
         return (
-          <TableCell className={cn("py-2 max-w-[240px] w-[240px] min-w-[240px] truncate", allColumnsMode && "sticky left-[480px] z-20 bg-card shadow-[1px_0_0_0_var(--border)]")}>
+          <TableCell className={cn("py-2 max-w-[240px] w-[240px] min-w-[240px] truncate", allColumnsMode && "sticky left-[480px] z-20 border-r border-border/70 bg-card")}>
             {endpointLogId === null ? (
               <span className="text-muted-foreground">{log.endpoint_description || "-"}</span>
             ) : (
@@ -994,14 +994,14 @@ export function RequestLogsPage() {
 
   return (
     <TooltipProvider>
-      <div className="h-full flex flex-col gap-4">
+      <div className="h-full flex flex-col gap-[var(--density-page-gap)]">
         <PageHeader
           title="Request Logs"
           description="Focused telemetry views for performance, tokens, billing, cache behavior, and error triage"
         />
 
         <div className="sticky top-4 z-20">
-          <div className="rounded-lg border bg-card/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/90 space-y-3">
+          <div className="rounded-lg border bg-card p-3 space-y-3">
             <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1">
               <Tabs value={view} onValueChange={(next) => setView(next as ViewType)} className="w-full">
                 <TabsList className="w-full justify-start sm:w-auto">
@@ -1055,13 +1055,14 @@ export function RequestLogsPage() {
                 />
               </div>
 
-              <div className="md:col-span-4 flex flex-wrap gap-1 rounded-md bg-muted/50 p-1">
+              <div className="md:col-span-4 flex flex-wrap gap-1 rounded-md bg-muted/30 p-1">
                 {REQUEST_TIME_RANGES.map((range) => (
                   <Button
                     key={range}
                     variant={timeRange === range ? "secondary" : "ghost"}
                     size="sm"
-                    className={cn("h-7 px-3 text-xs", timeRange === range && "bg-background shadow-sm")}
+                    className={cn("h-7 px-3 text-xs", timeRange === range && "bg-background")}
+
                     onClick={() => {
                       setTimeRange(range);
                       setOffset(0);
@@ -1315,7 +1316,7 @@ export function RequestLogsPage() {
               </div>
             ) : (
               <Table className={allColumnsMode ? "min-w-[2100px]" : "w-full"}>
-                <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+                <TableHeader className="sticky top-0 z-10 border-b bg-card">
                   <TableRow>
                     {visibleColumns.map((column) => (
                       <TableHead
@@ -1341,16 +1342,16 @@ export function RequestLogsPage() {
                             : "",
                           ["billable", "priced"].includes(column) ? "text-center" : "",
                           allColumnsMode && column === "time"
-                            ? "sticky left-0 z-20 bg-card w-[170px] min-w-[170px]"
+                            ? "sticky left-0 z-20 w-[170px] min-w-[170px] border-r border-border/70 bg-card"
                             : "",
                           allColumnsMode && column === "model"
-                            ? "sticky left-[170px] z-20 bg-card w-[180px] min-w-[180px]"
+                            ? "sticky left-[170px] z-20 w-[180px] min-w-[180px] border-r border-border/70 bg-card"
                             : "",
                           allColumnsMode && column === "provider"
-                            ? "sticky left-[350px] z-20 bg-card w-[130px] min-w-[130px]"
+                            ? "sticky left-[350px] z-20 w-[130px] min-w-[130px] border-r border-border/70 bg-card"
                             : "",
                           allColumnsMode && column === "endpoint"
-                            ? "sticky left-[480px] z-20 bg-card w-[240px] min-w-[240px]"
+                            ? "sticky left-[480px] z-20 w-[240px] min-w-[240px] border-r border-border/70 bg-card"
                             : "",
                           allColumnsMode && column === "request_id" ? "w-[130px] min-w-[130px]" : ""
                         )}
@@ -1492,7 +1493,7 @@ export function RequestLogsPage() {
                   </div>
                 </SheetHeader>
 
-                <div className="p-6 space-y-6">
+                <div className="space-y-[var(--density-card-gap)] p-6">
                   {selectedLog.status_code >= 400 ? (
                     <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
                       <h4 className="mb-2 text-sm font-medium text-destructive flex items-center gap-2">
@@ -1626,7 +1627,11 @@ export function RequestLogsPage() {
                       </div>
                       <div className="rounded-md border p-3">
                         <p className="text-muted-foreground">Pricing Config</p>
-                        <p className="mt-1 font-mono">v{selectedLog.pricing_config_version_used ?? "-"}</p>
+                        <p className="mt-1 font-mono">
+                          {selectedLog.pricing_config_version_used == null
+                            ? "-"
+                            : `v${selectedLog.pricing_config_version_used}`}
+                        </p>
                       </div>
                     </div>
                   </div>

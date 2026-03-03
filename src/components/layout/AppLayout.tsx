@@ -421,7 +421,7 @@ export function AppLayout() {
         </aside>
 
         <div className="flex flex-1 flex-col lg:ml-[320px]">
-          <header className="sticky top-0 z-30 border-b bg-background/95 px-4 py-3 backdrop-blur-sm">
+          <header className="shell-header sticky top-0 z-30 border-b bg-background/95 backdrop-blur-sm">
             <div className="mx-auto flex w-full max-w-screen-xl items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2.5">
                 <button
@@ -436,7 +436,7 @@ export function AppLayout() {
                     variant="secondary"
                     className="hidden h-6 max-w-[220px] items-center px-2 text-[11px] font-normal text-muted-foreground sm:inline-flex"
                     title={`Active runtime: ${activeProfileName}`}
->
+                  >
                     <span className="truncate">Active runtime: {activeProfileName}</span>
                   </Badge>
                 ) : null}
@@ -686,18 +686,17 @@ export function AppLayout() {
                     )}
                   </Button>
                 ) : null}
-
                 <ThemeToggle />
               </div>
             </div>
           </header>
 
           <main className="flex-1 overflow-y-auto scrollbar-thin">
-            <div className="mx-auto max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8">
+            <div className="shell-page mx-auto max-w-screen-xl">
               <Outlet />
             </div>
           </main>
-        </div>
+      </div>
       </div>
 
       <Dialog open={activateOpen} onOpenChange={setActivateOpen}>

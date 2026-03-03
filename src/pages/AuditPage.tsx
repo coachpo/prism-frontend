@@ -692,7 +692,7 @@ export function AuditPage() {
 
   if (loading && logs.length === 0 && historicalTotal === null) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-[var(--density-page-gap)]">
         <Skeleton className="h-8 w-48" />
         <div className="grid gap-4 sm:grid-cols-3">
           {[1, 2, 3].map((item) => (
@@ -705,7 +705,7 @@ export function AuditPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-[var(--density-page-gap)]">
       <PageHeader
         title="Audit Logs"
         description="Inspect request and response details for debugging and compliance"
@@ -747,7 +747,7 @@ export function AuditPage() {
       </div>
 
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-[var(--density-card-pad-y)]">
           <div className="flex flex-wrap items-center gap-2">
             <ProviderSelect
               value={providerId}
@@ -883,7 +883,7 @@ export function AuditPage() {
       <Card>
         <CardContent className="p-0">
           {!isAuditingEnabled && hasHistoricalLogs ? (
-            <div className="border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
+            <div className="border-b bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
               Auditing is off - showing previously recorded logs.
             </div>
           ) : null}
@@ -1084,7 +1084,7 @@ export function AuditPage() {
             </div>
           ) : selectedLog ? (
             <>
-              <SheetHeader className="shrink-0 border-b bg-gradient-to-b from-muted/40 to-background px-5 py-4 sm:px-6">
+              <SheetHeader className="shrink-0 border-b bg-card px-5 py-4 sm:px-6">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -1166,7 +1166,7 @@ export function AuditPage() {
               </SheetHeader>
 
               <Tabs defaultValue="request" className="flex min-h-0 flex-1 flex-col">
-                <div className="shrink-0 border-b bg-background/95 px-5 py-2 backdrop-blur sm:px-6">
+                <div className="shrink-0 border-b bg-background px-5 py-2 sm:px-6">
                   <TabsList className="h-8 w-fit">
                     <TabsTrigger value="request">Request</TabsTrigger>
                     <TabsTrigger value="response">Response</TabsTrigger>
@@ -1174,7 +1174,7 @@ export function AuditPage() {
                 </div>
 
                 <TabsContent value="request" className="mt-0 flex-1 overflow-y-auto px-5 py-4 [scrollbar-gutter:stable] sm:px-6">
-                  <div className="space-y-4 pr-3">
+                  <div className="space-y-[var(--density-card-gap)] pr-3">
                     <DetailSection
                       title="Request URL"
                       action={
@@ -1185,7 +1185,7 @@ export function AuditPage() {
                         />
                       }
                     >
-                      <p className="break-all rounded-lg border bg-muted/40 px-3 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                      <p className="break-all rounded-lg border bg-muted/20 px-3 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
                         {selectedLog.request_url}
                       </p>
                     </DetailSection>
@@ -1216,9 +1216,9 @@ export function AuditPage() {
                 </TabsContent>
 
                 <TabsContent value="response" className="mt-0 flex-1 overflow-y-auto px-5 py-4 [scrollbar-gutter:stable] sm:px-6">
-                  <div className="space-y-4 pr-3">
+                  <div className="space-y-[var(--density-card-gap)] pr-3">
                     <DetailSection title="Response Status">
-                      <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+                      <div className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2">
                         <ValueBadge
                           label={String(selectedLog.response_status)}
                           intent={statusIntent(selectedLog.response_status)}

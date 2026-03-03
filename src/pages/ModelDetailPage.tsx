@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Plus, Pencil, Trash2, MoreHorizontal, Search, Activity, Loader2, X, ChevronRight, Shield, Coins, Info, Gauge, Route } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { useProfileContext } from "@/context/ProfileContext";
+import { useTimezone } from "@/hooks/useTimezone";
 import { EmptyState } from "@/components/EmptyState";
 import {
   Collapsible,
@@ -111,6 +112,7 @@ export function ModelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { revision } = useProfileContext();
+  const { format: formatTime } = useTimezone();
   const [searchParams, setSearchParams] = useSearchParams();
   const [model, setModel] = useState<ModelConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -758,7 +760,7 @@ export function ModelDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-[var(--density-page-gap)]">
         <div className="flex items-center gap-3">
           <Skeleton className="h-8 w-8 rounded" />
           <Skeleton className="h-7 w-48" />
@@ -781,11 +783,10 @@ export function ModelDetailPage() {
   )].sort((a, b) => a.priority - b.priority);
 
   return (
-    <div className="space-y-8 pb-2">
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-background via-background to-primary/5 p-4 sm:p-5">
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-primary/10 to-transparent" />
+    <div className="space-y-[var(--density-page-gap)] pb-2">
+      <div className="rounded-2xl border bg-card p-4 sm:p-5">
         <div className="relative flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full" onClick={() => navigate("/models")}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-md" onClick={() => navigate("/models")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-0 flex-1">
@@ -807,9 +808,14 @@ export function ModelDetailPage() {
             </p>
           </div>
 
-          <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={() => setIsEditModelDialogOpen(true)}>
-            <Pencil className="mr-1.5 h-3.5 w-3.5" />
-            Edit Model
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            aria-label="Edit Model"
+            onClick={() => setIsEditModelDialogOpen(true)}
+          >
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
@@ -860,7 +866,7 @@ export function ModelDetailPage() {
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Created</p>
                 <span className="text-sm font-medium">
-                  {new Date(model.created_at).toLocaleDateString()}
+                  {formatTime(model.created_at, { year: "numeric", month: "numeric", day: "numeric" })}
                 </span>
               </div>
             </div>
@@ -978,7 +984,7 @@ export function ModelDetailPage() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-3 rounded-xl border bg-card/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-semibold">
             Connections
@@ -1043,23 +1049,23 @@ export function ModelDetailPage() {
                 }}
                 tabIndex={-1}
                 className={cn(
-                  "rounded-xl border bg-card/90 p-4 shadow-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                  isFocused && "ring-2 ring-primary/50 bg-primary/5 shadow-md",
-                  !isFocused && "hover:border-border/80 hover:shadow-md"
+                  "rounded-xl border bg-card p-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  isFocused && "ring-2 ring-primary/40 border-primary/30 bg-muted/20",
+                  !isFocused && "hover:border-border"
                 )}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={cn(
-                        "inline-flex h-2.5 w-2.5 rounded-full shrink-0 transition-all",
+                        "inline-flex h-2.5 w-2.5 rounded-full shrink-0",
                         isChecking
-                          ? "animate-pulse bg-sky-500 shadow-[0_0_0_4px_rgba(14,165,233,0.15)]"
+                          ? "animate-pulse bg-primary/70"
                           : conn.health_status === "healthy"
-                            ? "bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
+                            ? "bg-emerald-500"
                             : conn.health_status === "unhealthy"
-                              ? "bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.15)]"
-                              : "bg-gray-400"
+                              ? "bg-destructive"
+                              : "bg-muted-foreground/50"
                       )} />
                       <span className="text-sm font-medium truncate">
                         {getConnectionName(conn)}
@@ -1113,7 +1119,7 @@ export function ModelDetailPage() {
                       <span className="font-mono break-all">{endpoint?.base_url}</span>
                     </div>
                     {conn.pricing_enabled ? (
-                      <div className="mt-2 p-2 bg-muted/50 rounded text-xs space-y-1">
+                      <div className="mt-2 rounded-md border border-border/70 bg-muted/20 p-2 text-xs space-y-1">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Input:</span>
                           <span className="font-mono font-medium">{conn.input_price ?? "0"}</span>
@@ -1154,7 +1160,7 @@ export function ModelDetailPage() {
                           Checking now...
                         </span>
                       ) : conn.last_health_check ? (
-                        <span>Checked {new Date(conn.last_health_check).toLocaleTimeString()}</span>
+                        <span>Checked {formatTime(conn.last_health_check, { hour: "numeric", minute: "numeric", second: "numeric", hour12: true })}</span>
                       ) : (
                         <span>Not checked yet</span>
                       )}
@@ -1241,7 +1247,7 @@ export function ModelDetailPage() {
                           </span>
                           <span>
                             Last: {metrics24h?.last_failover_like_at
-                              ? new Date(metrics24h.last_failover_like_at).toLocaleString()
+                              ? formatTime(metrics24h.last_failover_like_at)
                               : "-"}
                           </span>
                         </div>

@@ -43,6 +43,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
+import { useTimezone } from "@/hooks/useTimezone";
 
 const endpointSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -53,14 +54,7 @@ const endpointSchema = z.object({
 type EndpointFormValues = z.infer<typeof endpointSchema>;
 
 const MODEL_BADGE_STYLES = [
-  "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-200",
-  "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200",
-  "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200",
-  "border-rose-500/30 bg-rose-500/10 text-rose-800 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-200",
-  "border-indigo-500/30 bg-indigo-500/10 text-indigo-800 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-200",
-  "border-teal-500/30 bg-teal-500/10 text-teal-800 dark:border-teal-400/30 dark:bg-teal-400/10 dark:text-teal-200",
-  "border-orange-500/30 bg-orange-500/10 text-orange-800 dark:border-orange-400/30 dark:bg-orange-400/10 dark:text-orange-200",
-  "border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-800 dark:border-fuchsia-400/30 dark:bg-fuchsia-400/10 dark:text-fuchsia-200",
+  "border-primary/25 bg-primary/10 text-primary",
 ] as const;
 
 function hashString(value: string): number {
@@ -88,13 +82,6 @@ function getEndpointHost(baseUrl: string): string {
   }
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 function buildDuplicateName(sourceName: string, existingNames: Set<string>): string {
   const baseName = `${sourceName.trim()} copy`;
@@ -161,7 +148,7 @@ export function EndpointsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Endpoint | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { revision } = useProfileContext();
-
+  const { format: formatTime } = useTimezone();
   const fetchEndpoints = async () => {
     try {
       const data = await api.endpoints.list();
@@ -300,12 +287,12 @@ export function EndpointsPage() {
   );
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-[var(--density-page-gap)]">
       <PageHeader
         title="Endpoints"
         description="Manage global API credentials and model routing targets."
       >
-        <Button onClick={() => setIsCreateOpen(true)} className="shadow-sm">
+        <Button onClick={() => setIsCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Endpoint
         </Button>
@@ -331,7 +318,7 @@ export function EndpointsPage() {
 
       {!isLoading && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-xl border border-border/70 bg-gradient-to-br from-background via-background to-muted/40 p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -339,12 +326,12 @@ export function EndpointsPage() {
                 </p>
                 <p className="mt-2 text-2xl font-semibold tabular-nums">{endpoints.length}</p>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary">
                 <Boxes className="h-4 w-4" />
               </div>
             </div>
           </div>
-          <div className="rounded-xl border border-border/70 bg-gradient-to-br from-background via-background to-muted/40 p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -352,12 +339,12 @@ export function EndpointsPage() {
                 </p>
                 <p className="mt-2 text-2xl font-semibold tabular-nums">{totalAttachedModels}</p>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary">
                 <Link2 className="h-4 w-4" />
               </div>
             </div>
           </div>
-          <div className="rounded-xl border border-border/70 bg-gradient-to-br from-background via-background to-muted/40 p-4 sm:col-span-2 lg:col-span-1">
+          <div className="rounded-xl border border-border bg-card p-4 sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -365,7 +352,7 @@ export function EndpointsPage() {
                 </p>
                 <p className="mt-2 text-2xl font-semibold tabular-nums">{uniqueAttachedModels}</p>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary">
                 <Sparkles className="h-4 w-4" />
               </div>
             </div>
@@ -406,12 +393,8 @@ export function EndpointsPage() {
             return (
               <Card
                 key={endpoint.id}
-                className="group relative flex h-full flex-col overflow-hidden border-border/70 bg-gradient-to-b from-card via-card to-muted/20 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                className="group flex h-full flex-col border-border/80 bg-card transition-colors hover:border-border"
               >
-                <div
-                  aria-hidden
-                  className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500/70 via-cyan-500/30 to-emerald-500/70"
-                />
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 space-y-2">
@@ -420,7 +403,7 @@ export function EndpointsPage() {
                       </CardTitle>
                       <Badge
                         variant="outline"
-                        className="max-w-full truncate border-border/70 bg-muted/40 px-2 py-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+                        className="max-w-full truncate border-border/70 bg-muted/30 px-2 py-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
                       >
                         {getEndpointHost(endpoint.base_url)}
                       </Badge>
@@ -430,7 +413,7 @@ export function EndpointsPage() {
                         variant="ghost"
                         size="icon"
                         aria-label={`Duplicate endpoint ${endpoint.name}`}
-                        className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                        className="h-9 w-9 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         onClick={() => {
                           void handleDuplicateEndpoint(endpoint);
                         }}
@@ -441,7 +424,7 @@ export function EndpointsPage() {
                         variant="ghost"
                         size="icon"
                         aria-label={`Edit endpoint ${endpoint.name}`}
-                        className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                        className="h-9 w-9 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                         onClick={() => setEditingEndpoint(endpoint)}
                       >
                         <Pencil className="h-4 w-4" />
@@ -450,7 +433,7 @@ export function EndpointsPage() {
                         variant="ghost"
                         size="icon"
                         aria-label={`Delete endpoint ${endpoint.name}`}
-                        className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        className="h-9 w-9 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => setDeleteTarget(endpoint)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -461,7 +444,7 @@ export function EndpointsPage() {
 
                 <CardContent className="flex flex-1 flex-col gap-4">
                   <div className="space-y-2">
-                    <div className="rounded-lg border border-border/70 bg-background/80 p-3">
+                    <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Base URL
                       </p>
@@ -469,7 +452,7 @@ export function EndpointsPage() {
                         {endpoint.base_url}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-border/70 bg-background/80 p-3">
+                    <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -485,7 +468,7 @@ export function EndpointsPage() {
                             variant="ghost"
                             size="icon"
                             aria-label={`${isApiKeyRevealed ? "Hide" : "Reveal"} API key for ${endpoint.name}`}
-                            className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                            className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                             onClick={() => {
                               setRevealedApiKeys((prev) => ({
                                 ...prev,
@@ -500,7 +483,7 @@ export function EndpointsPage() {
                             variant="ghost"
                             size="icon"
                             aria-label={`Copy API key for ${endpoint.name}`}
-                            className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                            className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                             onClick={() => {
                               void handleCopyApiKey(endpoint);
                             }}
@@ -541,7 +524,7 @@ export function EndpointsPage() {
                         {models.length > 5 && (
                           <Badge
                             variant="outline"
-                            className="rounded-full border-border/70 bg-muted/40 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                            className="rounded-full border-border/70 bg-muted/30 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
                           >
                             +{models.length - 5} more
                           </Badge>
@@ -556,7 +539,7 @@ export function EndpointsPage() {
 
                   <div className="mt-auto border-t border-dashed border-border/70 pt-3">
                     <p className="text-[11px] text-muted-foreground">
-                      Created {formatDate(endpoint.created_at)}
+                      Created {formatTime(endpoint.created_at, { year: "numeric", month: "short", day: "numeric" })}
                     </p>
                   </div>
                 </CardContent>

@@ -67,6 +67,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useProfileContext } from "@/context/ProfileContext";
+import { useTimezone } from "@/hooks/useTimezone";
 
 interface TimeBucket {
 label: string;
@@ -349,6 +350,7 @@ export function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { revision } = useProfileContext();
+  const { format: formatTime } = useTimezone();
 
   const initialOperationsModelId = searchParams.get("model_id");
   const initialOperationsProviderType = searchParams.get("provider_type");
@@ -385,6 +387,7 @@ export function StatisticsPage() {
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
   const [spendingLoading, setSpendingLoading] = useState(false);
   const [spendingError, setSpendingError] = useState<string | null>(null);
+  const [spendingUpdatedAt, setSpendingUpdatedAt] = useState<string | null>(null);
   const [spendingPreset, setSpendingPreset] = useState<
     "today" | "last_7_days" | "last_30_days" | "custom" | "all"
 >(() => parseEnumParam(searchParams.get("spending_preset"), SPENDING_PRESETS, "last_7_days"));
@@ -574,6 +577,7 @@ export function StatisticsPage() {
             top_n: spendingTopN,
           });
           setSpending(response);
+          setSpendingUpdatedAt(new Date().toISOString());
         } catch (error) {
           const message =
             error instanceof Error
@@ -801,7 +805,7 @@ export function StatisticsPage() {
   const ttftP95 = Math.round(filteredP95Latency * 0.28);
   const operationsAggregationLabel = timeRange === "1h" ? "5m" : timeRange === "24h" ? "1h" : "1d";
   const operationsLastUpdated =
-    logs.length > 0 ? new Date(logs[0].created_at).toLocaleTimeString() : "-";
+    logs.length > 0 ? formatTime(logs[0].created_at, { hour: "numeric", minute: "numeric", second: "numeric", hour12: true }) : "-";
 
   const requestLogsPath = (
     overrides: Partial<{
@@ -1587,7 +1591,7 @@ export function StatisticsPage() {
               <div className="text-xs text-muted-foreground">
                 Currency: <span className="font-medium text-foreground">{reportCode}</span>
                 <span className="mx-2">•</span>
-                Updated: <span className="font-medium text-foreground">{new Date().toLocaleTimeString()}</span>
+                Updated: <span className="font-medium text-foreground">{spendingUpdatedAt ? formatTime(spendingUpdatedAt, { hour: "numeric", minute: "numeric", second: "numeric", hour12: true }) : "-"}</span>
               </div>
             </CardContent>
           </Card>

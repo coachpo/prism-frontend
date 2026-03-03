@@ -130,11 +130,50 @@
     --warning-foreground: oklch(0.2 0.04 75);
     --info: oklch(0.65 0.17 240);
     --info-foreground: oklch(0.985 0 0);
+
+    --density-page-gap: 1.5rem;
+    --density-page-pad-y: 1.5rem;
+    --density-page-pad-x: 1rem;
+    --density-shell-header-pad-y: 0.625rem;
+    --density-shell-header-pad-x: 1rem;
+    --density-card-gap: 1.25rem;
+    --density-card-pad-y: 1.25rem;
+    --density-card-pad-x: 1.25rem;
+    --density-metric-pad: 1rem;
+    --density-control-h: 2.25rem;
+    --density-control-h-sm: 2rem;
+    --density-control-h-xs: 1.75rem;
+    --density-table-head-h: 2.25rem;
+    --density-table-cell-py: 0.5rem;
+    --density-table-cell-px: 0.5rem;
+    --density-empty-pad-y: 2.5rem;
+    --density-sheet-pad: 1rem;
+    --density-dialog-pad: 1.25rem;
 }
 
 @layer base {
     * {
         @apply border-border outline-ring/50;
+    }
+    html {
+        --density-page-gap: 1.5rem;
+        --density-page-pad-y: 1.5rem;
+        --density-page-pad-x: 1rem;
+        --density-shell-header-pad-y: 0.625rem;
+        --density-shell-header-pad-x: 1rem;
+        --density-card-gap: 1.25rem;
+        --density-card-pad-y: 1.25rem;
+        --density-card-pad-x: 1.25rem;
+        --density-metric-pad: 1rem;
+        --density-control-h: 2.25rem;
+        --density-control-h-sm: 2rem;
+        --density-control-h-xs: 1.75rem;
+        --density-table-head-h: 2.25rem;
+        --density-table-cell-py: 0.5rem;
+        --density-table-cell-px: 0.5rem;
+        --density-empty-pad-y: 2.5rem;
+        --density-sheet-pad: 1rem;
+        --density-dialog-pad: 1.25rem;
     }
     body {
         @apply bg-background text-foreground antialiased;
@@ -143,6 +182,17 @@
 }
 
 @layer utilities {
+    .shell-section {
+        gap: var(--density-page-gap);
+    }
+    .shell-page {
+        padding-inline: var(--density-page-pad-x);
+        padding-block: var(--density-page-pad-y);
+    }
+    .shell-header {
+        padding-inline: var(--density-shell-header-pad-x);
+        padding-block: var(--density-shell-header-pad-y);
+    }
     .scrollbar-thin {
         scrollbar-width: thin;
         scrollbar-color: var(--border) transparent;
