@@ -34,6 +34,11 @@ import type {
   HeaderBlocklistRuleUpdate,
   SpendingReportParams,
   SpendingReportResponse,
+  PricingTemplate,
+  PricingTemplateCreate,
+  PricingTemplateUpdate,
+  PricingTemplateConnectionsResponse,
+  ConnectionPricingTemplateUpdate,
   Profile,
   ProfileCreate,
   ProfileUpdate,
@@ -56,6 +61,18 @@ export function getApiProfileId(): number | null {
   return currentProfileId;
 }
 
+export class ApiError extends Error {
+  readonly status: number;
+  readonly detail: unknown;
+
+  constructor(message: string, status: number, detail: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
 function extractErrorMessage(body: unknown): string {
   if (!body || typeof body !== "object") {
     return "Request failed";
@@ -63,6 +80,15 @@ function extractErrorMessage(body: unknown): string {
   const detail = (body as { detail?: unknown }).detail;
   if (typeof detail === "string" && detail.trim().length > 0) {
     return detail;
+  }
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map((item) => JSON.stringify(item)).join(", ");
+  }
+  if (detail && typeof detail === "object") {
+    const maybeMessage = (detail as { message?: unknown }).message;
+    if (typeof maybeMessage === "string" && maybeMessage.trim().length > 0) {
+      return maybeMessage;
+    }
   }
   return "Request failed";
 }
@@ -82,8 +108,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers,
   });
   if (!res.ok) {
-    const body = await res.json();
-    throw new Error(extractErrorMessage(body));
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+    throw new ApiError(extractErrorMessage(body), res.status, body);
   }
   return res.json();
 }
@@ -180,8 +211,30 @@ export const api = {
       }),
     owner: (id: number) =>
       request<ConnectionOwnerResponse>(`/api/connections/${id}/owner`),
+    setPricingTemplate: (id: number, data: ConnectionPricingTemplateUpdate) =>
+      request<Connection>(`/api/connections/${id}/pricing-template`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
   },
 
+  pricingTemplates: {
+    list: () => request<PricingTemplate[]>("/api/pricing-templates"),
+    get: (id: number) => request<PricingTemplate>(`/api/pricing-templates/${id}`),
+    create: (data: PricingTemplateCreate) =>
+      request<PricingTemplate>("/api/pricing-templates", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: number, data: PricingTemplateUpdate) =>
+      request<PricingTemplate>(`/api/pricing-templates/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) => request<void>(`/api/pricing-templates/${id}`, { method: "DELETE" }),
+    connections: (id: number) =>
+      request<PricingTemplateConnectionsResponse>(`/api/pricing-templates/${id}/connections`),
+  },
   stats: {
     requests: (params?: StatsRequestParams) => {
       const qs = new URLSearchParams();

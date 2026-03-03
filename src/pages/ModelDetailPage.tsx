@@ -2,10 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { cn, formatProviderType, formatLabel } from "@/lib/utils";
-import {
-  isValidCurrencyCode,
-  formatMoneyMicros,
-} from "@/lib/costing";
+import { formatMoneyMicros } from "@/lib/costing";
 import type {
   ModelConfig,
   ModelConfigListItem,
@@ -18,6 +15,7 @@ import type {
   ModelConfigUpdate,
   StatsSummary,
   HealthCheckResponse,
+  PricingTemplate,
 } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,11 +34,6 @@ import { ProviderIcon } from "@/components/ProviderIcon";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useTimezone } from "@/hooks/useTimezone";
 import { EmptyState } from "@/components/EmptyState";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -119,6 +112,7 @@ export function ModelDetailPage() {
   const [isEditModelDialogOpen, setIsEditModelDialogOpen] = useState(false);
   const [allModels, setAllModels] = useState<ModelConfigListItem[]>([]);
   const [editRedirectTo, setEditRedirectTo] = useState("");
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
   const [spending, setSpending] = useState<SpendingSummary | null>(null);
   const [spendingLoading, setSpendingLoading] = useState(false);
   const [spendingCurrencySymbol, setSpendingCurrencySymbol] = useState("$");
@@ -135,8 +129,6 @@ export function ModelDetailPage() {
   const [healthCheckingIds, setHealthCheckingIds] = useState<Set<number>>(new Set());
   const [dialogTestingConnection, setDialogTestingConnection] = useState(false);
   const [dialogTestResult, setDialogTestResult] = useState<{ status: string; detail: string } | null>(null);
-  const [pricingSectionOpen, setPricingSectionOpen] = useState(false);
-  const [pricingValidationError, setPricingValidationError] = useState<string | null>(null);
   const [connectionMetrics24h, setConnectionMetrics24h] = useState<Map<number, ConnectionDerivedMetrics>>(new Map());
   const [focusedConnectionId, setFocusedConnectionId] = useState<number | null>(null);
   const [connectionCardRefs] = useState<Map<number, HTMLDivElement>>(new Map());
@@ -160,14 +152,7 @@ export function ModelDetailPage() {
     name: "",
     is_active: true,
     custom_headers: null,
-    pricing_enabled: false,
-    pricing_currency_code: "USD",
-    input_price: null,
-    output_price: null,
-    cached_input_price: null,
-    cache_creation_price: null,
-    reasoning_price: null,
-    missing_special_token_price_policy: "MAP_TO_OUTPUT",
+    pricing_template_id: null,
   });
 
   const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
@@ -193,15 +178,17 @@ export function ModelDetailPage() {
   const fetchModel = useCallback(async () => {
     if (!id) return;
     try {
-      const [data, endpointsList, modelsList] = await Promise.all([
+      const [data, endpointsList, modelsList, pricingTemplatesList] = await Promise.all([
         api.models.get(parseInt(id)),
         api.endpoints.list(),
         api.models.list(),
+        api.pricingTemplates.list(),
       ]);
       setModel(data);
       setConnections(data.connections || []);
       setGlobalEndpoints(endpointsList);
       setAllModels(modelsList);
+      setPricingTemplates(pricingTemplatesList);
 
       // Fetch spending data
       fetchSpending(data.model_id);
@@ -524,46 +511,6 @@ export function ModelDetailPage() {
     return inlineEndpointName.length > 0 ? inlineEndpointName : null;
   }, [createMode, newEndpointForm.name, selectedEndpoint]);
 
-  const normalizeOptionalDecimal = (value: string | null | undefined): string | null => {
-    if (value === null || value === undefined) {
-      return null;
-    }
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  };
-
-  const isNonNegativeDecimal = (value: string): boolean => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 0;
-  };
-
-  const validatePricingForm = (): string | null => {
-    if (!connectionForm.pricing_enabled) {
-      return null;
-    }
-
-    const currency = connectionForm.pricing_currency_code?.trim().toUpperCase() || "";
-    if (!isValidCurrencyCode(currency)) {
-      return "Pricing currency must be a valid 3-letter code (for example, USD).";
-    }
-
-    const decimalFields = [
-      ["Input price", connectionForm.input_price],
-      ["Output price", connectionForm.output_price],
-      ["Cached input price", connectionForm.cached_input_price],
-      ["Cache creation price", connectionForm.cache_creation_price],
-      ["Reasoning price", connectionForm.reasoning_price],
-    ] as const;
-
-    for (const [label, fieldValue] of decimalFields) {
-      const normalized = normalizeOptionalDecimal(fieldValue);
-      if (normalized && !isNonNegativeDecimal(normalized)) {
-        return `${label} must be a non-negative decimal value.`;
-      }
-    }
-
-    return null;
-  };
 
   const openConnectionDialog = (connection?: Connection) => {
     if (connection) {
@@ -578,16 +525,8 @@ export function ModelDetailPage() {
         name: connection.name ?? "",
         is_active: connection.is_active,
         custom_headers: connection.custom_headers,
-        pricing_enabled: connection.pricing_enabled,
-        pricing_currency_code: connection.pricing_currency_code,
-        input_price: connection.input_price,
-        output_price: connection.output_price,
-        cached_input_price: connection.cached_input_price,
-        cache_creation_price: connection.cache_creation_price,
-        reasoning_price: connection.reasoning_price,
-        missing_special_token_price_policy: connection.missing_special_token_price_policy,
+        pricing_template_id: connection.pricing_template_id,
       });
-      setPricingSectionOpen(connection.pricing_enabled);
       setNewEndpointForm({
         name: "",
         base_url: "",
@@ -603,14 +542,7 @@ export function ModelDetailPage() {
         name: "",
         is_active: true,
         custom_headers: null,
-        pricing_enabled: false,
-        pricing_currency_code: "USD",
-        input_price: null,
-        output_price: null,
-        cached_input_price: null,
-        cache_creation_price: null,
-        reasoning_price: null,
-        missing_special_token_price_policy: "MAP_TO_OUTPUT",
+        pricing_template_id: null,
       });
       setNewEndpointForm({
         name: "",
@@ -619,9 +551,7 @@ export function ModelDetailPage() {
       });
       setCreateMode("select");
       setSelectedEndpointId("");
-      setPricingSectionOpen(false);
     }
-    setPricingValidationError(null);
     setDialogTestResult(null);
     setIsConnectionDialogOpen(true);
   };
@@ -632,15 +562,6 @@ export function ModelDetailPage() {
       ? Object.fromEntries(headerRows.filter(r => r.key.trim()).map(r => [r.key.trim(), r.value]))
       : null;
 
-    const pricingError = validatePricingForm();
-    if (pricingError) {
-      setPricingValidationError(pricingError);
-      toast.error(pricingError);
-      return;
-    }
-
-    setPricingValidationError(null);
-
     const typedConnectionName = (connectionForm.name ?? "").trim();
     const resolvedConnectionName = typedConnectionName.length > 0
       ? typedConnectionName
@@ -650,14 +571,7 @@ export function ModelDetailPage() {
       ...connectionForm,
       name: resolvedConnectionName,
       custom_headers: customHeaders,
-      pricing_currency_code: connectionForm.pricing_currency_code
-        ? connectionForm.pricing_currency_code.trim().toUpperCase()
-        : null,
-      input_price: normalizeOptionalDecimal(connectionForm.input_price),
-      output_price: normalizeOptionalDecimal(connectionForm.output_price),
-      cached_input_price: normalizeOptionalDecimal(connectionForm.cached_input_price),
-      cache_creation_price: normalizeOptionalDecimal(connectionForm.cache_creation_price),
-      reasoning_price: normalizeOptionalDecimal(connectionForm.reasoning_price),
+      pricing_template_id: connectionForm.pricing_template_id,
     };
 
     if (createMode === "select") {
@@ -1095,18 +1009,23 @@ export function ModelDetailPage() {
                         intent={conn.priority >= 10 ? "warning" : conn.priority >= 1 ? "info" : "muted"}
                       />
                       <StatusBadge
-                        label={conn.pricing_enabled ? "Pricing On" : "Pricing Off"}
-                        intent={conn.pricing_enabled ? "success" : "muted"}
+                        label={conn.pricing_template ? "Pricing On" : "Pricing Off"}
+                        intent={conn.pricing_template ? "success" : "muted"}
                       />
-                      {conn.pricing_enabled && (
+                      {conn.pricing_template && (
                         <div className="flex items-center gap-1">
                           <ValueBadge
-                            label="Per 1M tokens"
+                            label={conn.pricing_template.name}
                             intent="info"
                           />
-                          {conn.pricing_currency_code && (
-                            <ValueBadge label={conn.pricing_currency_code} intent="accent" />
-                          )}
+                          <ValueBadge
+                            label={`v${conn.pricing_template.version}`}
+                            intent="muted"
+                          />
+                          <ValueBadge
+                            label={conn.pricing_template.pricing_currency_code}
+                            intent="accent"
+                          />
                         </div>
                       )}
                       {!conn.is_active && (
@@ -1118,40 +1037,6 @@ export function ModelDetailPage() {
                       <span className="text-muted-foreground/70">•</span>
                       <span className="font-mono break-all">{endpoint?.base_url}</span>
                     </div>
-                    {conn.pricing_enabled ? (
-                      <div className="mt-2 rounded-md border border-border/70 bg-muted/20 p-2 text-xs space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Input:</span>
-                          <span className="font-mono font-medium">{conn.input_price ?? "0"}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Output:</span>
-                          <span className="font-mono font-medium">{conn.output_price ?? "0"}</span>
-                        </div>
-                        {(conn.cached_input_price || conn.cache_creation_price || conn.reasoning_price) && (
-                          <div className="pt-1 mt-1 border-t border-border/50 grid grid-cols-3 gap-2">
-                            {conn.cached_input_price && (
-                              <div>
-                                <span className="block text-[10px] text-muted-foreground">Cached</span>
-                                <span className="font-mono">{conn.cached_input_price}</span>
-                              </div>
-                            )}
-                            {conn.cache_creation_price && (
-                              <div>
-                                <span className="block text-[10px] text-muted-foreground">Create</span>
-                                <span className="font-mono">{conn.cache_creation_price}</span>
-                              </div>
-                            )}
-                            {conn.reasoning_price && (
-                              <div>
-                                <span className="block text-[10px] text-muted-foreground">Reasoning</span>
-                                <span className="font-mono">{conn.reasoning_price}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>Key: {maskedKey}</span>
                       {isChecking ? (
@@ -1412,168 +1297,33 @@ export function ModelDetailPage() {
               onCheckedChange={(checked) => setConnectionForm({ ...connectionForm, is_active: checked })}
             />
 
-            <Collapsible
-              open={pricingSectionOpen}
-              onOpenChange={setPricingSectionOpen}
-              className="rounded-lg border p-3"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="space-y-1">
-                  <div className="inline-flex items-center gap-2 text-sm font-medium">
-                    <Coins className="h-4 w-4 text-muted-foreground" />
-                    Token Pricing
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Configure per-connection token cost tracking.
-                  </p>
-                </div>
-                <CollapsibleTrigger asChild>
-                  <Button type="button" variant="ghost" size="sm">
-                    {pricingSectionOpen ? "Hide" : "Configure"}
-                  </Button>
-                </CollapsibleTrigger>
-              </div>
-
-              <CollapsibleContent className="space-y-3 pt-3">
-                <SwitchController
-                  label="Enable pricing"
-                  description="When disabled, requests on this connection are tracked as unpriced."
-                  checked={connectionForm.pricing_enabled ?? false}
-                  onCheckedChange={(checked) =>
-                    setConnectionForm({
-                      ...connectionForm,
-                      pricing_enabled: checked,
-                    })
-                  }
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="pricing-unit">Pricing Unit</Label>
-                    <Input
-                      id="pricing-unit"
-                      value="Per 1M tokens"
-                      disabled
-                      readOnly
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="pricing-currency">Currency Code</Label>
-                    <Input
-                      id="pricing-currency"
-                      placeholder="USD"
-                      maxLength={3}
-                      value={connectionForm.pricing_currency_code ?? ""}
-                      onChange={(e) =>
-                        setConnectionForm({
-                          ...connectionForm,
-                          pricing_currency_code: e.target.value.toUpperCase(),
-                        })
-                      }
-                      disabled={!connectionForm.pricing_enabled}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="input-price">Input Price</Label>
-                    <Input
-                      id="input-price"
-                      placeholder="0"
-                      inputMode="decimal"
-                      value={connectionForm.input_price ?? ""}
-                      onChange={(e) =>
-                        setConnectionForm({ ...connectionForm, input_price: e.target.value })
-                      }
-                      disabled={!connectionForm.pricing_enabled}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="output-price">Output Price</Label>
-                    <Input
-                      id="output-price"
-                      placeholder="0"
-                      inputMode="decimal"
-                      value={connectionForm.output_price ?? ""}
-                      onChange={(e) =>
-                        setConnectionForm({ ...connectionForm, output_price: e.target.value })
-                      }
-                      disabled={!connectionForm.pricing_enabled}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="cached-price">Cached Input Price</Label>
-                    <Input
-                      id="cached-price"
-                      placeholder="Optional"
-                      inputMode="decimal"
-                      value={connectionForm.cached_input_price ?? ""}
-                      onChange={(e) =>
-                        setConnectionForm({ ...connectionForm, cached_input_price: e.target.value })
-                      }
-                      disabled={!connectionForm.pricing_enabled}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cache-create-price">Cache Creation Price</Label>
-                    <Input
-                      id="cache-create-price"
-                      placeholder="Optional"
-                      inputMode="decimal"
-                      value={connectionForm.cache_creation_price ?? ""}
-                      onChange={(e) =>
-                        setConnectionForm({ ...connectionForm, cache_creation_price: e.target.value })
-                      }
-                      disabled={!connectionForm.pricing_enabled}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reasoning-price">Reasoning Price</Label>
-                    <Input
-                      id="reasoning-price"
-                      placeholder="Optional"
-                      inputMode="decimal"
-                      value={connectionForm.reasoning_price ?? ""}
-                      onChange={(e) =>
-                        setConnectionForm({ ...connectionForm, reasoning_price: e.target.value })
-                      }
-                      disabled={!connectionForm.pricing_enabled}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="missing-policy">Missing Special Token Policy</Label>
-                  <Select
-                    value={connectionForm.missing_special_token_price_policy ?? "MAP_TO_OUTPUT"}
-                    onValueChange={(value) =>
-                      setConnectionForm({
-                        ...connectionForm,
-                        missing_special_token_price_policy: value as "MAP_TO_OUTPUT" | "ZERO_COST",
-                      })
-                    }
-                    disabled={!connectionForm.pricing_enabled}
-                  >
-                    <SelectTrigger id="missing-policy">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MAP_TO_OUTPUT">Map to Output (Default)</SelectItem>
-                      <SelectItem value="ZERO_COST">Zero Cost</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[10px] text-muted-foreground">
-                    How to price special tokens (reasoning, cache) if their specific price is not set.
-                  </p>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+            <div className="space-y-2">
+              <Label>Pricing Template</Label>
+              <Select
+                value={connectionForm.pricing_template_id ? String(connectionForm.pricing_template_id) : "unpriced"}
+                onValueChange={(value) => {
+                  setConnectionForm({
+                    ...connectionForm,
+                    pricing_template_id: value === "unpriced" ? null : parseInt(value, 10),
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a pricing template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unpriced">Unpriced (No cost tracking)</SelectItem>
+                  {pricingTemplates.map((template) => (
+                    <SelectItem key={template.id} value={String(template.id)}>
+                      {template.name} ({template.pricing_currency_code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Assign a pricing template to track costs for this connection.
+              </p>
+            </div>
 
             {/* Custom Headers */}
             <div className="space-y-2">
@@ -1632,11 +1382,6 @@ export function ModelDetailPage() {
               </div>
             </div>
 
-            {pricingValidationError && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {pricingValidationError}
-              </div>
-            )}
 
             <DialogFooter className="gap-2">
               {editingConnection && (

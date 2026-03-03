@@ -66,7 +66,88 @@ export interface EndpointUpdate {
   api_key?: string;
 }
 
-// --- Connection (Model-scoped) ---
+// --- Pricing Templates + Connection (Model-scoped) ---
+export interface PricingTemplateListItem {
+  id: number;
+  profile_id: number;
+  name: string;
+  description: string | null;
+  pricing_unit: "PER_1M";
+  pricing_currency_code: string;
+  version: number;
+  updated_at: string;
+}
+
+export interface PricingTemplate {
+  id: number;
+  profile_id: number;
+  name: string;
+  description: string | null;
+  pricing_unit: "PER_1M";
+  pricing_currency_code: string;
+  input_price: string;
+  output_price: string;
+  cached_input_price: string | null;
+  cache_creation_price: string | null;
+  reasoning_price: string | null;
+  missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PricingTemplateCreate {
+  name: string;
+  description?: string | null;
+  pricing_unit?: "PER_1M";
+  pricing_currency_code: string;
+  input_price: string;
+  output_price: string;
+  cached_input_price?: string | null;
+  cache_creation_price?: string | null;
+  reasoning_price?: string | null;
+  missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
+}
+
+export interface PricingTemplateUpdate {
+  name?: string;
+  description?: string | null;
+  pricing_unit?: "PER_1M";
+  pricing_currency_code?: string;
+  input_price?: string;
+  output_price?: string;
+  cached_input_price?: string | null;
+  cache_creation_price?: string | null;
+  reasoning_price?: string | null;
+  missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
+}
+
+export interface PricingTemplateConnectionUsageItem {
+  connection_id: number;
+  connection_name: string | null;
+  model_config_id: number;
+  model_id: string;
+  endpoint_id: number;
+  endpoint_name: string;
+}
+
+export interface PricingTemplateConnectionsResponse {
+  template_id: number;
+  items: PricingTemplateConnectionUsageItem[];
+}
+
+export interface ConnectionPricingTemplateUpdate {
+  pricing_template_id: number | null;
+}
+
+export interface ConnectionPricingTemplateSummary {
+  id: number;
+  name: string;
+  pricing_unit: "PER_1M";
+  pricing_currency_code: string;
+  version: number;
+}
+
 export interface Connection {
   id: number;
   model_config_id: number;
@@ -77,15 +158,8 @@ export interface Connection {
   name: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
-  pricing_enabled: boolean;
-  pricing_currency_code: string | null;
-  input_price: string | null;
-  output_price: string | null;
-  cached_input_price: string | null;
-  cache_creation_price: string | null;
-  reasoning_price: string | null;
-  missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
-  pricing_config_version: number;
+  pricing_template_id: number | null;
+  pricing_template: ConnectionPricingTemplateSummary | null;
   health_status: string;
   health_detail: string | null;
   last_health_check: string | null;
@@ -101,15 +175,7 @@ export interface ConnectionCreate {
   name?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
-  pricing_enabled?: boolean;
-  pricing_currency_code?: string | null;
-  input_price?: string | null;
-  output_price?: string | null;
-  cached_input_price?: string | null;
-  cache_creation_price?: string | null;
-  reasoning_price?: string | null;
-  missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
-  pricing_config_version?: number;
+  pricing_template_id?: number | null;
 }
 
 export interface ConnectionUpdate {
@@ -120,15 +186,7 @@ export interface ConnectionUpdate {
   name?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
-  pricing_enabled?: boolean;
-  pricing_currency_code?: string | null;
-  input_price?: string | null;
-  output_price?: string | null;
-  cached_input_price?: string | null;
-  cache_creation_price?: string | null;
-  reasoning_price?: string | null;
-  missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
-  pricing_config_version?: number;
+  pricing_template_id?: number | null;
 }
 
 export interface HealthCheckResponse {
@@ -338,23 +396,30 @@ export interface ConfigEndpointExport {
   api_key: string;
 }
 
+export interface ConfigPricingTemplateExport {
+  pricing_template_id: number;
+  name: string;
+  description: string | null;
+  pricing_unit: "PER_1M";
+  pricing_currency_code: string;
+  input_price: string;
+  output_price: string;
+  cached_input_price: string | null;
+  cache_creation_price: string | null;
+  reasoning_price: string | null;
+  missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
+  version: number;
+}
+
 export interface ConfigConnectionExport {
   connection_id: number;
   endpoint_id: number;
+  pricing_template_id: number | null;
   is_active: boolean;
   priority: number;
   name: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
-  pricing_enabled: boolean;
-  pricing_currency_code: string | null;
-  input_price: string | null;
-  output_price: string | null;
-  cached_input_price: string | null;
-  cache_creation_price: string | null;
-  reasoning_price: string | null;
-  missing_special_token_price_policy: "MAP_TO_OUTPUT" | "ZERO_COST";
-  pricing_config_version: number;
 }
 
 export interface ConfigModelExport {
@@ -384,22 +449,27 @@ export interface ConfigUserSettingsExport {
 }
 
 export interface ConfigExportResponse {
+  version: 2;
   exported_at: string;
   endpoints: ConfigEndpointExport[];
+  pricing_templates: ConfigPricingTemplateExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules: HeaderBlocklistRuleExport[];
 }
 
 export interface ConfigImportRequest {
+  version: 2;
   exported_at?: string;
   endpoints: ConfigEndpointExport[];
+  pricing_templates: ConfigPricingTemplateExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
 }
 export interface ConfigImportResponse {
   endpoints_imported: number;
+  pricing_templates_imported: number;
   models_imported: number;
   connections_imported: number;
 }
