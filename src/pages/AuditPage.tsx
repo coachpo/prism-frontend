@@ -192,46 +192,60 @@ function fallbackCopyText(text: string): boolean {
   textarea.style.top = "0";
 
   const selection = document.getSelection();
-  const previousRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+  const previousRanges: Range[] = [];
+  if (selection) {
+    for (let i = 0; i < selection.rangeCount; i += 1) {
+      previousRanges.push(selection.getRangeAt(i).cloneRange());
+    }
+  }
   const activeElement = document.activeElement as HTMLElement | null;
 
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  textarea.setSelectionRange(0, textarea.value.length);
-
   try {
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
     return document.execCommand("copy");
   } catch {
     return false;
   } finally {
-    document.body.removeChild(textarea);
-    if (previousRange && selection) {
-      selection.removeAllRanges();
-      selection.addRange(previousRange);
+    if (textarea.parentNode) {
+      textarea.parentNode.removeChild(textarea);
     }
-    if (activeElement) {
-      activeElement.focus();
+    if (selection) {
+      try {
+        selection.removeAllRanges();
+        previousRanges.forEach((range) => selection.addRange(range));
+      } catch {
+        // Ignore selection restore failures.
+      }
+    }
+    if (activeElement && typeof activeElement.focus === "function") {
+      try {
+        activeElement.focus();
+      } catch {
+        // Ignore focus restore failures.
+      }
     }
   }
 }
 
 async function copyTextToClipboard(text: string): Promise<boolean> {
-  if (
-    typeof window !== "undefined" &&
-    window.isSecureContext &&
-    typeof navigator !== "undefined" &&
-    navigator.clipboard?.writeText
-  ) {
+  // Try fallback first so copy still works in restricted/insecure contexts.
+  if (fallbackCopyText(text)) {
+    return true;
+  }
+
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
-      // Fall back when clipboard permission is denied.
+      // No-op: fall through to false.
     }
   }
 
-  return fallbackCopyText(text);
+  return false;
 }
 
 function CopyButton({
@@ -245,16 +259,19 @@ function CopyButton({
 }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    copyTextToClipboard(text).then((success) => {
+  const handleCopy = async () => {
+    try {
+      const success = await copyTextToClipboard(text);
       if (!success) {
         toast.error("Failed to copy");
         return;
       }
       toast.success(successMessage);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy");
+    }
   };
 
   return (
@@ -265,7 +282,7 @@ function CopyButton({
       className="h-7 w-7 shrink-0"
       onClick={(event) => {
         event.stopPropagation();
-        handleCopy();
+        void handleCopy();
       }}
       aria-label={ariaLabel}
     >
@@ -989,15 +1006,18 @@ export function AuditPage() {
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-                              onClick={(event) => {
+                              onClick={async (event) => {
                                 event.stopPropagation();
-                                copyTextToClipboard(requestPath).then((success) => {
+                                try {
+                                  const success = await copyTextToClipboard(requestPath);
                                   if (!success) {
                                     toast.error("Failed to copy path");
                                     return;
                                   }
                                   toast.success("Path copied");
-                                });
+                                } catch {
+                                  toast.error("Failed to copy path");
+                                }
                               }}
                               aria-label="Copy path"
                             >
