@@ -763,20 +763,20 @@ export function ModelsPage() {
                 <div className="space-y-2">
                   <Label className="text-base font-medium">Recovery Policy</Label>
                   <p className="text-sm text-muted-foreground">
-                    Configure how the system attempts to recover failed endpoints.
+                    Set a base cooldown for retries; Prism applies automatic backoff and jitter after repeated failures.
                   </p>
                 </div>
                 
                 <SwitchController
                   label="Auto-Recovery"
-                  description="Periodically check failed endpoints"
+                  description="Automatically retry failed endpoints using base cooldown with adaptive backoff and jitter"
                   checked={formData.failover_recovery_enabled ?? true}
                   onCheckedChange={(checked) => setFormData({ ...formData, failover_recovery_enabled: checked })}
                 />
 
                 {formData.failover_recovery_enabled && (
                   <div className="space-y-2">
-                    <Label>Cooldown Period (seconds)</Label>
+                    <Label>Base Cooldown (seconds)</Label>
                     <Input
                       type="number"
                       min={1}
@@ -785,7 +785,7 @@ export function ModelsPage() {
                       onChange={(e) => setFormData({ ...formData, failover_recovery_cooldown_seconds: parseInt(e.target.value) || 60 })}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Wait time before retrying a failed endpoint (1-3600s).
+                      Initial retry delay before probing a failed endpoint; repeated failures increase delay with automatic backoff and jitter (1-3600s).
                     </p>
                   </div>
                 )}

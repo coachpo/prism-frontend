@@ -69,7 +69,7 @@ export function OverviewCards({
                   {model.model_type === "native" && model.lb_strategy === "failover" ? (
                     model.failover_recovery_enabled ? (
                       <span className="text-emerald-600 dark:text-emerald-400">
-                        Enabled ({model.failover_recovery_cooldown_seconds}s)
+                        Enabled (Base cooldown {model.failover_recovery_cooldown_seconds}s + adaptive backoff/jitter)
                       </span>
                     ) : (
                       <span className="text-muted-foreground">Disabled</span>
