@@ -1,5 +1,4 @@
-import { useTimezone } from "@/hooks/useTimezone";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
@@ -11,438 +10,24 @@ import type {
   ConnectionDropdownItem,
   Provider,
 } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  StatusBadge,
-  TypeBadge,
-  ValueBadge,
-  type BadgeIntent,
-} from "@/components/StatusBadge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Clock,
-  Copy,
-  Eye,
-  FileSearch,
-  Filter,
-  Loader2,
-  Search,
-  WrapText,
-  X,
-} from "lucide-react";
-import { ProviderIcon } from "@/components/ProviderIcon";
+import { AlertTriangle, Clock, FileSearch } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
-import { ProviderSelect } from "@/components/ProviderSelect";
 import { toast } from "sonner";
 
-const UNIVERSAL_TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = {
-  year: "numeric",
-  month: "numeric",
-  day: "numeric",
-  hour: "numeric",
-  minute: "numeric",
-  second: "numeric",
-  hour12: true,
-};
-
-function formatJson(raw: string | null): string {
-  if (!raw) return "";
-  try {
-    return JSON.stringify(JSON.parse(raw), null, 2);
-  } catch {
-    return raw;
-  }
-}
-
-function statusIntent(status: number): BadgeIntent {
-  if (status >= 200 && status < 300) return "success";
-  if (status >= 400 && status < 500) return "warning";
-  if (status >= 500) return "danger";
-  return "muted";
-}
-
-function methodIntent(method: string): BadgeIntent {
-  switch (method.toUpperCase()) {
-    case "GET":
-      return "blue";
-    case "POST":
-      return "success";
-    case "PUT":
-      return "warning";
-    case "DELETE":
-      return "danger";
-    default:
-      return "muted";
-  }
-}
-
-function formatRequestPath(requestUrl: string): string {
-  try {
-    const url = new URL(requestUrl);
-    return `${url.pathname}${url.search}`;
-  } catch {
-    return requestUrl;
-  }
-}
-
-function toDatetimeLocalValue(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function formatFilterDate(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("en-US", UNIVERSAL_TIMESTAMP_FORMAT).format(parsed);
-}
-
-type HighlightSegment = {
-  text: string;
-  match: boolean;
-};
-
-function getHighlightSegments(text: string, query: string): { segments: HighlightSegment[]; count: number } {
-  if (!query) {
-    return { segments: [{ text, match: false }], count: 0 };
-  }
-
-  const lowerText = text.toLowerCase();
-  const lowerQuery = query.toLowerCase();
-  if (lowerQuery.length === 0) {
-    return { segments: [{ text, match: false }], count: 0 };
-  }
-
-  const segments: HighlightSegment[] = [];
-  let cursor = 0;
-  let count = 0;
-
-  while (cursor < text.length) {
-    const matchIndex = lowerText.indexOf(lowerQuery, cursor);
-    if (matchIndex === -1) {
-      segments.push({ text: text.slice(cursor), match: false });
-      break;
-    }
-
-    if (matchIndex > cursor) {
-      segments.push({ text: text.slice(cursor, matchIndex), match: false });
-    }
-
-    const end = matchIndex + lowerQuery.length;
-    segments.push({ text: text.slice(matchIndex, end), match: true });
-    count += 1;
-    cursor = end;
-  }
-
-  if (segments.length === 0) {
-    segments.push({ text, match: false });
-  }
-
-  return { segments, count };
-}
-
-function fallbackCopyText(text: string): boolean {
-  if (typeof document === "undefined" || !document.body) return false;
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.setAttribute("aria-hidden", "true");
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  textarea.style.left = "-9999px";
-  textarea.style.top = "0";
-
-  const selection = document.getSelection();
-  const previousRanges: Range[] = [];
-  if (selection) {
-    for (let i = 0; i < selection.rangeCount; i += 1) {
-      previousRanges.push(selection.getRangeAt(i).cloneRange());
-    }
-  }
-  const activeElement = document.activeElement as HTMLElement | null;
-
-  try {
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    textarea.setSelectionRange(0, textarea.value.length);
-    return document.execCommand("copy");
-  } catch {
-    return false;
-  } finally {
-    if (textarea.parentNode) {
-      textarea.parentNode.removeChild(textarea);
-    }
-    if (selection) {
-      try {
-        selection.removeAllRanges();
-        previousRanges.forEach((range) => selection.addRange(range));
-      } catch {
-        // Ignore selection restore failures.
-      }
-    }
-    if (activeElement && typeof activeElement.focus === "function") {
-      try {
-        activeElement.focus();
-      } catch {
-        // Ignore focus restore failures.
-      }
-    }
-  }
-}
-
-async function copyTextToClipboard(text: string): Promise<boolean> {
-  // Try fallback first so copy still works in restricted/insecure contexts.
-  if (fallbackCopyText(text)) {
-    return true;
-  }
-
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // No-op: fall through to false.
-    }
-  }
-
-  return false;
-}
-
-function CopyButton({
-  text,
-  successMessage = "Copied to clipboard",
-  ariaLabel = "Copy to clipboard",
-}: {
-  text: string;
-  successMessage?: string;
-  ariaLabel?: string;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      const success = await copyTextToClipboard(text);
-      if (!success) {
-        toast.error("Failed to copy");
-        return;
-      }
-      toast.success(successMessage);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Failed to copy");
-    }
-  };
-
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className="h-7 w-7 shrink-0"
-      onClick={(event) => {
-        event.stopPropagation();
-        void handleCopy();
-      }}
-      aria-label={ariaLabel}
-    >
-      {copied ? (
-        <Check className="h-3.5 w-3.5 text-success" />
-      ) : (
-        <Copy className="h-3.5 w-3.5" />
-      )}
-    </Button>
-  );
-}
-
-function DetailMetaItem({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="space-y-1 rounded-md border bg-background/80 px-2.5 py-2">
-      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <div className="min-h-4 text-xs">{value}</div>
-    </div>
-  );
-}
-
-function DetailSection({
-  title,
-  subtitle,
-  action,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-2 rounded-xl border bg-card/80 p-3 sm:p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="space-y-1">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
-          {subtitle ? <p className="text-[11px] text-muted-foreground">{subtitle}</p> : null}
-        </div>
-        {action ? <div className="shrink-0">{action}</div> : null}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-interface BodyInspectorProps {
-  content: string | null;
-  emptyMessage: string;
-}
-
-function BodyInspector({ content, emptyMessage }: BodyInspectorProps) {
-  const [mode, setMode] = useState<"pretty" | "raw">("pretty");
-  const [wrap, setWrap] = useState(true);
-  const [query, setQuery] = useState("");
-
-  const rawContent = content ?? "";
-  const prettyContent = useMemo(() => formatJson(rawContent), [rawContent]);
-  const displayContent = mode === "pretty" ? prettyContent : rawContent;
-
-
-  const { segments, count } = useMemo(
-    () => getHighlightSegments(displayContent, query),
-    [displayContent, query]
-  );
-
-  if (!content) {
-    return (
-      <div className="p-3 border border-dashed rounded-lg text-xs text-muted-foreground italic">
-        {emptyMessage}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/20 p-2 pr-3">
-        <div className="flex items-center gap-1">
-          <Button
-            variant={mode === "pretty" ? "secondary" : "ghost"}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setMode("pretty")}
-          >
-            Pretty
-          </Button>
-          <Button
-            variant={mode === "raw" ? "secondary" : "ghost"}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setMode("raw")}
-          >
-            Raw
-          </Button>
-          <Button
-            variant={wrap ? "secondary" : "ghost"}
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setWrap((prev) => !prev)}
-          >
-            <WrapText className="h-3 w-3" />
-            Wrap
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Find in body"
-              className="h-7 w-[160px] pl-7 text-xs"
-              aria-label="Find in body"
-            />
-          </div>
-          {query ? (
-            <span className="text-[11px] text-muted-foreground tabular-nums">
-              {count} match{count === 1 ? "" : "es"}
-            </span>
-          ) : null}
-          <CopyButton
-            text={displayContent}
-            successMessage="Body content copied"
-            ariaLabel="Copy body content"
-          />
-        </div>
-      </div>
-
-      <pre
-        className={cn(
-          "max-h-[44vh] overflow-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs leading-relaxed scrollbar-thin",
-          wrap ? "whitespace-pre-wrap break-all" : "whitespace-pre"
-        )}
-      >
-        {segments.map((segment, index) =>
-          segment.match ? (
-            <mark
-              key={`${index}-${segment.text}`}
-              className="rounded-sm bg-yellow-200 px-0.5 text-black dark:bg-yellow-700 dark:text-white"
-            >
-              {segment.text}
-            </mark>
-          ) : (
-            <span key={`${index}-${segment.text}`}>{segment.text}</span>
-          )
-        )}
-      </pre>
-    </div>
-  );
-}
-
-const getConnectionLabel = (
-  connection: Pick<ConnectionDropdownItem, "id" | "name">
-): string => connection.name ?? "";
+import { AuditFilters } from "@/pages/audit/AuditFilters";
+import { toDatetimeLocalValue } from "@/pages/audit/utils";
+import { AuditTable } from "@/pages/audit/AuditTable";
+import { AuditDetailSheet } from "@/pages/audit/AuditDetailSheet";
 
 export function AuditPage() {
   const navigate = useNavigate();
   const { navigateToConnection } = useConnectionNavigation();
-  const { format: formatTime } = useTimezone();
   const { revision } = useProfileContext();
 
   const [logs, setLogs] = useState<AuditLogListItem[]>([]);
@@ -536,6 +121,7 @@ export function AuditPage() {
   useEffect(() => {
     setOffset(0);
   }, [revision]);
+
   const metrics = useMemo(() => {
     if (logs.length === 0) {
       return {
@@ -566,15 +152,6 @@ export function AuditPage() {
   const canEditAuditSettings = providers.length > 0;
   const auditingActionLabel = !isAuditingEnabled && canEditAuditSettings ? "Enable Auditing" : "View Audit Settings";
   const auditConfigPath = "/settings#audit-configuration";
-  const clearFilters = () => {
-    setProviderId("all");
-    setModelId("__all__");
-    setConnectionId("__all__");
-    setStatusFilter("all");
-    setDateFrom("");
-    setDateTo("");
-    setOffset(0);
-  };
 
   const applyTimeWindow = (hours: number) => {
     const now = new Date();
@@ -590,97 +167,19 @@ export function AuditPage() {
     setOffset(0);
   };
 
-  const activeFilterChips = useMemo(() => {
-    const chips: { key: string; label: string; onClear: () => void }[] = [];
+  const clearFilters = () => {
+    setProviderId("all");
+    setModelId("__all__");
+    setConnectionId("__all__");
+    setStatusFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setOffset(0);
+  };
 
-    if (providerId !== "all") {
-      const providerName = providers.find((provider) => String(provider.id) === providerId)?.name ?? providerId;
-      chips.push({
-        key: "provider",
-        label: `Provider: ${providerName}`,
-        onClear: () => {
-          setProviderId("all");
-          setOffset(0);
-        },
-      });
-    }
-
-    if (modelId !== "__all__") {
-      chips.push({
-        key: "model",
-        label: `Model: ${modelId}`,
-        onClear: () => {
-          setModelId("__all__");
-          setOffset(0);
-        },
-      });
-    }
-
-    if (connectionId !== "__all__") {
-      const connectionName =
-        connections.find((connection) => String(connection.id) === connectionId)?.name ??
-        `#${connectionId}`;
-      chips.push({
-        key: "connection",
-        label: `Connection: ${connectionName}`,
-        onClear: () => {
-          setConnectionId("__all__");
-          setOffset(0);
-        },
-      });
-    }
-
-    if (statusFilter !== "all") {
-      chips.push({
-        key: "status",
-        label: `Status: ${statusFilter}`,
-        onClear: () => {
-          setStatusFilter("all");
-          setOffset(0);
-        },
-      });
-    }
-
-    if (dateFrom) {
-      chips.push({
-        key: "from",
-        label: `From: ${formatFilterDate(dateFrom)}`,
-        onClear: () => {
-          setDateFrom("");
-          setOffset(0);
-        },
-      });
-    }
-
-    if (dateTo) {
-      chips.push({
-        key: "to",
-        label: `To: ${formatFilterDate(dateTo)}`,
-        onClear: () => {
-          setDateTo("");
-          setOffset(0);
-        },
-      });
-    }
-
-    return chips;
-  }, [providerId, providers, modelId, connectionId, connections, statusFilter, dateFrom, dateTo]);
-
-  const hasFilters = activeFilterChips.length > 0;
   const hasHistoricalLogs = (historicalTotal ?? 0) > 0;
   const isTrueEmpty = logs.length === 0 && !hasHistoricalLogs;
   const isFilterEmpty = logs.length === 0 && hasHistoricalLogs;
-
-  const currentPage = Math.floor(offset / limit) + 1;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const rangeStart = total === 0 ? 0 : offset + 1;
-  const rangeEnd = total === 0 ? 0 : Math.min(offset + limit, total);
-  const selectedConnectionId = selectedLog?.connection_id ?? null;
-  const selectedRequestPath = selectedLog ? formatRequestPath(selectedLog.request_url) : "";
-  const selectedLogPayload = useMemo(
-    () => (selectedLog ? JSON.stringify(selectedLog, null, 2) : ""),
-    [selectedLog]
-  );
 
   const openDetail = async (id: number) => {
     setSelectedLogId(id);
@@ -732,7 +231,6 @@ export function AuditPage() {
           intent={isAuditingEnabled ? "success" : "muted"}
           className="text-[11px]"
         />
-
       </PageHeader>
 
       {!isAuditingEnabled ? (
@@ -763,139 +261,24 @@ export function AuditPage() {
         />
       </div>
 
-      <Card>
-        <CardContent className="p-[var(--density-card-pad-y)]">
-          <div className="flex flex-wrap items-center gap-2">
-            <ProviderSelect
-              value={providerId}
-              onValueChange={(value) => {
-                setProviderId(value);
-                setOffset(0);
-              }}
-              valueType="provider_id"
-              providers={providers}
-              className="w-full sm:w-[160px]"
-            />
-
-            <Select
-              value={modelId}
-              onValueChange={(value) => {
-                setModelId(value);
-                setOffset(0);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Model ID" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All Models</SelectItem>
-                {models.map((model) => (
-                  <SelectItem key={model.model_id} value={model.model_id}>
-                    {model.display_name || model.model_id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={connectionId}
-              onValueChange={(value) => {
-                setConnectionId(value);
-                setOffset(0);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[130px]">
-                <SelectValue placeholder="Connection" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All Connections</SelectItem>
-                {connections.map((connection) => (
-                  <SelectItem key={connection.id} value={String(connection.id)}>
-                    {getConnectionLabel(connection)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value);
-                setOffset(0);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="2xx">2xx</SelectItem>
-                <SelectItem value="4xx">4xx</SelectItem>
-                <SelectItem value="5xx">5xx</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Input
-              type="datetime-local"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
-                setOffset(0);
-              }}
-              className="w-full sm:w-auto"
-              aria-label="From date"
-            />
-
-            <Input
-              type="datetime-local"
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(event.target.value);
-                setOffset(0);
-              }}
-              className="w-full sm:w-auto"
-              aria-label="To date"
-            />
-
-            {hasFilters ? (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
-                <X className="h-3.5 w-3.5" />
-                Clear
-              </Button>
-            ) : null}
-          </div>
-
-          {hasFilters ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Filter className="h-3 w-3" />
-                Active filters:
-              </span>
-              {activeFilterChips.map((chip) => (
-                <Badge key={chip.key} variant="secondary" className="gap-1.5 font-normal">
-                  {chip.label}
-                  <button
-                    type="button"
-                    onClick={chip.onClear}
-                    className="rounded-sm p-0.5 hover:bg-muted-foreground/15"
-                    aria-label={`Clear ${chip.label}`}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="ml-auto h-6 px-2 text-xs"
-              >
-                Clear all
-              </Button>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+      <AuditFilters
+        providers={providers}
+        models={models}
+        connections={connections}
+        providerId={providerId}
+        setProviderId={setProviderId}
+        modelId={modelId}
+        setModelId={setModelId}
+        connectionId={connectionId}
+        setConnectionId={setConnectionId}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        dateFrom={dateFrom}
+        setDateFrom={setDateFrom}
+        dateTo={dateTo}
+        setDateTo={setDateTo}
+        setOffset={setOffset}
+      />
 
       <Card>
         <CardContent className="p-0">
@@ -948,345 +331,28 @@ export function AuditPage() {
               }
             />
           ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[72px]">Status</TableHead>
-                    <TableHead className="hidden w-[72px] md:table-cell">Method</TableHead>
-                    <TableHead>Path</TableHead>
-                    <TableHead className="hidden lg:table-cell">Model</TableHead>
-                    <TableHead className="hidden md:table-cell">Provider</TableHead>
-                    <TableHead className="hidden text-right lg:table-cell">Duration</TableHead>
-                    <TableHead className="text-right">Time</TableHead>
-                    <TableHead className="w-[50px]" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log) => {
-                    const requestPath = formatRequestPath(log.request_url);
-                    const provider = providersById.get(log.provider_id);
-                    const providerType = provider?.provider_type;
-
-                    return (
-                      <TableRow
-                        key={log.id}
-                        className={cn(
-                          "group cursor-pointer hover:bg-muted/50",
-                          isSheetOpen && selectedLogId === log.id && "bg-muted/60"
-                        )}
-                        onClick={() => openDetail(log.id)}
-                      >
-                        <TableCell>
-                          <ValueBadge
-                            label={String(log.response_status)}
-                            intent={statusIntent(log.response_status)}
-                            className="text-xs tabular-nums"
-                          />
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          <ValueBadge label={log.request_method} intent={methodIntent(log.request_method)} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="block max-w-[210px] truncate text-sm sm:max-w-[320px]">
-                                    {requestPath}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="max-w-md">
-                                  <p className="break-all font-mono text-xs">{requestPath}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-                              onClick={async (event) => {
-                                event.stopPropagation();
-                                try {
-                                  const success = await copyTextToClipboard(requestPath);
-                                  if (!success) {
-                                    toast.error("Failed to copy path");
-                                    return;
-                                  }
-                                  toast.success("Path copied");
-                                } catch {
-                                  toast.error("Failed to copy path");
-                                }
-                              }}
-                              aria-label="Copy path"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          <span className="font-mono text-xs text-muted-foreground">{log.model_id}</span>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          <div className="flex items-center gap-1.5">
-                            {providerType ? <ProviderIcon providerType={providerType} size={12} /> : null}
-                            <span className="text-xs text-muted-foreground">
-                              {provider?.name ?? ""}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden text-right lg:table-cell">
-                          <span className="text-xs tabular-nums text-muted-foreground">{log.duration_ms}ms</span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="whitespace-nowrap text-xs text-muted-foreground">
-                            {formatTime(log.created_at, UNIVERSAL_TIMESTAMP_FORMAT)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openDetail(log.id);
-                            }}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-
-              <div className="flex items-center justify-between border-t px-4 py-3">
-                <p className="text-xs text-muted-foreground">
-                  {rangeStart}-{rangeEnd} of {total}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={offset === 0}
-                    onClick={() => setOffset(Math.max(0, offset - limit))}
-                  >
-                    <ArrowLeft className="mr-1 h-3.5 w-3.5" />
-                    Prev
-                  </Button>
-                  <span className="text-xs tabular-nums text-muted-foreground">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={offset + limit >= total}
-                    onClick={() => setOffset(offset + limit)}
-                  >
-                    Next
-                    <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            </>
+            <AuditTable
+              logs={logs}
+              providersById={providersById}
+              isSheetOpen={isSheetOpen}
+              selectedLogId={selectedLogId}
+              openDetail={openDetail}
+              offset={offset}
+              limit={limit}
+              total={total}
+              setOffset={setOffset}
+            />
           )}
         </CardContent>
       </Card>
 
-      <Sheet open={isSheetOpen} onOpenChange={handleSheetOpenChange}>
-        <SheetContent showCloseButton={false} className="flex w-full flex-col p-0 sm:max-w-2xl">
-          {detailLoading ? (
-            <div className="flex flex-1 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : selectedLog ? (
-            <>
-              <SheetHeader className="shrink-0 border-b bg-card px-5 py-4 sm:px-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="font-mono text-[11px]">
-                        Audit Log #{selectedLog.id}
-                      </Badge>
-                      <ValueBadge
-                        label={selectedLog.request_method}
-                        intent={methodIntent(selectedLog.request_method)}
-                        className="text-xs"
-                      />
-                      <ValueBadge
-                        label={String(selectedLog.response_status)}
-                        intent={statusIntent(selectedLog.response_status)}
-                        className="text-xs"
-                      />
-                      {selectedLog.is_stream ? <TypeBadge label="Stream" /> : null}
-                    </div>
-                    <SheetTitle className="truncate text-base sm:text-lg">{selectedRequestPath}</SheetTitle>
-                    <SheetDescription className="text-[11px] leading-relaxed">
-                      <span className="break-all font-mono text-muted-foreground">{selectedLog.request_url}</span>
-                    </SheetDescription>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-1">
-                    <CopyButton
-                      text={selectedLogPayload}
-                      successMessage="Audit details copied"
-                      ariaLabel="Copy full audit details"
-                    />
-                    <SheetClose asChild>
-                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Close details">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </SheetClose>
-                  </div>
-                </div>
-
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <DetailMetaItem
-                    label="Timestamp"
-                    value={
-                      <span className="text-muted-foreground">
-                        {formatTime(selectedLog.created_at, UNIVERSAL_TIMESTAMP_FORMAT)}
-                      </span>
-                    }
-                  />
-                  <DetailMetaItem
-                    label="Duration"
-                    value={<span className="font-mono tabular-nums text-muted-foreground">{selectedLog.duration_ms}ms</span>}
-                  />
-                  <DetailMetaItem
-                    label="Endpoint"
-                    value={
-                      selectedLog.endpoint_id === null ? (
-                        <span className="text-muted-foreground">Unavailable</span>
-                      ) : (
-                        <span className="font-mono text-muted-foreground">#{selectedLog.endpoint_id}</span>
-                      )
-                    }
-                  />
-                  <DetailMetaItem
-                    label="Connection"
-                    value={
-                      selectedConnectionId === null ? (
-                        <span className="text-muted-foreground">Unavailable</span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="font-mono text-primary hover:underline"
-                          onClick={() => navigateToConnection(selectedConnectionId)}
-                        >
-                          #{selectedConnectionId}
-                        </button>
-                      )
-                    }
-                  />
-                </div>
-              </SheetHeader>
-
-              <Tabs defaultValue="request" className="flex min-h-0 flex-1 flex-col">
-                <div className="shrink-0 border-b bg-background px-5 py-2 sm:px-6">
-                  <TabsList className="h-8 w-fit">
-                    <TabsTrigger value="request">Request</TabsTrigger>
-                    <TabsTrigger value="response">Response</TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <TabsContent value="request" className="mt-0 flex-1 overflow-y-auto px-5 py-4 [scrollbar-gutter:stable] sm:px-6">
-                  <div className="space-y-[var(--density-card-gap)] pr-3">
-                    <DetailSection
-                      title="Request URL"
-                      action={
-                        <CopyButton
-                          text={selectedLog.request_url}
-                          successMessage="Request URL copied"
-                          ariaLabel="Copy request URL from section"
-                        />
-                      }
-                    >
-                      <p className="break-all rounded-lg border bg-muted/20 px-3 py-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
-                        {selectedLog.request_url}
-                      </p>
-                    </DetailSection>
-
-                    <DetailSection
-                      title="Headers"
-                      subtitle="API keys are always redacted."
-                      action={
-                        <CopyButton
-                          text={formatJson(selectedLog.request_headers)}
-                          successMessage="Request headers copied"
-                          ariaLabel="Copy request headers"
-                        />
-                      }
-                    >
-                      <pre className="max-h-[28vh] overflow-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all scrollbar-thin">
-                        {formatJson(selectedLog.request_headers)}
-                      </pre>
-                    </DetailSection>
-
-                    <DetailSection title="Body">
-                      <BodyInspector
-                        content={selectedLog.request_body}
-                        emptyMessage="Body capture disabled for this provider."
-                      />
-                    </DetailSection>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="response" className="mt-0 flex-1 overflow-y-auto px-5 py-4 [scrollbar-gutter:stable] sm:px-6">
-                  <div className="space-y-[var(--density-card-gap)] pr-3">
-                    <DetailSection title="Response Status">
-                      <div className="flex items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2">
-                        <ValueBadge
-                          label={String(selectedLog.response_status)}
-                          intent={statusIntent(selectedLog.response_status)}
-                          className="text-xs"
-                        />
-                        <p className="text-xs text-muted-foreground">Status returned by the upstream provider.</p>
-                      </div>
-                    </DetailSection>
-
-                    <DetailSection
-                      title="Headers"
-                      subtitle="API keys are always redacted."
-                      action={
-                        selectedLog.response_headers ? (
-                          <CopyButton
-                            text={formatJson(selectedLog.response_headers)}
-                            successMessage="Response headers copied"
-                            ariaLabel="Copy response headers"
-                          />
-                        ) : null
-                      }
-                    >
-                      <pre className="max-h-[28vh] overflow-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all scrollbar-thin">
-                        {formatJson(selectedLog.response_headers)}
-                      </pre>
-                    </DetailSection>
-
-                    <DetailSection title="Body">
-                      <BodyInspector
-                        content={selectedLog.response_body}
-                        emptyMessage={
-                          selectedLog.is_stream
-                            ? "Response body not recorded for streaming requests."
-                            : "Body capture disabled for this provider."
-                        }
-                      />
-                    </DetailSection>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </>
-          ) : (
-            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              Failed to load details.
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+      <AuditDetailSheet
+        isSheetOpen={isSheetOpen}
+        handleSheetOpenChange={handleSheetOpenChange}
+        detailLoading={detailLoading}
+        selectedLog={selectedLog}
+        navigateToConnection={navigateToConnection}
+      />
     </div>
   );
 }
