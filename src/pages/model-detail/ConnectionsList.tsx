@@ -16,8 +16,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { Search, Plus, Pencil, Activity, Trash2, Loader2, Info, Route, Shield, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTimezone } from "@/hooks/useTimezone";
-import { getConnectionName, buildRequestLogsPath, formatLatencyForDisplay } from "./utils";
-import type { ConnectionDerivedMetrics } from "./utils";
+import { getConnectionName, buildRequestLogsPath, formatLatencyForDisplay } from "./modelDetailMetricsAndPaths";
+import type { ConnectionDerivedMetrics } from "./modelDetailMetricsAndPaths";
 import type { Connection, ModelConfig } from "@/lib/types";
 
 interface ConnectionsListProps {

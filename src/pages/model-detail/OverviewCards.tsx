@@ -5,7 +5,7 @@ import { formatProviderType, formatLabel } from "@/lib/utils";
 import { formatMoneyMicros } from "@/lib/costing";
 import { useTimezone } from "@/hooks/useTimezone";
 import { ChevronRight, Coins, Gauge } from "lucide-react";
-import { formatLatencyForDisplay } from "./utils";
+import { formatLatencyForDisplay } from "./modelDetailMetricsAndPaths";
 import type { ModelConfig, SpendingSummary } from "@/lib/types";
 
 interface OverviewCardsProps {

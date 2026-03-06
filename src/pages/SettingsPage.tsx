@@ -30,7 +30,7 @@ import { DeleteRuleConfirmDialog } from "./settings/dialogs/DeleteRuleConfirmDia
 import { SettingsSectionsNav } from "./settings/SettingsSectionsNav";
 import { renderSectionSaveState } from "./settings/sectionSaveState";
 import { useSettingsSectionNavigation } from "./settings/useSettingsSectionNavigation";
-import type { SettingsSaveSection } from "./settings/types";
+import type { SettingsSaveSection } from "./settings/settingsSaveTypes";
 import {
   DELETE_CONFIRM_KEYWORD,
   DEFAULT_COSTING_FORM,
@@ -42,7 +42,7 @@ import {
   getConnectionName,
   getMappingKey,
   formatTimezonePreview,
-} from "./settings/utils";
+} from "./settings/settingsPageHelpers";
 
 
 export function SettingsPage() {

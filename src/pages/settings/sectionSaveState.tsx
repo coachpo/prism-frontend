@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
-import type { SettingsSaveSection } from "./types";
+import type { SettingsSaveSection } from "./settingsSaveTypes";
 
 interface SectionSaveStateProps {
   section: SettingsSaveSection;

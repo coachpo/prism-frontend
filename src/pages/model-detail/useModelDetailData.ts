@@ -17,15 +17,15 @@ import type {
   HealthCheckResponse,
   PricingTemplate,
 } from "@/lib/types";
-import { get24hFromTime } from "./utils";
-import type { ConnectionDerivedMetrics } from "./utils";
+import { get24hFromTime } from "./modelDetailMetricsAndPaths";
+import type { ConnectionDerivedMetrics } from "./modelDetailMetricsAndPaths";
 import {
   applyConnectionHealthChecks,
   buildRedirectTargetOptions,
   createDefaultConnectionForm,
   createDefaultEndpointForm,
   getSelectedEndpoint,
-} from "./useModelDetailData.helpers";
+} from "./useModelDetailDataSupport";
 export function useModelDetailData(id: string | undefined) {
   const navigate = useNavigate();
   const { revision } = useProfileContext();

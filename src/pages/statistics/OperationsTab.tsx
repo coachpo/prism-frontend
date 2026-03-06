@@ -53,7 +53,7 @@ import {
 import {
   getConnectionLabel,
 } from "./utils";
-import type { OperationsTabProps } from "./operations/types";
+import type { OperationsTabProps } from "./operations/operationsTabProps";
 import { useOperationsTabData } from "./operations/useOperationsTabData";
 
 export function OperationsTab({

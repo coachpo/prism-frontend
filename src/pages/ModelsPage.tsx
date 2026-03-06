@@ -30,9 +30,9 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useProfileContext } from "@/context/ProfileContext";
-import { DEFAULT_VISIBLE_COLUMNS, getLast24hFromTime } from "./models/constants";
-import type { ModelColumnKey, ModelDerivedMetric } from "./models/types";
-import { formatLatencyCell } from "./models/utils";
+import { DEFAULT_VISIBLE_COLUMNS, getLast24hFromTime } from "./models/modelTableDefaults";
+import type { ModelColumnKey, ModelDerivedMetric } from "./models/modelTableContracts";
+import { formatLatencyCell } from "./models/modelMetricFormatters";
 
 export function ModelsPage() {
   const navigate = useNavigate();

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { Connection, CostingSettingsUpdate, EndpointFxMapping, ModelConfigListItem } from "@/lib/types";
-import { formatFxRateDisplay, getMappingKey } from "../utils";
+import { formatFxRateDisplay, getMappingKey } from "../settingsPageHelpers";
 
 interface BillingCurrencySectionProps {
   billingDirty: boolean;

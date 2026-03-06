@@ -37,7 +37,7 @@ import {
   getEndpointHost,
   getMaskedApiKey,
   getModelBadgeClass,
-} from "./endpoints/utils";
+} from "./endpoints/endpointCardHelpers";
 
 export function EndpointsPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);

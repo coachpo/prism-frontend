@@ -13,8 +13,8 @@ import { useProfileContext } from "@/context/ProfileContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { NAV_LINKS, PROFILE_SCOPED_PREFIXES, MAX_PROFILES, VERSION_LABEL } from "./app-layout/constants";
-import { parseConflictMessage } from "./app-layout/utils";
+import { NAV_LINKS, PROFILE_SCOPED_PREFIXES, MAX_PROFILES, VERSION_LABEL } from "./app-layout/navigationProfileConfig";
+import { parseConflictMessage } from "./app-layout/profileConflictMessageParser";
 import { ProfileSwitcherPopover } from "./app-layout/ProfileSwitcherPopover";
 import { ProfileDialogs } from "./app-layout/ProfileDialogs";
 

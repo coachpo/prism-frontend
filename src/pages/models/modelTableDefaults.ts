@@ -1,4 +1,4 @@
-import type { ModelColumnKey } from "./types";
+import type { ModelColumnKey } from "./modelTableContracts";
 
 export const DEFAULT_VISIBLE_COLUMNS: Record<ModelColumnKey, boolean> = {
   provider: true,

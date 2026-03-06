@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { Location } from "react-router-dom";
-import { SETTINGS_SECTIONS, SETTINGS_SECTION_IDS } from "./utils";
+import { SETTINGS_SECTIONS, SETTINGS_SECTION_IDS } from "./settingsPageHelpers";
 
 interface UseSettingsSectionNavigationResult {
   activeSectionId: string;

@@ -39,7 +39,7 @@ import {
   normalizeOptionalTemplatePrice,
   parsePricingTemplateUsageRows,
   type PricingTemplateFormState,
-} from "./pricing-templates/form";
+} from "./pricing-templates/pricingTemplateFormState";
 
 export function PricingTemplatesPage() {
   const { selectedProfile, revision } = useProfileContext();
