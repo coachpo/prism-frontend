@@ -30,44 +30,10 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useProfileContext } from "@/context/ProfileContext";
+import { DEFAULT_VISIBLE_COLUMNS, getLast24hFromTime } from "./models/constants";
+import type { ModelColumnKey, ModelDerivedMetric } from "./models/types";
+import { formatLatencyCell } from "./models/utils";
 
-type ModelColumnKey =
-  | "provider"
-  | "type"
-  | "strategy"
-  | "endpoints"
-  | "success"
-  | "p95"
-  | "requests"
-  | "spend"
-  | "status";
-
-type ModelDerivedMetric = {
-  success_rate: number | null;
-  request_count_24h: number;
-  p95_latency_ms: number | null;
-};
-
-const DEFAULT_VISIBLE_COLUMNS: Record<ModelColumnKey, boolean> = {
-  provider: true,
-  type: true,
-  strategy: true,
-  endpoints: true,
-  success: true,
-  p95: true,
-  requests: true,
-  spend: true,
-  status: true,
-};
-
-const getLast24hFromTime = (): string =>
-  new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-const formatLatencyCell = (value: number | null): string => {
-  if (value === null || !Number.isFinite(value)) return "-";
-  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 1 : 2)}s`;
-  return `${Math.round(value)}ms`;
-};
 export function ModelsPage() {
   const navigate = useNavigate();
   const { revision } = useProfileContext();

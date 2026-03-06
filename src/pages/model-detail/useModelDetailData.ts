@@ -19,6 +19,13 @@ import type {
 } from "@/lib/types";
 import { get24hFromTime } from "./utils";
 import type { ConnectionDerivedMetrics } from "./utils";
+import {
+  applyConnectionHealthChecks,
+  buildRedirectTargetOptions,
+  createDefaultConnectionForm,
+  createDefaultEndpointForm,
+  getSelectedEndpoint,
+} from "./useModelDetailData.helpers";
 export function useModelDetailData(id: string | undefined) {
   const navigate = useNavigate();
   const { revision } = useProfileContext();
@@ -59,17 +66,11 @@ export function useModelDetailData(id: string | undefined) {
 
   // Forms
   const [newEndpointForm, setNewEndpointForm] = useState<EndpointCreate>({
-    name: "",
-    base_url: "",
-    api_key: "",
+    ...createDefaultEndpointForm(),
   });
 
   const [connectionForm, setConnectionForm] = useState<ConnectionCreate>({
-    priority: 0,
-    name: "",
-    is_active: true,
-    custom_headers: null,
-    pricing_template_id: null,
+    ...createDefaultConnectionForm(),
   });
 
   const [headerRows, setHeaderRows] = useState<{ key: string; value: string }[]>([]);
@@ -147,19 +148,7 @@ export function useModelDetailData(id: string | undefined) {
       }
     }
 
-    setConnections((prevConnections) =>
-      prevConnections.map((connection) => {
-        const check = successfulChecks.get(connection.id);
-        if (!check) return connection;
-
-        return {
-          ...connection,
-          health_status: check.health_status,
-          health_detail: check.detail,
-          last_health_check: check.checked_at,
-        };
-      })
-    );
+    setConnections((prevConnections) => applyConnectionHealthChecks(prevConnections, successfulChecks));
 
     setHealthCheckingIds((prev) => {
       const next = new Set(prev);
@@ -382,41 +371,15 @@ export function useModelDetailData(id: string | undefined) {
     };
   }, [kpiSummary24h, kpiSpend24hMicros]);
 
-  const redirectTargetOptions = useMemo(() => {
-    if (!model || model.model_type !== "proxy") return [];
+  const redirectTargetOptions = useMemo(
+    () => buildRedirectTargetOptions(model, allModels),
+    [allModels, model]
+  );
 
-    const nativeTargets = allModels
-      .filter((candidate) => (
-        candidate.provider_id === model.provider_id &&
-        candidate.model_type === "native"
-      ))
-      .map((candidate) => ({
-        modelId: candidate.model_id,
-        label: candidate.display_name
-          ? `${candidate.display_name} (${candidate.model_id})`
-          : candidate.model_id,
-      }));
-
-    if (
-      model.redirect_to &&
-      !nativeTargets.some((target) => target.modelId === model.redirect_to)
-    ) {
-      return [
-        { modelId: model.redirect_to, label: `${model.redirect_to} (current target)` },
-        ...nativeTargets,
-      ];
-    }
-
-    return nativeTargets;
-  }, [allModels, model]);
-
-  const selectedEndpoint = useMemo(() => {
-    const parsedEndpointId = Number.parseInt(selectedEndpointId, 10);
-    if (!Number.isFinite(parsedEndpointId)) {
-      return null;
-    }
-    return globalEndpoints.find((endpoint) => endpoint.id === parsedEndpointId) ?? null;
-  }, [globalEndpoints, selectedEndpointId]);
+  const selectedEndpoint = useMemo(
+    () => getSelectedEndpoint(globalEndpoints, selectedEndpointId),
+    [globalEndpoints, selectedEndpointId]
+  );
 
   const endpointSourceDefaultName = useMemo(() => {
     if (createMode === "select") {
@@ -444,9 +407,7 @@ export function useModelDetailData(id: string | undefined) {
         pricing_template_id: connection.pricing_template_id,
       });
       setNewEndpointForm({
-        name: "",
-        base_url: "",
-        api_key: "",
+        ...createDefaultEndpointForm(),
       });
       setCreateMode("select");
       setSelectedEndpointId(String(connection.endpoint_id));
@@ -454,17 +415,9 @@ export function useModelDetailData(id: string | undefined) {
       setEditingConnection(null);
       setHeaderRows([]);
       setConnectionForm({
-        priority: 0,
-        name: "",
-        is_active: true,
-        custom_headers: null,
-        pricing_template_id: null,
+        ...createDefaultConnectionForm(),
       });
-      setNewEndpointForm({
-        name: "",
-        base_url: "",
-        api_key: "",
-      });
+      setNewEndpointForm({ ...createDefaultEndpointForm() });
       setCreateMode("select");
       setSelectedEndpointId("");
     }

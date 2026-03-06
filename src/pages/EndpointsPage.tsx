@@ -12,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { useProfileContext } from "@/context/ProfileContext";
@@ -29,111 +28,16 @@ import {
   Sparkles,
   Copy,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import { useTimezone } from "@/hooks/useTimezone";
-
-const endpointSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  base_url: z.string().url("Must be a valid URL"),
-  api_key: z.string().min(1, "API Key is required"),
-});
-
-type EndpointFormValues = z.infer<typeof endpointSchema>;
-
-const MODEL_BADGE_STYLES = [
-  "border-primary/25 bg-primary/10 text-primary",
-] as const;
-
-function hashString(value: string): number {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  }
-  return hash;
-}
-
-function normalizeModelColorKey(value: string): string {
-  return value.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-function getModelBadgeClass(model: ModelConfigListItem): string {
-  const colorKey = normalizeModelColorKey(model.display_name || model.model_id);
-  return MODEL_BADGE_STYLES[hashString(colorKey) % MODEL_BADGE_STYLES.length];
-}
-
-function getEndpointHost(baseUrl: string): string {
-  try {
-    return new URL(baseUrl).host;
-  } catch {
-    return baseUrl;
-  }
-}
-
-
-function buildDuplicateName(sourceName: string, existingNames: Set<string>): string {
-  const baseName = `${sourceName.trim()} copy`;
-  if (!existingNames.has(baseName)) {
-    return baseName;
-  }
-
-  let suffix = 2;
-  while (existingNames.has(`${baseName} ${suffix}`)) {
-    suffix += 1;
-  }
-  return `${baseName} ${suffix}`;
-}
-
-function fallbackCopyText(text: string): boolean {
-  if (typeof document === "undefined") return false;
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  textarea.style.left = "-9999px";
-  textarea.style.top = "0";
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  textarea.setSelectionRange(0, textarea.value.length);
-
-  try {
-    return document.execCommand("copy");
-  } catch {
-    return false;
-  } finally {
-    document.body.removeChild(textarea);
-  }
-}
-
-async function copyTextToClipboard(text: string): Promise<boolean> {
-  // Try fallback first so copy still works in restricted/insecure contexts.
-  if (fallbackCopyText(text)) {
-    return true;
-  }
-
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // No-op: fall through to false.
-    }
-  }
-
-  return false;
-}
+import { EndpointDialog, type EndpointFormValues } from "./endpoints/EndpointDialog";
+import {
+  buildDuplicateName,
+  copyTextToClipboard,
+  getEndpointHost,
+  getMaskedApiKey,
+  getModelBadgeClass,
+} from "./endpoints/utils";
 
 export function EndpointsPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
@@ -381,9 +285,7 @@ export function EndpointsPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {endpoints.map((endpoint) => {
             const models = endpointModels[endpoint.id] || [];
-            const maskedKey = endpoint.api_key.length > 8
-              ? `${endpoint.api_key.slice(0, 4)}••••••${endpoint.api_key.slice(-4)}`
-              : "••••••";
+            const maskedKey = getMaskedApiKey(endpoint);
 
             return (
               <Card
@@ -583,121 +485,5 @@ export function EndpointsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-interface EndpointDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (values: EndpointFormValues) => Promise<void>;
-  initialValues?: Endpoint;
-  title: string;
-  submitLabel: string;
-}
-
-function EndpointDialog({
-  open,
-  onOpenChange,
-  onSubmit,
-  initialValues,
-  title,
-  submitLabel,
-}: EndpointDialogProps) {
-  const form = useForm<EndpointFormValues>({
-    resolver: zodResolver(endpointSchema),
-    defaultValues: {
-      name: "",
-      base_url: "",
-      api_key: "",
-    },
-  });
-
-  useEffect(() => {
-    if (open && initialValues) {
-      form.reset({
-        name: initialValues.name,
-        base_url: initialValues.base_url,
-        api_key: initialValues.api_key,
-      });
-    } else if (open) {
-      form.reset({
-        name: "",
-        base_url: "",
-        api_key: "",
-      });
-    }
-  }, [open, initialValues, form]);
-
-  const handleSubmit = async (values: EndpointFormValues) => {
-    await onSubmit(values);
-  };
-
-  const handleDialogOpenChange = (nextOpen: boolean) => {
-    onOpenChange(nextOpen);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            Configure the endpoint details.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. OpenAI Production" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="base_url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Base URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://api.openai.com/v1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="api_key"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>API Key</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type="password"
-                        placeholder="sk-..."
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="submit">{submitLabel}</Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
   );
 }

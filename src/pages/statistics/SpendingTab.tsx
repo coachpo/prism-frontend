@@ -50,6 +50,7 @@ import {
   SPENDING_LIMIT_OPTIONS,
 } from "./queryParams";
 import { getConnectionLabel } from "./utils";
+import { useSpendingTabData } from "./spending/useSpendingTabData";
 
 interface SpendingTabProps {
   spending: SpendingReportResponse | null;
@@ -110,10 +111,8 @@ export function SpendingTab({
 }: SpendingTabProps) {
   const { format: formatTime } = useTimezone();
 
-  const reportSymbol = spending?.report_currency_symbol ?? "$";
-  const reportCode = spending?.report_currency_code ?? "USD";
-  const canPaginateForward =
-    spending !== null && spendingOffset + spendingLimit < spending.groups_total;
+  const { reportSymbol, reportCode, canPaginateForward, scatterData, insights } =
+    useSpendingTabData(spending, spendingOffset, spendingLimit);
 
   return (
     <div className="space-y-6">
@@ -537,12 +536,7 @@ export function SpendingTab({
                         />
                         <Scatter
                           name="Groups"
-                          data={spending.groups.slice(0, spendingTopN).map((g) => ({
-                            key: g.key,
-                            tokPerReq: g.total_requests > 0 ? g.total_tokens / g.total_requests : 0,
-                            costPer1MTok: g.total_tokens > 0 ? (g.total_cost_micros / g.total_tokens) * 1_000_000 : 0,
-                            totalCost: g.total_cost_micros,
-                          }))}
+                          data={scatterData.slice(0, spendingTopN)}
                           fill="var(--chart-3)"
                         />
                       </ScatterChart>
@@ -559,82 +553,68 @@ export function SpendingTab({
                   <CardTitle className="text-sm font-medium">Cost Insights</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 pb-4">
-                  {(() => {
-                    const sortedByCost = [...spending.groups].sort((a, b) => b.total_cost_micros - a.total_cost_micros);
-                    const sortedByEfficiency = [...spending.groups]
-                      .filter(g => g.total_tokens > 0)
-                      .sort((a, b) => {
-                        const effA = (a.total_cost_micros / a.total_tokens) * 1_000_000;
-                        const effB = (b.total_cost_micros / b.total_tokens) * 1_000_000;
-                        return effB - effA;
-                      });
-                    const highestCost = sortedByCost[0];
-                    const leastEfficient = sortedByEfficiency[0];
-                    const avgCostPer1M = spending.summary.total_tokens > 0
-                      ? (spending.summary.total_cost_micros / spending.summary.total_tokens) * 1_000_000
-                      : 0;
-
-                    return (
-                      <>
-                        <div className="rounded-md border p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium">Highest Spend</p>
-                              <p className="text-sm text-muted-foreground">{highestCost?.key}</p>
-                            </div>
-                            <span className="text-sm font-medium">
-                              {formatMoneyMicros(highestCost?.total_cost_micros ?? 0, reportSymbol, reportCode)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {leastEfficient && (
-                          <div className="rounded-md border p-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium">Least Efficient</p>
-                                <p className="text-sm text-muted-foreground">{leastEfficient.key}</p>
-                              </div>
-                              <span className="text-sm font-medium">
-                                {formatMoneyMicros(
-                                  (leastEfficient.total_cost_micros / leastEfficient.total_tokens) * 1_000_000,
-                                  reportSymbol,
-                                  reportCode,
-                                  4
-                                )}/1M
-                              </span>
-                            </div>
-                          </div>
+                  <div className="rounded-md border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">Highest Spend</p>
+                        <p className="text-sm text-muted-foreground">{insights.highestCost?.key}</p>
+                      </div>
+                      <span className="text-sm font-medium">
+                        {formatMoneyMicros(
+                          insights.highestCost?.total_cost_micros ?? 0,
+                          reportSymbol,
+                          reportCode
                         )}
+                      </span>
+                    </div>
+                  </div>
 
-                        <div className="rounded-md border p-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium">Avg Cost per 1M Tokens</p>
-                              <p className="text-sm text-muted-foreground">Across all groups</p>
-                            </div>
-                            <span className="text-sm font-medium">
-                              {formatMoneyMicros(avgCostPer1M, reportSymbol, reportCode, 4)}
-                            </span>
-                          </div>
+                  {insights.leastEfficient && (
+                    <div className="rounded-md border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium">Least Efficient</p>
+                          <p className="text-sm text-muted-foreground">{insights.leastEfficient.key}</p>
                         </div>
+                        <span className="text-sm font-medium">
+                          {formatMoneyMicros(
+                            (insights.leastEfficient.total_cost_micros /
+                              insights.leastEfficient.total_tokens) *
+                              1_000_000,
+                            reportSymbol,
+                            reportCode,
+                            4
+                          )}/1M
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
-                        {spending.summary.unpriced_request_count > 0 && (
-                          <div className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3">
-                            <div className="flex items-start gap-2">
-                              <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium">Unpriced Requests</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {spending.summary.unpriced_request_count.toLocaleString()} requests lack pricing data
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
+                  <div className="rounded-md border p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium">Avg Cost per 1M Tokens</p>
+                        <p className="text-sm text-muted-foreground">Across all groups</p>
+                      </div>
+                      <span className="text-sm font-medium">
+                        {formatMoneyMicros(insights.avgCostPer1M, reportSymbol, reportCode, 4)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {spending.summary.unpriced_request_count > 0 && (
+                    <div className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium">Unpriced Requests</p>
+                          <p className="text-sm text-muted-foreground">
+                            {spending.summary.unpriced_request_count.toLocaleString()} requests lack pricing data
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

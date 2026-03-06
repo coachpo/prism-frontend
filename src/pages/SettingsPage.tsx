@@ -1,7 +1,6 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { z } from "zod";
-import { Check } from "lucide-react";
 import { useProfileContext } from "@/context/ProfileContext";
 import { api } from "@/lib/api";
 import { isValidCurrencyCode } from "@/lib/costing";
@@ -17,10 +16,7 @@ import type {
 } from "@/lib/types";
 import { ConfigImportSchema } from "@/lib/configImportValidation";
 import { PageHeader } from "@/components/PageHeader";
-import { StatusBadge } from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
 import { BackupSection } from "./settings/sections/BackupSection";
@@ -31,9 +27,11 @@ import { RetentionDeletionSection } from "./settings/sections/RetentionDeletionS
 import { DeleteConfirmDialog } from "./settings/dialogs/DeleteConfirmDialog";
 import { RuleDialog } from "./settings/dialogs/RuleDialog";
 import { DeleteRuleConfirmDialog } from "./settings/dialogs/DeleteRuleConfirmDialog";
+import { SettingsSectionsNav } from "./settings/SettingsSectionsNav";
+import { renderSectionSaveState } from "./settings/sectionSaveState";
+import { useSettingsSectionNavigation } from "./settings/useSettingsSectionNavigation";
+import type { SettingsSaveSection } from "./settings/types";
 import {
-  SETTINGS_SECTIONS,
-  SETTINGS_SECTION_IDS,
   DELETE_CONFIRM_KEYWORD,
   DEFAULT_COSTING_FORM,
   normalizeCostingForm,
@@ -62,7 +60,8 @@ export function SettingsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const auditConfigurationRef = useRef<HTMLDivElement | null>(null);
-  const [isAuditConfigurationFocused, setIsAuditConfigurationFocused] = useState(false);
+  const { activeSectionId, setActiveSectionId, isAuditConfigurationFocused } =
+    useSettingsSectionNavigation(location);
 
   const [providers, setProviders] = useState<Provider[]>([]);
   const [bulkAuditSaving, setBulkAuditSaving] = useState(false);
@@ -96,9 +95,7 @@ export function SettingsPage() {
   const [costingLoading, setCostingLoading] = useState(false);
   const [costingSaving, setCostingSaving] = useState(false);
   const [savedCostingForm, setSavedCostingForm] = useState<CostingSettingsUpdate | null>(null);
-  const [recentlySavedSection, setRecentlySavedSection] = useState<"billing" | "timezone" | null>(
-    null
-  );
+  const [recentlySavedSection, setRecentlySavedSection] = useState<SettingsSaveSection | null>(null);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [mappingConnections, setMappingConnections] = useState<Connection[]>([]);
   const [mappingLoading, setMappingLoading] = useState(false);
@@ -108,10 +105,6 @@ export function SettingsPage() {
   const [editingMappingKey, setEditingMappingKey] = useState<string | null>(null);
   const [editingMappingFxRate, setEditingMappingFxRate] = useState("");
   const [costingForm, setCostingForm] = useState<CostingSettingsUpdate>(DEFAULT_COSTING_FORM);
-  const [activeSectionId, setActiveSectionId] = useState<string>(() => {
-    const hashSection = location.hash.replace("#", "");
-    return SETTINGS_SECTION_IDS.has(hashSection) ? hashSection : SETTINGS_SECTIONS[0].id;
-  });
 
   useEffect(() => {
     api.providers.list().then(setProviders).catch(() => toast.error("Failed to load providers"));
@@ -119,98 +112,6 @@ export function SettingsPage() {
     void fetchCostingSettings();
     void fetchModels();
   }, [revision]);
-
-  useEffect(() => {
-    const hash = location.hash.replace("#", "");
-    if (!hash) {
-      setIsAuditConfigurationFocused(false);
-      return;
-    }
-    if (SETTINGS_SECTION_IDS.has(hash)) {
-      setActiveSectionId(hash);
-    }
-
-    const target = document.getElementById(hash);
-    if (!target) {
-      setIsAuditConfigurationFocused(false);
-      return;
-    }
-
-    if (hash === "audit-configuration") {
-      setIsAuditConfigurationFocused(true);
-    } else {
-      setIsAuditConfigurationFocused(false);
-    }
-
-    const frameId = window.requestAnimationFrame(() => {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    if (hash !== "audit-configuration") {
-      return () => {
-        window.cancelAnimationFrame(frameId);
-      };
-    }
-
-    const clearHighlightTimer = window.setTimeout(() => {
-      setIsAuditConfigurationFocused(false);
-    }, 3000);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.clearTimeout(clearHighlightTimer);
-    };
-  }, [location.hash]);
-
-  useEffect(() => {
-    const sections = SETTINGS_SECTIONS.map((section) => document.getElementById(section.id)).filter(
-      (section): section is HTMLElement => section instanceof HTMLElement
-    );
-    if (sections.length === 0) {
-      return;
-    }
-
-    const scrollContainerCandidate = sections[0]?.closest("main");
-    const scrollContainer =
-      scrollContainerCandidate instanceof HTMLElement ? scrollContainerCandidate : null;
-
-    const markerOffset = 96;
-    const updateActiveSection = () => {
-      const markerTop = scrollContainer
-        ? scrollContainer.getBoundingClientRect().top + markerOffset
-        : markerOffset;
-
-      let nextSectionId = sections[0]?.id ?? "";
-      let smallestDistance = Number.POSITIVE_INFINITY;
-
-      for (const section of sections) {
-        const distance = Math.abs(section.getBoundingClientRect().top - markerTop);
-        if (distance < smallestDistance) {
-          smallestDistance = distance;
-          nextSectionId = section.id;
-        }
-      }
-
-      const nearBottom = scrollContainer
-        ? scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 4
-        : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
-      if (nearBottom) {
-        nextSectionId = sections[sections.length - 1].id;
-      }
-
-      setActiveSectionId((current) => (current === nextSectionId ? current : nextSectionId));
-    };
-
-    updateActiveSection();
-    const scrollTarget: EventTarget = scrollContainer ?? window;
-    scrollTarget.addEventListener("scroll", updateActiveSection, { passive: true });
-    window.addEventListener("resize", updateActiveSection);
-
-    return () => {
-      scrollTarget.removeEventListener("scroll", updateActiveSection);
-      window.removeEventListener("resize", updateActiveSection);
-    };
-  }, []);
 
   useEffect(() => {
     if (!recentlySavedSection) {
@@ -223,6 +124,13 @@ export function SettingsPage() {
       window.clearTimeout(timerId);
     };
   }, [recentlySavedSection]);
+
+  const renderSaveStateForSection = (section: SettingsSaveSection, isDirty: boolean) =>
+    renderSectionSaveState({
+      section,
+      isDirty,
+      recentlySavedSection,
+    });
 
   const fetchRules = async () => {
     setLoadingRules(true);
@@ -483,7 +391,7 @@ export function SettingsPage() {
   };
 
 
-  const handleSaveCostingSettings = async (section: "billing" | "timezone") => {
+  const handleSaveCostingSettings = async (section: SettingsSaveSection) => {
     const baseline = savedCostingForm ?? normalizedCurrentCosting;
 
     const normalizedCode = normalizedCurrentCosting.report_currency_code;
@@ -869,29 +777,6 @@ export function SettingsPage() {
     }
   };
 
-  const renderSectionSaveState = (
-    section: "billing" | "timezone",
-    isDirty: boolean
-  ): React.ReactNode => {
-    if (isDirty) {
-      return <StatusBadge label="Unsaved changes" intent="warning" />;
-    }
-
-    if (recentlySavedSection === section) {
-      return (
-        <Badge
-          variant="outline"
-          className="text-[10px] border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-        >
-          <Check className="h-3 w-3" />
-          Saved
-        </Badge>
-      );
-    }
-
-    return null;
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -915,27 +800,10 @@ export function SettingsPage() {
 
       <div className="space-y-4 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 lg:space-y-0">
         <aside className="lg:sticky lg:top-4 lg:h-fit">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Settings Sections</CardTitle>
-              <CardDescription className="text-xs">
-                Use quick jump links to navigate this page.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              {SETTINGS_SECTIONS.map((section) => (
-                <Button
-                  key={section.id}
-                  type="button"
-                  variant={activeSectionId === section.id ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => handleJumpToSection(section.id)}
-                >
-                  {section.label}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
+          <SettingsSectionsNav
+            activeSectionId={activeSectionId}
+            onJumpToSection={handleJumpToSection}
+          />
         </aside>
 
         <div className="space-y-6">
@@ -956,7 +824,7 @@ export function SettingsPage() {
 
           <BillingCurrencySection
             billingDirty={billingDirty}
-            renderSectionSaveState={renderSectionSaveState}
+            renderSectionSaveState={renderSaveStateForSection}
             handleSaveCostingSettings={handleSaveCostingSettings}
             costingUnavailable={costingUnavailable}
             costingLoading={costingLoading}
@@ -990,7 +858,7 @@ export function SettingsPage() {
 
           <TimezoneSection
             timezoneDirty={timezoneDirty}
-            renderSectionSaveState={renderSectionSaveState}
+            renderSectionSaveState={renderSaveStateForSection}
             handleSaveCostingSettings={handleSaveCostingSettings}
             costingUnavailable={costingUnavailable}
             costingLoading={costingLoading}
