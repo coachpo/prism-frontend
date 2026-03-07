@@ -5,6 +5,7 @@ const EndpointExportSchema = z.object({
   name: z.string(),
   base_url: z.string(),
   api_key: z.string(),
+  position: z.number().int().min(0).nullable().optional(),
 });
 
 const PricingTemplateExportSchema = z.object({

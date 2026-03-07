@@ -5,6 +5,7 @@ export interface ConfigEndpointExport {
   name: string;
   base_url: string;
   api_key: string;
+  position?: number | null;
 }
 
 export interface ConfigPricingTemplateExport {

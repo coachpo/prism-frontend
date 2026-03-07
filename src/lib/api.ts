@@ -186,6 +186,11 @@ export const api = {
         method: "PUT",
         body: JSON.stringify(data),
       }),
+    movePosition: (id: number, toIndex: number) =>
+      request<Endpoint[]>(`/api/endpoints/${id}/position`, {
+        method: "PATCH",
+        body: JSON.stringify({ to_index: toIndex }),
+      }),
     delete: (id: number) =>
       request<void>(`/api/endpoints/${id}`, { method: "DELETE" }),
   },

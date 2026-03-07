@@ -3,6 +3,7 @@ export interface Endpoint {
   name: string;
   base_url: string;
   api_key: string;
+  position: number;
   created_at: string;
   updated_at: string;
 }
