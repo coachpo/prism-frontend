@@ -15,13 +15,50 @@ export const createDefaultEndpointForm = (): EndpointCreate => ({
 });
 
 export const createDefaultConnectionForm = (): ConnectionCreate => ({
-  priority: 0,
   name: "",
   is_active: true,
   custom_headers: null,
   pricing_template_id: null,
 });
 
+export function resequenceConnections(connections: Connection[]): Connection[] {
+  return connections.map((connection, index) => {
+    if (connection.priority === index) {
+      return connection;
+    }
+
+    return {
+      ...connection,
+      priority: index,
+    };
+  });
+}
+
+export function moveConnectionInList(
+  connections: Connection[],
+  fromIndex: number,
+  toIndex: number
+): Connection[] {
+  if (
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= connections.length ||
+    toIndex >= connections.length ||
+    fromIndex === toIndex
+  ) {
+    return connections;
+  }
+
+  const nextConnections = [...connections];
+  const [movedConnection] = nextConnections.splice(fromIndex, 1);
+
+  if (!movedConnection) {
+    return connections;
+  }
+
+  nextConnections.splice(toIndex, 0, movedConnection);
+  return resequenceConnections(nextConnections);
+}
 export function applyConnectionHealthChecks(
   connections: Connection[],
   checks: Map<number, HealthCheckResponse>

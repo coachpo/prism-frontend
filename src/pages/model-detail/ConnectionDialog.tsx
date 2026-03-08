@@ -78,7 +78,7 @@ export function ConnectionDialog({
         <DialogHeader>
           <DialogTitle>{editingConnection ? "Edit Connection" : "Add Connection"}</DialogTitle>
           <DialogDescription>
-            Configure endpoint source, routing priority, and optional pricing template for this connection.
+            Configure endpoint source and optional pricing template for this connection. Routing priority is managed from the connection list by dragging cards.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleConnectionSubmit} className="space-y-5">
@@ -166,16 +166,6 @@ export function ConnectionDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="conn-priority">Priority</Label>
-              <Input
-                id="conn-priority"
-                type="number"
-                min={0}
-                value={connectionForm.priority}
-                onChange={(e) => setConnectionForm({ ...connectionForm, priority: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="conn-name">Name (Optional)</Label>
               <Input
                 id="conn-name"
@@ -186,6 +176,9 @@ export function ConnectionDialog({
               <p className="text-[11px] text-muted-foreground">
                 Leave blank to use endpoint name{endpointSourceDefaultName ? `: ${endpointSourceDefaultName}` : ""}.
               </p>
+            </div>
+            <div className="rounded-xl border border-dashed bg-muted/20 p-3 text-[11px] text-muted-foreground">
+              New connections are appended as fallbacks. Drag and drop cards in the Model Detail list to adjust routing priority.
             </div>
           </div>
 

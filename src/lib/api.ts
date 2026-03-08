@@ -208,6 +208,11 @@ export const api = {
         method: "PUT",
         body: JSON.stringify(data),
       }),
+    movePriority: (modelConfigId: number, connectionId: number, toIndex: number) =>
+      request<Connection[]>(`/api/models/${modelConfigId}/connections/${connectionId}/priority`, {
+        method: "PATCH",
+        body: JSON.stringify({ to_index: toIndex }),
+      }),
     delete: (id: number) =>
       request<void>(`/api/connections/${id}`, { method: "DELETE" }),
     healthCheck: (id: number) =>

@@ -28,7 +28,7 @@ const ConnectionExportSchema = z.object({
   endpoint_id: z.number().int(),
   pricing_template_id: z.number().int().nullable(),
   is_active: z.boolean(),
-  priority: z.number().int(),
+  priority: z.number().int().min(0),
   name: z.string().nullable(),
   auth_type: z.string().nullable(),
   custom_headers: z.record(z.string(), z.string()).nullable(),

@@ -25,6 +25,7 @@ import {
   createDefaultConnectionForm,
   createDefaultEndpointForm,
   getSelectedEndpoint,
+  moveConnectionInList,
 } from "./useModelDetailDataSupport";
 export function useModelDetailData(id: string | undefined) {
   const navigate = useNavigate();
@@ -54,6 +55,7 @@ export function useModelDetailData(id: string | undefined) {
   const [dialogTestingConnection, setDialogTestingConnection] = useState(false);
   const [dialogTestResult, setDialogTestResult] = useState<{ status: string; detail: string } | null>(null);
   const [connectionMetrics24h, setConnectionMetrics24h] = useState<Map<number, ConnectionDerivedMetrics>>(new Map());
+  const [reorderInFlight, setReorderInFlight] = useState(false);
   const [focusedConnectionId, setFocusedConnectionId] = useState<number | null>(null);
   const [connectionCardRefs] = useState<Map<number, HTMLDivElement>>(new Map());
   const focusTimeoutRef = useRef<number | null>(null);
@@ -400,7 +402,6 @@ export function useModelDetailData(id: string | undefined) {
       setHeaderRows(headers);
       setConnectionForm({
         endpoint_id: connection.endpoint_id,
-        priority: connection.priority,
         name: connection.name ?? "",
         is_active: connection.is_active,
         custom_headers: connection.custom_headers,
@@ -484,6 +485,45 @@ export function useModelDetailData(id: string | undefined) {
       toast.error(error instanceof Error ? error.message : "Failed to delete connection");
     }
   };
+
+  const handleReorderConnections = useCallback(
+    async (connectionId: number, toIndex: number) => {
+      if (!model || reorderInFlight) {
+        return;
+      }
+
+      const previousConnections = connections;
+      const fromIndex = previousConnections.findIndex((connection) => connection.id === connectionId);
+
+      if (
+        fromIndex === -1 ||
+        toIndex < 0 ||
+        toIndex >= previousConnections.length ||
+        fromIndex === toIndex
+      ) {
+        return;
+      }
+
+      const optimisticConnections = moveConnectionInList(previousConnections, fromIndex, toIndex);
+      setConnections(optimisticConnections);
+      setModel((prev) => (prev ? { ...prev, connections: optimisticConnections } : prev));
+      setReorderInFlight(true);
+
+      try {
+        const orderedConnections = await api.connections.movePriority(model.id, connectionId, toIndex);
+        setConnections(orderedConnections);
+        setModel((prev) => (prev ? { ...prev, connections: orderedConnections } : prev));
+      } catch (error) {
+        setConnections(previousConnections);
+        setModel((prev) => (prev ? { ...prev, connections: previousConnections } : prev));
+        const detail = error instanceof Error ? error.message : "Failed to save routing priority.";
+        toast.error(`${detail} Order reverted.`);
+      } finally {
+        setReorderInFlight(false);
+      }
+    },
+    [connections, model, reorderInFlight]
+  );
 
   const handleHealthCheck = async (connectionId: number) => {
     const { successfulChecks, failedCount } = await runHealthChecks([connectionId]);
@@ -590,5 +630,7 @@ export function useModelDetailData(id: string | undefined) {
     handleToggleActive,
     handleEditModelSubmit,
     pricingTemplates,
+    reorderInFlight,
+    handleReorderConnections,
   };
 }

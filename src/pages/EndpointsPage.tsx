@@ -48,6 +48,7 @@ import {
   Link2,
   Sparkles,
   Copy,
+  Loader2,
   GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -100,8 +101,8 @@ function EndpointCardView({
     <Card
       className={cn(
         "group flex h-full flex-col border-border/80 bg-card transition-[border-color,box-shadow,opacity] hover:border-border",
-        isDragging && "border-dashed border-primary/40 opacity-30",
-        isOverlay && "border-primary/50 shadow-xl ring-2 ring-primary/20"
+        isDragging && "border-dashed border-primary/40 bg-muted/30 opacity-30",
+        isOverlay && "scale-[1.02] cursor-grabbing border-primary/50 shadow-2xl ring-2 ring-primary/30"
       )}
     >
       <CardHeader className="pb-3">
@@ -112,7 +113,7 @@ function EndpointCardView({
             disabled={reorderDisabled || isOverlay}
             className={cn(
               "mt-0.5 flex h-11 w-11 shrink-0 touch-none items-center justify-center rounded-lg border border-transparent text-muted-foreground/60 transition-colors sm:h-9 sm:w-9",
-              !reorderDisabled && !isOverlay && "cursor-grab hover:border-border/70 hover:bg-muted/50 hover:text-foreground active:cursor-grabbing",
+              !reorderDisabled && !isOverlay && "cursor-grab hover:text-foreground active:cursor-grabbing",
               (reorderDisabled || isOverlay) && "cursor-default opacity-60",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             )}
@@ -523,7 +524,11 @@ export function EndpointsPage() {
 
       {!isLoading ? (
         <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-          <GripVertical className="mt-0.5 h-4 w-4 shrink-0" />
+          {reorderInFlight ? (
+            <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" />
+          ) : (
+            <GripVertical className="mt-0.5 h-4 w-4 shrink-0" />
+          )}
           <p>
             {reorderInFlight
               ? "Saving your new endpoint order. Drag handles are temporarily disabled until the update finishes."

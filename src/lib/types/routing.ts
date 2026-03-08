@@ -124,7 +124,6 @@ export interface ConnectionCreate {
   endpoint_id?: number;
   endpoint_create?: EndpointCreate;
   is_active?: boolean;
-  priority?: number;
   name?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
@@ -135,7 +134,6 @@ export interface ConnectionUpdate {
   endpoint_id?: number;
   endpoint_create?: EndpointCreate;
   is_active?: boolean;
-  priority?: number;
   name?: string | null;
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;

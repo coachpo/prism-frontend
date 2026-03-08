@@ -59,6 +59,8 @@ export function ModelDetailPage() {
     handleToggleActive,
     handleEditModelSubmit,
     pricingTemplates,
+    reorderInFlight,
+    handleReorderConnections,
   } = useModelDetailData(id);
 
   if (loading) {
@@ -133,10 +135,12 @@ export function ModelDetailPage() {
         handleDeleteConnection={handleDeleteConnection}
         handleHealthCheck={handleHealthCheck}
         handleToggleActive={handleToggleActive}
+        handleReorderConnections={handleReorderConnections}
         connectionMetrics24h={connectionMetrics24h}
         healthCheckingIds={healthCheckingIds}
         focusedConnectionId={focusedConnectionId}
         connectionCardRefs={connectionCardRefs}
+        reorderInFlight={reorderInFlight}
       />
 
       <ConnectionDialog
