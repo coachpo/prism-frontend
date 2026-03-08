@@ -1,0 +1,341 @@
+import type { Connection, ModelConfigListItem, SpendingGroupRow } from "@/lib/types";
+
+export type RoutingDiagramMode = "topology" | "traffic";
+
+export interface RoutingDiagramNode {
+  id: string;
+  name: string;
+  kind: "endpoint" | "model";
+  label: string;
+  sublabel: string | null;
+  endpointId: number | null;
+  modelId: string | null;
+  modelConfigId: number | null;
+  activeConnectionCount: number;
+  trafficRequestCount24h: number;
+}
+
+export interface RoutingDiagramLink {
+  id: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  modelId: string;
+  modelLabel: string;
+  modelConfigId: number;
+  endpointId: number;
+  endpointLabel: string;
+  activeConnectionCount: number;
+  trafficRequestCount24h: number;
+}
+
+export interface RoutingDiagramData {
+  nodes: RoutingDiagramNode[];
+  links: RoutingDiagramLink[];
+  endpointCount: number;
+  modelCount: number;
+  activeConnectionTotal: number;
+  trafficRequestTotal24h: number;
+}
+
+export interface RoutingDiagramChartNode extends RoutingDiagramNode {
+  value: number;
+}
+
+export interface RoutingDiagramChartLink extends RoutingDiagramLink {
+  source: number;
+  target: number;
+  value: number;
+}
+
+interface RoutingEdgeAccumulator {
+  modelId: string;
+  modelLabel: string;
+  modelConfigId: number;
+  endpointId: number;
+  endpointLabel: string;
+  activeConnectionCount: number;
+  trafficRequestCount24h: number;
+}
+
+export interface RoutingDiagramSource {
+  connectionsByModel: Array<{
+    model: ModelConfigListItem;
+    connections: Connection[];
+  }>;
+  trafficGroups: SpendingGroupRow[];
+}
+
+export function buildRoutingDiagramData({
+  connectionsByModel,
+  trafficGroups,
+}: RoutingDiagramSource): RoutingDiagramData {
+  const edgeMap = new Map<string, RoutingEdgeAccumulator>();
+
+  for (const { model, connections } of connectionsByModel) {
+    if (!model.is_enabled) {
+      continue;
+    }
+
+    if (model.model_type === "proxy" && connections.length === 0) {
+      continue;
+    }
+
+    const modelLabel = model.display_name?.trim() || model.model_id;
+
+    for (const connection of connections) {
+      if (!connection.is_active) {
+        continue;
+      }
+
+      const endpointLabel = getEndpointLabel(connection);
+      const edgeKey = buildEdgeKey(model.model_id, connection.endpoint_id);
+      const existing = edgeMap.get(edgeKey);
+
+      if (existing) {
+        existing.activeConnectionCount += 1;
+        continue;
+      }
+
+      edgeMap.set(edgeKey, {
+        modelId: model.model_id,
+        modelLabel,
+        modelConfigId: model.id,
+        endpointId: connection.endpoint_id,
+        endpointLabel,
+        activeConnectionCount: 1,
+        trafficRequestCount24h: 0,
+      });
+    }
+  }
+
+  for (const group of trafficGroups) {
+    const parsed = parseTrafficGroupKey(group.key);
+    if (!parsed) {
+      continue;
+    }
+
+    const edge = edgeMap.get(buildEdgeKey(parsed.modelId, parsed.endpointId));
+    if (!edge) {
+      continue;
+    }
+
+    edge.trafficRequestCount24h = Math.max(0, Math.trunc(group.total_requests || 0));
+  }
+
+  const links = [...edgeMap.values()]
+    .map<RoutingDiagramLink>((edge) => ({
+      id: buildEdgeKey(edge.modelId, edge.endpointId),
+      sourceNodeId: buildEndpointNodeId(edge.endpointId),
+      targetNodeId: buildModelNodeId(edge.modelConfigId),
+      modelId: edge.modelId,
+      modelLabel: edge.modelLabel,
+      modelConfigId: edge.modelConfigId,
+      endpointId: edge.endpointId,
+      endpointLabel: edge.endpointLabel,
+      activeConnectionCount: edge.activeConnectionCount,
+      trafficRequestCount24h: edge.trafficRequestCount24h,
+    }))
+    .sort((left, right) => {
+      if (right.activeConnectionCount !== left.activeConnectionCount) {
+        return right.activeConnectionCount - left.activeConnectionCount;
+      }
+      if (right.trafficRequestCount24h !== left.trafficRequestCount24h) {
+        return right.trafficRequestCount24h - left.trafficRequestCount24h;
+      }
+      return left.endpointLabel.localeCompare(right.endpointLabel);
+    });
+
+  const endpointTotals = new Map<number, { activeConnectionCount: number; trafficRequestCount24h: number; label: string }>();
+  const modelTotals = new Map<number, { activeConnectionCount: number; trafficRequestCount24h: number; label: string; modelId: string }>();
+
+  for (const link of links) {
+    const endpointTotal = endpointTotals.get(link.endpointId) ?? {
+      activeConnectionCount: 0,
+      trafficRequestCount24h: 0,
+      label: link.endpointLabel,
+    };
+    endpointTotal.activeConnectionCount += link.activeConnectionCount;
+    endpointTotal.trafficRequestCount24h += link.trafficRequestCount24h;
+    endpointTotals.set(link.endpointId, endpointTotal);
+
+    const modelTotal = modelTotals.get(link.modelConfigId) ?? {
+      activeConnectionCount: 0,
+      trafficRequestCount24h: 0,
+      label: link.modelLabel,
+      modelId: link.modelId,
+    };
+    modelTotal.activeConnectionCount += link.activeConnectionCount;
+    modelTotal.trafficRequestCount24h += link.trafficRequestCount24h;
+    modelTotals.set(link.modelConfigId, modelTotal);
+  }
+
+  const endpointNodes = [...endpointTotals.entries()]
+    .sort((left, right) => {
+      if (right[1].activeConnectionCount !== left[1].activeConnectionCount) {
+        return right[1].activeConnectionCount - left[1].activeConnectionCount;
+      }
+      return left[1].label.localeCompare(right[1].label);
+    })
+    .map<RoutingDiagramNode>(([endpointId, totals]) => ({
+      id: buildEndpointNodeId(endpointId),
+      name: totals.label,
+      kind: "endpoint",
+      label: totals.label,
+      sublabel: `Endpoint ${endpointId}`,
+      endpointId,
+      modelId: null,
+      modelConfigId: null,
+      activeConnectionCount: totals.activeConnectionCount,
+      trafficRequestCount24h: totals.trafficRequestCount24h,
+    }));
+
+  const modelNodes = [...modelTotals.entries()]
+    .sort((left, right) => {
+      if (right[1].activeConnectionCount !== left[1].activeConnectionCount) {
+        return right[1].activeConnectionCount - left[1].activeConnectionCount;
+      }
+      return left[1].label.localeCompare(right[1].label);
+    })
+    .map<RoutingDiagramNode>(([modelConfigId, totals]) => ({
+      id: buildModelNodeId(modelConfigId),
+      name: totals.label,
+      kind: "model",
+      label: totals.label,
+      sublabel: totals.label === totals.modelId ? null : totals.modelId,
+      endpointId: null,
+      modelId: totals.modelId,
+      modelConfigId,
+      activeConnectionCount: totals.activeConnectionCount,
+      trafficRequestCount24h: totals.trafficRequestCount24h,
+    }));
+
+  return {
+    nodes: [...endpointNodes, ...modelNodes],
+    links,
+    endpointCount: endpointNodes.length,
+    modelCount: modelNodes.length,
+    activeConnectionTotal: links.reduce((total, link) => total + link.activeConnectionCount, 0),
+    trafficRequestTotal24h: links.reduce((total, link) => total + link.trafficRequestCount24h, 0),
+  };
+}
+
+export function getRoutingDiagramChartData(
+  data: RoutingDiagramData,
+  mode: RoutingDiagramMode,
+): { nodes: RoutingDiagramChartNode[]; links: RoutingDiagramChartLink[] } {
+  const filteredLinks = data.links
+    .filter((link) =>
+      mode === "topology" ? link.activeConnectionCount > 0 : link.trafficRequestCount24h > 0,
+    )
+    .sort((left, right) => {
+      const leftValue = mode === "topology" ? left.activeConnectionCount : left.trafficRequestCount24h;
+      const rightValue = mode === "topology" ? right.activeConnectionCount : right.trafficRequestCount24h;
+
+      if (rightValue !== leftValue) {
+        return rightValue - leftValue;
+      }
+
+      return left.endpointLabel.localeCompare(right.endpointLabel);
+    });
+
+  if (filteredLinks.length === 0) {
+    return { nodes: [], links: [] };
+  }
+
+  const nodeIds = new Set<string>();
+  for (const link of filteredLinks) {
+    nodeIds.add(link.sourceNodeId);
+    nodeIds.add(link.targetNodeId);
+  }
+
+  const nodes = data.nodes
+    .filter((node) => nodeIds.has(node.id))
+    .map<RoutingDiagramChartNode>((node) => ({
+      ...node,
+      value:
+        mode === "topology"
+          ? Math.max(node.activeConnectionCount, 1)
+          : Math.max(node.trafficRequestCount24h, 1),
+    }));
+
+  const nodeIndex = new Map(nodes.map((node, index) => [node.id, index]));
+
+  return {
+    nodes,
+    links: filteredLinks.map<RoutingDiagramChartLink>((link) => ({
+      ...link,
+      source: nodeIndex.get(link.sourceNodeId) ?? 0,
+      target: nodeIndex.get(link.targetNodeId) ?? 0,
+      value:
+        mode === "topology"
+          ? Math.max(link.activeConnectionCount, 1)
+          : Math.max(link.trafficRequestCount24h, 1),
+    })),
+  };
+}
+
+export function getRoutingDiagramEmptyState(
+  data: RoutingDiagramData,
+  mode: RoutingDiagramMode,
+): { title: string; description: string } {
+  if (data.links.length === 0) {
+    return {
+      title: "No active topology links",
+      description: "Activate at least one model connection to map live routing paths across endpoints and models.",
+    };
+  }
+
+  if (mode === "traffic") {
+    return {
+      title: "No traffic in last 24h",
+      description: "Routing is configured, but no successful request traffic was recorded for the current profile in the last 24 hours.",
+    };
+  }
+
+  return {
+    title: "No active topology links",
+    description: "Routing is configured, but no active connections are available for the current selected profile.",
+  };
+}
+
+function buildEdgeKey(modelId: string, endpointId: number): string {
+  return `${modelId}#${endpointId}`;
+}
+
+function buildEndpointNodeId(endpointId: number): string {
+  return `endpoint-${endpointId}`;
+}
+
+function buildModelNodeId(modelConfigId: number): string {
+  return `model-${modelConfigId}`;
+}
+
+function getEndpointLabel(connection: Connection): string {
+  const endpointName = connection.endpoint?.name?.trim();
+  if (endpointName) {
+    return endpointName;
+  }
+
+  const endpointBaseUrl = connection.endpoint?.base_url?.trim();
+  if (endpointBaseUrl) {
+    return endpointBaseUrl;
+  }
+
+  return `Endpoint ${connection.endpoint_id}`;
+}
+
+function parseTrafficGroupKey(value: string): { modelId: string; endpointId: number } | null {
+  const separatorIndex = value.lastIndexOf("#");
+  if (separatorIndex <= 0) {
+    return null;
+  }
+
+  const modelId = value.slice(0, separatorIndex);
+  const endpointId = Number.parseInt(value.slice(separatorIndex + 1), 10);
+
+  if (!modelId || !Number.isFinite(endpointId) || endpointId < 0) {
+    return null;
+  }
+
+  return { modelId, endpointId };
+}

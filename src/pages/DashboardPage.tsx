@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useTimezone } from "@/hooks/useTimezone";
+import { RoutingDiagramCard } from "@/pages/dashboard/RoutingDiagramCard";
+import { buildRoutingDiagramData, type RoutingDiagramData } from "@/pages/dashboard/routingDiagram";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -40,21 +42,69 @@ export function DashboardPage() {
   const [providerStats, setProviderStats] = useState<StatsSummary | null>(null);
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
   const [recentRequests, setRecentRequests] = useState<RequestLogEntry[]>([]);
+  const [routingDiagramData, setRoutingDiagramData] = useState<RoutingDiagramData | null>(null);
+  const [routingDiagramLoading, setRoutingDiagramLoading] = useState(true);
+  const [routingDiagramError, setRoutingDiagramError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchData = async () => {
       setLoading(true);
+      setRoutingDiagramLoading(true);
+      setRoutingDiagramError(null);
       const from24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const to24h = new Date().toISOString();
+      const modelsPromise = api.models.list();
+
+      const routingDiagramPromise = (async () => {
+        const modelsData = await modelsPromise;
+        const connectionResults = await Promise.allSettled(
+          modelsData.map(async (model) => ({
+            model,
+            connections: await api.connections.list(model.id),
+          }))
+        );
+        const connectionsByModel = connectionResults
+          .flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+
+        const failedConnectionFetches = connectionResults.length - connectionsByModel.length;
+        const issues: string[] = [];
+        if (failedConnectionFetches > 0) {
+          issues.push(
+            `Skipped ${failedConnectionFetches} model${failedConnectionFetches === 1 ? "" : "s"} because connection data could not be loaded.`
+          );
+        }
+
+        const trafficResult = await api.stats.spending({
+          preset: "custom",
+          from_time: from24h,
+          to_time: to24h,
+          group_by: "model_endpoint",
+          limit: 500,
+        });
+
+        return {
+          data: buildRoutingDiagramData({
+            connectionsByModel,
+            trafficGroups: trafficResult.groups,
+          }),
+          error: issues.length > 0 ? issues.join(" ") : null,
+        };
+      })();
 
       try {
         const [modelsData, statsData, providerStatsData, spendingData, requestsData] =
           await Promise.all([
-            api.models.list(),
+            modelsPromise,
             api.stats.summary({ from_time: from24h }),
             api.stats.summary({ from_time: from24h, group_by: "provider" }),
             api.stats.spending({ preset: "last_30_days", top_n: 5 }),
             api.stats.requests({ limit: 12 }),
           ]);
+        if (cancelled) {
+          return;
+        }
         setModels(modelsData);
         setStats(statsData);
         setProviderStats(providerStatsData);
@@ -63,11 +113,43 @@ export function DashboardPage() {
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+
+      try {
+        const routingResult = await routingDiagramPromise;
+        if (cancelled) {
+          return;
+        }
+        setRoutingDiagramData(routingResult.data);
+        setRoutingDiagramError(routingResult.error);
+      } catch (error) {
+        console.error("Failed to fetch routing diagram data", error);
+        if (!cancelled) {
+          setRoutingDiagramData({
+            nodes: [],
+            links: [],
+            endpointCount: 0,
+            modelCount: 0,
+            activeConnectionTotal: 0,
+            trafficRequestTotal24h: 0,
+          });
+          setRoutingDiagramError("Routing diagram data could not be loaded. The rest of the dashboard is still available.");
+        }
+      } finally {
+        if (!cancelled) {
+          setRoutingDiagramLoading(false);
+        }
       }
     };
 
     fetchData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [revision]);
 
   const activeModels = models.filter((model) => model.is_enabled).length;
@@ -240,6 +322,17 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <RoutingDiagramCard
+        data={routingDiagramData}
+        loading={routingDiagramLoading}
+        error={routingDiagramError}
+        onSelectModel={(modelConfigId) => navigate(`/models/${modelConfigId}`)}
+        onSelectEndpoint={(endpointId) => navigate(`/request-logs?endpoint_id=${endpointId}`)}
+        onSelectLink={(modelId, endpointId) =>
+          navigate(`/request-logs?model_id=${encodeURIComponent(modelId)}&endpoint_id=${endpointId}`)
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
