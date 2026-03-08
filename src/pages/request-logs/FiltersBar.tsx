@@ -115,7 +115,7 @@ export function FiltersBar({
 }: FiltersBarProps) {
   return (
     <div className="sticky top-4 z-20">
-      <div className="rounded-lg border bg-card p-3 space-y-3">
+      <div className="space-y-3 rounded-lg border border-border/70 bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1">
           <Tabs value={view} onValueChange={(next) => setView(next as ViewType)} className="w-full">
             <TabsList className="w-full justify-start sm:w-auto">
@@ -169,7 +169,7 @@ export function FiltersBar({
             />
           </div>
 
-          <div className="md:col-span-4 flex flex-wrap gap-1 rounded-md bg-muted/30 p-1">
+          <div className="inline-flex w-fit flex-wrap gap-1 rounded-md bg-muted/30 p-1 md:col-span-3 md:justify-self-start">
             {REQUEST_TIME_RANGES.map((range) => (
               <Button
                 key={range}

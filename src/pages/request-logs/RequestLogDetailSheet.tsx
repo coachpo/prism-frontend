@@ -117,7 +117,7 @@ function CodePanel({
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
         <CopyButton value={content} label="Copy" />
       </div>
-      <pre className="min-h-[18rem] max-h-[50vh] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100 shadow-inner">
+      <pre className="min-h-[18rem] max-h-[50vh] overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100 shadow-inner">
         <code>{content}</code>
       </pre>
     </div>
