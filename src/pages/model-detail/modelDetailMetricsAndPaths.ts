@@ -1,4 +1,5 @@
 import type { Connection } from "@/lib/types";
+import { buildLogsPath } from "@/pages/logs/queryParams";
 
 export type ConnectionDerivedMetrics = {
   success_rate_24h: number | null;
@@ -18,25 +19,18 @@ export const formatLatencyForDisplay = (value: number | null): string => {
   return `${Math.round(value)}ms`;
 };
 
-export const buildRequestLogsPath = (params: {
+export const buildLogsDeepLink = (params: {
   modelId: string;
   connectionId?: number;
-  outcomeFilter?: "all" | "success" | "error";
+  status?: "all" | "2xx" | "error";
   timeRange?: "1h" | "24h" | "7d" | "all";
 }): string => {
-  const search = new URLSearchParams();
-  search.set("model_id", params.modelId);
-  if (params.timeRange) {
-    search.set("time_range", params.timeRange);
-  }
-  if (params.outcomeFilter) {
-    search.set("outcome_filter", params.outcomeFilter);
-  }
-  if (params.connectionId !== undefined) {
-    search.set("connection_id", String(params.connectionId));
-  }
-  const query = search.toString();
-  return query.length > 0 ? `/request-logs?${query}` : "/request-logs";
+  return buildLogsPath({
+    connectionId: params.connectionId,
+    modelId: params.modelId,
+    range: params.timeRange,
+    status: params.status,
+  });
 };
 
 export const getConnectionName = (

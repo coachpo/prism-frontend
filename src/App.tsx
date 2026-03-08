@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactElement } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ProfileProvider } from "@/context/ProfileContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { LegacyAuditRedirect, LegacyRequestLogsRedirect } from "@/lib/legacyObservabilityRoutes";
 import "./App.css";
 
 const DashboardPage = lazy(() =>
@@ -19,11 +20,8 @@ const EndpointsPage = lazy(() =>
 const StatisticsPage = lazy(() =>
   import("@/pages/StatisticsPage").then((module) => ({ default: module.StatisticsPage }))
 );
-const RequestLogsPage = lazy(() =>
-  import("@/pages/RequestLogsPage").then((module) => ({ default: module.RequestLogsPage }))
-);
-const AuditPage = lazy(() =>
-  import("@/pages/AuditPage").then((module) => ({ default: module.AuditPage }))
+const ObservabilityLogsPage = lazy(() =>
+  import("@/pages/ObservabilityLogsPage").then((module) => ({ default: module.ObservabilityLogsPage }))
 );
 const SettingsPage = lazy(() =>
   import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage }))
@@ -52,8 +50,9 @@ function App() {
             <Route path="/models/:id" element={withRouteSuspense(<ModelDetailPage />)} />
             <Route path="/endpoints" element={withRouteSuspense(<EndpointsPage />)} />
             <Route path="/statistics" element={withRouteSuspense(<StatisticsPage />)} />
-            <Route path="/request-logs" element={withRouteSuspense(<RequestLogsPage />)} />
-            <Route path="/audit" element={withRouteSuspense(<AuditPage />)} />
+            <Route path="/logs" element={withRouteSuspense(<ObservabilityLogsPage />)} />
+            <Route path="/request-logs" element={<LegacyRequestLogsRedirect />} />
+            <Route path="/audit" element={<LegacyAuditRedirect />} />
             <Route path="/settings" element={withRouteSuspense(<SettingsPage />)} />
             <Route path="/pricing-templates" element={withRouteSuspense(<PricingTemplatesPage />)} />
           </Route>

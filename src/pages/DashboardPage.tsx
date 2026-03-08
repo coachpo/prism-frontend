@@ -307,17 +307,17 @@ export function DashboardPage() {
             <CardDescription>Jump to focused investigation views</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/request-logs")}>
+            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/logs")}>
               <Timer className="mr-2 h-4 w-4" />
-              Review Request Logs
+              Open Observability Logs
             </Button>
             <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/statistics?tab=spending")}>
               <DollarSign className="mr-2 h-4 w-4" />
               Inspect Spending Breakdown
             </Button>
-            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/audit")}>
+            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/logs")}>
               <AlertTriangle className="mr-2 h-4 w-4" />
-              Open Audit Viewer
+              Inspect Audit Capture
             </Button>
           </CardContent>
         </Card>
@@ -328,9 +328,9 @@ export function DashboardPage() {
         loading={routingDiagramLoading}
         error={routingDiagramError}
         onSelectModel={(modelConfigId) => navigate(`/models/${modelConfigId}`)}
-        onSelectEndpoint={(endpointId) => navigate(`/request-logs?endpoint_id=${endpointId}`)}
+        onSelectEndpoint={(endpointId) => navigate(`/logs?endpoint=${endpointId}`)}
         onSelectLink={(modelId, endpointId) =>
-          navigate(`/request-logs?model_id=${encodeURIComponent(modelId)}&endpoint_id=${endpointId}`)
+          navigate(`/logs?model=${encodeURIComponent(modelId)}&endpoint=${endpointId}`)
         }
       />
 

@@ -49,7 +49,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTimezone } from "@/hooks/useTimezone";
-import { getConnectionName, buildRequestLogsPath, formatLatencyForDisplay } from "./modelDetailMetricsAndPaths";
+import { getConnectionName, buildLogsDeepLink, formatLatencyForDisplay } from "./modelDetailMetricsAndPaths";
 import type { ConnectionDerivedMetrics } from "./modelDetailMetricsAndPaths";
 import type { Connection, ModelConfig } from "@/lib/types";
 
@@ -242,11 +242,11 @@ function ConnectionCardView({
               </div>
 
               <Link
-                to={buildRequestLogsPath({
+                to={buildLogsDeepLink({
                   modelId: model.model_id,
                   connectionId: connection.id,
                   timeRange: "24h",
-                  outcomeFilter: "all",
+                  status: "all",
                 })}
                 className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
