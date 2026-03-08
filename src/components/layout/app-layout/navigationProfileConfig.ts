@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   Server,
   BarChart3,
-  FileSearch,
   Settings,
   Coins,
   Plug,
@@ -16,7 +15,6 @@ export const NAV_LINKS = [
   { to: "/pricing-templates", icon: Coins, label: "Pricing Templates" },
   { to: "/statistics", icon: BarChart3, label: "Statistics" },
   { to: "/request-logs", icon: Logs, label: "Request Logs" },
-  { to: "/audit", icon: FileSearch, label: "Audit" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -26,7 +24,6 @@ export const PROFILE_SCOPED_PREFIXES = [
   "/pricing-templates",
   "/statistics",
   "/request-logs",
-  "/audit",
 ];
 
 export const MAX_PROFILES = 10;

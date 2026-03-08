@@ -12,7 +12,6 @@ import { ValueBadge } from "@/components/StatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Activity,
-  AlertTriangle,
   ArrowUpRight,
   CheckCircle2,
   DollarSign,
@@ -309,15 +308,11 @@ export function DashboardPage() {
           <CardContent className="space-y-2">
             <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/request-logs")}>
               <Timer className="mr-2 h-4 w-4" />
-              Review Request Logs
+              Review Requests
             </Button>
             <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/statistics?tab=spending")}>
               <DollarSign className="mr-2 h-4 w-4" />
               Inspect Spending Breakdown
-            </Button>
-            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/audit")}>
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Open Audit Viewer
             </Button>
           </CardContent>
         </Card>

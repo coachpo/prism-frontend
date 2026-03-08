@@ -5,7 +5,6 @@ import {
   Copy,
   ExternalLink,
   FileJson,
-  FileSearch,
   Filter,
   Search,
   ShieldAlert,
@@ -113,12 +112,12 @@ function CodePanel({
   const content = value && value.trim().length > 0 ? value : fallback;
 
   return (
-    <div className="space-y-2 rounded-2xl border bg-muted/20 p-3">
+    <div className="space-y-3 rounded-3xl border bg-muted/15 p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
         <CopyButton value={content} label="Copy" />
       </div>
-      <pre className="max-h-72 overflow-auto rounded-xl bg-slate-950 p-3 text-xs leading-5 text-slate-100">
+      <pre className="min-h-[18rem] max-h-[50vh] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100 shadow-inner">
         <code>{content}</code>
       </pre>
     </div>
@@ -277,7 +276,7 @@ export function RequestLogDetailSheet({
         {selectedLog ? (
           <div className="flex min-h-full flex-col bg-gradient-to-b from-background via-background to-muted/10">
             <SheetHeader className="sticky top-0 z-20 space-y-4 border-b bg-background/95 p-6 backdrop-blur">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">
                     #{selectedLog.id}
@@ -297,13 +296,6 @@ export function RequestLogDetailSheet({
                     }
                   />
                   {selectedLog.is_stream ? <TypeBadge label="Stream" /> : null}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <CopyButton value={String(selectedLog.id)} label="Copy ID" />
-                  <Button type="button" variant="outline" size="sm" onClick={() => setDetailTab("audit")}>
-                    <FileSearch className="mr-2 h-4 w-4" />
-                    Open linked audit
-                  </Button>
                 </div>
               </div>
 
@@ -474,14 +466,14 @@ export function RequestLogDetailSheet({
                   </DetailSection>
 
                   <DetailSection title="Actions" description="Keep investigating without leaving the request timeline.">
-                    <div className="grid gap-2 md:grid-cols-2">
-                      <Button variant="outline" className="justify-start" onClick={refineRequestContext}>
-                        <Search className="mr-2 h-4 w-4" />
-                        Find similar traffic
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <Button variant="outline" className="justify-start" onClick={refineRequestContext}>
+                          <Search className="mr-2 h-4 w-4" />
+                          Find similar traffic
                       </Button>
-                      <Button
-                        variant="outline"
-                        className="justify-start"
+                        <Button
+                          variant="outline"
+                          className="justify-start"
                         onClick={focusConnectionOnly}
                         disabled={!selectedLog.connection_id}
                       >
@@ -499,15 +491,15 @@ export function RequestLogDetailSheet({
                         disabled={!selectedLog.connection_id}
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />
-                        Open connection details
-                      </Button>
-                      <Button variant="outline" className="justify-start" onClick={exportSelectedLog}>
-                        <FileJson className="mr-2 h-4 w-4" />
-                        Export request JSON
-                      </Button>
-                    </div>
-                  </DetailSection>
-                </TabsContent>
+                          Open connection details
+                        </Button>
+                        <Button variant="outline" className="justify-start" onClick={exportSelectedLog}>
+                          <FileJson className="mr-2 h-4 w-4" />
+                          Export request JSON
+                        </Button>
+                      </div>
+                    </DetailSection>
+                  </TabsContent>
 
                 <TabsContent value="audit" className="space-y-4">
                   <DetailSection
@@ -576,7 +568,10 @@ export function RequestLogDetailSheet({
 
                   {!auditLoading && !auditError && auditDetail ? (
                     <>
-                      <DetailSection title="Audit summary" description="Full payload capture resolved from the linked audit record.">
+                      <DetailSection
+                        title="Audit summary"
+                        description="Full payload capture resolved from the linked audit record for the selected request."
+                      >
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                           <DetailMetric label="Audit log" value={`#${auditDetail.id}`} />
                           <DetailMetric label="Response status" value={`HTTP ${auditDetail.response_status}`} />
@@ -588,12 +583,15 @@ export function RequestLogDetailSheet({
                         </div>
                       </DetailSection>
 
-                      <DetailSection title="Request capture" description="Sanitized upstream request details for this invocation.">
+                      <DetailSection
+                        title="Request capture"
+                        description="Sanitized upstream request details for this invocation. Copy actions always copy the full stored payload."
+                      >
                         <div className="grid gap-3 sm:grid-cols-2">
                           <DetailMetric label="Method" value={auditDetail.request_method} />
                           <DetailMetric label="Request URL" value={auditDetail.request_url} />
                         </div>
-                        <div className="grid gap-3 xl:grid-cols-2">
+                        <div className="grid gap-4">
                           <CodePanel
                             title="Request headers"
                             value={auditDetail.request_headers}
@@ -607,7 +605,10 @@ export function RequestLogDetailSheet({
                         </div>
                       </DetailSection>
 
-                      <DetailSection title="Response capture" description="Redacted response payload stored by the audit pipeline.">
+                      <DetailSection
+                        title="Response capture"
+                        description="Redacted response payload stored by the audit pipeline. Streaming responses keep headers but do not retain response bodies."
+                      >
                         <div className="grid gap-3 sm:grid-cols-2">
                           <DetailMetric
                             label="Stream mode"
@@ -618,7 +619,7 @@ export function RequestLogDetailSheet({
                             value={auditDetail.request_log_id ? `#${auditDetail.request_log_id}` : "Link unavailable"}
                           />
                         </div>
-                        <div className="grid gap-3 xl:grid-cols-2">
+                        <div className="grid gap-4">
                           <CodePanel
                             title="Response headers"
                             value={auditDetail.response_headers}

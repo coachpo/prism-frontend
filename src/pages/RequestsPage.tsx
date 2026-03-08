@@ -45,7 +45,7 @@ const REQUEST_DETAIL_TABS = ["overview", "audit"] as const;
 
 type RequestDetailTab = (typeof REQUEST_DETAIL_TABS)[number];
 
-export function RequestLogsPage() {
+export function RequestsPage() {
   const { format: formatTime } = useTimezone();
   const { navigateToConnection } = useConnectionNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -439,8 +439,8 @@ export function RequestLogsPage() {
     <TooltipProvider>
       <div className="h-full flex flex-col gap-[var(--density-page-gap)]">
         <PageHeader
-          title="Request Logs"
-          description="Focused telemetry views for performance, tokens, billing, cache behavior, and error triage"
+          title="Requests"
+          description="Review routed requests, then inspect the linked audit capture directly in the side drawer."
         />
 
         {requestId !== null ? (

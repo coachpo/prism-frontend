@@ -19,11 +19,8 @@ const EndpointsPage = lazy(() =>
 const StatisticsPage = lazy(() =>
   import("@/pages/StatisticsPage").then((module) => ({ default: module.StatisticsPage }))
 );
-const RequestLogsPage = lazy(() =>
-  import("@/pages/RequestLogsPage").then((module) => ({ default: module.RequestLogsPage }))
-);
-const AuditPage = lazy(() =>
-  import("@/pages/AuditPage").then((module) => ({ default: module.AuditPage }))
+const RequestsPage = lazy(() =>
+  import("@/pages/RequestsPage").then((module) => ({ default: module.RequestsPage }))
 );
 const SettingsPage = lazy(() =>
   import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage }))
@@ -52,8 +49,7 @@ function App() {
             <Route path="/models/:id" element={withRouteSuspense(<ModelDetailPage />)} />
             <Route path="/endpoints" element={withRouteSuspense(<EndpointsPage />)} />
             <Route path="/statistics" element={withRouteSuspense(<StatisticsPage />)} />
-            <Route path="/request-logs" element={withRouteSuspense(<RequestLogsPage />)} />
-            <Route path="/audit" element={withRouteSuspense(<AuditPage />)} />
+            <Route path="/request-logs" element={withRouteSuspense(<RequestsPage />)} />
             <Route path="/settings" element={withRouteSuspense(<SettingsPage />)} />
             <Route path="/pricing-templates" element={withRouteSuspense(<PricingTemplatesPage />)} />
           </Route>
