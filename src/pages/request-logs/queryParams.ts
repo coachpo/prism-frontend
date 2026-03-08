@@ -71,28 +71,40 @@ export const TRIAGE_OPTIONS: OptionWithIcon<Exclude<TriageFilter, "none">>[] = [
 ];
 
 export function parseEnumParam<T extends string>(value: string | null, allowed: readonly T[], fallback: T): T {
-  void allowed;
-  return value === null ? fallback : (value as T);
+  if (value === null) return fallback;
+  return allowed.includes(value as T) ? (value as T) : fallback;
 }
 
 export function parseNonNegativeIntParam(value: string | null, fallback: number): number {
   if (!value) return fallback;
-  return Number.parseInt(value, 10);
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 export function parseOptionalNumber(value: string | null): number | null {
   if (!value) return null;
-  return Number.parseInt(value, 10);
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export function parseIdFilterParam(value: string | null): string {
   if (!value) return "__all__";
-  return value;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? String(parsed) : "__all__";
 }
 
 export function parseRequestLimitParam(value: string | null): number {
   if (value === null) return DEFAULT_REQUEST_LIMIT;
-  return Number.parseInt(value, 10);
+  const parsed = Number.parseInt(value, 10);
+  return REQUEST_LIMIT_OPTIONS.includes(parsed as (typeof REQUEST_LIMIT_OPTIONS)[number])
+    ? parsed
+    : DEFAULT_REQUEST_LIMIT;
+}
+
+export function parsePositiveIntParam(value: string | null): number | null {
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 export function parseBooleanParam(value: string | null): boolean {

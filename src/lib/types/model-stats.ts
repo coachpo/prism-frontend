@@ -142,6 +142,7 @@ export interface StatsSummary {
 }
 
 export interface StatsRequestParams {
+  request_id?: number;
   model_id?: string;
   provider_type?: string;
   status_code?: number;

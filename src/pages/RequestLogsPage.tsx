@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
@@ -27,6 +28,7 @@ import {
   parseIdFilterParam,
   parseNonNegativeIntParam,
   parseOptionalNumber,
+  parsePositiveIntParam,
   parseRequestLimitParam,
   type LatencyBucket,
   type OutcomeFilter,
@@ -38,6 +40,10 @@ import {
 } from "@/pages/request-logs/queryParams";
 import { RequestLogDetailSheet } from "@/pages/request-logs/RequestLogDetailSheet";
 import { RequestLogsTable } from "@/pages/request-logs/RequestLogsTable";
+
+const REQUEST_DETAIL_TABS = ["overview", "audit"] as const;
+
+type RequestDetailTab = (typeof REQUEST_DETAIL_TABS)[number];
 
 export function RequestLogsPage() {
   const { format: formatTime } = useTimezone();
@@ -111,7 +117,21 @@ export function RequestLogsPage() {
   const [tokenMaxInput, setTokenMaxInput] = useState(() =>
     tokenMax !== null && tokenMax !== undefined ? String(tokenMax) : ""
   );
+  const [requestId, setRequestId] = useState<number | null>(() => parsePositiveIntParam(searchParams.get("request_id")));
+  const [detailTab, setDetailTab] = useState<RequestDetailTab>(() =>
+    parseEnumParam(searchParams.get("detail_tab"), REQUEST_DETAIL_TABS, "overview")
+  );
   const [selectedLog, setSelectedLog] = useState<RequestLogEntry | null>(null);
+  const [exactLog, setExactLog] = useState<RequestLogEntry | null>(null);
+  const [exactLoading, setExactLoading] = useState(false);
+
+  useEffect(() => {
+    const nextRequestId = parsePositiveIntParam(searchParams.get("request_id"));
+    const nextDetailTab = parseEnumParam(searchParams.get("detail_tab"), REQUEST_DETAIL_TABS, "overview");
+
+    setRequestId((current) => (current === nextRequestId ? current : nextRequestId));
+    setDetailTab((current) => (current === nextDetailTab ? current : nextDetailTab));
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchFilters = async () => {
@@ -171,6 +191,14 @@ export function RequestLogsPage() {
         if (limit === DEFAULT_REQUEST_LIMIT) next.delete("limit");
         else next.set("limit", String(limit));
 
+        if (requestId === null) {
+          next.delete("request_id");
+          next.delete("detail_tab");
+        } else {
+          next.set("request_id", String(requestId));
+          setOrDelete("detail_tab", detailTab, "overview");
+        }
+
         if (offset <= 0) next.delete("offset");
         else next.set("offset", String(offset));
 
@@ -187,12 +215,14 @@ export function RequestLogsPage() {
     offset,
     outcomeFilter,
     providerType,
+    requestId,
     searchQuery,
     setSearchParams,
     showBillableOnly,
     showPricedOnly,
     specialTokenFilter,
     streamFilter,
+    detailTab,
     timeRange,
     tokenMax,
     tokenMin,
@@ -243,6 +273,56 @@ export function RequestLogsPage() {
 
     return () => clearTimeout(timeout);
   }, [connectionId, endpointId, limit, modelId, offset, providerType, timeRange, revision]);
+
+  useEffect(() => {
+    if (requestId === null) {
+      setExactLog(null);
+      setExactLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchExactLog = async () => {
+      setExactLoading(true);
+      try {
+        const response = await api.stats.requests({ request_id: requestId, limit: 1, offset: 0 });
+        if (!cancelled) {
+          setExactLog(response.items[0] ?? null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch exact request log", error);
+        if (!cancelled) {
+          setExactLog(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setExactLoading(false);
+        }
+      }
+    };
+
+    fetchExactLog();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestId, revision]);
+
+  useEffect(() => {
+    if (requestId === null) {
+      return;
+    }
+
+    if (exactLog) {
+      setSelectedLog((current) => (current?.id === exactLog.id ? current : exactLog));
+      return;
+    }
+
+    if (!exactLoading) {
+      setSelectedLog(null);
+    }
+  }, [exactLoading, exactLog, requestId]);
 
   const filteredAndSortedRows = useMemo(() => {
     let result = logs.filter((log) => {
@@ -315,9 +395,25 @@ export function RequestLogsPage() {
     triage,
   ]);
 
+  const displayedRows = requestId !== null ? (exactLog ? [exactLog] : []) : filteredAndSortedRows;
+  const displayedLoading = requestId !== null ? exactLoading : loading;
+  const displayedTotal = requestId !== null ? (exactLog ? 1 : 0) : total;
+  const displayedPageRowCount = requestId !== null ? displayedRows.length : logs.length;
+
   const allColumnsMode = view === "all";
 
+  const clearRequestFocus = () => {
+    setRequestId(null);
+    setDetailTab("overview");
+  };
+
+  const openLogDetail = (log: RequestLogEntry, tab: RequestDetailTab = "overview") => {
+    setDetailTab(tab);
+    setSelectedLog(log);
+  };
+
   const clearAllFilters = () => {
+    clearRequestFocus();
     setSearchQuery("");
     setTriage("none");
     setLatencyBucket("all");
@@ -346,6 +442,23 @@ export function RequestLogsPage() {
           title="Request Logs"
           description="Focused telemetry views for performance, tokens, billing, cache behavior, and error triage"
         />
+
+        {requestId !== null ? (
+          <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/[0.08] via-background to-amber-500/[0.08] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">Request focus</p>
+              <p className="font-mono text-sm text-foreground">Investigating request #{requestId}</p>
+              <p className="text-sm text-muted-foreground">
+                {detailTab === "audit"
+                  ? "Audit detail opens automatically when a linked payload is available."
+                  : "Close the detail sheet or return to the browser to resume the full request timeline view."}
+              </p>
+            </div>
+            <Button variant="outline" className="shrink-0" onClick={clearRequestFocus}>
+              Return to request browser
+            </Button>
+          </div>
+        ) : null}
 
         <FiltersBar
           view={view}
@@ -390,20 +503,35 @@ export function RequestLogsPage() {
         />
 
         <RequestLogsTable
-          rows={filteredAndSortedRows}
-          pageRowCount={logs.length}
-          loading={loading}
-          total={total}
+          rows={displayedRows}
+          pageRowCount={displayedPageRowCount}
+          loading={displayedLoading}
+          total={displayedTotal}
           limit={limit}
           offset={offset}
           setLimit={setLimit}
           setOffset={setOffset}
           view={view}
           allColumnsMode={allColumnsMode}
-          setSelectedLog={setSelectedLog}
+          openLogDetail={openLogDetail}
           clearAllFilters={clearAllFilters}
           formatTime={formatTime}
           navigateToConnection={navigateToConnection}
+          emptyStateTitle={
+            requestId !== null ? `Request #${requestId} was not found` : undefined
+          }
+          emptyStateDescription={
+            requestId !== null
+              ? "That request is not available in the currently selected profile. Return to the browser to keep investigating nearby traffic."
+              : undefined
+          }
+          emptyStateAction={
+            requestId !== null ? (
+              <Button variant="outline" onClick={clearRequestFocus}>
+                Return to request browser
+              </Button>
+            ) : undefined
+          }
         />
 
         <RequestLogDetailSheet
@@ -415,6 +543,10 @@ export function RequestLogsPage() {
           setOffset={setOffset}
           navigateToConnection={navigateToConnection}
           formatTime={formatTime}
+          requestId={requestId}
+          detailTab={detailTab}
+          setDetailTab={setDetailTab}
+          clearRequestFocus={clearRequestFocus}
         />
       </div>
     </TooltipProvider>

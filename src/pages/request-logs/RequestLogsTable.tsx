@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, type ReactNode } from "react";
 import { Activity, AlertCircle, ArrowRight, Check, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,10 +46,13 @@ interface RequestLogsTableProps {
   setOffset: (offset: number) => void;
   view: ViewType;
   allColumnsMode: boolean;
-  setSelectedLog: (log: RequestLogEntry) => void;
+  openLogDetail: (log: RequestLogEntry) => void;
   clearAllFilters: () => void;
   formatTime: (date: string, options?: Intl.DateTimeFormatOptions) => string;
   navigateToConnection: (id: number) => Promise<void>;
+  emptyStateTitle?: string;
+  emptyStateDescription?: string;
+  emptyStateAction?: ReactNode;
 }
 export function RequestLogsTable({
   rows,
@@ -62,10 +65,13 @@ export function RequestLogsTable({
   setOffset,
   view,
   allColumnsMode,
-  setSelectedLog,
+  openLogDetail,
   clearAllFilters,
   formatTime,
   navigateToConnection,
+  emptyStateTitle,
+  emptyStateDescription,
+  emptyStateAction,
 }: RequestLogsTableProps) {
   const visibleColumns = useMemo(() => VIEW_COLUMNS[view], [view]);
 
@@ -346,12 +352,14 @@ export function RequestLogsTable({
           <div className="flex h-full items-center justify-center">
             <EmptyState
               icon={<Search className="h-8 w-8" />}
-              title="No logs match your filters"
-              description="Try adjusting search or filters to widen this view."
+              title={emptyStateTitle ?? "No logs match your filters"}
+              description={emptyStateDescription ?? "Try adjusting search or filters to widen this view."}
               action={
-                <Button variant="outline" onClick={clearAllFilters}>
-                  Reset Filters
-                </Button>
+                emptyStateAction ?? (
+                  <Button variant="outline" onClick={clearAllFilters}>
+                    Reset Filters
+                  </Button>
+                )
               }
             />
           </div>
@@ -409,7 +417,7 @@ export function RequestLogsTable({
                 <TableRow
                   key={log.id}
                   className="text-xs cursor-pointer hover:bg-muted/50"
-                  onClick={() => setSelectedLog(log)}
+                  onClick={() => openLogDetail(log)}
                 >
                   {visibleColumns.map((column) => (
                     <Fragment key={column}>{renderCell(column, log)}</Fragment>

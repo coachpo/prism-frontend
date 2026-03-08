@@ -137,6 +137,7 @@ export interface AuditLogListResponse {
 }
 
 export interface AuditLogParams {
+  request_log_id?: number;
   provider_id?: number;
   model_id?: string;
   status_code?: number;
