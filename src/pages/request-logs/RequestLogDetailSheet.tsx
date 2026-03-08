@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { formatMoneyMicros, formatTokenCount } from "@/lib/costing";
 import type { AuditLogDetail, RequestLogEntry } from "@/lib/types";
+import { toast } from "sonner";
 import {
   UNIVERSAL_TIMESTAMP_FORMAT,
   formatLatency,
@@ -79,16 +80,27 @@ function DetailSection({
   );
 }
 
-function CopyButton({ value, label }: { value: string; label: string }) {
+function CopyButton({
+  value,
+  label,
+  targetLabel,
+}: {
+  value: string;
+  label: string;
+  targetLabel: string;
+}) {
   const handleCopy = async () => {
     if (typeof navigator === "undefined" || !navigator.clipboard) {
+      toast.error("Clipboard is not available in this browser");
       return;
     }
 
     try {
       await navigator.clipboard.writeText(value);
+      toast.success(`${targetLabel} copied to clipboard`);
     } catch (error) {
-      console.error(`Failed to copy ${label.toLowerCase()}`, error);
+      toast.error(`Failed to copy ${targetLabel.toLowerCase()}`);
+      console.error(`Failed to copy ${targetLabel.toLowerCase()}`, error);
     }
   };
 
@@ -117,7 +129,7 @@ function CodePanel({
         <p className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           {title}
         </p>
-        <CopyButton value={content} label="Copy" />
+        <CopyButton value={content} label="Copy" targetLabel={title} />
       </div>
       <pre className="h-80 w-full min-w-0 max-w-full overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100 shadow-inner sm:h-96 md:h-[28rem]">
         <code className="block min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{content}</code>
@@ -511,18 +523,7 @@ export function RequestLogDetailSheet({
                   </TabsContent>
 
                 <TabsContent value="audit" className="space-y-4">
-                  <DetailSection
-                    title="Linked audit capture"
-                    description="Request and response payloads are loaded on demand so the log browser stays fast for normal triage."
-                  >
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                      <Badge variant="secondary" className="font-mono">
-                        request_log_id={selectedLog.id}
-                      </Badge>
-                      <span>Audit data is resolved from the exact request linkage inside the current profile.</span>
-                    </div>
-                  </DetailSection>
-
+                  
                   {auditLoading ? <AuditLoadingSkeleton /> : null}
 
                   {!auditLoading && auditError ? (
