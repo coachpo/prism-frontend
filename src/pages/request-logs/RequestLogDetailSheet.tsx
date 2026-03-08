@@ -112,13 +112,15 @@ function CodePanel({
   const content = value && value.trim().length > 0 ? value : fallback;
 
   return (
-    <div className="space-y-3 rounded-3xl border bg-muted/15 p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+    <div className="min-w-0 space-y-3 rounded-3xl border bg-muted/15 p-4 shadow-sm">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <p className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          {title}
+        </p>
         <CopyButton value={content} label="Copy" />
       </div>
-      <pre className="min-h-[18rem] max-h-[50vh] overflow-auto whitespace-pre-wrap break-words rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100 shadow-inner">
-        <code>{content}</code>
+      <pre className="h-80 w-full min-w-0 max-w-full overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100 shadow-inner sm:h-96 md:h-[28rem]">
+        <code className="block min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{content}</code>
       </pre>
     </div>
   );
@@ -272,7 +274,14 @@ export function RequestLogDetailSheet({
 
   return (
     <Sheet open={!!selectedLog} onOpenChange={(open) => !open && closeSheet()}>
-      <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-3xl">
+      <SheetContent
+        className="w-full overflow-y-auto p-0 outline-none sm:max-w-3xl"
+        tabIndex={-1}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus();
+        }}
+      >
         {selectedLog ? (
           <div className="flex min-h-full flex-col bg-gradient-to-b from-background via-background to-muted/10">
             <SheetHeader className="sticky top-0 z-20 space-y-4 border-b bg-background/95 p-6 backdrop-blur">
