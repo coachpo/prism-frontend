@@ -215,11 +215,6 @@ export function ObservabilityLogsPage() {
   }, [revision]);
 
   useEffect(() => {
-    setRequestOffset(0);
-    setAuditOffset(0);
-  }, [revision]);
-
-  useEffect(() => {
     setSearchParams(
       (previous) => {
         const next = new URLSearchParams(previous);
