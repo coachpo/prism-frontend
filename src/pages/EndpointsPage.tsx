@@ -21,6 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { api } from "@/lib/api";
+import { CopyButton } from "@/components/CopyButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Endpoint, ModelConfigListItem } from "@/lib/types";
@@ -56,7 +57,6 @@ import { useTimezone } from "@/hooks/useTimezone";
 import { EndpointDialog, type EndpointFormValues } from "./endpoints/EndpointDialog";
 import {
   buildDuplicateName,
-  copyTextToClipboard,
   getEndpointHost,
   getMaskedApiKey,
   getModelBadgeClass,
@@ -72,7 +72,6 @@ interface EndpointCardViewProps {
   dragHandleAttributes?: ButtonHTMLAttributes<HTMLButtonElement>;
   dragHandleListeners?: ButtonHTMLAttributes<HTMLButtonElement>;
   dragHandleRef?: ((node: HTMLButtonElement | null) => void) | null;
-  onCopyApiKey?: (endpoint: Endpoint) => void | Promise<void>;
   onDelete?: (endpoint: Endpoint) => void | Promise<void>;
   onDuplicate?: (endpoint: Endpoint) => void | Promise<void>;
   onEdit?: (endpoint: Endpoint) => void | Promise<void>;
@@ -90,7 +89,6 @@ function EndpointCardView({
   dragHandleAttributes,
   dragHandleListeners,
   dragHandleRef,
-  onCopyApiKey,
   onDelete,
   onDuplicate,
   onEdit,
@@ -192,18 +190,17 @@ function EndpointCardView({
               </div>
               {!isOverlay ? (
                 <div className="flex shrink-0 items-center gap-1">
-                  <Button
-                    type="button"
+                  <CopyButton
+                    value={endpoint.api_key}
+                    label=""
+                    targetLabel={`API key for ${endpoint.name}`}
+                    successMessage={`Copied API key for ${endpoint.name}`}
+                    errorMessage="Failed to copy API key"
+                    aria-label={`Copy API key for ${endpoint.name}`}
                     variant="ghost"
                     size="icon"
-                    aria-label={`Copy API key for ${endpoint.name}`}
                     className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                    onClick={() => {
-                      void onCopyApiKey?.(endpoint);
-                    }}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                  />
                 </div>
               ) : null}
             </div>
@@ -430,15 +427,6 @@ export function EndpointsPage() {
     toast.error("Failed to duplicate endpoint");
   };
 
-  const handleCopyApiKey = async (endpoint: Endpoint) => {
-    const copied = await copyTextToClipboard(endpoint.api_key);
-    if (!copied) {
-      toast.error("Failed to copy API key");
-      return;
-    }
-    toast.success(`Copied API key for ${endpoint.name}`);
-  };
-
   const endpointIds = useMemo(() => endpoints.map((endpoint) => endpoint.id), [endpoints]);
 
   const activeDragEndpoint = useMemo(
@@ -644,7 +632,6 @@ export function EndpointsPage() {
                   onDuplicate={handleDuplicateEndpoint}
                   onEdit={setEditingEndpoint}
                   onDelete={setDeleteTarget}
-                  onCopyApiKey={handleCopyApiKey}
                 />
               ))}
             </div>

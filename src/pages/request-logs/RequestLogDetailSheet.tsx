@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertCircle,
   Clock,
-  Copy,
   ExternalLink,
   FileJson,
   Filter,
@@ -10,6 +9,7 @@ import {
   ShieldAlert,
   Unplug,
 } from "lucide-react";
+import { CopyButton } from "@/components/CopyButton";
 import { EmptyState } from "@/components/EmptyState";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
@@ -27,7 +27,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { formatMoneyMicros, formatTokenCount } from "@/lib/costing";
 import type { AuditLogDetail, RequestLogEntry } from "@/lib/types";
-import { toast } from "sonner";
 import {
   UNIVERSAL_TIMESTAMP_FORMAT,
   formatLatency,
@@ -77,38 +76,6 @@ function DetailSection({
       </div>
       {children}
     </section>
-  );
-}
-
-function CopyButton({
-  value,
-  label,
-  targetLabel,
-}: {
-  value: string;
-  label: string;
-  targetLabel: string;
-}) {
-  const handleCopy = async () => {
-    if (typeof navigator === "undefined" || !navigator.clipboard) {
-      toast.error("Clipboard is not available in this browser");
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(value);
-      toast.success(`${targetLabel} copied to clipboard`);
-    } catch (error) {
-      toast.error(`Failed to copy ${targetLabel.toLowerCase()}`);
-      console.error(`Failed to copy ${targetLabel.toLowerCase()}`, error);
-    }
-  };
-
-  return (
-    <Button type="button" variant="ghost" size="sm" className="h-7 gap-1.5 px-2" onClick={handleCopy}>
-      <Copy className="h-3.5 w-3.5" />
-      {label}
-    </Button>
   );
 }
 
