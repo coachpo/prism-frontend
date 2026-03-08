@@ -10,7 +10,6 @@ import {
   rowHasAnySpecialToken,
 } from "../utils";
 import type { RequestLogEntry } from "@/lib/types";
-import { buildLogsPath } from "@/pages/logs/queryParams";
 
 const OPERATIONS_REPORT_SYMBOL = "$";
 const OPERATIONS_REPORT_CODE = "USD";
@@ -232,31 +231,38 @@ export function useOperationsTabData({
 
   const requestLogsPath = (
     overrides: Partial<{
-      status: "all" | "2xx" | "error";
+      outcome_filter: "all" | "success" | "error";
       stream_filter: "all" | "stream" | "non_stream";
+      limit: number;
     }> = {}
   ) => {
-    const defaultStatus: "all" | "2xx" | "error" =
+    const params = new URLSearchParams();
+
+    if (modelId !== "__all__") params.set("model_id", modelId);
+    if (providerType !== "all") params.set("provider_type", providerType);
+    if (connectionId !== "__all__") params.set("connection_id", connectionId);
+    if (timeRange !== "24h") params.set("time_range", timeRange);
+    if (specialTokenFilter !== "all") params.set("special_token_filter", specialTokenFilter);
+
+    const defaultOutcomeFilter: "all" | "success" | "error" =
       operationsStatusFilter === "success"
-        ? "2xx"
+        ? "success"
         : operationsStatusFilter === "4xx" ||
             operationsStatusFilter === "5xx" ||
             operationsStatusFilter === "error"
           ? "error"
           : "all";
 
-    const status = overrides.status ?? defaultStatus;
+    const outcomeFilter = overrides.outcome_filter ?? defaultOutcomeFilter;
     const streamFilter = overrides.stream_filter ?? "all";
+    const limitValue = overrides.limit ?? 100;
 
-    return buildLogsPath({
-      connectionId: connectionId !== "__all__" ? connectionId : undefined,
-      modelId: modelId !== "__all__" ? modelId : undefined,
-      provider: providerType !== "all" ? providerType : undefined,
-      range: timeRange,
-      special: specialTokenFilter !== "all" ? specialTokenFilter : undefined,
-      status,
-      stream: streamFilter,
-    });
+    if (outcomeFilter !== "all") params.set("outcome_filter", outcomeFilter);
+    if (streamFilter !== "all") params.set("stream_filter", streamFilter);
+    if (limitValue !== 100) params.set("limit", String(limitValue));
+
+    const query = params.toString();
+    return query.length > 0 ? `/request-logs?${query}` : "/request-logs";
   };
 
   return {

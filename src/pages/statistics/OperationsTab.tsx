@@ -515,7 +515,7 @@ export function OperationsTab({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => navigate(requestLogsPath({ status: "error" }))}
+                    onClick={() => navigate(requestLogsPath({ outcome_filter: "error" }))}
                   >
                     Open Request Logs
                     <ArrowRight className="ml-1 h-3.5 w-3.5" />
