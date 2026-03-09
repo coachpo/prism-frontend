@@ -70,7 +70,6 @@ export function SettingsPage() {
     useSettingsSectionNavigation(location);
 
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [bulkAuditSaving, setBulkAuditSaving] = useState(false);
   const [authSettings, setAuthSettings] = useState<AuthSettings | null>(null);
   const [authEnabledInput, setAuthEnabledInput] = useState(false);
   const [authUsername, setAuthUsername] = useState("");
@@ -673,45 +672,6 @@ export function SettingsPage() {
     }
   };
 
-  const applyAuditBulkUpdate = async (
-    getNextProvider: (provider: Provider) => Provider,
-    successMessage: string
-  ) => {
-    const previous = providers;
-    const next = providers.map(getNextProvider);
-    const changed = next.filter((provider, index) => {
-      const before = previous[index];
-      return (
-        before.audit_enabled !== provider.audit_enabled ||
-        before.audit_capture_bodies !== provider.audit_capture_bodies
-      );
-    });
-
-    if (changed.length === 0) {
-      toast.message("No provider updates needed");
-      return;
-    }
-
-    setProviders(next);
-    setBulkAuditSaving(true);
-    try {
-      await Promise.all(
-        changed.map((provider) =>
-          api.providers.update(provider.id, {
-            audit_enabled: provider.audit_enabled,
-            audit_capture_bodies: provider.audit_capture_bodies,
-          })
-        )
-      );
-      toast.success(successMessage);
-    } catch {
-      setProviders(previous);
-      toast.error("Failed to apply bulk audit update");
-    } finally {
-      setBulkAuditSaving(false);
-    }
-  };
-
   const handleOpenDeleteConfirm = () => {
     if (!cleanupType || !retentionPreset) {
       return;
@@ -1037,8 +997,6 @@ export function SettingsPage() {
             auditConfigurationRef={auditConfigurationRef}
             isAuditConfigurationFocused={isAuditConfigurationFocused}
             providers={providers}
-            bulkAuditSaving={bulkAuditSaving}
-            applyAuditBulkUpdate={applyAuditBulkUpdate}
             toggleAudit={toggleAudit}
             toggleBodies={toggleBodies}
             loadingRules={loadingRules}

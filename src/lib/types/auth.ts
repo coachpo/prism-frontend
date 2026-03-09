@@ -34,9 +34,13 @@ export interface EmailVerificationResponse {
   email_bound_at: string | null;
 }
 
+export type LoginSessionDuration = "session" | "7_days" | "30_days";
+
+
 export interface LoginRequest {
   username: string;
   password: string;
+  session_duration?: LoginSessionDuration;
 }
 
 export interface SessionResponse {

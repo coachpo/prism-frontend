@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, ApiError } from "@/lib/api";
+import type { LoginSessionDuration } from "@/lib/types";
 import { AuthContext, type AuthContextValue } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -58,8 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       username,
       refreshAuth,
-      login: async (nextUsername: string, password: string) => {
-        const session = await api.auth.login({ username: nextUsername, password });
+      login: async (
+        nextUsername: string,
+        password: string,
+        sessionDuration: LoginSessionDuration
+      ) => {
+        const session = await api.auth.login({
+          username: nextUsername,
+          password,
+          session_duration: sessionDuration,
+        });
         setAuthEnabled(session.auth_enabled);
         setAuthenticated(session.authenticated);
         setUsername(session.username);

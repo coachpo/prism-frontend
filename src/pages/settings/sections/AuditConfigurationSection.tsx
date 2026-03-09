@@ -26,11 +26,6 @@ interface AuditConfigurationSectionProps {
   auditConfigurationRef: RefObject<HTMLDivElement | null>;
   isAuditConfigurationFocused: boolean;
   providers: Provider[];
-  bulkAuditSaving: boolean;
-  applyAuditBulkUpdate: (
-    getNextProvider: (provider: Provider) => Provider,
-    successMessage: string
-  ) => Promise<void>;
   toggleAudit: (providerId: number, checked: boolean) => Promise<void>;
   toggleBodies: (providerId: number, checked: boolean) => Promise<void>;
   loadingRules: boolean;
@@ -50,8 +45,6 @@ export function AuditConfigurationSection({
   auditConfigurationRef,
   isAuditConfigurationFocused,
   providers,
-  bulkAuditSaving,
-  applyAuditBulkUpdate,
   toggleAudit,
   toggleBodies,
   loadingRules,
@@ -77,64 +70,14 @@ export function AuditConfigurationSection({
         )}
       >
         <CardHeader className="pb-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Shield className="h-4 w-4" />
-                Audit & Privacy
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Configure provider-level audit capture and privacy defaults.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  void applyAuditBulkUpdate(
-                    (provider) => ({ ...provider, audit_enabled: true }),
-                    "Enabled audit for all providers"
-                  )
-                }
-                disabled={bulkAuditSaving || providers.length === 0}
-              >
-                Enable audit for all
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  void applyAuditBulkUpdate(
-                    (provider) => ({
-                      ...provider,
-                      audit_enabled: false,
-                      audit_capture_bodies: false,
-                    }),
-                    "Disabled audit for all providers"
-                  )
-                }
-                disabled={bulkAuditSaving || providers.length === 0}
-              >
-                Disable audit for all
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  void applyAuditBulkUpdate(
-                    (provider) => ({ ...provider, audit_capture_bodies: false }),
-                    "Disabled body capture for all providers"
-                  )
-                }
-                disabled={bulkAuditSaving || providers.length === 0}
-              >
-                Disable bodies for all
-              </Button>
-            </div>
+          <div className="space-y-1">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Shield className="h-4 w-4" />
+              Audit & Privacy
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Configure provider-level audit capture and privacy defaults.
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
