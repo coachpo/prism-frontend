@@ -114,9 +114,7 @@ function ConnectionCardView({
   const successRate = metrics24h?.success_rate_24h ?? null;
   const endpoint = connection.endpoint;
   const connectionName = getConnectionName(connection);
-  const maskedKey = endpoint?.api_key && endpoint.api_key.length > 8
-    ? `${endpoint.api_key.slice(0, 4)}••••••${endpoint.api_key.slice(-4)}`
-    : "••••••";
+  const maskedKey = endpoint?.masked_api_key || "••••••";
 
   return (
     <div

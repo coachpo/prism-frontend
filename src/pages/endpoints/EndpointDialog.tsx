@@ -25,7 +25,7 @@ import {
 const endpointSchema = z.object({
   name: z.string().min(1, "Name is required"),
   base_url: z.string().url("Must be a valid URL"),
-  api_key: z.string().min(1, "API Key is required"),
+  api_key: z.string(),
 });
 
 export type EndpointFormValues = z.infer<typeof endpointSchema>;
@@ -61,7 +61,7 @@ export function EndpointDialog({
       form.reset({
         name: initialValues.name,
         base_url: initialValues.base_url,
-        api_key: initialValues.api_key,
+        api_key: "",
       });
     } else if (open) {
       form.reset({
@@ -73,6 +73,10 @@ export function EndpointDialog({
   }, [open, initialValues, form]);
 
   const handleSubmit = async (values: EndpointFormValues) => {
+    if (!initialValues && !values.api_key.trim()) {
+      form.setError("api_key", { message: "API Key is required" });
+      return;
+    }
     await onSubmit(values);
   };
 
@@ -120,8 +124,17 @@ export function EndpointDialog({
                 <FormItem>
                   <FormLabel>API Key</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="sk-..." {...field} />
+                    <Input
+                      type="password"
+                      placeholder={initialValues?.masked_api_key || "sk-..."}
+                      {...field}
+                    />
                   </FormControl>
+                  {initialValues ? (
+                    <p className="text-xs text-muted-foreground">
+                      Leave blank to keep the existing stored key.
+                    </p>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}

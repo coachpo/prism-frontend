@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/context/useAuth";
 import {
   Menu,
   X,
   Zap,
   AlertTriangle,
   Loader2,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProfileContext } from "@/context/ProfileContext";
@@ -21,6 +23,7 @@ import { ProfileDialogs } from "./app-layout/ProfileDialogs";
 export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { authEnabled, username, logout } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -256,6 +259,15 @@ export function AppLayout() {
     navigate("/settings");
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to sign out");
+    }
+  };
+
   const handleSelectProfile = (profileId: number) => {
     if (selectedProfileId === profileId) {
       setProfileSwitcherOpen(false);
@@ -442,6 +454,13 @@ export function AppLayout() {
                         <span className="hidden sm:inline">Activate profile</span>
                       </>
                     )}
+                  </Button>
+                ) : null}
+                {authEnabled ? (
+                  <Button variant="outline" className="h-9 px-3" onClick={() => void handleLogout()}>
+                    <LogOut className="mr-2 h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{username || "Sign out"}</span>
+                    <span className="sm:hidden">Out</span>
                   </Button>
                 ) : null}
                 <ThemeToggle />

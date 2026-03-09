@@ -21,7 +21,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { api } from "@/lib/api";
-import { CopyButton } from "@/components/CopyButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Endpoint, ModelConfigListItem } from "@/lib/types";
@@ -48,7 +47,6 @@ import {
   Boxes,
   Link2,
   Sparkles,
-  Copy,
   Loader2,
   GripVertical,
 } from "lucide-react";
@@ -56,7 +54,6 @@ import { cn } from "@/lib/utils";
 import { useTimezone } from "@/hooks/useTimezone";
 import { EndpointDialog, type EndpointFormValues } from "./endpoints/EndpointDialog";
 import {
-  buildDuplicateName,
   getEndpointHost,
   getMaskedApiKey,
   getModelBadgeClass,
@@ -73,7 +70,6 @@ interface EndpointCardViewProps {
   dragHandleListeners?: ButtonHTMLAttributes<HTMLButtonElement>;
   dragHandleRef?: ((node: HTMLButtonElement | null) => void) | null;
   onDelete?: (endpoint: Endpoint) => void | Promise<void>;
-  onDuplicate?: (endpoint: Endpoint) => void | Promise<void>;
   onEdit?: (endpoint: Endpoint) => void | Promise<void>;
 }
 
@@ -90,7 +86,6 @@ function EndpointCardView({
   dragHandleListeners,
   dragHandleRef,
   onDelete,
-  onDuplicate,
   onEdit,
 }: EndpointCardViewProps) {
   const maskedKey = getMaskedApiKey(endpoint);
@@ -137,17 +132,6 @@ function EndpointCardView({
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`Duplicate endpoint ${endpoint.name}`}
-                className="h-9 w-9 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                onClick={() => {
-                  void onDuplicate?.(endpoint);
-                }}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
                 aria-label={`Edit endpoint ${endpoint.name}`}
                 className="h-9 w-9 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 onClick={() => {
@@ -188,21 +172,6 @@ function EndpointCardView({
                 </p>
                 <p className="mt-1 break-all font-mono text-xs text-foreground/90">{maskedKey}</p>
               </div>
-              {!isOverlay ? (
-                <div className="flex shrink-0 items-center gap-1">
-                  <CopyButton
-                    value={endpoint.api_key}
-                    label=""
-                    targetLabel={`API key for ${endpoint.name}`}
-                    successMessage={`Copied API key for ${endpoint.name}`}
-                    errorMessage="Failed to copy API key"
-                    aria-label={`Copy API key for ${endpoint.name}`}
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  />
-                </div>
-              ) : null}
             </div>
           </div>
         </div>
@@ -362,7 +331,11 @@ export function EndpointsPage() {
   const handleUpdate = async (values: EndpointFormValues) => {
     if (!editingEndpoint) return;
     try {
-      await api.endpoints.update(editingEndpoint.id, values);
+      await api.endpoints.update(editingEndpoint.id, {
+        name: values.name,
+        base_url: values.base_url,
+        ...(values.api_key.trim() ? { api_key: values.api_key } : {}),
+      });
       toast.success("Endpoint updated");
       setEditingEndpoint(null);
       await fetchEndpoints();
@@ -397,34 +370,6 @@ export function EndpointsPage() {
     } finally {
       setIsDeletingEndpoint(false);
     }
-  };
-
-  const handleDuplicateEndpoint = async (endpoint: Endpoint) => {
-    const existingNames = new Set(endpoints.map((item) => item.name));
-    let nextName = buildDuplicateName(endpoint.name, existingNames);
-
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      try {
-        const created = await api.endpoints.create({
-          name: nextName,
-          base_url: endpoint.base_url,
-          api_key: endpoint.api_key,
-        });
-        toast.success(`Endpoint duplicated as ${created.name}`);
-        await fetchEndpoints();
-        return;
-      } catch (error) {
-        if (error instanceof Error && error.message.toLowerCase().includes("already exists")) {
-          existingNames.add(nextName);
-          nextName = buildDuplicateName(endpoint.name, existingNames);
-          continue;
-        }
-        toast.error(error instanceof Error ? error.message : "Failed to duplicate endpoint");
-        return;
-      }
-    }
-
-    toast.error("Failed to duplicate endpoint");
   };
 
   const endpointIds = useMemo(() => endpoints.map((endpoint) => endpoint.id), [endpoints]);
@@ -629,7 +574,6 @@ export function EndpointsPage() {
                   formatTime={formatTime}
                   models={endpointModels[endpoint.id] ?? []}
                   reorderDisabled={!canReorder}
-                  onDuplicate={handleDuplicateEndpoint}
                   onEdit={setEditingEndpoint}
                   onDelete={setDeleteTarget}
                 />

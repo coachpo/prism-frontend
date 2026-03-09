@@ -61,7 +61,10 @@ export function BackupSection({
           <CardContent className="space-y-3">
             <div className="flex items-start gap-2 rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>Exports may include secrets (API keys) in plaintext.</span>
+              <span>
+                Exports omit stored endpoint API keys. Re-enter those secrets after
+                importing a backup.
+              </span>
             </div>
 
             <label className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -73,7 +76,7 @@ export function BackupSection({
                   setExportSecretsAcknowledged(event.currentTarget.checked)
                 }
               />
-              <span>I understand this export may contain secrets.</span>
+              <span>I understand this export will not include endpoint API keys.</span>
             </label>
 
             <Button
@@ -93,7 +96,8 @@ export function BackupSection({
               Import
             </CardTitle>
             <CardDescription className="text-xs">
-              Upload a version 2 JSON backup file and restore this profile's configuration.
+              Upload a version 2 JSON backup file and restore this profile's
+              configuration. Endpoint credentials must be re-entered after import.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

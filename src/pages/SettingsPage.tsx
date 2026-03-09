@@ -1,10 +1,12 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
+import { useAuth } from "@/context/useAuth";
 import { useProfileContext } from "@/context/ProfileContext";
 import { api } from "@/lib/api";
 import { isValidCurrencyCode } from "@/lib/costing";
 import type {
+  AuthSettings,
   ConfigImportRequest,
   Connection,
   CostingSettingsUpdate,
@@ -23,6 +25,7 @@ import { BackupSection } from "./settings/sections/BackupSection";
 import { BillingCurrencySection } from "./settings/sections/BillingCurrencySection";
 import { TimezoneSection } from "./settings/sections/TimezoneSection";
 import { AuditConfigurationSection } from "./settings/sections/AuditConfigurationSection";
+import { AuthenticationSection } from "./settings/sections/AuthenticationSection";
 import { RetentionDeletionSection } from "./settings/sections/RetentionDeletionSection";
 import { DeleteConfirmDialog } from "./settings/dialogs/DeleteConfirmDialog";
 import { RuleDialog } from "./settings/dialogs/RuleDialog";
@@ -47,6 +50,8 @@ import {
 
 export function SettingsPage() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { refreshAuth } = useAuth();
   const { selectedProfile, revision, bumpRevision } = useProfileContext();
   const selectedProfileLabel = selectedProfile
     ? `${selectedProfile.name} (#${selectedProfile.id})`
@@ -65,6 +70,16 @@ export function SettingsPage() {
 
   const [providers, setProviders] = useState<Provider[]>([]);
   const [bulkAuditSaving, setBulkAuditSaving] = useState(false);
+  const [authSettings, setAuthSettings] = useState<AuthSettings | null>(null);
+  const [authEnabledInput, setAuthEnabledInput] = useState(false);
+  const [authUsername, setAuthUsername] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authPasswordConfirm, setAuthPasswordConfirm] = useState("");
+  const [authSaving, setAuthSaving] = useState(false);
+  const [emailVerificationOtp, setEmailVerificationOtp] = useState("");
+  const [sendingEmailVerification, setSendingEmailVerification] = useState(false);
+  const [confirmingEmailVerification, setConfirmingEmailVerification] = useState(false);
 
   const [cleanupType, setCleanupType] = useState<"" | "requests" | "audits">("");
   const [retentionPreset, setRetentionPreset] = useState<"" | "7" | "30" | "90" | "all">("");
@@ -111,6 +126,7 @@ export function SettingsPage() {
     void fetchRules();
     void fetchCostingSettings();
     void fetchModels();
+    void fetchAuthSettings();
   }, [revision]);
 
   useEffect(() => {
@@ -153,6 +169,20 @@ export function SettingsPage() {
     }
   };
 
+  const fetchAuthSettings = async () => {
+    try {
+      const data = await api.settings.auth.get();
+      setAuthSettings(data);
+      setAuthEnabledInput(data.auth_enabled);
+      setAuthUsername(data.username ?? "");
+      setAuthEmail(data.pending_email ?? data.email ?? "");
+      setAuthPassword("");
+      setAuthPasswordConfirm("");
+      setEmailVerificationOtp("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load authentication settings");
+    }
+  };
 
   const fetchCostingSettings = async () => {
     setCostingLoading(true);
@@ -492,6 +522,106 @@ export function SettingsPage() {
     }
   };
 
+  const handleSaveAuthSettings = async (nextEnabled?: boolean) => {
+    if (authPassword && authPassword !== authPasswordConfirm) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    const targetEnabled = nextEnabled ?? authEnabledInput;
+    const wasEnabled = authSettings?.auth_enabled ?? false;
+    setAuthEnabledInput(targetEnabled);
+    setAuthSaving(true);
+    try {
+      const saved = await api.settings.auth.update({
+        auth_enabled: targetEnabled,
+        username: authUsername.trim() || null,
+        password: authPassword || null,
+      });
+      setAuthSettings(saved);
+      setAuthEnabledInput(saved.auth_enabled);
+      setAuthUsername(saved.username ?? "");
+      setAuthEmail(saved.pending_email ?? saved.email ?? "");
+      setAuthPassword("");
+      setAuthPasswordConfirm("");
+      try {
+        await refreshAuth();
+      } catch {
+        // Keep the saved form state even if the follow-up session check fails transiently.
+      }
+      if (!wasEnabled && saved.auth_enabled) {
+        toast.success("Authentication enabled. Sign in to continue.");
+        navigate("/login", { replace: true });
+        return;
+      }
+      toast.success("Authentication settings saved");
+    } catch (error) {
+      setAuthEnabledInput(authSettings?.auth_enabled ?? false);
+      toast.error(error instanceof Error ? error.message : "Failed to save authentication settings");
+    } finally {
+      setAuthSaving(false);
+    }
+  };
+
+  const handleRequestEmailVerification = async () => {
+    if (!authEmail.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+    setSendingEmailVerification(true);
+    try {
+      const result = await api.settings.auth.requestEmailVerification({
+        email: authEmail.trim(),
+      });
+      setAuthSettings((prev) =>
+        prev
+          ? {
+              ...prev,
+              email: result.email,
+              email_bound_at: result.email_bound_at,
+              pending_email: result.pending_email,
+              email_verification_required: Boolean(result.pending_email),
+            }
+          : prev
+      );
+      toast.success("Verification code sent");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to send verification code");
+    } finally {
+      setSendingEmailVerification(false);
+    }
+  };
+
+  const handleConfirmEmailVerification = async () => {
+    if (!emailVerificationOtp.trim()) {
+      toast.error("Verification code is required");
+      return;
+    }
+    setConfirmingEmailVerification(true);
+    try {
+      const result = await api.settings.auth.confirmEmailVerification({
+        otp_code: emailVerificationOtp.trim(),
+      });
+      setAuthSettings((prev) =>
+        prev
+          ? {
+              ...prev,
+              email: result.email,
+              email_bound_at: result.email_bound_at,
+              pending_email: result.pending_email,
+              email_verification_required: Boolean(result.pending_email),
+            }
+          : prev
+      );
+      setAuthEmail(result.email ?? authEmail);
+      setEmailVerificationOtp("");
+      toast.success("Email verified");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to verify email");
+    } finally {
+      setConfirmingEmailVerification(false);
+    }
+  };
+
   const toggleAudit = async (providerId: number, checked: boolean) => {
     setProviders((prev) =>
       prev.map((provider) =>
@@ -618,7 +748,7 @@ export function SettingsPage() {
 
   const handleExport = async () => {
     if (!exportSecretsAcknowledged) {
-      toast.error("Acknowledge the secrets warning before exporting.");
+      toast.error("Acknowledge that endpoint API keys are omitted before exporting.");
       return;
     }
 
@@ -820,6 +950,27 @@ export function SettingsPage() {
             importSummary={importSummary}
             importing={importing}
             handleImport={handleImport}
+          />
+
+          <AuthenticationSection
+            authSettings={authSettings}
+            authEnabled={authEnabledInput}
+            username={authUsername}
+            setUsername={setAuthUsername}
+            email={authEmail}
+            setEmail={setAuthEmail}
+            password={authPassword}
+            setPassword={setAuthPassword}
+            passwordConfirm={authPasswordConfirm}
+            setPasswordConfirm={setAuthPasswordConfirm}
+            emailVerificationOtp={emailVerificationOtp}
+            setEmailVerificationOtp={setEmailVerificationOtp}
+            sendingEmailVerification={sendingEmailVerification}
+            confirmingEmailVerification={confirmingEmailVerification}
+            onRequestEmailVerification={handleRequestEmailVerification}
+            onConfirmEmailVerification={handleConfirmEmailVerification}
+            authSaving={authSaving}
+            onSaveAuthSettings={handleSaveAuthSettings}
           />
 
           <BillingCurrencySection

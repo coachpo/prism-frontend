@@ -43,7 +43,5 @@ export function buildDuplicateName(sourceName: string, existingNames: Set<string
 }
 
 export function getMaskedApiKey(endpoint: Endpoint): string {
-  return endpoint.api_key.length > 8
-    ? `${endpoint.api_key.slice(0, 4)}••••••${endpoint.api_key.slice(-4)}`
-    : "••••••";
+  return endpoint.masked_api_key || "••••••";
 }

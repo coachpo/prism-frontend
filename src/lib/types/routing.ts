@@ -1,8 +1,10 @@
 export interface Endpoint {
   id: number;
+  profile_id?: number;
   name: string;
   base_url: string;
-  api_key: string;
+  has_api_key: boolean;
+  masked_api_key: string | null;
   position: number;
   created_at: string;
   updated_at: string;
@@ -17,7 +19,7 @@ export interface EndpointCreate {
 export interface EndpointUpdate {
   name?: string;
   base_url?: string;
-  api_key?: string;
+  api_key?: string | null;
 }
 
 export interface PricingTemplateListItem {
