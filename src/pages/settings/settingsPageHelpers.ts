@@ -15,6 +15,8 @@ export const SETTINGS_SECTION_IDS = new Set<string>(SETTINGS_SECTIONS.map((secti
 export const DELETE_CONFIRM_KEYWORD = "DELETE";
 export const FX_RATE_MAX_DECIMALS = 6;
 export const TIMEZONE_PREVIEW_SOURCE = new Date("2026-02-27T21:39:00Z");
+export const AUTH_PASSWORD_MIN_LENGTH = 8;
+export const AUTH_PASSWORD_MAX_LENGTH = 512;
 
 export const DEFAULT_COSTING_FORM: CostingSettingsUpdate = {
   report_currency_code: "USD",
@@ -93,6 +95,19 @@ export const validateMappings = (mappings: EndpointFxMapping[]): string | null =
     if (fxRateError) {
       return `FX rate for ${mapping.model_id} #${mapping.endpoint_id}: ${fxRateError}`;
     }
+  }
+  return null;
+};
+
+export const validateAuthPassword = (value: string): string | null => {
+  if (!value) {
+    return null;
+  }
+  if (value.length < AUTH_PASSWORD_MIN_LENGTH) {
+    return `Password must be at least ${AUTH_PASSWORD_MIN_LENGTH} characters`;
+  }
+  if (value.length > AUTH_PASSWORD_MAX_LENGTH) {
+    return `Password must be at most ${AUTH_PASSWORD_MAX_LENGTH} characters`;
   }
   return null;
 };

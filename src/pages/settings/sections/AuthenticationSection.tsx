@@ -23,8 +23,10 @@ interface AuthenticationSectionProps {
   email: string;
   setEmail: (value: string) => void;
   password: string;
+  passwordError: string | null;
   setPassword: (value: string) => void;
   passwordConfirm: string;
+  passwordMismatch: boolean;
   setPasswordConfirm: (value: string) => void;
   emailVerificationOtp: string;
   setEmailVerificationOtp: (value: string) => void;
@@ -44,8 +46,10 @@ export function AuthenticationSection({
   email,
   setEmail,
   password,
+  passwordError,
   setPassword,
   passwordConfirm,
+  passwordMismatch,
   setPasswordConfirm,
   emailVerificationOtp,
   setEmailVerificationOtp,
@@ -65,10 +69,10 @@ export function AuthenticationSection({
   const emailChanged = Boolean(email.trim()) && email.trim() !== (verifiedEmail ?? "");
   const showEmailEditor =
     emailEditorOpen || verificationPending || emailChanged || !emailVerified;
-  const passwordMismatch = Boolean(password) && password !== passwordConfirm;
   const usernameReady = username.trim().length > 0;
-  const passwordReady =
-    Boolean(authSettings?.has_password || password.length >= 8) && !passwordMismatch;
+  const passwordReady = authSettings?.has_password
+    ? !passwordError && !passwordMismatch
+    : Boolean(password) && !passwordError && !passwordMismatch;
   const emailReady = emailVerified;
   const setupReady = usernameReady && emailReady && passwordReady;
   const statusDescription = authEnabled
@@ -144,10 +148,13 @@ export function AuthenticationSection({
                 <FieldShell
                   label="Password"
                   helper={
-                    authSettings?.has_password
+                    passwordError
+                      ? passwordError
+                      : authSettings?.has_password
                       ? "Leave blank to keep the current password."
                       : "Set a password before enabling authentication."
                   }
+                  helperClassName={passwordError ? "text-destructive" : undefined}
                 >
                   <Input
                     id="auth-password"
@@ -184,7 +191,7 @@ export function AuthenticationSection({
                       type="button"
                       variant="outline"
                       onClick={() => void onSaveAuthSettings(authEnabled)}
-                      disabled={authSaving || passwordMismatch}
+                      disabled={authSaving || Boolean(passwordError) || passwordMismatch}
                     >
                       {authSaving ? "Saving..." : "Save account changes"}
                     </Button>

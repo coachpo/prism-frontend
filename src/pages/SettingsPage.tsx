@@ -42,6 +42,7 @@ import {
   areMappingsEqual,
   validateFxRate,
   validateMappings,
+  validateAuthPassword,
   getConnectionName,
   getMappingKey,
   formatTimezonePreview,
@@ -254,6 +255,11 @@ export function SettingsPage() {
   const timezonePreviewZone =
     normalizedCurrentCosting.timezone_preference || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const timezonePreviewText = formatTimezonePreview(timezonePreviewZone);
+  const authPasswordError = useMemo(() => validateAuthPassword(authPassword), [authPassword]);
+  const authPasswordMismatch = useMemo(
+    () => Boolean(authPassword) && authPassword !== authPasswordConfirm,
+    [authPassword, authPasswordConfirm]
+  );
 
   const importSummary = useMemo(() => {
     const endpointsCount = parsedConfig?.endpoints?.length ?? 0;
@@ -523,19 +529,24 @@ export function SettingsPage() {
   };
 
   const handleSaveAuthSettings = async (nextEnabled?: boolean) => {
-    if (authPassword && authPassword !== authPasswordConfirm) {
+    const wasEnabled = authSettings?.auth_enabled ?? false;
+    const isDisablingAuth = nextEnabled === false && wasEnabled;
+    if (!isDisablingAuth && authPasswordError) {
+      toast.error(authPasswordError);
+      return;
+    }
+    if (!isDisablingAuth && authPasswordMismatch) {
       toast.error("Passwords do not match");
       return;
     }
     const targetEnabled = nextEnabled ?? authEnabledInput;
-    const wasEnabled = authSettings?.auth_enabled ?? false;
     setAuthEnabledInput(targetEnabled);
     setAuthSaving(true);
     try {
       const saved = await api.settings.auth.update({
         auth_enabled: targetEnabled,
         username: authUsername.trim() || null,
-        password: authPassword || null,
+        password: isDisablingAuth ? null : authPassword || null,
       });
       setAuthSettings(saved);
       setAuthEnabledInput(saved.auth_enabled);
@@ -960,8 +971,10 @@ export function SettingsPage() {
             email={authEmail}
             setEmail={setAuthEmail}
             password={authPassword}
+            passwordError={authPasswordError}
             setPassword={setAuthPassword}
             passwordConfirm={authPasswordConfirm}
+            passwordMismatch={authPasswordMismatch}
             setPasswordConfirm={setAuthPasswordConfirm}
             emailVerificationOtp={emailVerificationOtp}
             setEmailVerificationOtp={setEmailVerificationOtp}
