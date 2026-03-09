@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { SwitchController } from "@/components/SwitchController";
 
 interface AuthenticationSectionProps {
   authSettings: AuthSettings | null;
@@ -106,20 +106,16 @@ export function AuthenticationSection({
                 {statusDescription}
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Enable authentication</p>
-                <p className="text-xs text-muted-foreground">
-                  Sign-in can only be enabled after the operator account and recovery
-                  email are fully configured.
-                </p>
-              </div>
-              <Switch
+            <CardContent>
+              <SwitchController
+                label="Enable authentication"
+                description="Sign-in can only be enabled after the operator account and recovery email are fully configured."
                 checked={authEnabled}
                 disabled={authSaving || (!setupReady && !authEnabled)}
                 onCheckedChange={(checked) => {
                   void onSaveAuthSettings(checked);
                 }}
+                className="border-border bg-muted/20"
               />
             </CardContent>
           </Card>
