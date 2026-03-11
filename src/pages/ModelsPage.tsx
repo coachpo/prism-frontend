@@ -5,7 +5,7 @@ import { formatProviderType, formatLabel, cn } from "@/lib/utils";
 import { formatMoneyMicros } from "@/lib/costing";
 import type { ModelConfigListItem, Provider, ModelConfigCreate, ModelConfigUpdate, LoadBalancingStrategy } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -253,6 +253,7 @@ export function ModelsPage() {
     if (typeFilter !== "all" && m.model_type !== typeFilter) return false;
     return true;
   });
+  const hasActiveFilters = Boolean(search) || providerFilter !== "all" || statusFilter !== "all" || typeFilter !== "all";
   const activeColumns = useMemo(
     () => ({
       provider: visibleColumns.provider,
@@ -272,12 +273,22 @@ export function ModelsPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-40" />
-        <div className="flex gap-3">
-          <Skeleton className="h-9 flex-1 max-w-sm" />
-          <Skeleton className="h-9 w-32" />
-          <Skeleton className="h-9 w-32" />
-        </div>
-        <Skeleton className="h-[500px] rounded-xl" />
+        <Card className="gap-0">
+          <CardHeader className="border-b">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <Skeleton className="h-9 w-full xl:max-w-sm" />
+              <div className="flex flex-wrap items-center gap-3">
+                <Skeleton className="h-9 w-32" />
+                <Skeleton className="h-9 w-28" />
+                <Skeleton className="h-9 w-28" />
+                <Skeleton className="h-9 w-28" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Skeleton className="h-[500px] rounded-none border-0" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -291,133 +302,142 @@ export function ModelsPage() {
         </Button>
       </PageHeader>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search models..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9"
-          />
-        </div>
-        <ProviderSelect value={providerFilter} onValueChange={setProviderFilter} providers={providers} className="w-auto min-w-[130px] h-9" />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-auto min-w-[110px] h-9">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="enabled">On</SelectItem>
-            <SelectItem value="disabled">Off</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-auto min-w-[110px] h-9">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="native">Native</SelectItem>
-            <SelectItem value="proxy">Proxy</SelectItem>
-          </SelectContent>
-        </Select>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9 gap-2">
-              <Columns3 className="h-4 w-4" />
-              Columns
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Visible Columns</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.provider}
-              onCheckedChange={(checked) =>
-                setVisibleColumns((prev) => ({ ...prev, provider: Boolean(checked) }))
-              }
-            >
-              Provider
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.type}
-              onCheckedChange={(checked) =>
-                setVisibleColumns((prev) => ({ ...prev, type: Boolean(checked) }))
-              }
-            >
-              Type
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.strategy}
-              onCheckedChange={(checked) =>
-                setVisibleColumns((prev) => ({ ...prev, strategy: Boolean(checked) }))
-              }
-            >
-              Strategy
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.endpoints}
-              onCheckedChange={(checked) =>
-                setVisibleColumns((prev) => ({ ...prev, endpoints: Boolean(checked) }))
-              }
-            >
-              Endpoints
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.success}
-              onCheckedChange={(checked) =>
-                setVisibleColumns((prev) => ({ ...prev, success: Boolean(checked) }))
-              }
-            >
-              Success (24h)
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.p95}
-              onCheckedChange={(checked) =>
-                setVisibleColumns((prev) => ({ ...prev, p95: Boolean(checked) }))
-              }
-            >
-              P95 (24h)
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.requests}
-              onCheckedChange={(checked) =>
-                setVisibleColumns((prev) => ({ ...prev, requests: Boolean(checked) }))
-              }
-            >
-              Requests (24h)
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.spend}
-              onCheckedChange={(checked) =>
-                setVisibleColumns((prev) => ({ ...prev, spend: Boolean(checked) }))
-              }
-            >
-              Spend (30d)
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={visibleColumns.status}
-              onCheckedChange={(checked) =>
-                setVisibleColumns((prev) => ({ ...prev, status: Boolean(checked) }))
-              }
-            >
-              Status
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)}>
-              Reset Defaults
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <Card className="gap-0">
+        <CardHeader className="border-b">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="relative w-full xl:max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search models..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 pl-9"
+              />
+            </div>
 
-      <Card>
+            <div className="flex flex-wrap items-center gap-3">
+              <ProviderSelect
+                value={providerFilter}
+                onValueChange={setProviderFilter}
+                providers={providers}
+                className="h-9 w-auto min-w-[130px]"
+              />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 w-auto min-w-[110px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="enabled">On</SelectItem>
+                  <SelectItem value="disabled">Off</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-9 w-auto min-w-[110px]">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="native">Native</SelectItem>
+                  <SelectItem value="proxy">Proxy</SelectItem>
+                </SelectContent>
+              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 gap-2">
+                    <Columns3 className="h-4 w-4" />
+                    Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Visible Columns</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={visibleColumns.provider}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) => ({ ...prev, provider: Boolean(checked) }))
+                    }
+                  >
+                    Provider
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleColumns.type}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) => ({ ...prev, type: Boolean(checked) }))
+                    }
+                  >
+                    Type
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleColumns.strategy}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) => ({ ...prev, strategy: Boolean(checked) }))
+                    }
+                  >
+                    Strategy
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleColumns.endpoints}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) => ({ ...prev, endpoints: Boolean(checked) }))
+                    }
+                  >
+                    Endpoints
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleColumns.success}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) => ({ ...prev, success: Boolean(checked) }))
+                    }
+                  >
+                    Success (24h)
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleColumns.p95}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) => ({ ...prev, p95: Boolean(checked) }))
+                    }
+                  >
+                    P95 (24h)
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleColumns.requests}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) => ({ ...prev, requests: Boolean(checked) }))
+                    }
+                  >
+                    Requests (24h)
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleColumns.spend}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) => ({ ...prev, spend: Boolean(checked) }))
+                    }
+                  >
+                    Spend (30d)
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={visibleColumns.status}
+                    onCheckedChange={(checked) =>
+                      setVisibleColumns((prev) => ({ ...prev, status: Boolean(checked) }))
+                    }
+                  >
+                    Status
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)}>
+                    Reset Defaults
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           {filtered.length === 0 ? (
             <EmptyState
               icon={<Server className="h-6 w-6" />}
-              title={search || providerFilter !== "all" || statusFilter !== "all" || typeFilter !== "all" ? "No models match filters" : "No models configured"}
+              title={hasActiveFilters ? "No models match filters" : "No models configured"}
               description={search ? "Try adjusting your search or filters" : "Create your first model to get started"}
               action={!search ? <Button size="sm" onClick={() => handleOpenDialog()}><Plus className="mr-1.5 h-4 w-4" />New Model</Button> : undefined}
             />
