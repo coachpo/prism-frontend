@@ -16,6 +16,18 @@ import {
   type RoutingDiagramNode,
 } from "./routingDiagram";
 
+const ROUTING_NODE_FILL = {
+  endpoint: "#0f9f7a",
+  model: "#3b82f6",
+} as const;
+
+const ROUTE_HEALTH_COLOR = {
+  healthy: "#10b981",
+  degraded: "#f59e0b",
+  failing: "#ef4444",
+  noData: "#64748b",
+} as const;
+
 interface RoutingDiagramCardProps {
   data: RoutingDiagramData | null;
   loading: boolean;
@@ -169,13 +181,20 @@ export function RoutingDiagramCard({
                   <Network className="h-3.5 w-3.5" />
                   <span>
                     {mode === "topology"
-                      ? "Link width reflects active connection count"
-                      : "Link width reflects successful request count in the last 24h"}
+                      ? "Link width reflects active connection count. Color reflects 24h route success rate."
+                      : "Link width reflects successful request count in the last 24h. Color reflects 24h route success rate."}
                   </span>
                 </div>
                 <span className="rounded-full border bg-background/80 px-2.5 py-1 font-medium text-foreground">
                   Click nodes or links to drill down
                 </span>
+              </div>
+
+              <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                <HealthLegendPill label="Healthy" description="99%+" color={ROUTE_HEALTH_COLOR.healthy} />
+                <HealthLegendPill label="Degraded" description="95-98.99%" color={ROUTE_HEALTH_COLOR.degraded} />
+                <HealthLegendPill label="Failing" description="<95%" color={ROUTE_HEALTH_COLOR.failing} />
+                <HealthLegendPill label="No data" description="No recent requests" color={ROUTE_HEALTH_COLOR.noData} />
               </div>
 
               <div style={{ height: chartHeight }}>
@@ -269,7 +288,10 @@ function RoutingNodeShape({
     return null;
   }
 
-  const rectFill = payload.kind === "endpoint" ? "var(--chart-2)" : "var(--chart-1)";
+  const rectFill = payload.kind === "endpoint"
+    ? ROUTING_NODE_FILL.endpoint
+    : ROUTING_NODE_FILL.model;
+  const strokeColor = getRouteHealthColor(payload.successRate24h, payload.requestCount24h);
   const labelText = truncateLabel(payload.label, compact ? 12 : 22);
   const secondaryText = payload.kind === "endpoint"
     ? `${payload.activeConnectionCount} active`
@@ -298,8 +320,8 @@ function RoutingNodeShape({
         rx={Math.min(6, height / 3)}
         fill={rectFill}
         fillOpacity={0.88}
-        stroke="var(--background)"
-        strokeWidth={1.5}
+        stroke={strokeColor}
+        strokeWidth={payload.requestCount24h > 0 ? 2 : 1.5}
       />
       <text
         x={textX}
@@ -357,14 +379,24 @@ function RoutingLinkShape({
     payload,
   } = props;
 
+  const strokeColor = getRouteHealthColor(payload?.successRate24h ?? null, payload?.requestCount24h ?? 0);
+  const strokeOpacity = mode === "topology"
+    ? payload?.requestCount24h
+      ? 0.36
+      : 0.24
+    : payload?.requestCount24h
+      ? 0.54
+      : 0.3;
+
   return (
     <path
       className="cursor-pointer transition-opacity duration-150 hover:opacity-95"
       d={`M${sourceX},${sourceY} C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`}
       fill="none"
-      stroke={mode === "topology" ? "var(--chart-2)" : "var(--chart-5)"}
+      stroke={strokeColor}
       strokeWidth={Math.max(linkWidth, 1)}
-      strokeOpacity={mode === "topology" ? 0.28 : 0.42}
+      strokeOpacity={strokeOpacity}
+      strokeLinecap="round"
       role="button"
       tabIndex={0}
       aria-label={payload ? `Route from ${payload.endpointLabel} to ${payload.modelLabel}` : "Routing link"}
@@ -410,7 +442,9 @@ function RoutingDiagramTooltip({
         <div className="mt-3 space-y-1.5">
           <TooltipRow label="Node type" value={chartPayload.kind === "endpoint" ? "Endpoint" : "Model"} />
           <TooltipRow label="Active connections" value={chartPayload.activeConnectionCount.toLocaleString()} />
-          <TooltipRow label="24h requests" value={chartPayload.trafficRequestCount24h.toLocaleString()} />
+          <TooltipRow label="24h success rate" value={formatSuccessRate(chartPayload.successRate24h, chartPayload.requestCount24h)} />
+          <TooltipRow label="24h total requests" value={chartPayload.requestCount24h.toLocaleString()} />
+          <TooltipRow label="24h successful requests" value={chartPayload.trafficRequestCount24h.toLocaleString()} />
           <TooltipRow
             label="Action"
             value={chartPayload.kind === "endpoint" ? "Open request logs" : "Open model detail"}
@@ -428,8 +462,12 @@ function RoutingDiagramTooltip({
         <div className="mt-3 space-y-1.5">
           <TooltipRow label="Endpoint" value={chartPayload.endpointLabel} />
           <TooltipRow label="Model" value={chartPayload.modelId} />
+          <TooltipRow label="24h health" value={getRouteHealthLabel(chartPayload.successRate24h, chartPayload.requestCount24h)} />
+          <TooltipRow label="24h success rate" value={formatSuccessRate(chartPayload.successRate24h, chartPayload.requestCount24h)} />
+          <TooltipRow label="24h total requests" value={chartPayload.requestCount24h.toLocaleString()} />
           <TooltipRow label="Active connections" value={chartPayload.activeConnectionCount.toLocaleString()} />
-          <TooltipRow label="24h requests" value={chartPayload.trafficRequestCount24h.toLocaleString()} />
+          <TooltipRow label="24h successful requests" value={chartPayload.trafficRequestCount24h.toLocaleString()} />
+          <TooltipRow label="24h errors" value={chartPayload.errorCount24h.toLocaleString()} />
           <TooltipRow
             label="Mode value"
             value={
@@ -467,6 +505,24 @@ function DrilldownHint({ title, description }: { title: string; description: str
   );
 }
 
+function HealthLegendPill({
+  label,
+  description,
+  color,
+}: {
+  label: string;
+  description: string;
+  color: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border bg-background/80 px-2.5 py-1">
+      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+      <span className="font-medium text-foreground">{label}</span>
+      <span>{description}</span>
+    </span>
+  );
+}
+
 function truncateLabel(value: string, limit: number): string {
   if (value.length <= limit) {
     return value;
@@ -481,6 +537,46 @@ function getChartPayload(item: unknown): unknown {
   }
 
   return item.payload;
+}
+
+function getRouteHealthColor(successRate: number | null, requestCount: number): string {
+  if (requestCount <= 0 || successRate === null) {
+    return ROUTE_HEALTH_COLOR.noData;
+  }
+
+  if (successRate >= 99) {
+    return ROUTE_HEALTH_COLOR.healthy;
+  }
+
+  if (successRate >= 95) {
+    return ROUTE_HEALTH_COLOR.degraded;
+  }
+
+  return ROUTE_HEALTH_COLOR.failing;
+}
+
+function getRouteHealthLabel(successRate: number | null, requestCount: number): string {
+  if (requestCount <= 0 || successRate === null) {
+    return "No recent request data";
+  }
+
+  if (successRate >= 99) {
+    return "Healthy";
+  }
+
+  if (successRate >= 95) {
+    return "Degraded";
+  }
+
+  return "Failing";
+}
+
+function formatSuccessRate(successRate: number | null, requestCount: number): string {
+  if (requestCount <= 0 || successRate === null) {
+    return "No data";
+  }
+
+  return `${successRate.toFixed(2)}%`;
 }
 
 function isRoutingDiagramNode(value: unknown): value is RoutingDiagramNode {

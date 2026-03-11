@@ -55,9 +55,16 @@ export function DashboardPage() {
       const from24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const to24h = new Date().toISOString();
       const modelsPromise = api.models.list();
+      const routeSuccessRatesPromise = api.stats.connectionSuccessRates({
+        from_time: from24h,
+        to_time: to24h,
+      });
 
       const routingDiagramPromise = (async () => {
-        const modelsData = await modelsPromise;
+        const [modelsData, routeSuccessRates] = await Promise.all([
+          modelsPromise,
+          routeSuccessRatesPromise,
+        ]);
         const connectionResults = await Promise.allSettled(
           modelsData.map(async (model) => ({
             model,
@@ -86,6 +93,7 @@ export function DashboardPage() {
         return {
           data: buildRoutingDiagramData({
             connectionsByModel,
+            connectionSuccessRates: routeSuccessRates,
             trafficGroups: trafficResult.groups,
           }),
           error: issues.length > 0 ? issues.join(" ") : null,

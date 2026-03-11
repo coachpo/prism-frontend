@@ -173,6 +173,11 @@ export interface ConnectionSuccessRate {
   success_rate: number | null;
 }
 
+export interface ConnectionSuccessRateParams {
+  from_time?: string;
+  to_time?: string;
+}
+
 export type SpendingGroupBy =
   | "none"
   | "day"

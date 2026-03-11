@@ -19,6 +19,7 @@ import type {
   StatsRequestParams,
   StatsSummaryParams,
   ConnectionSuccessRate,
+  ConnectionSuccessRateParams,
   ConfigExportResponse,
   ConfigImportRequest,
   ConfigImportResponse,
@@ -355,8 +356,18 @@ export const api = {
         `/api/stats/summary${query ? `?${query}` : ""}`
       );
     },
-    connectionSuccessRates: () =>
-      request<ConnectionSuccessRate[]>("/api/stats/connection-success-rates"),
+    connectionSuccessRates: (params?: ConnectionSuccessRateParams) => {
+      const qs = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+        });
+      }
+      const query = qs.toString();
+      return request<ConnectionSuccessRate[]>(
+        `/api/stats/connection-success-rates${query ? `?${query}` : ""}`
+      );
+    },
     spending: (params?: SpendingReportParams) => {
       const qs = new URLSearchParams();
       if (params) {

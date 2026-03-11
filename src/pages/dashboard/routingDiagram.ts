@@ -1,4 +1,9 @@
-import type { Connection, ModelConfigListItem, SpendingGroupRow } from "@/lib/types";
+import type {
+  Connection,
+  ConnectionSuccessRate,
+  ModelConfigListItem,
+  SpendingGroupRow,
+} from "@/lib/types";
 
 export type RoutingDiagramMode = "topology" | "traffic";
 
@@ -13,6 +18,10 @@ export interface RoutingDiagramNode {
   modelConfigId: number | null;
   activeConnectionCount: number;
   trafficRequestCount24h: number;
+  requestCount24h: number;
+  successCount24h: number;
+  errorCount24h: number;
+  successRate24h: number | null;
 }
 
 export interface RoutingDiagramLink {
@@ -26,6 +35,10 @@ export interface RoutingDiagramLink {
   endpointLabel: string;
   activeConnectionCount: number;
   trafficRequestCount24h: number;
+  requestCount24h: number;
+  successCount24h: number;
+  errorCount24h: number;
+  successRate24h: number | null;
 }
 
 export interface RoutingDiagramData {
@@ -53,8 +66,12 @@ interface RoutingEdgeAccumulator {
   modelConfigId: number;
   endpointId: number;
   endpointLabel: string;
+  connectionIds: number[];
   activeConnectionCount: number;
   trafficRequestCount24h: number;
+  requestCount24h: number;
+  successCount24h: number;
+  errorCount24h: number;
 }
 
 export interface RoutingDiagramSource {
@@ -62,14 +79,17 @@ export interface RoutingDiagramSource {
     model: ModelConfigListItem;
     connections: Connection[];
   }>;
+  connectionSuccessRates: ConnectionSuccessRate[];
   trafficGroups: SpendingGroupRow[];
 }
 
 export function buildRoutingDiagramData({
   connectionsByModel,
+  connectionSuccessRates,
   trafficGroups,
 }: RoutingDiagramSource): RoutingDiagramData {
   const edgeMap = new Map<string, RoutingEdgeAccumulator>();
+  const connectionToEdgeKey = new Map<number, string>();
 
   for (const { model, connections } of connectionsByModel) {
     if (!model.is_enabled) {
@@ -92,7 +112,9 @@ export function buildRoutingDiagramData({
       const existing = edgeMap.get(edgeKey);
 
       if (existing) {
+        existing.connectionIds.push(connection.id);
         existing.activeConnectionCount += 1;
+        connectionToEdgeKey.set(connection.id, edgeKey);
         continue;
       }
 
@@ -102,9 +124,14 @@ export function buildRoutingDiagramData({
         modelConfigId: model.id,
         endpointId: connection.endpoint_id,
         endpointLabel,
+        connectionIds: [connection.id],
         activeConnectionCount: 1,
         trafficRequestCount24h: 0,
+        requestCount24h: 0,
+        successCount24h: 0,
+        errorCount24h: 0,
       });
+      connectionToEdgeKey.set(connection.id, edgeKey);
     }
   }
 
@@ -122,6 +149,22 @@ export function buildRoutingDiagramData({
     edge.trafficRequestCount24h = Math.max(0, Math.trunc(group.total_requests || 0));
   }
 
+  for (const rate of connectionSuccessRates) {
+    const edgeKey = connectionToEdgeKey.get(rate.connection_id);
+    if (!edgeKey) {
+      continue;
+    }
+
+    const edge = edgeMap.get(edgeKey);
+    if (!edge) {
+      continue;
+    }
+
+    edge.requestCount24h += Math.max(0, Math.trunc(rate.total_requests || 0));
+    edge.successCount24h += Math.max(0, Math.trunc(rate.success_count || 0));
+    edge.errorCount24h += Math.max(0, Math.trunc(rate.error_count || 0));
+  }
+
   const links = [...edgeMap.values()]
     .map<RoutingDiagramLink>((edge) => ({
       id: buildEdgeKey(edge.modelId, edge.endpointId),
@@ -134,6 +177,13 @@ export function buildRoutingDiagramData({
       endpointLabel: edge.endpointLabel,
       activeConnectionCount: edge.activeConnectionCount,
       trafficRequestCount24h: edge.trafficRequestCount24h,
+      requestCount24h: edge.requestCount24h,
+      successCount24h: edge.successCount24h,
+      errorCount24h: edge.errorCount24h,
+      successRate24h:
+        edge.requestCount24h > 0
+          ? roundRate((edge.successCount24h / edge.requestCount24h) * 100)
+          : null,
     }))
     .sort((left, right) => {
       if (right.activeConnectionCount !== left.activeConnectionCount) {
@@ -145,27 +195,54 @@ export function buildRoutingDiagramData({
       return left.endpointLabel.localeCompare(right.endpointLabel);
     });
 
-  const endpointTotals = new Map<number, { activeConnectionCount: number; trafficRequestCount24h: number; label: string }>();
-  const modelTotals = new Map<number, { activeConnectionCount: number; trafficRequestCount24h: number; label: string; modelId: string }>();
+  const endpointTotals = new Map<number, {
+    activeConnectionCount: number;
+    trafficRequestCount24h: number;
+    requestCount24h: number;
+    successCount24h: number;
+    errorCount24h: number;
+    label: string;
+  }>();
+  const modelTotals = new Map<number, {
+    activeConnectionCount: number;
+    trafficRequestCount24h: number;
+    requestCount24h: number;
+    successCount24h: number;
+    errorCount24h: number;
+    label: string;
+    modelId: string;
+  }>();
 
   for (const link of links) {
     const endpointTotal = endpointTotals.get(link.endpointId) ?? {
       activeConnectionCount: 0,
       trafficRequestCount24h: 0,
+      requestCount24h: 0,
+      successCount24h: 0,
+      errorCount24h: 0,
       label: link.endpointLabel,
     };
     endpointTotal.activeConnectionCount += link.activeConnectionCount;
     endpointTotal.trafficRequestCount24h += link.trafficRequestCount24h;
+    endpointTotal.requestCount24h += link.requestCount24h;
+    endpointTotal.successCount24h += link.successCount24h;
+    endpointTotal.errorCount24h += link.errorCount24h;
     endpointTotals.set(link.endpointId, endpointTotal);
 
     const modelTotal = modelTotals.get(link.modelConfigId) ?? {
       activeConnectionCount: 0,
       trafficRequestCount24h: 0,
+      requestCount24h: 0,
+      successCount24h: 0,
+      errorCount24h: 0,
       label: link.modelLabel,
       modelId: link.modelId,
     };
     modelTotal.activeConnectionCount += link.activeConnectionCount;
     modelTotal.trafficRequestCount24h += link.trafficRequestCount24h;
+    modelTotal.requestCount24h += link.requestCount24h;
+    modelTotal.successCount24h += link.successCount24h;
+    modelTotal.errorCount24h += link.errorCount24h;
     modelTotals.set(link.modelConfigId, modelTotal);
   }
 
@@ -187,6 +264,13 @@ export function buildRoutingDiagramData({
       modelConfigId: null,
       activeConnectionCount: totals.activeConnectionCount,
       trafficRequestCount24h: totals.trafficRequestCount24h,
+      requestCount24h: totals.requestCount24h,
+      successCount24h: totals.successCount24h,
+      errorCount24h: totals.errorCount24h,
+      successRate24h:
+        totals.requestCount24h > 0
+          ? roundRate((totals.successCount24h / totals.requestCount24h) * 100)
+          : null,
     }));
 
   const modelNodes = [...modelTotals.entries()]
@@ -207,6 +291,13 @@ export function buildRoutingDiagramData({
       modelConfigId,
       activeConnectionCount: totals.activeConnectionCount,
       trafficRequestCount24h: totals.trafficRequestCount24h,
+      requestCount24h: totals.requestCount24h,
+      successCount24h: totals.successCount24h,
+      errorCount24h: totals.errorCount24h,
+      successRate24h:
+        totals.requestCount24h > 0
+          ? roundRate((totals.successCount24h / totals.requestCount24h) * 100)
+          : null,
     }));
 
   return {
@@ -338,4 +429,8 @@ function parseTrafficGroupKey(value: string): { modelId: string; endpointId: num
   }
 
   return { modelId, endpointId };
+}
+
+function roundRate(value: number): number {
+  return Math.round(value * 100) / 100;
 }
