@@ -184,11 +184,11 @@ export function buildRoutingDiagramData({
           : null,
     }))
     .sort((left, right) => {
-      if (right.trafficRequestCount24h !== left.trafficRequestCount24h) {
-        return right.trafficRequestCount24h - left.trafficRequestCount24h;
-      }
       if (right.activeConnectionCount !== left.activeConnectionCount) {
         return right.activeConnectionCount - left.activeConnectionCount;
+      }
+      if (right.trafficRequestCount24h !== left.trafficRequestCount24h) {
+        return right.trafficRequestCount24h - left.trafficRequestCount24h;
       }
       return left.endpointLabel.localeCompare(right.endpointLabel);
     });
@@ -314,12 +314,12 @@ export function getRoutingDiagramChartData(
   const filteredLinks = data.links
     .filter((link) => link.activeConnectionCount > 0)
     .sort((left, right) => {
-      if (right.trafficRequestCount24h !== left.trafficRequestCount24h) {
-        return right.trafficRequestCount24h - left.trafficRequestCount24h;
-      }
-
       if (right.activeConnectionCount !== left.activeConnectionCount) {
         return right.activeConnectionCount - left.activeConnectionCount;
+      }
+
+      if (right.trafficRequestCount24h !== left.trafficRequestCount24h) {
+        return right.trafficRequestCount24h - left.trafficRequestCount24h;
       }
 
       return left.endpointLabel.localeCompare(right.endpointLabel);
@@ -339,7 +339,7 @@ export function getRoutingDiagramChartData(
     .filter((node) => nodeIds.has(node.id))
     .map<RoutingDiagramChartNode>((node) => ({
       ...node,
-      value: Math.max(node.trafficRequestCount24h, 1),
+      value: Math.max(node.activeConnectionCount, 1),
     }));
 
   const nodeIndex = new Map(nodes.map((node, index) => [node.id, index]));
@@ -350,7 +350,7 @@ export function getRoutingDiagramChartData(
       ...link,
       source: nodeIndex.get(link.sourceNodeId) ?? 0,
       target: nodeIndex.get(link.targetNodeId) ?? 0,
-      value: Math.max(link.trafficRequestCount24h, 1),
+      value: Math.max(link.activeConnectionCount, 1),
     })),
   };
 }

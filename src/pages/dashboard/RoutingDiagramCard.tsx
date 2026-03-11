@@ -111,7 +111,7 @@ export function RoutingDiagramCard({
         <div className="space-y-2">
           <CardTitle>Routing Health Map</CardTitle>
           <CardDescription>
-            Trace active endpoint-to-model paths in one view. Link width reflects successful 24-hour volume, while color reflects 24-hour route health.
+            Trace active endpoint-to-model paths in one view. Link width reflects active route count, while color reflects 24-hour route health.
           </CardDescription>
         </div>
 
@@ -146,7 +146,7 @@ export function RoutingDiagramCard({
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Network className="h-3.5 w-3.5" />
-                  <span>Link width reflects successful request count in the last 24h</span>
+                  <span>Link width reflects active connection count. Color reflects 24h route success rate.</span>
                 </div>
                 <span className="rounded-full border bg-background/80 px-2.5 py-1 font-medium text-foreground">
                   Click nodes or links to drill down
