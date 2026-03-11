@@ -166,7 +166,7 @@ export function RoutingDiagramCard({
                     data={chartData}
                     nodePadding={isCompact ? 18 : 24}
                     nodeWidth={isCompact ? 14 : 18}
-                    margin={{ top: 12, right: isCompact ? 84 : 148, bottom: 12, left: isCompact ? 84 : 148 }}
+                    margin={{ top: 12, right: isCompact ? 84 : 148, bottom: isCompact ? 28 : 36, left: isCompact ? 84 : 148 }}
                     sort={false}
                     onClick={(item: unknown, elementType: unknown) => {
                       if (elementType === "node") {
