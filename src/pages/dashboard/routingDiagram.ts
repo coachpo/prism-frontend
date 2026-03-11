@@ -5,8 +5,6 @@ import type {
   SpendingGroupRow,
 } from "@/lib/types";
 
-export type RoutingDiagramMode = "topology" | "traffic";
-
 export interface RoutingDiagramNode {
   id: string;
   name: string;
@@ -186,11 +184,11 @@ export function buildRoutingDiagramData({
           : null,
     }))
     .sort((left, right) => {
-      if (right.activeConnectionCount !== left.activeConnectionCount) {
-        return right.activeConnectionCount - left.activeConnectionCount;
-      }
       if (right.trafficRequestCount24h !== left.trafficRequestCount24h) {
         return right.trafficRequestCount24h - left.trafficRequestCount24h;
+      }
+      if (right.activeConnectionCount !== left.activeConnectionCount) {
+        return right.activeConnectionCount - left.activeConnectionCount;
       }
       return left.endpointLabel.localeCompare(right.endpointLabel);
     });
@@ -312,18 +310,16 @@ export function buildRoutingDiagramData({
 
 export function getRoutingDiagramChartData(
   data: RoutingDiagramData,
-  mode: RoutingDiagramMode,
 ): { nodes: RoutingDiagramChartNode[]; links: RoutingDiagramChartLink[] } {
   const filteredLinks = data.links
-    .filter((link) =>
-      mode === "topology" ? link.activeConnectionCount > 0 : link.trafficRequestCount24h > 0,
-    )
+    .filter((link) => link.activeConnectionCount > 0)
     .sort((left, right) => {
-      const leftValue = mode === "topology" ? left.activeConnectionCount : left.trafficRequestCount24h;
-      const rightValue = mode === "topology" ? right.activeConnectionCount : right.trafficRequestCount24h;
+      if (right.trafficRequestCount24h !== left.trafficRequestCount24h) {
+        return right.trafficRequestCount24h - left.trafficRequestCount24h;
+      }
 
-      if (rightValue !== leftValue) {
-        return rightValue - leftValue;
+      if (right.activeConnectionCount !== left.activeConnectionCount) {
+        return right.activeConnectionCount - left.activeConnectionCount;
       }
 
       return left.endpointLabel.localeCompare(right.endpointLabel);
@@ -343,10 +339,7 @@ export function getRoutingDiagramChartData(
     .filter((node) => nodeIds.has(node.id))
     .map<RoutingDiagramChartNode>((node) => ({
       ...node,
-      value:
-        mode === "topology"
-          ? Math.max(node.activeConnectionCount, 1)
-          : Math.max(node.trafficRequestCount24h, 1),
+      value: Math.max(node.trafficRequestCount24h, 1),
     }));
 
   const nodeIndex = new Map(nodes.map((node, index) => [node.id, index]));
@@ -357,35 +350,24 @@ export function getRoutingDiagramChartData(
       ...link,
       source: nodeIndex.get(link.sourceNodeId) ?? 0,
       target: nodeIndex.get(link.targetNodeId) ?? 0,
-      value:
-        mode === "topology"
-          ? Math.max(link.activeConnectionCount, 1)
-          : Math.max(link.trafficRequestCount24h, 1),
+      value: Math.max(link.trafficRequestCount24h, 1),
     })),
   };
 }
 
 export function getRoutingDiagramEmptyState(
   data: RoutingDiagramData,
-  mode: RoutingDiagramMode,
 ): { title: string; description: string } {
   if (data.links.length === 0) {
     return {
-      title: "No active topology links",
+      title: "No active routes",
       description: "Activate at least one model connection to map live routing paths across endpoints and models.",
     };
   }
 
-  if (mode === "traffic") {
-    return {
-      title: "No traffic in last 24h",
-      description: "Routing is configured, but no successful request traffic was recorded for the current profile in the last 24 hours.",
-    };
-  }
-
   return {
-    title: "No active topology links",
-    description: "Routing is configured, but no active connections are available for the current selected profile.",
+    title: "No routed traffic in the last 24h",
+    description: "Active routes are configured, but no successful request traffic was recorded for the current profile in the last 24 hours.",
   };
 }
 

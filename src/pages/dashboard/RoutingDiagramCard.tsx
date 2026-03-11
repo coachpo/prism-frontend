@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Activity, ArrowUpRight, Network, Workflow } from "lucide-react";
+import { ArrowUpRight, Network } from "lucide-react";
 import { Sankey, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { EmptyState } from "@/components/EmptyState";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -12,12 +11,11 @@ import {
   type RoutingDiagramChartNode,
   type RoutingDiagramData,
   type RoutingDiagramLink,
-  type RoutingDiagramMode,
   type RoutingDiagramNode,
 } from "./routingDiagram";
 
 const ROUTE_HEALTH_COLOR = {
-  healthy: "#14b8a6",
+  healthy: "#10b981",
   degraded: "#f59e0b",
   failing: "#ef4444",
   noData: "#64748b",
@@ -40,7 +38,6 @@ export function RoutingDiagramCard({
   onSelectEndpoint,
   onSelectLink,
 }: RoutingDiagramCardProps) {
-  const [mode, setMode] = useState<RoutingDiagramMode>("topology");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -67,12 +64,12 @@ export function RoutingDiagramCard({
   const chartHeight = isCompact ? 320 : 420;
 
   const chartData = useMemo(() => {
-    return data ? getRoutingDiagramChartData(data, mode) : { nodes: [], links: [] };
-  }, [data, mode]);
+    return data ? getRoutingDiagramChartData(data) : { nodes: [], links: [] };
+  }, [data]);
 
   const emptyState = useMemo(() => {
-    return data ? getRoutingDiagramEmptyState(data, mode) : null;
-  }, [data, mode]);
+    return data ? getRoutingDiagramEmptyState(data) : null;
+  }, [data]);
 
   const activateNode = (node: RoutingDiagramNode) => {
     if (node.kind === "model" && node.modelConfigId !== null) {
@@ -93,8 +90,8 @@ export function RoutingDiagramCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Routing Diagram</CardTitle>
-          <CardDescription>Loading live topology and 24-hour traffic flows</CardDescription>
+          <CardTitle>Routing Health Map</CardTitle>
+          <CardDescription>Loading live routing volume and 24-hour health data</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -111,36 +108,11 @@ export function RoutingDiagramCard({
   return (
     <Card>
       <CardHeader className="gap-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2">
-            <CardTitle>Routing Diagram</CardTitle>
-            <CardDescription>
-              Trace active endpoint-to-model paths, then switch into traffic mode to compare the last 24 hours of routed demand.
-            </CardDescription>
-          </div>
-
-          <div className="inline-flex rounded-xl border bg-muted/50 p-1">
-            <Button
-              type="button"
-              size="sm"
-              variant={mode === "topology" ? "default" : "ghost"}
-              className="h-8 gap-2 px-3 text-xs"
-              onClick={() => setMode("topology")}
-            >
-              <Workflow className="h-3.5 w-3.5" />
-              Topology
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={mode === "traffic" ? "default" : "ghost"}
-              className="h-8 gap-2 px-3 text-xs"
-              onClick={() => setMode("traffic")}
-            >
-              <Activity className="h-3.5 w-3.5" />
-              Traffic (24h)
-            </Button>
-          </div>
+        <div className="space-y-2">
+          <CardTitle>Routing Health Map</CardTitle>
+          <CardDescription>
+            Trace active endpoint-to-model paths in one view. Link width reflects successful 24-hour volume, while color reflects 24-hour route health.
+          </CardDescription>
         </div>
 
         {data ? (
@@ -174,25 +146,19 @@ export function RoutingDiagramCard({
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Network className="h-3.5 w-3.5" />
-                  <span>
-                    {mode === "topology"
-                      ? "Link width reflects active connection count"
-                      : "Link width reflects successful request count in the last 24h. Color reflects 24h route success rate."}
-                  </span>
+                  <span>Link width reflects successful request count in the last 24h</span>
                 </div>
                 <span className="rounded-full border bg-background/80 px-2.5 py-1 font-medium text-foreground">
                   Click nodes or links to drill down
                 </span>
               </div>
 
-              {mode === "traffic" ? (
-                <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                  <HealthLegendPill label="Healthy" description="99%+" color={ROUTE_HEALTH_COLOR.healthy} />
-                  <HealthLegendPill label="Degraded" description="95-98.99%" color={ROUTE_HEALTH_COLOR.degraded} />
-                  <HealthLegendPill label="Failing" description="<95%" color={ROUTE_HEALTH_COLOR.failing} />
-                  <HealthLegendPill label="No data" description="No recent requests" color={ROUTE_HEALTH_COLOR.noData} />
-                </div>
-              ) : null}
+              <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                <HealthLegendPill label="Healthy" description="99%+" color={ROUTE_HEALTH_COLOR.healthy} />
+                <HealthLegendPill label="Degraded" description="95-98.99%" color={ROUTE_HEALTH_COLOR.degraded} />
+                <HealthLegendPill label="Failing" description="<95%" color={ROUTE_HEALTH_COLOR.failing} />
+                <HealthLegendPill label="No data" description="No recent requests" color={ROUTE_HEALTH_COLOR.noData} />
+              </div>
 
               <div style={{ height: chartHeight }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -222,13 +188,13 @@ export function RoutingDiagramCard({
                       <RoutingNodeShape props={props} compact={isCompact} onActivate={activateNode} />
                     )}
                     link={(props: RoutingLinkShapeProps) => (
-                      <RoutingLinkShape props={props} mode={mode} onActivate={activateLink} />
+                      <RoutingLinkShape props={props} onActivate={activateLink} />
                     )}
                   >
                     <RechartsTooltip
                       cursor={false}
                       wrapperStyle={{ outline: "none" }}
-                      content={<RoutingDiagramTooltip mode={mode} />}
+                      content={<RoutingDiagramTooltip />}
                     />
                   </Sankey>
                 </ResponsiveContainer>
@@ -252,7 +218,7 @@ export function RoutingDiagramCard({
           </>
         ) : (
           <EmptyState
-            icon={mode === "topology" ? <Workflow className="h-6 w-6" /> : <Activity className="h-6 w-6" />}
+            icon={<Network className="h-6 w-6" />}
             title={emptyState?.title ?? "No routing data"}
             description={emptyState?.description ?? "No routing diagram data is available for this profile."}
           />
@@ -355,11 +321,9 @@ interface RoutingLinkShapeProps {
 
 function RoutingLinkShape({
   props,
-  mode,
   onActivate,
 }: {
   props: RoutingLinkShapeProps;
-  mode: RoutingDiagramMode;
   onActivate: (link: RoutingDiagramLink) => void;
 }) {
   const {
@@ -373,10 +337,8 @@ function RoutingLinkShape({
     payload,
   } = props;
 
-  const strokeColor = mode === "traffic"
-    ? getRouteHealthColor(payload?.successRate24h ?? null, payload?.requestCount24h ?? 0)
-    : "var(--chart-2)";
-  const strokeOpacity = mode === "topology" ? 0.28 : 0.34;
+  const strokeColor = getRouteHealthColor(payload?.successRate24h ?? null, payload?.requestCount24h ?? 0);
+  const strokeOpacity = payload?.requestCount24h ? 0.38 : 0.24;
 
   return (
     <path
@@ -414,10 +376,9 @@ interface RoutingDiagramTooltipProps {
 }
 
 function RoutingDiagramTooltip({
-  mode,
   active,
   payload,
-}: { mode: RoutingDiagramMode } & RoutingDiagramTooltipProps) {
+}: RoutingDiagramTooltipProps) {
   if (!active || !payload?.length) {
     return null;
   }
@@ -458,14 +419,6 @@ function RoutingDiagramTooltip({
           <TooltipRow label="Active connections" value={chartPayload.activeConnectionCount.toLocaleString()} />
           <TooltipRow label="24h successful requests" value={chartPayload.trafficRequestCount24h.toLocaleString()} />
           <TooltipRow label="24h errors" value={chartPayload.errorCount24h.toLocaleString()} />
-          <TooltipRow
-            label="Mode value"
-            value={
-              mode === "topology"
-                ? chartPayload.activeConnectionCount.toLocaleString()
-                : chartPayload.trafficRequestCount24h.toLocaleString()
-            }
-          />
         </div>
       </div>
     );
@@ -479,18 +432,6 @@ function TooltipRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-start justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
       <span className="text-right font-medium">{value}</span>
-    </div>
-  );
-}
-
-function DrilldownHint({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="rounded-xl border bg-muted/30 px-3 py-3">
-      <div className="flex items-center gap-2 text-sm font-medium">
-        <ArrowUpRight className="h-4 w-4 text-primary" />
-        {title}
-      </div>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{description}</p>
     </div>
   );
 }
@@ -510,6 +451,18 @@ function HealthLegendPill({
       <span className="font-medium text-foreground">{label}</span>
       <span>{description}</span>
     </span>
+  );
+}
+
+function DrilldownHint({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-xl border bg-muted/30 px-3 py-3">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <ArrowUpRight className="h-4 w-4 text-primary" />
+        {title}
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{description}</p>
+    </div>
   );
 }
 
