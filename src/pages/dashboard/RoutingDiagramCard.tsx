@@ -16,13 +16,8 @@ import {
   type RoutingDiagramNode,
 } from "./routingDiagram";
 
-const ROUTING_NODE_FILL = {
-  endpoint: "#0f9f7a",
-  model: "#3b82f6",
-} as const;
-
 const ROUTE_HEALTH_COLOR = {
-  healthy: "#10b981",
+  healthy: "#14b8a6",
   degraded: "#f59e0b",
   failing: "#ef4444",
   noData: "#64748b",
@@ -181,7 +176,7 @@ export function RoutingDiagramCard({
                   <Network className="h-3.5 w-3.5" />
                   <span>
                     {mode === "topology"
-                      ? "Link width reflects active connection count. Color reflects 24h route success rate."
+                      ? "Link width reflects active connection count"
                       : "Link width reflects successful request count in the last 24h. Color reflects 24h route success rate."}
                   </span>
                 </div>
@@ -190,12 +185,14 @@ export function RoutingDiagramCard({
                 </span>
               </div>
 
-              <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                <HealthLegendPill label="Healthy" description="99%+" color={ROUTE_HEALTH_COLOR.healthy} />
-                <HealthLegendPill label="Degraded" description="95-98.99%" color={ROUTE_HEALTH_COLOR.degraded} />
-                <HealthLegendPill label="Failing" description="<95%" color={ROUTE_HEALTH_COLOR.failing} />
-                <HealthLegendPill label="No data" description="No recent requests" color={ROUTE_HEALTH_COLOR.noData} />
-              </div>
+              {mode === "traffic" ? (
+                <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                  <HealthLegendPill label="Healthy" description="99%+" color={ROUTE_HEALTH_COLOR.healthy} />
+                  <HealthLegendPill label="Degraded" description="95-98.99%" color={ROUTE_HEALTH_COLOR.degraded} />
+                  <HealthLegendPill label="Failing" description="<95%" color={ROUTE_HEALTH_COLOR.failing} />
+                  <HealthLegendPill label="No data" description="No recent requests" color={ROUTE_HEALTH_COLOR.noData} />
+                </div>
+              ) : null}
 
               <div style={{ height: chartHeight }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -288,10 +285,7 @@ function RoutingNodeShape({
     return null;
   }
 
-  const rectFill = payload.kind === "endpoint"
-    ? ROUTING_NODE_FILL.endpoint
-    : ROUTING_NODE_FILL.model;
-  const strokeColor = getRouteHealthColor(payload.successRate24h, payload.requestCount24h);
+  const rectFill = payload.kind === "endpoint" ? "var(--chart-2)" : "var(--chart-1)";
   const labelText = truncateLabel(payload.label, compact ? 12 : 22);
   const secondaryText = payload.kind === "endpoint"
     ? `${payload.activeConnectionCount} active`
@@ -320,8 +314,8 @@ function RoutingNodeShape({
         rx={Math.min(6, height / 3)}
         fill={rectFill}
         fillOpacity={0.88}
-        stroke={strokeColor}
-        strokeWidth={payload.requestCount24h > 0 ? 2 : 1.5}
+        stroke="var(--background)"
+        strokeWidth={1.5}
       />
       <text
         x={textX}
@@ -379,14 +373,10 @@ function RoutingLinkShape({
     payload,
   } = props;
 
-  const strokeColor = getRouteHealthColor(payload?.successRate24h ?? null, payload?.requestCount24h ?? 0);
-  const strokeOpacity = mode === "topology"
-    ? payload?.requestCount24h
-      ? 0.36
-      : 0.24
-    : payload?.requestCount24h
-      ? 0.54
-      : 0.3;
+  const strokeColor = mode === "traffic"
+    ? getRouteHealthColor(payload?.successRate24h ?? null, payload?.requestCount24h ?? 0)
+    : "var(--chart-2)";
+  const strokeOpacity = mode === "topology" ? 0.28 : 0.34;
 
   return (
     <path
@@ -396,7 +386,7 @@ function RoutingLinkShape({
       stroke={strokeColor}
       strokeWidth={Math.max(linkWidth, 1)}
       strokeOpacity={strokeOpacity}
-      strokeLinecap="round"
+      strokeLinecap="butt"
       role="button"
       tabIndex={0}
       aria-label={payload ? `Route from ${payload.endpointLabel} to ${payload.modelLabel}` : "Routing link"}
