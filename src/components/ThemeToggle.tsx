@@ -9,13 +9,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
+type ThemeToggleProps = {
+  align?: "start" | "center" | "end";
+  buttonClassName?: string;
+  menuClassName?: string;
+};
+
 const themeOptions = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
   { value: "system", label: "System", icon: Laptop },
 ] as const;
 
-export function ThemeToggle() {
+export function ThemeToggle({
+  align = "end",
+  buttonClassName,
+  menuClassName,
+}: ThemeToggleProps) {
   const { theme = "system", setTheme } = useTheme();
   const activeTheme = themeOptions.find((option) => option.value === theme) ?? themeOptions[2];
   const ActiveIcon = activeTheme.icon;
@@ -26,13 +36,16 @@ export function ThemeToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground dark:hover:bg-accent/60"
+          className={cn(
+            "h-8 w-8 rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground dark:hover:bg-accent/60",
+            buttonClassName
+          )}
         >
           <ActiveIcon className="h-4 w-4" />
           <span className="sr-only">Change theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36">
+      <DropdownMenuContent align={align} className={cn("w-36", menuClassName)}>
         {themeOptions.map((option) => {
           const OptionIcon = option.icon;
 

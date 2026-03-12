@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-import { Fingerprint, Trash2, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Fingerprint, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { api } from "@/lib/api";
 import { registerPasskey } from "@/lib/webauthn";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,9 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface PasskeyCredential {
   id: number;
@@ -33,30 +33,126 @@ interface PasskeyCredential {
   last_used_at: string | null;
 }
 
+const createdDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+const relativeTimeFormatter = new Intl.RelativeTimeFormat("en", {
+  numeric: "auto",
+  style: "short",
+});
+
+function formatCreatedDate(dateString: string) {
+  const timestamp = new Date(dateString);
+  if (Number.isNaN(timestamp.getTime())) {
+    return "Unknown date";
+  }
+
+  return createdDateFormatter.format(timestamp);
+}
+
+function formatRelativeLastUsed(dateString: string | null) {
+  if (!dateString) {
+    return "Not used yet";
+  }
+
+  const timestamp = new Date(dateString);
+  if (Number.isNaN(timestamp.getTime())) {
+    return "Unknown last use";
+  }
+
+  const delta = timestamp.getTime() - Date.now();
+  const absoluteDelta = Math.abs(delta);
+
+  if (absoluteDelta < 60_000) {
+    return "just now";
+  }
+
+  const units: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+    ["year", 31_536_000_000],
+    ["month", 2_592_000_000],
+    ["week", 604_800_000],
+    ["day", 86_400_000],
+    ["hour", 3_600_000],
+    ["minute", 60_000],
+  ];
+
+  for (const [unit, size] of units) {
+    if (absoluteDelta >= size) {
+      return relativeTimeFormatter.format(Math.round(delta / size), unit);
+    }
+  }
+
+  return "just now";
+}
+
+function getPasskeyStateBadge(passkey: PasskeyCredential) {
+  if (passkey.backup_state) {
+    return {
+      label: "Synced",
+      className:
+        "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  if (passkey.backup_eligible === true) {
+    return {
+      label: "Backup ready",
+      className: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+    };
+  }
+
+  if (passkey.backup_eligible === false) {
+    return {
+      label: "Device-bound",
+      className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    };
+  }
+
+  return null;
+}
+
+function buildPasskeyMetadata(passkey: PasskeyCredential) {
+  const parts = [`Created ${formatCreatedDate(passkey.created_at)}`];
+
+  if (passkey.last_used_at) {
+    parts.push(`Last used ${formatRelativeLastUsed(passkey.last_used_at)}`);
+  } else {
+    parts.push("Not used yet");
+  }
+
+  if (passkey.backup_state) {
+    parts.push("Synced to your account");
+  } else if (passkey.backup_eligible === true) {
+    parts.push("Backup capable");
+  } else if (passkey.backup_eligible === false) {
+    parts.push("Stored on this device");
+  }
+
+  return parts.join(" · ");
+}
+
 export function PasskeySection() {
   const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const [isSupported, setIsSupported] = useState(true);
-  
-  // Registration dialog state
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const [deviceName, setDeviceName] = useState("");
-  
-  // Removal dialog state
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [passkeyToRemove, setPasskeyToRemove] = useState<PasskeyCredential | null>(null);
   const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
-    // Check if WebAuthn is supported
     if (!window.PublicKeyCredential) {
       setIsSupported(false);
       setLoading(false);
       return;
     }
 
-    fetchPasskeys();
+    void fetchPasskeys();
   }, []);
 
   const fetchPasskeys = async () => {
@@ -100,7 +196,9 @@ export function PasskeySection() {
   };
 
   const handleRemoveConfirm = async () => {
-    if (!passkeyToRemove) return;
+    if (!passkeyToRemove) {
+      return;
+    }
 
     setRemoving(true);
     try {
@@ -116,94 +214,117 @@ export function PasskeySection() {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Never";
-    return new Date(dateString).toLocaleString();
-  };
-
   return (
     <section id="passkeys" tabIndex={-1} className="scroll-mt-24">
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Fingerprint className="h-4 w-4" />
-                Passkeys
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Sign in securely with your device's fingerprint, face recognition, or screen lock.
+        <CardHeader className="gap-4 pb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Fingerprint className="h-4 w-4 text-primary" />
+                  Passkeys
+                </CardTitle>
+                <Badge
+                  variant="outline"
+                  className="rounded-full px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+                >
+                  {passkeys.length} registered
+                </Badge>
+              </div>
+              <CardDescription className="max-w-2xl text-sm leading-6">
+                Sign in with Touch ID, Face ID, Windows Hello, or your device screen lock.
+                Existing passkeys appear below so you can review or remove them quickly.
               </CardDescription>
             </div>
-            <Badge variant="outline" className="w-fit">
-              {passkeys.length} Registered
-            </Badge>
+
+            <Button
+              type="button"
+              onClick={handleRegisterClick}
+              disabled={!isSupported || loading || registering}
+              className="h-9 w-9 rounded-full p-0 sm:w-auto sm:rounded-md sm:px-4"
+            >
+              <Plus className="h-4 w-4 shrink-0 sm:mr-2" />
+              <span className="hidden sm:inline">Add passkey</span>
+              <span className="sr-only sm:hidden">Add passkey</span>
+            </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+
+        <CardContent className="space-y-4 pt-0">
           {!isSupported ? (
             <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-4">
               <p className="text-sm text-destructive">
                 Your browser or device does not support Passkeys (WebAuthn).
               </p>
             </div>
+          ) : loading ? (
+            <div className="rounded-xl border border-dashed px-4 py-10 text-center">
+              <p className="text-sm text-muted-foreground">Loading passkeys...</p>
+            </div>
+          ) : passkeys.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed px-4 py-10 text-center">
+              <Fingerprint className="mb-3 h-8 w-8 text-muted-foreground/50" />
+              <p className="text-sm font-medium">No passkeys registered</p>
+              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                Add a passkey to sign in with biometrics or your device lock screen instead of
+                typing a password every time.
+              </p>
+            </div>
           ) : (
-            <>
-              <div className="flex justify-end">
-                <Button onClick={handleRegisterClick} disabled={loading || registering}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Register New Passkey
-                </Button>
-              </div>
+            <div className="overflow-hidden rounded-xl border border-border/70 bg-background/70">
+              <div className="divide-y divide-border/70">
+                {passkeys.map((passkey) => {
+                  const passkeyName = passkey.device_name || `Passkey #${passkey.id}`;
+                  const stateBadge = getPasskeyStateBadge(passkey);
 
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <p className="text-sm text-muted-foreground">Loading passkeys...</p>
-                </div>
-              ) : passkeys.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-8 text-center">
-                  <Fingerprint className="mb-2 h-8 w-8 text-muted-foreground/50" />
-                  <p className="text-sm font-medium">No passkeys registered</p>
-                  <p className="text-xs text-muted-foreground">
-                    Register a passkey to sign in without a password.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {passkeys.map((passkey) => (
-                    <Card key={passkey.id} className="shadow-none">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <p className="font-medium">
-                              {passkey.device_name || `Passkey #${passkey.id}`}
-                            </p>
-                            <div className="text-xs text-muted-foreground space-y-0.5">
-                              <p>Created: {formatDate(passkey.created_at)}</p>
-                              <p>Last used: {formatDate(passkey.last_used_at)}</p>
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                            onClick={() => handleRemoveClick(passkey)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Remove passkey</span>
-                          </Button>
+                  return (
+                    <div
+                      key={passkey.id}
+                      className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex min-w-0 flex-1 items-start gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/50 text-primary">
+                          <Fingerprint className="h-5 w-5" />
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </>
+
+                        <div className="min-w-0 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {passkeyName}
+                            </p>
+                            {stateBadge ? (
+                              <Badge variant="outline" className={stateBadge.className}>
+                                {stateBadge.label}
+                              </Badge>
+                            ) : null}
+                          </div>
+
+                          <p className="text-sm leading-6 text-muted-foreground">
+                            {buildPasskeyMetadata(passkey)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => handleRemoveClick(passkey)}
+                        aria-label={`Remove ${passkeyName}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Register Dialog */}
       <Dialog open={registerDialogOpen} onOpenChange={setRegisterDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -219,7 +340,7 @@ export function PasskeySection() {
                 id="device-name"
                 placeholder="e.g., My MacBook Pro"
                 value={deviceName}
-                onChange={(e) => setDeviceName(e.target.value)}
+                onChange={(event) => setDeviceName(event.target.value)}
                 autoFocus
               />
             </div>
@@ -239,13 +360,14 @@ export function PasskeySection() {
         </DialogContent>
       </Dialog>
 
-      {/* Remove Confirm Dialog */}
       <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Remove Passkey</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove the passkey "{passkeyToRemove?.device_name || `Passkey #${passkeyToRemove?.id ?? ""}`}"? You will no longer be able to use this device to sign in.
+              Are you sure you want to remove the passkey "
+              {passkeyToRemove?.device_name || `Passkey #${passkeyToRemove?.id ?? ""}`}
+              "? You will no longer be able to use this device to sign in.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -256,11 +378,7 @@ export function PasskeySection() {
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleRemoveConfirm}
-              disabled={removing}
-            >
+            <Button variant="destructive" onClick={handleRemoveConfirm} disabled={removing}>
               {removing ? "Removing..." : "Remove Passkey"}
             </Button>
           </DialogFooter>
