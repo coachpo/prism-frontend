@@ -58,6 +58,9 @@ import type {
   ProxyApiKeyCreate,
   ProxyApiKeyCreateResponse,
   ProxyApiKeyRotateResponse,
+  LoadbalanceEventDetail,
+  LoadbalanceEventListResponse,
+  LoadbalanceStats,
 } from "./types";
 
 const rawApiBase = import.meta.env.VITE_API_BASE;
@@ -509,6 +512,59 @@ export const api = {
       return request<AuditLogDeleteResponse>(
         `/api/audit/logs?${qs.toString()}`,
         { method: "DELETE" }
+      );
+    },
+  },
+  loadbalance: {
+    listEvents: (params: {
+      connection_id?: number;
+      event_type?: string;
+      failure_kind?: string;
+      model_id?: string;
+      from_time?: string;
+      to_time?: string;
+      limit?: number;
+      offset?: number;
+    }) => {
+      const qs = new URLSearchParams();
+      if (params.connection_id !== undefined)
+        qs.set("connection_id", String(params.connection_id));
+      if (params.event_type) qs.set("event_type", params.event_type);
+      if (params.failure_kind) qs.set("failure_kind", params.failure_kind);
+      if (params.model_id) qs.set("model_id", params.model_id);
+      if (params.from_time) qs.set("from_time", params.from_time);
+      if (params.to_time) qs.set("to_time", params.to_time);
+      if (params.limit !== undefined) qs.set("limit", String(params.limit));
+      if (params.offset !== undefined) qs.set("offset", String(params.offset));
+      const query = qs.toString();
+      return request<LoadbalanceEventListResponse>(
+        `/api/loadbalance/events${query ? `?${query}` : ""}`
+      );
+    },
+    getEvent: (eventId: number) =>
+      request<LoadbalanceEventDetail>(`/api/loadbalance/events/${eventId}`),
+    deleteEvents: (params: {
+      before?: string;
+      older_than_days?: number;
+      delete_all?: boolean;
+    }) => {
+      const qs = new URLSearchParams();
+      if (params.before) qs.set("before", params.before);
+      if (params.older_than_days !== undefined)
+        qs.set("older_than_days", String(params.older_than_days));
+      if (params.delete_all) qs.set("delete_all", "true");
+      return request<{ deleted_count: number }>(
+        `/api/loadbalance/events?${qs.toString()}`,
+        { method: "DELETE" }
+      );
+    },
+    getStats: (params: { from_time?: string; to_time?: string }) => {
+      const qs = new URLSearchParams();
+      if (params.from_time) qs.set("from_time", params.from_time);
+      if (params.to_time) qs.set("to_time", params.to_time);
+      const query = qs.toString();
+      return request<LoadbalanceStats>(
+        `/api/loadbalance/stats${query ? `?${query}` : ""}`
       );
     },
   },
