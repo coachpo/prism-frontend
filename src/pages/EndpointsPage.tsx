@@ -123,7 +123,9 @@ function EndpointCardView({
           </button>
 
           <div className="min-w-0 flex-1 space-y-2">
-            <CardTitle className="truncate pr-2 text-base font-semibold">{endpoint.name}</CardTitle>
+            <CardTitle className="pr-2 text-base font-semibold whitespace-normal break-words [overflow-wrap:anywhere]">
+              {endpoint.name}
+            </CardTitle>
             <Badge
               variant="outline"
               className="max-w-full truncate border-border/70 bg-muted/30 px-2 py-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
