@@ -481,14 +481,6 @@ export function ConnectionsList({
     await handleReorderConnections(Number(active.id), toIndex);
   };
 
-  const helperText = reorderInFlight
-    ? "Saving your new connection order. Drag handles are temporarily disabled until the update finishes."
-    : hasActiveFilter
-      ? "Reordering is disabled while filters are active. Clear the filter to adjust routing priority."
-      : connections.length > 1
-        ? "Drag cards by the handle to change routing priority. Keyboard users can focus a handle, press Space, move with arrow keys, and press Space again to drop."
-        : "Add at least two connections to enable drag-and-drop ordering.";
-
   return (
     <>
       <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -519,30 +511,6 @@ export function ConnectionsList({
           </Button>
         </div>
       </div>
-
-      {connections.length > 0 ? (
-        <div className="flex items-start gap-2 rounded-xl border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-          {reorderInFlight ? (
-            <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" />
-          ) : (
-            <GripVertical className="mt-0.5 h-4 w-4 shrink-0" />
-          )}
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <span>{helperText}</span>
-            {hasActiveFilter ? (
-              <Button
-                type="button"
-                variant="link"
-                size="xs"
-                className="h-auto p-0 text-xs"
-                onClick={() => setConnectionSearch("")}
-              >
-                Clear filter
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
 
       {filteredConnections.length === 0 ? (
         <EmptyState
