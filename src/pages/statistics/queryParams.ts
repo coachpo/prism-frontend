@@ -10,7 +10,7 @@ export type SpecialTokenFilter =
 export type OperationsStatusFilter = "all" | "success" | "4xx" | "5xx" | "error";
 export type InvestigateTab = "errors" | "slow" | "costly";
 
-export const STATISTICS_TABS = ["operations", "spending"] as const;
+export const STATISTICS_TABS = ["operations", "throughput", "spending"] as const;
 export const OPERATIONS_TIME_RANGES = ["1h", "24h", "7d", "all"] as const;
 export const OPERATIONS_SPECIAL_TOKEN_FILTERS: readonly SpecialTokenFilter[] = [
   "all",

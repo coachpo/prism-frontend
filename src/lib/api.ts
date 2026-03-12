@@ -20,6 +20,7 @@ import type {
   StatsSummaryParams,
   ConnectionSuccessRate,
   ConnectionSuccessRateParams,
+  ThroughputStatsResponse,
   ConfigExportResponse,
   ConfigImportRequest,
   ConfigImportResponse,
@@ -401,6 +402,18 @@ export const api = {
         `/api/stats/spending${query ? `?${query}` : ""}`
       );
     },
+    throughput: (params?: { from_time?: string; to_time?: string; model_id?: string; provider_type?: string; endpoint_id?: number; connection_id?: number }) => {
+      const qs = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+        });
+      }
+      const query = qs.toString();
+      return request<ThroughputStatsResponse>(
+        `/api/stats/throughput${query ? `?${query}` : ""}`
+      );
+    },
     delete: (params: { older_than_days?: number; delete_all?: boolean }) => {
       const qs = new URLSearchParams();
       if (params.older_than_days !== undefined)
@@ -455,9 +468,54 @@ export const api = {
             method: "DELETE",
           }),
       },
+      webauthn: {
+        registrationOptions: () =>
+          request<Record<string, unknown>>("/api/auth/webauthn/register/options", {
+            method: "POST",
+          }),
+        registrationVerify: (data: { credential: Record<string, unknown>; device_name?: string }) =>
+          request<{ success: boolean; credential_id: number }>("/api/auth/webauthn/register/verify", {
+            method: "POST",
+            body: JSON.stringify(data),
+          }),
+        authenticationOptions: (username?: string) => {
+          const qs = new URLSearchParams();
+          const normalizedUsername = username?.trim();
+          if (normalizedUsername) {
+            qs.set("username", normalizedUsername);
+          }
+          const query = qs.toString();
+          return request<Record<string, unknown>>(
+            `/api/auth/webauthn/authenticate/options${query ? `?${query}` : ""}`,
+            {
+              method: "POST",
+            }
+          );
+        },
+        authenticationVerify: (data: { credential: Record<string, unknown> }) =>
+          request<{ success: boolean; authenticated: boolean; username: string }>("/api/auth/webauthn/authenticate/verify", {
+            method: "POST",
+            body: JSON.stringify(data),
+          }),
+        listCredentials: () =>
+          request<{
+            items: Array<{
+              id: number;
+              device_name: string | null;
+              backup_eligible: boolean | null;
+              backup_state: boolean | null;
+              last_used_at: string | null;
+              created_at: string;
+            }>;
+            total: number;
+          }>("/api/auth/webauthn/credentials"),
+        revokeCredential: (credentialId: number) =>
+          request<{ success: boolean }>(`/api/auth/webauthn/credentials/${credentialId}`, {
+            method: "DELETE",
+          }),
+      },
     },
   },
-
   config: {
     export: () => request<ConfigExportResponse>("/api/config/export"),
     import: (data: ConfigImportRequest) =>

@@ -245,3 +245,18 @@ export interface SpendingReportResponse {
   report_currency_code: string;
   report_currency_symbol: string;
 }
+
+export interface ThroughputBucket {
+  timestamp: string;
+  request_count: number;
+  tps: number;
+}
+
+export interface ThroughputStatsResponse {
+  average_tps: number;
+  peak_tps: number;
+  current_tps: number;
+  total_requests: number;
+  time_window_seconds: number;
+  buckets: ThroughputBucket[];
+}

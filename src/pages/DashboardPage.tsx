@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
+import { useRealtimeData } from "@/hooks/useRealtimeData";
 import type {
   ModelConfigListItem,
   RequestLogEntry,
@@ -33,8 +34,9 @@ import { buildRoutingDiagramData, type RoutingDiagramData } from "@/pages/dashbo
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { revision } = useProfileContext();
+  const { revision, selectedProfile } = useProfileContext();
   const { format: formatTime } = useTimezone();
+  const [localRevision, setLocalRevision] = useState(0);
   const [loading, setLoading] = useState(true);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
@@ -44,6 +46,22 @@ export function DashboardPage() {
   const [routingDiagramData, setRoutingDiagramData] = useState<RoutingDiagramData | null>(null);
   const [routingDiagramLoading, setRoutingDiagramLoading] = useState(true);
   const [routingDiagramError, setRoutingDiagramError] = useState<string | null>(null);
+
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDirty = useCallback(() => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    refreshTimeoutRef.current = setTimeout(() => {
+      setLocalRevision((r) => r + 1);
+    }, 1000);
+  }, []);
+
+  const { isConnected } = useRealtimeData({
+    profileId: selectedProfile?.id ?? null,
+    onDirty: handleDirty,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -156,8 +174,11 @@ export function DashboardPage() {
 
     return () => {
       cancelled = true;
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
     };
-  }, [revision]);
+  }, [revision, localRevision]);
 
   const activeModels = models.filter((model) => model.is_enabled).length;
   const totalRequests = stats?.total_requests ?? 0;
@@ -195,7 +216,24 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard" description="System overview and health status" />
+      <PageHeader title="Dashboard" description="System overview and health status">
+        <div
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm font-medium transition-colors",
+            isConnected
+              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
+              : "border-muted bg-muted/50 text-muted-foreground"
+          )}
+        >
+          <Zap
+            className={cn(
+              "h-3.5 w-3.5",
+              isConnected ? "fill-emerald-500 text-emerald-500" : "text-muted-foreground"
+            )}
+          />
+          {isConnected ? "Live" : "Offline"}
+        </div>
+      </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard

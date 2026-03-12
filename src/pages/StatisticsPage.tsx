@@ -6,6 +6,7 @@ import type {
   RequestLogEntry,
   SpendingGroupBy,
   SpendingReportResponse,
+  ThroughputStatsResponse,
 } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
@@ -32,10 +33,11 @@ import {
 import { toIsoFromDateInput } from "./statistics/utils";
 import { OperationsTab } from "./statistics/OperationsTab";
 import { SpendingTab } from "./statistics/SpendingTab";
+import { ThroughputTab } from "./statistics/ThroughputTab";
 
 export function StatisticsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<"operations" | "spending">(() =>
+  const [activeTab, setActiveTab] = useState<"operations" | "throughput" | "spending">(() =>
     parseEnumParam(searchParams.get("tab"), STATISTICS_TABS, "operations")
   );
 
@@ -73,6 +75,10 @@ export function StatisticsPage() {
   const [operationsStatusFilter, setOperationsStatusFilter] = useState<OperationsStatusFilter>(() =>
     parseEnumParam(searchParams.get("status_filter"), OPERATIONS_STATUS_FILTERS, "all")
   );
+
+  // Throughput state
+  const [throughput, setThroughput] = useState<ThroughputStatsResponse | null>(null);
+  const [throughputLoading, setThroughputLoading] = useState(false);
 
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
   const [spendingLoading, setSpendingLoading] = useState(false);
@@ -239,6 +245,44 @@ export function StatisticsPage() {
     return () => clearTimeout(timeout);
   }, [connectionId, modelId, providerType, setLoading, timeRange, revision]);
 
+  // Fetch throughput data
+  useEffect(() => {
+    if (activeTab !== "throughput") return;
+
+    const timeout = setTimeout(() => {
+      const fetchThroughput = async () => {
+        setThroughputLoading(true);
+        try {
+          let fromTime: string | undefined;
+          const now = new Date();
+          if (timeRange === "1h") {
+            fromTime = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+          } else if (timeRange === "24h") {
+            fromTime = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+          } else if (timeRange === "7d") {
+            fromTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          }
+
+          const response = await api.stats.throughput({
+            from_time: fromTime,
+            model_id: modelId && modelId !== "__all__" ? modelId : undefined,
+            provider_type: providerType === "all" ? undefined : providerType,
+            connection_id: connectionId && connectionId !== "__all__" ? Number.parseInt(connectionId, 10) : undefined,
+          });
+          setThroughput(response);
+        } catch (error) {
+          console.error("Failed to fetch throughput:", error);
+        } finally {
+          setThroughputLoading(false);
+        }
+      };
+
+      fetchThroughput();
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [activeTab, connectionId, modelId, providerType, timeRange, revision]);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       const fetchSpending = async () => {
@@ -326,11 +370,12 @@ export function StatisticsPage() {
       <Tabs
         value={activeTab}
         onValueChange={(value) =>
-          setActiveTab(value as "operations" | "spending")
+          setActiveTab(value as "operations" | "throughput" | "spending")
         }
       >
         <TabsList className="w-fit">
           <TabsTrigger value="operations">Operations</TabsTrigger>
+          <TabsTrigger value="throughput">Throughput</TabsTrigger>
           <TabsTrigger value="spending">Spending</TabsTrigger>
         </TabsList>
 
@@ -354,6 +399,10 @@ export function StatisticsPage() {
           />
         </TabsContent>
 
+
+        <TabsContent value="throughput">
+          <ThroughputTab data={throughput} isLoading={throughputLoading} />
+        </TabsContent>
         <TabsContent value="spending">
           <SpendingTab
             spending={spending}
