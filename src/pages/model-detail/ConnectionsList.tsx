@@ -191,8 +191,10 @@ function ConnectionCardView({
               />
               {connection.pricing_template ? (
                 <div className="flex items-center gap-1">
-                  <ValueBadge label={connection.pricing_template.name} intent="info" />
-                  <ValueBadge label={`v${connection.pricing_template.version}`} intent="muted" />
+                  <ValueBadge
+                    label={`${connection.pricing_template.name} v${connection.pricing_template.version}`}
+                    intent="info"
+                  />
                   <ValueBadge label={connection.pricing_template.pricing_currency_code} intent="accent" />
                 </div>
               ) : null}

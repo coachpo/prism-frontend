@@ -314,8 +314,13 @@ export function PricingTemplatesPage() {
                     return (
                     <TableRow key={template.id}>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{template.name}</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">{template.name}</span>
+                            <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
+                              v{template.version}
+                            </Badge>
+                          </div>
                           {template.description && (
                             <span className="text-xs text-muted-foreground">
                               {template.description}

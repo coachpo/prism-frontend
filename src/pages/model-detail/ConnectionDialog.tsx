@@ -207,7 +207,7 @@ export function ConnectionDialog({
                 <SelectItem value="unpriced">Unpriced (No cost tracking)</SelectItem>
                 {pricingTemplates.map((template) => (
                   <SelectItem key={template.id} value={String(template.id)}>
-                    {template.name} ({template.pricing_currency_code})
+                    {template.name} v{template.version}
                   </SelectItem>
                 ))}
               </SelectContent>
