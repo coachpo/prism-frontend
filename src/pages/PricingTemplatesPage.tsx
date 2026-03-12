@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Coins, Plus, Pencil, Trash2 } from "lucide-react";
+import { Coins, Eye, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useProfileContext } from "@/context/ProfileContext";
 import { api, ApiError } from "@/lib/api";
 import { isValidCurrencyCode } from "@/lib/costing";
@@ -38,6 +38,7 @@ import {
   isNonNegativeDecimalString,
   normalizeOptionalTemplatePrice,
   parsePricingTemplateUsageRows,
+  pricingTemplateFormStateFromTemplate,
   type PricingTemplateFormState,
 } from "./pricing-templates/pricingTemplateFormState";
 
@@ -51,6 +52,7 @@ export function PricingTemplatesPage() {
   const [pricingTemplatesLoading, setPricingTemplatesLoading] = useState(false);
   const [pricingTemplateDialogOpen, setPricingTemplateDialogOpen] = useState(false);
   const [editingPricingTemplate, setEditingPricingTemplate] = useState<PricingTemplate | null>(null);
+  const [pricingTemplatePreparingEditId, setPricingTemplatePreparingEditId] = useState<number | null>(null);
   const [pricingTemplateForm, setPricingTemplateForm] = useState<PricingTemplateFormState>(DEFAULT_PRICING_TEMPLATE_FORM);
   const [pricingTemplateSaving, setPricingTemplateSaving] = useState(false);
   const [pricingTemplateUsageDialogOpen, setPricingTemplateUsageDialogOpen] = useState(false);
@@ -77,20 +79,32 @@ export function PricingTemplatesPage() {
     }
   };
 
-  const handleEditPricingTemplate = (template: PricingTemplate) => {
-    setEditingPricingTemplate(template);
-    setPricingTemplateForm({
-      name: template.name,
-      description: template.description ?? "",
-      pricing_currency_code: template.pricing_currency_code,
-      input_price: template.input_price,
-      output_price: template.output_price,
-      cached_input_price: template.cached_input_price ?? "",
-      cache_creation_price: template.cache_creation_price ?? "",
-      reasoning_price: template.reasoning_price ?? "",
-      missing_special_token_price_policy: template.missing_special_token_price_policy,
-    });
+  const closePricingTemplateDialog = () => {
+    setPricingTemplateDialogOpen(false);
+    setEditingPricingTemplate(null);
+    setPricingTemplatePreparingEditId(null);
+    setPricingTemplateForm(DEFAULT_PRICING_TEMPLATE_FORM);
+  };
+
+  const openCreatePricingTemplateDialog = () => {
+    setEditingPricingTemplate(null);
+    setPricingTemplatePreparingEditId(null);
+    setPricingTemplateForm(DEFAULT_PRICING_TEMPLATE_FORM);
     setPricingTemplateDialogOpen(true);
+  };
+
+  const handleEditPricingTemplate = async (templateSummary: PricingTemplate) => {
+    setPricingTemplatePreparingEditId(templateSummary.id);
+    try {
+      const template = await api.pricingTemplates.get(templateSummary.id);
+      setEditingPricingTemplate(template);
+      setPricingTemplateForm(pricingTemplateFormStateFromTemplate(template));
+      setPricingTemplateDialogOpen(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load pricing template");
+    } finally {
+      setPricingTemplatePreparingEditId(null);
+    }
   };
 
   const handleSavePricingTemplate = async () => {
@@ -133,6 +147,7 @@ export function PricingTemplatesPage() {
     try {
       if (editingPricingTemplate) {
         const payload: PricingTemplateUpdate = {
+          expected_updated_at: editingPricingTemplate.updated_at,
           name: pricingTemplateForm.name.trim(),
           description: pricingTemplateForm.description.trim() || null,
           pricing_currency_code: pricingTemplateForm.pricing_currency_code.trim().toUpperCase(),
@@ -160,9 +175,14 @@ export function PricingTemplatesPage() {
         await api.pricingTemplates.create(payload);
         toast.success("Pricing template created");
       }
-      setPricingTemplateDialogOpen(false);
-      void fetchPricingTemplates();
+      closePricingTemplateDialog();
+      await fetchPricingTemplates();
     } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        toast.error("This pricing template changed while you were editing it. Reopen the dialog and try again.");
+        await fetchPricingTemplates();
+        return;
+      }
       toast.error(error instanceof Error ? error.message : "Failed to save pricing template");
     } finally {
       setPricingTemplateSaving(false);
@@ -257,11 +277,7 @@ export function PricingTemplatesPage() {
               <Button
                 type="button"
                 size="sm"
-                onClick={() => {
-                  setEditingPricingTemplate(null);
-                  setPricingTemplateForm(DEFAULT_PRICING_TEMPLATE_FORM);
-                  setPricingTemplateDialogOpen(true);
-                }}
+                onClick={openCreatePricingTemplateDialog}
               >
                 <Plus className="mr-2 h-3.5 w-3.5" />
                 Add Template
@@ -292,7 +308,10 @@ export function PricingTemplatesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pricingTemplates.map((template) => (
+                  {pricingTemplates.map((template) => {
+                    const isPreparingEdit = pricingTemplatePreparingEditId === template.id;
+
+                    return (
                     <TableRow key={template.id}>
                       <TableCell>
                         <div className="flex flex-col">
@@ -311,19 +330,26 @@ export function PricingTemplatesPage() {
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 text-xs"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label={`View usage for pricing template ${template.name}`}
                             onClick={() => void handleViewPricingTemplateUsage(template)}
                           >
-                            View Usage
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View usage</span>
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => handleEditPricingTemplate(template)}
+                            disabled={isPreparingEdit}
+                            onClick={() => void handleEditPricingTemplate(template)}
                           >
-                            <Pencil className="h-4 w-4" />
+                            {isPreparingEdit ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Pencil className="h-4 w-4" />
+                            )}
                             <span className="sr-only">Edit</span>
                           </Button>
                           <Button
@@ -338,7 +364,8 @@ export function PricingTemplatesPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -346,7 +373,14 @@ export function PricingTemplatesPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={pricingTemplateDialogOpen} onOpenChange={setPricingTemplateDialogOpen}>
+      <Dialog
+        open={pricingTemplateDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closePricingTemplateDialog();
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
@@ -498,7 +532,7 @@ export function PricingTemplatesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPricingTemplateDialogOpen(false)}>
+            <Button variant="outline" onClick={closePricingTemplateDialog}>
               Cancel
             </Button>
             <Button onClick={() => void handleSavePricingTemplate()} disabled={pricingTemplateSaving}>

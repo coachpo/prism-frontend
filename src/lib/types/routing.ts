@@ -65,6 +65,7 @@ export interface PricingTemplateCreate {
 }
 
 export interface PricingTemplateUpdate {
+  expected_updated_at: string;
   name?: string;
   description?: string | null;
   pricing_unit?: "PER_1M";
