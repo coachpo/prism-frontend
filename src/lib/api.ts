@@ -277,6 +277,10 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify({ to_index: toIndex }),
       }),
+    duplicate: (id: number) =>
+      request<Endpoint>(`/api/endpoints/${id}/duplicate`, {
+        method: "POST",
+      }),
     delete: (id: number) =>
       request<void>(`/api/endpoints/${id}`, { method: "DELETE" }),
   },

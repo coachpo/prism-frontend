@@ -42,6 +42,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Copy,
   Plug,
   AlertTriangle,
   Boxes,
@@ -66,10 +67,12 @@ interface EndpointCardViewProps {
   isDragging?: boolean;
   isOverlay?: boolean;
   reorderDisabled?: boolean;
+  isDuplicating?: boolean;
   dragHandleAttributes?: ButtonHTMLAttributes<HTMLButtonElement>;
   dragHandleListeners?: ButtonHTMLAttributes<HTMLButtonElement>;
   dragHandleRef?: ((node: HTMLButtonElement | null) => void) | null;
   onDelete?: (endpoint: Endpoint) => void | Promise<void>;
+  onDuplicate?: (endpoint: Endpoint) => void | Promise<void>;
   onEdit?: (endpoint: Endpoint) => void | Promise<void>;
 }
 
@@ -82,10 +85,12 @@ function EndpointCardView({
   isDragging = false,
   isOverlay = false,
   reorderDisabled = false,
+  isDuplicating = false,
   dragHandleAttributes,
   dragHandleListeners,
   dragHandleRef,
   onDelete,
+  onDuplicate,
   onEdit,
 }: EndpointCardViewProps) {
   const maskedKey = getMaskedApiKey(endpoint);
@@ -129,6 +134,22 @@ function EndpointCardView({
 
           {!isOverlay ? (
             <div className="flex shrink-0 items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Duplicate endpoint ${endpoint.name}`}
+                className="h-9 w-9 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                disabled={isDuplicating}
+                onClick={() => {
+                  void onDuplicate?.(endpoint);
+                }}
+              >
+                {isDuplicating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -267,6 +288,7 @@ export function EndpointsPage() {
   const [isDeletingEndpoint, setIsDeletingEndpoint] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
+  const [duplicatingEndpointId, setDuplicatingEndpointId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Endpoint | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [activeDragId, setActiveDragId] = useState<UniqueIdentifier | null>(null);
@@ -369,6 +391,19 @@ export function EndpointsPage() {
       toast.error(error instanceof Error ? error.message : "Failed to delete endpoint");
     } finally {
       setIsDeletingEndpoint(false);
+    }
+  };
+
+  const handleDuplicateEndpoint = async (endpoint: Endpoint) => {
+    setDuplicatingEndpointId(endpoint.id);
+    try {
+      const duplicate = await api.endpoints.duplicate(endpoint.id);
+      toast.success(`Endpoint duplicated as ${duplicate.name}`);
+      await fetchEndpoints();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to duplicate endpoint");
+    } finally {
+      setDuplicatingEndpointId(null);
     }
   };
 
@@ -573,7 +608,9 @@ export function EndpointsPage() {
                   endpoint={endpoint}
                   formatTime={formatTime}
                   models={endpointModels[endpoint.id] ?? []}
+                  isDuplicating={duplicatingEndpointId === endpoint.id}
                   reorderDisabled={!canReorder}
+                  onDuplicate={handleDuplicateEndpoint}
                   onEdit={setEditingEndpoint}
                   onDelete={setDeleteTarget}
                 />
