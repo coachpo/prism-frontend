@@ -130,21 +130,35 @@ function buildHeaders(path: string, init?: RequestInit): Record<string, string> 
   return headers;
 }
 
+let refreshPromise: Promise<boolean> | null = null;
+
 async function refreshSession(): Promise<boolean> {
-  const res = await fetch(`${API_BASE}/api/auth/refresh`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    return false;
+  if (refreshPromise) {
+    return refreshPromise;
   }
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-  const body = (await res.json()) as SessionResponse;
-  return body.authenticated;
+      if (!res.ok) {
+        return false;
+      }
+
+      const body = (await res.json()) as SessionResponse;
+      return body.authenticated;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+  return refreshPromise;
 }
 
 async function request<T>(

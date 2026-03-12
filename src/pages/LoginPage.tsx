@@ -16,7 +16,7 @@ export function LoginPage() {
   const { authEnabled, authenticated, loading, login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [sessionDuration, setSessionDuration] = useState<LoginSessionDuration>("7_days");
+  const [sessionDuration, setSessionDuration] = useState<LoginSessionDuration>("session");
   const [submitting, setSubmitting] = useState(false);
 
   if (!loading && !authEnabled) {
