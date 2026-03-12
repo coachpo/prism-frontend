@@ -1,21 +1,22 @@
 # FRONTEND STATISTICS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/statistics/` powers the two-tab analytics surface under `StatisticsPage.tsx`: operations/request telemetry and spending/cost aggregation, both driven by shared URL-state parsing.
+`pages/statistics/` powers the two-tab analytics surface under `../StatisticsPage.tsx`: operations and request telemetry plus spending and cost aggregation, both driven by shared URL-state parsing.
 
 ## STRUCTURE
 ```
 statistics/
-├── queryParams.ts              # Shared URL param parsing/defaults
+├── queryParams.ts               # Shared URL param parsing and defaults
 ├── OperationsTab.tsx
 ├── SpendingTab.tsx
-├── operations/                 # Operations-tab hooks and contracts
-├── spending/                   # Spending-tab hooks
-└── utils.ts                    # Shared helpers
+├── operations/                  # Operations-tab hooks and contracts
+├── spending/                    # Spending-tab hooks
+└── utils.ts                     # Shared helpers
 ```
 
 ## WHERE TO LOOK
 
+- Route shell and shared page bootstrap: `../StatisticsPage.tsx`
 - Shared query-param contract: `queryParams.ts`
 - Operations-tab rendering: `OperationsTab.tsx`
 - Operations async data hook: `operations/useOperationsTabData.ts`
@@ -33,5 +34,5 @@ statistics/
 ## ANTI-PATTERNS
 
 - Do not duplicate filter parsing in tab components when `queryParams.ts` already owns it.
-- Do not mix spending grouping/top-N rules into operations-table logic.
-- Do not regress null-vs-zero rendering for usage/cost metrics; statistics pages rely on that distinction for triage.
+- Do not mix spending grouping and top-N rules into operations-table logic.
+- Do not regress null-vs-zero rendering for usage or cost metrics; statistics pages rely on that distinction for triage.
