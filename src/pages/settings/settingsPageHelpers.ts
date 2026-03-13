@@ -4,7 +4,6 @@ import { isValidPositiveDecimalString } from "@/lib/costing";
 export const SETTINGS_SECTIONS = [
   { id: "backup", label: "Backup" },
   { id: "authentication", label: "Authentication" },
-  { id: "passkeys", label: "Passkeys" },
   { id: "billing-currency", label: "Billing & Currency" },
   { id: "timezone", label: "Timezone" },
   { id: "audit-configuration", label: "Audit & Privacy" },

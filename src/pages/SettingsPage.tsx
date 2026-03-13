@@ -26,7 +26,6 @@ import { BillingCurrencySection } from "./settings/sections/BillingCurrencySecti
 import { TimezoneSection } from "./settings/sections/TimezoneSection";
 import { AuditConfigurationSection } from "./settings/sections/AuditConfigurationSection";
 import { AuthenticationSection } from "./settings/sections/AuthenticationSection";
-import { PasskeySection } from "./settings/sections/PasskeySection";
 import { RetentionDeletionSection } from "./settings/sections/RetentionDeletionSection";
 import { DeleteConfirmDialog } from "./settings/dialogs/DeleteConfirmDialog";
 import { RuleDialog } from "./settings/dialogs/RuleDialog";
@@ -947,7 +946,6 @@ export function SettingsPage() {
             onSaveAuthSettings={handleSaveAuthSettings}
           />
 
-          <PasskeySection />
 
           <BillingCurrencySection
             billingDirty={billingDirty}
