@@ -1,3 +1,4 @@
+import type { ConnectionState } from "@/lib/websocket";
 import {
   Tooltip,
   TooltipContent,
@@ -7,12 +8,37 @@ import {
 import { cn } from "@/lib/utils";
 
 interface WebSocketStatusIndicatorProps {
-  isConnected: boolean;
+  connectionState: ConnectionState;
+  isSyncing?: boolean;
 }
 
+const STATUS_STYLES: Record<ConnectionState, { dotClassName: string; label: string }> = {
+  connected: {
+    dotClassName: "bg-emerald-500 animate-pulse",
+    label: "Connected",
+  },
+  connecting: {
+    dotClassName: "bg-amber-500 animate-pulse",
+    label: "Connecting...",
+  },
+  reconnecting: {
+    dotClassName: "bg-amber-500 animate-pulse",
+    label: "Reconnecting...",
+  },
+  disconnected: {
+    dotClassName: "bg-gray-400",
+    label: "Disconnected",
+  },
+};
+
 export function WebSocketStatusIndicator({
-  isConnected,
+  connectionState,
+  isSyncing = false,
 }: WebSocketStatusIndicatorProps) {
+  const status = isSyncing
+    ? { dotClassName: "bg-sky-500 animate-pulse", label: "Syncing..." }
+    : STATUS_STYLES[connectionState];
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -20,12 +46,12 @@ export function WebSocketStatusIndicator({
           <span
             className={cn(
               "inline-flex h-2.5 w-2.5 shrink-0 rounded-full",
-              isConnected ? "animate-pulse bg-emerald-500" : "bg-gray-400"
+              status.dotClassName
             )}
           />
         </TooltipTrigger>
         <TooltipContent>
-          <p>{isConnected ? "Connected" : "Disconnected"}</p>
+          <p>{status.label}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

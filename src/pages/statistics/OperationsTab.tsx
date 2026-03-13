@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AnimatedListItem } from "@/components/AnimatedListItem";
 import { formatMoneyMicros } from "@/lib/costing";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,8 @@ import { useOperationsTabData } from "./operations/useOperationsTabData";
 
 export function OperationsTab({
   logs,
+  newLogIds,
+  clearNewLogHighlight,
   models,
   connections,
   modelId,
@@ -564,13 +567,18 @@ export function OperationsTab({
                   <p className="text-xs text-muted-foreground">No requests found.</p>
                 ) : (
                   slowRequests.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                    <AnimatedListItem
+                      key={item.id}
+                      isNew={newLogIds.has(item.id)}
+                      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                      onAnimationEnd={() => clearNewLogHighlight(item.id)}
+                    >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{item.model_id}</p>
                         <p className="text-xs text-muted-foreground">{item.provider_type} · {item.status_code}</p>
                       </div>
                       <span className="shrink-0 text-xs font-medium">{item.response_time_ms.toLocaleString()}ms</span>
-                    </div>
+                    </AnimatedListItem>
                   ))
                 )}
               </div>
@@ -589,7 +597,12 @@ export function OperationsTab({
                   <p className="text-xs text-muted-foreground">No cost records found.</p>
                 ) : (
                   costlyRequests.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                    <AnimatedListItem
+                      key={item.id}
+                      isNew={newLogIds.has(item.id)}
+                      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                      onAnimationEnd={() => clearNewLogHighlight(item.id)}
+                    >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{item.model_id}</p>
                         <p className="text-xs text-muted-foreground">{item.provider_type} · {item.status_code}</p>
@@ -597,7 +610,7 @@ export function OperationsTab({
                       <span className="shrink-0 text-xs font-medium">
                         {formatMoneyMicros(item.total_cost_user_currency_micros ?? 0, reportSymbol, reportCode)}
                       </span>
-                    </div>
+                    </AnimatedListItem>
                   ))
                 )}
               </div>

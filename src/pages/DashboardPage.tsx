@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
 import { WebSocketStatusIndicator } from "@/components/WebSocketStatusIndicator";
+import { AnimatedListItem } from "@/components/AnimatedListItem";
 import type {
   ModelConfigListItem,
   RequestLogEntry,
@@ -33,11 +34,18 @@ import { useTimezone } from "@/hooks/useTimezone";
 import { RoutingDiagramCard } from "@/pages/dashboard/RoutingDiagramCard";
 import { buildRoutingDiagramData, type RoutingDiagramData } from "@/pages/dashboard/routingDiagram";
 
+function isSuccessfulRequest(entry: RequestLogEntry) {
+  if (entry.success_flag !== null && entry.success_flag !== undefined) {
+    return entry.success_flag;
+  }
+
+  return entry.status_code < 400;
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const { revision, selectedProfile } = useProfileContext();
   const { format: formatTime } = useTimezone();
-  const [localRevision, setLocalRevision] = useState(0);
   const [loading, setLoading] = useState(true);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const modelDisplayNames = useMemo(() => {
@@ -50,29 +58,24 @@ export function DashboardPage() {
   const [routingDiagramData, setRoutingDiagramData] = useState<RoutingDiagramData | null>(null);
   const [routingDiagramLoading, setRoutingDiagramLoading] = useState(true);
   const [routingDiagramError, setRoutingDiagramError] = useState<string | null>(null);
+  const [recentNewIds, setRecentNewIds] = useState<Set<number>>(() => new Set());
+  const [metricsHighlighted, setMetricsHighlighted] = useState(false);
+  const [reconcileRevision, setReconcileRevision] = useState(0);
 
-  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hiddenAtRef = useRef<number | null>(null);
+  const metricHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestVersionRef = useRef(0);
+  const latestDashboardRequestIdRef = useRef(0);
 
-  const handleDirty = useCallback(() => {
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
-    refreshTimeoutRef.current = setTimeout(() => {
-      setLocalRevision((r) => r + 1);
-    }, 1000);
-  }, []);
+  const fetchDashboardData = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      const requestVersion = ++requestVersionRef.current;
 
-  const { isConnected } = useRealtimeData({
-    profileId: selectedProfile?.id ?? null,
-    onDirty: handleDirty,
-  });
+      if (!silent) {
+        setLoading(true);
+        setRoutingDiagramLoading(true);
+      }
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchData = async () => {
-      setLoading(true);
-      setRoutingDiagramLoading(true);
       setRoutingDiagramError(null);
       const from24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const to24h = new Date().toISOString();
@@ -93,8 +96,9 @@ export function DashboardPage() {
             connections: await api.connections.list(model.id),
           }))
         );
-        const connectionsByModel = connectionResults
-          .flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
+        const connectionsByModel = connectionResults.flatMap((result) =>
+          result.status === "fulfilled" ? [result.value] : []
+        );
 
         const failedConnectionFetches = connectionResults.length - connectionsByModel.length;
         const issues: string[] = [];
@@ -131,32 +135,40 @@ export function DashboardPage() {
             api.stats.spending({ preset: "last_30_days", top_n: 5 }),
             api.stats.requests({ limit: 12 }),
           ]);
-        if (cancelled) {
+
+        if (requestVersion !== requestVersionRef.current) {
           return;
         }
+
         setModels(modelsData);
         setStats(statsData);
         setProviderStats(providerStatsData);
         setSpending(spendingData);
         setRecentRequests(requestsData.items);
+        latestDashboardRequestIdRef.current = requestsData.items.reduce(
+          (maxId, request) => Math.max(maxId, request.id),
+          0
+        );
+        setRecentNewIds(new Set());
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
-        if (!cancelled) {
+        if (requestVersion === requestVersionRef.current) {
           setLoading(false);
         }
       }
 
       try {
         const routingResult = await routingDiagramPromise;
-        if (cancelled) {
+        if (requestVersion !== requestVersionRef.current) {
           return;
         }
+
         setRoutingDiagramData(routingResult.data);
         setRoutingDiagramError(routingResult.error);
       } catch (error) {
         console.error("Failed to fetch routing diagram data", error);
-        if (!cancelled) {
+        if (requestVersion === requestVersionRef.current) {
           setRoutingDiagramData({
             nodes: [],
             links: [],
@@ -165,24 +177,165 @@ export function DashboardPage() {
             activeConnectionTotal: 0,
             trafficRequestTotal24h: 0,
           });
-          setRoutingDiagramError("Routing diagram data could not be loaded. The rest of the dashboard is still available.");
+          setRoutingDiagramError(
+            "Routing diagram data could not be loaded. The rest of the dashboard is still available."
+          );
         }
       } finally {
-        if (!cancelled) {
+        if (requestVersion === requestVersionRef.current) {
           setRoutingDiagramLoading(false);
         }
       }
+    },
+    []
+  );
+
+  const triggerMetricHighlight = useCallback(() => {
+    setMetricsHighlighted(true);
+    if (metricHighlightTimerRef.current) {
+      clearTimeout(metricHighlightTimerRef.current);
+    }
+
+    metricHighlightTimerRef.current = setTimeout(() => {
+      setMetricsHighlighted(false);
+    }, 1500);
+  }, []);
+
+  const applyDashboardUpdate = useCallback(
+    (entry: RequestLogEntry) => {
+      if (entry.id <= latestDashboardRequestIdRef.current) {
+        return;
+      }
+
+      latestDashboardRequestIdRef.current = entry.id;
+
+      setRecentRequests((prev) => {
+        return [entry, ...prev].slice(0, 12);
+      });
+      setRecentNewIds((prev) => new Set(prev).add(entry.id));
+
+      setStats((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const nextTotalRequests = prev.total_requests + 1;
+        const nextSuccessCount = prev.success_count + (isSuccessfulRequest(entry) ? 1 : 0);
+        const nextAverageLatency =
+          nextTotalRequests > 0
+            ? (prev.avg_response_time_ms * prev.total_requests + entry.response_time_ms) /
+              nextTotalRequests
+            : 0;
+
+        return {
+          ...prev,
+          total_requests: nextTotalRequests,
+          success_count: nextSuccessCount,
+          error_count: nextTotalRequests - nextSuccessCount,
+          success_rate:
+            nextTotalRequests > 0
+              ? Math.round((nextSuccessCount / nextTotalRequests) * 10000) / 100
+              : 0,
+          avg_response_time_ms: Math.round(nextAverageLatency * 10) / 10,
+        };
+      });
+
+      setSpending((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const costDelta =
+          entry.total_cost_user_currency_micros ?? entry.total_cost_original_micros ?? 0;
+
+        return {
+          ...prev,
+          summary: {
+            ...prev.summary,
+            total_cost_micros: prev.summary.total_cost_micros + costDelta,
+          },
+        };
+      });
+
+      triggerMetricHighlight();
+    },
+    [triggerMetricHighlight]
+  );
+
+  const requestRealtimeReconciliation = useCallback(() => {
+    setReconcileRevision((prev) => prev + 1);
+  }, []);
+
+  const { connectionState, isSyncing, markSyncComplete } = useRealtimeData({
+    profileId: selectedProfile?.id ?? null,
+    channel: "dashboard",
+    onData: applyDashboardUpdate,
+    onDirty: requestRealtimeReconciliation,
+    onReconnect: requestRealtimeReconciliation,
+  });
+
+  useEffect(() => {
+    void fetchDashboardData();
+  }, [fetchDashboardData, revision]);
+
+  useEffect(() => {
+    if (reconcileRevision === 0) {
+      return;
+    }
+
+    void fetchDashboardData({ silent: true }).finally(markSyncComplete);
+  }, [fetchDashboardData, markSyncComplete, reconcileRevision]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void fetchDashboardData({ silent: true }).finally(markSyncComplete);
+    }, 300000);
+
+    return () => window.clearInterval(intervalId);
+  }, [fetchDashboardData, markSyncComplete]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
+      if (
+        hiddenAtRef.current !== null &&
+        Date.now() - hiddenAtRef.current > 30000
+      ) {
+        void fetchDashboardData({ silent: true }).finally(markSyncComplete);
+      }
+
+      hiddenAtRef.current = null;
     };
 
-    fetchData();
-
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
-      cancelled = true;
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchDashboardData, markSyncComplete]);
+
+  useEffect(() => {
+    return () => {
+      if (metricHighlightTimerRef.current) {
+        clearTimeout(metricHighlightTimerRef.current);
       }
     };
-  }, [revision, localRevision]);
+  }, []);
+
+  const clearRecentRequestHighlight = (requestId: number) => {
+    setRecentNewIds((prev) => {
+      if (!prev.has(requestId)) {
+        return prev;
+      }
+
+      const next = new Set(prev);
+      next.delete(requestId);
+      return next;
+    });
+  };
 
   const activeModels = models.filter((model) => model.is_enabled).length;
   const totalRequests = stats?.total_requests ?? 0;
@@ -221,7 +374,10 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Dashboard" description="System overview and health status">
-        <WebSocketStatusIndicator isConnected={isConnected} />
+        <WebSocketStatusIndicator
+          connectionState={connectionState}
+          isSyncing={isSyncing}
+        />
       </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -238,7 +394,8 @@ export function DashboardPage() {
           icon={<Activity className="h-4 w-4" />}
           className={cn(
             "[&_[data-slot=icon]]:bg-blue-500/10 [&_[data-slot=icon]]:text-blue-500",
-            successRate < 95 && "text-amber-600"
+            successRate < 95 && "text-amber-600",
+            metricsHighlighted && "ws-value-updated"
           )}
         />
         <MetricCard
@@ -246,7 +403,10 @@ export function DashboardPage() {
           value={formatMoneyMicros(totalCost, "$")}
           detail="Estimated cost"
           icon={<DollarSign className="h-4 w-4" />}
-          className="[&_[data-slot=icon]]:bg-emerald-500/10 [&_[data-slot=icon]]:text-emerald-500"
+          className={cn(
+            "[&_[data-slot=icon]]:bg-emerald-500/10 [&_[data-slot=icon]]:text-emerald-500",
+            metricsHighlighted && "ws-value-updated"
+          )}
         />
         <MetricCard
           label="System Health"
@@ -259,7 +419,8 @@ export function DashboardPage() {
               ? "text-emerald-600"
               : successRate >= 90
                 ? "text-amber-600"
-                : "text-red-600"
+                : "text-red-600",
+            metricsHighlighted && "ws-value-updated"
           )}
         />
       </div>
@@ -272,19 +433,19 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-md border bg-muted/30 p-3">
+              <div className={cn("rounded-md border bg-muted/30 p-3 transition-colors duration-300", metricsHighlighted && "ws-value-updated")}>
                 <p className="text-xs text-muted-foreground">Avg Latency</p>
                 <p className="mt-1 text-lg font-semibold tabular-nums">{avgLatency.toFixed(0)}ms</p>
               </div>
-              <div className="rounded-md border bg-muted/30 p-3">
+              <div className={cn("rounded-md border bg-muted/30 p-3 transition-colors duration-300", metricsHighlighted && "ws-value-updated")}>
                 <p className="text-xs text-muted-foreground">P95 Latency</p>
                 <p className="mt-1 text-lg font-semibold tabular-nums">{p95Latency.toFixed(0)}ms</p>
               </div>
-              <div className="rounded-md border bg-muted/30 p-3">
+              <div className={cn("rounded-md border bg-muted/30 p-3 transition-colors duration-300", metricsHighlighted && "ws-value-updated")}>
                 <p className="text-xs text-muted-foreground">Error Rate</p>
                 <p className="mt-1 text-lg font-semibold tabular-nums">{errorRate.toFixed(1)}%</p>
               </div>
-              <div className="rounded-md border bg-muted/30 p-3">
+              <div className={cn("rounded-md border bg-muted/30 p-3 transition-colors duration-300", metricsHighlighted && "ws-value-updated")}>
                 <p className="text-xs text-muted-foreground">Streaming Share</p>
                 <p className="mt-1 text-lg font-semibold tabular-nums">{streamShare.toFixed(1)}%</p>
               </div>
@@ -380,8 +541,11 @@ export function DashboardPage() {
             ) : (
               <div className="space-y-4">
                 {recentRequests.map((req) => (
-                  <div
+                  <AnimatedListItem
                     key={req.id}
+                    isNew={recentNewIds.has(req.id)}
+                    animation="left"
+                    onAnimationEnd={() => clearRecentRequestHighlight(req.id)}
                     className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
                   >
                     <div className="flex items-center gap-4">
@@ -421,7 +585,7 @@ export function DashboardPage() {
                         intent={req.status_code >= 200 && req.status_code < 300 ? "success" : "danger"}
                       />
                     </div>
-                  </div>
+                  </AnimatedListItem>
                 ))}
               </div>
             )}

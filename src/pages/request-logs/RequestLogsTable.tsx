@@ -1,4 +1,4 @@
-import { Fragment, useMemo, type ReactNode } from "react";
+import { Fragment, useMemo, type ReactNode, type RefObject } from "react";
 import { Activity, AlertCircle, ArrowRight, Check, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +50,9 @@ interface RequestLogsTableProps {
   clearAllFilters: () => void;
   formatTime: (date: string, options?: Intl.DateTimeFormatOptions) => string;
   navigateToConnection: (id: number) => Promise<void>;
+  scrollContainerRef?: RefObject<HTMLDivElement | null>;
+  getRowClassName?: (row: RequestLogEntry) => string | undefined;
+  onRowAnimationEnd?: (row: RequestLogEntry) => void;
   emptyStateTitle?: string;
   emptyStateDescription?: string;
   emptyStateAction?: ReactNode;
@@ -69,6 +72,9 @@ export function RequestLogsTable({
   clearAllFilters,
   formatTime,
   navigateToConnection,
+  scrollContainerRef,
+  getRowClassName,
+  onRowAnimationEnd,
   emptyStateTitle,
   emptyStateDescription,
   emptyStateAction,
@@ -340,7 +346,7 @@ export function RequestLogsTable({
 
   return (
     <div className="rounded-md border bg-card overflow-hidden relative flex-1 min-h-[420px] flex flex-col">
-      <div className="flex-1 overflow-auto [scrollbar-gutter:stable] [&_[data-slot=table-container]]:overflow-x-visible">
+      <div ref={scrollContainerRef} className="flex-1 overflow-auto [scrollbar-gutter:stable] [&_[data-slot=table-container]]:overflow-x-visible">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             <div className="flex flex-col items-center gap-2">
@@ -416,8 +422,12 @@ export function RequestLogsTable({
               {rows.map((log) => (
                 <TableRow
                   key={log.id}
-                  className="text-xs cursor-pointer hover:bg-muted/50"
+                  className={cn(
+                    "text-xs cursor-pointer hover:bg-muted/50",
+                    getRowClassName?.(log)
+                  )}
                   onClick={() => openLogDetail(log)}
+                  onAnimationEnd={() => onRowAnimationEnd?.(log)}
                 >
                   {visibleColumns.map((column) => (
                     <Fragment key={column}>{renderCell(column, log)}</Fragment>

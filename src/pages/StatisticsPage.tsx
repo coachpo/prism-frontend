@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
@@ -12,7 +12,12 @@ import type {
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WebSocketStatusIndicator } from "@/components/WebSocketStatusIndicator";
 import { useProfileContext } from "@/context/ProfileContext";
+import {
+  hasSpecialTokenValue,
+  rowHasAnySpecialToken,
+} from "@/pages/request-logs/formatters";
 import {
   DEFAULT_SPENDING_LIMIT,
   DEFAULT_SPENDING_TOP_N,
@@ -36,6 +41,20 @@ import { OperationsTab } from "./statistics/OperationsTab";
 import { SpendingTab } from "./statistics/SpendingTab";
 import { ThroughputTab } from "./statistics/ThroughputTab";
 
+function getFromTime(timeRange: "1h" | "24h" | "7d" | "all") {
+  const now = new Date();
+  if (timeRange === "1h") {
+    return new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+  }
+  if (timeRange === "24h") {
+    return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  }
+  if (timeRange === "7d") {
+    return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  }
+  return undefined;
+}
+
 export function StatisticsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<"operations" | "throughput" | "spending">(() =>
@@ -45,18 +64,8 @@ export function StatisticsPage() {
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const { revision, selectedProfile } = useProfileContext();
-
-  const [localRevision, setLocalRevision] = useState(0);
-  
-  const handleDirty = useCallback(() => {
-    setLocalRevision((r) => r + 1);
-  }, []);
-  
-  useRealtimeData({
-    profileId: selectedProfile?.id ?? null,
-    channel: "statistics",
-    onDirty: handleDirty,
-  });
+  const [reconcileRevision, setReconcileRevision] = useState(0);
+  const [newLogIds, setNewLogIds] = useState<Set<number>>(() => new Set());
 
   const initialOperationsModelId = searchParams.get("model_id");
   const initialOperationsProviderType = searchParams.get("provider_type");
@@ -89,7 +98,6 @@ export function StatisticsPage() {
     parseEnumParam(searchParams.get("status_filter"), OPERATIONS_STATUS_FILTERS, "all")
   );
 
-  // Throughput state
   const [throughput, setThroughput] = useState<ThroughputStatsResponse | null>(null);
   const [throughputLoading, setThroughputLoading] = useState(false);
 
@@ -111,14 +119,9 @@ export function StatisticsPage() {
   const [spendingConnectionId, setSpendingConnectionId] = useState(() =>
     parseSpendingConnectionParam(searchParams.get("spending_connection_id"))
   );
-  const [spendingGroupBy, setSpendingGroupBy] =
-    useState<SpendingGroupBy>(() =>
-      parseEnumParam(
-        searchParams.get("spending_group_by"),
-        SPENDING_GROUP_BY_OPTIONS,
-        "model"
-      )
-    );
+  const [spendingGroupBy, setSpendingGroupBy] = useState<SpendingGroupBy>(() =>
+    parseEnumParam(searchParams.get("spending_group_by"), SPENDING_GROUP_BY_OPTIONS, "model")
+  );
   const [spendingLimit, setSpendingLimit] = useState(() =>
     parseSpendingLimitParam(searchParams.get("spending_limit"))
   );
@@ -131,8 +134,231 @@ export function StatisticsPage() {
   const [models, setModels] = useState<{ model_id: string; display_name: string | null }[]>([]);
   const [connections, setConnections] = useState<ConnectionDropdownItem[]>([]);
 
+  const hiddenAtRef = useRef<number | null>(null);
+  const logsRef = useRef<RequestLogEntry[]>([]);
+  const latestOperationsLogIdRef = useRef(0);
 
-  // Fetch models and connections for filter dropdowns
+  useEffect(() => {
+    logsRef.current = logs;
+  }, [logs]);
+
+  const matchesRealtimeFilters = useCallback(
+    (entry: RequestLogEntry) => {
+      if (modelId !== "__all__" && entry.model_id !== modelId) return false;
+      if (providerType !== "all" && entry.provider_type !== providerType) return false;
+      if (connectionId !== "__all__" && entry.connection_id !== Number(connectionId)) return false;
+      return true;
+    },
+    [connectionId, modelId, providerType]
+  );
+
+  const matchesOperationsViewFilters = useCallback(
+    (entry: RequestLogEntry) => {
+      if (
+        specialTokenFilter === "has_cached" &&
+        !hasSpecialTokenValue(entry.cache_read_input_tokens)
+      ) {
+        return false;
+      }
+      if (
+        specialTokenFilter === "has_reasoning" &&
+        !hasSpecialTokenValue(entry.reasoning_tokens)
+      ) {
+        return false;
+      }
+      if (
+        specialTokenFilter === "has_any_special" &&
+        !rowHasAnySpecialToken(entry)
+      ) {
+        return false;
+      }
+      if (
+        specialTokenFilter === "missing_special" &&
+        rowHasAnySpecialToken(entry)
+      ) {
+        return false;
+      }
+
+      if (operationsStatusFilter === "success") return entry.status_code < 400;
+      if (operationsStatusFilter === "4xx") {
+        return entry.status_code >= 400 && entry.status_code < 500;
+      }
+      if (operationsStatusFilter === "5xx") return entry.status_code >= 500;
+      if (operationsStatusFilter === "error") return entry.status_code >= 400;
+      return true;
+    },
+    [operationsStatusFilter, specialTokenFilter]
+  );
+
+  const fetchOperationsLogs = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!silent) {
+        setLoading(true);
+      }
+
+      try {
+        const requestParams = {
+          model_id: modelId !== "__all__" ? modelId : undefined,
+          provider_type: providerType !== "all" ? providerType : undefined,
+          connection_id:
+            connectionId !== "__all__" ? Number.parseInt(connectionId, 10) : undefined,
+          from_time: getFromTime(timeRange),
+        };
+
+        const [response, latestResponse] = await Promise.all([
+          api.stats.requests({
+            ...requestParams,
+            limit: 500,
+          }),
+          api.stats.requests({
+            ...requestParams,
+            limit: 1,
+            offset: 0,
+          }),
+        ]);
+
+        setLogs(response.items);
+        latestOperationsLogIdRef.current = latestResponse.items[0]?.id ?? 0;
+        setNewLogIds(new Set());
+      } catch (error) {
+        console.error("Failed to fetch statistics:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [connectionId, modelId, providerType, timeRange]
+  );
+
+  const fetchThroughputData = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!silent) {
+        setThroughputLoading(true);
+      }
+
+      try {
+        const response = await api.stats.throughput({
+          from_time: getFromTime(timeRange),
+          model_id: modelId !== "__all__" ? modelId : undefined,
+          provider_type: providerType !== "all" ? providerType : undefined,
+          connection_id:
+            connectionId !== "__all__" ? Number.parseInt(connectionId, 10) : undefined,
+        });
+        setThroughput(response);
+      } catch (error) {
+        console.error("Failed to fetch throughput:", error);
+      } finally {
+        setThroughputLoading(false);
+      }
+    },
+    [connectionId, modelId, providerType, timeRange]
+  );
+
+  const fetchSpendingData = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!silent) {
+        setSpendingLoading(true);
+      }
+
+      setSpendingError(null);
+
+      try {
+        const response = await api.stats.spending({
+          preset: spendingPreset,
+          from_time:
+            spendingPreset === "custom"
+              ? toIsoFromDateInput(spendingFrom, "start")
+              : undefined,
+          to_time:
+            spendingPreset === "custom"
+              ? toIsoFromDateInput(spendingTo, "end")
+              : undefined,
+          provider_type: spendingProviderType === "all" ? undefined : spendingProviderType,
+          model_id: spendingModelId || undefined,
+          connection_id: spendingConnectionId
+            ? Number.parseInt(spendingConnectionId, 10)
+            : undefined,
+          group_by: spendingGroupBy,
+          limit: spendingLimit,
+          offset: spendingOffset,
+          top_n: spendingTopN,
+        });
+        setSpending(response);
+        setSpendingUpdatedAt(new Date().toISOString());
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to fetch spending report";
+        setSpendingError(message);
+      } finally {
+        setSpendingLoading(false);
+      }
+    },
+    [
+      spendingConnectionId,
+      spendingFrom,
+      spendingGroupBy,
+      spendingLimit,
+      spendingModelId,
+      spendingOffset,
+      spendingPreset,
+      spendingProviderType,
+      spendingTo,
+      spendingTopN,
+    ]
+  );
+
+  const reconcileAll = useCallback(async () => {
+    await Promise.all([
+      fetchOperationsLogs({ silent: true }),
+      fetchThroughputData({ silent: true }),
+      fetchSpendingData({ silent: true }),
+    ]);
+  }, [fetchOperationsLogs, fetchSpendingData, fetchThroughputData]);
+
+  const handleNewLog = useCallback(
+    (entry: RequestLogEntry) => {
+      if (entry.id <= latestOperationsLogIdRef.current) {
+        return;
+      }
+
+      if (!matchesRealtimeFilters(entry)) {
+        return;
+      }
+
+      latestOperationsLogIdRef.current = entry.id;
+      if (!matchesOperationsViewFilters(entry)) {
+        return;
+      }
+
+      setLogs((prev) => [entry, ...prev].slice(0, 500));
+      setNewLogIds((prev) => new Set(prev).add(entry.id));
+    },
+    [matchesOperationsViewFilters, matchesRealtimeFilters]
+  );
+
+  const clearNewLogHighlight = useCallback((logId: number) => {
+    setNewLogIds((prev) => {
+      if (!prev.has(logId)) {
+        return prev;
+      }
+
+      const next = new Set(prev);
+      next.delete(logId);
+      return next;
+    });
+  }, []);
+
+  const requestRealtimeReconciliation = useCallback(() => {
+    setReconcileRevision((prev) => prev + 1);
+  }, []);
+
+  const { connectionState, isSyncing, markSyncComplete } = useRealtimeData({
+    profileId: selectedProfile?.id ?? null,
+    channel: "statistics",
+    onData: handleNewLog,
+    onDirty: requestRealtimeReconciliation,
+    onReconnect: requestRealtimeReconciliation,
+  });
+
   useEffect(() => {
     const fetchFilters = async () => {
       try {
@@ -140,13 +366,13 @@ export function StatisticsPage() {
           api.models.list(),
           api.endpoints.connections(),
         ]);
-        setModels(modelsData.map(m => ({ model_id: m.model_id, display_name: m.display_name })));
+        setModels(modelsData.map((m) => ({ model_id: m.model_id, display_name: m.display_name })));
         setConnections(connectionsData.items);
       } catch (error) {
         console.error("Failed to fetch filter options:", error);
       }
     };
-    fetchFilters();
+    void fetchFilters();
   }, [revision]);
 
   useEffect(() => {
@@ -217,147 +443,73 @@ export function StatisticsPage() {
   ]);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      const fetchData = async () => {
-        setLoading(true);
-        try {
-          let fromTime: string | undefined;
-          const now = new Date();
-          if (timeRange === "1h") {
-            fromTime = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-          } else if (timeRange === "24h") {
-            fromTime = new Date(
-              now.getTime() - 24 * 60 * 60 * 1000
-            ).toISOString();
-          } else if (timeRange === "7d") {
-            fromTime = new Date(
-              now.getTime() - 7 * 24 * 60 * 60 * 1000
-            ).toISOString();
-          }
-
-          const params = {
-            model_id: modelId && modelId !== "__all__" ? modelId : undefined,
-            provider_type: providerType === "all" ? undefined : providerType,
-            connection_id: connectionId && connectionId !== "__all__" ? Number.parseInt(connectionId, 10) : undefined,
-            from_time: fromTime,
-            limit: 500,
-          };
-
-          const logsData = await api.stats.requests(params);
-          setLogs(logsData.items);
-        } catch (error) {
-          console.error("Failed to fetch statistics:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchData();
+    const timeout = window.setTimeout(() => {
+      void fetchOperationsLogs();
     }, 450);
 
-    return () => clearTimeout(timeout);
-  }, [connectionId, modelId, providerType, setLoading, timeRange, revision, localRevision]);
+    return () => window.clearTimeout(timeout);
+  }, [fetchOperationsLogs, revision]);
 
-  // Fetch throughput data
   useEffect(() => {
     if (activeTab !== "throughput") return;
 
-    const timeout = setTimeout(() => {
-      const fetchThroughput = async () => {
-        setThroughputLoading(true);
-        try {
-          let fromTime: string | undefined;
-          const now = new Date();
-          if (timeRange === "1h") {
-            fromTime = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-          } else if (timeRange === "24h") {
-            fromTime = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-          } else if (timeRange === "7d") {
-            fromTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-          }
-
-          const response = await api.stats.throughput({
-            from_time: fromTime,
-            model_id: modelId && modelId !== "__all__" ? modelId : undefined,
-            provider_type: providerType === "all" ? undefined : providerType,
-            connection_id: connectionId && connectionId !== "__all__" ? Number.parseInt(connectionId, 10) : undefined,
-          });
-          setThroughput(response);
-        } catch (error) {
-          console.error("Failed to fetch throughput:", error);
-        } finally {
-          setThroughputLoading(false);
-        }
-      };
-
-      fetchThroughput();
+    const timeout = window.setTimeout(() => {
+      void fetchThroughputData();
     }, 300);
 
-    return () => clearTimeout(timeout);
-  }, [activeTab, connectionId, modelId, providerType, timeRange, revision, localRevision]);
+    return () => window.clearTimeout(timeout);
+  }, [activeTab, fetchThroughputData, revision]);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      const fetchSpending = async () => {
-        setSpendingLoading(true);
-        setSpendingError(null);
-        try {
-          const response = await api.stats.spending({
-            preset: spendingPreset,
-            from_time:
-              spendingPreset === "custom"
-                ? toIsoFromDateInput(spendingFrom, "start")
-                : undefined,
-            to_time:
-              spendingPreset === "custom"
-                ? toIsoFromDateInput(spendingTo, "end")
-                : undefined,
-            provider_type:
-              spendingProviderType === "all" ? undefined : spendingProviderType,
-            model_id: spendingModelId || undefined,
-            connection_id: spendingConnectionId
-              ? Number.parseInt(spendingConnectionId, 10)
-              : undefined,
-            group_by: spendingGroupBy,
-            limit: spendingLimit,
-            offset: spendingOffset,
-            top_n: spendingTopN,
-          });
-          setSpending(response);
-          setSpendingUpdatedAt(new Date().toISOString());
-        } catch (error) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : "Failed to fetch spending report";
-          setSpendingError(message);
-        } finally {
-          setSpendingLoading(false);
-        }
-      };
-
-      fetchSpending();
+    const timeout = window.setTimeout(() => {
+      void fetchSpendingData();
     }, 300);
 
-    return () => clearTimeout(timeout);
-  }, [
-    spendingPreset,
-    spendingFrom,
-    spendingTo,
-    spendingProviderType,
-    spendingModelId,
-    spendingConnectionId,
-    spendingGroupBy,
-    spendingLimit,
-    spendingOffset,
-    spendingTopN,
-    revision,
-    localRevision,
-  ]);
+    return () => window.clearTimeout(timeout);
+  }, [fetchSpendingData, revision]);
 
   useEffect(() => {
     setSpendingOffset(0);
   }, [revision]);
+
+  useEffect(() => {
+    if (reconcileRevision === 0) {
+      return;
+    }
+
+    void reconcileAll().finally(markSyncComplete);
+  }, [markSyncComplete, reconcileAll, reconcileRevision]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void reconcileAll().finally(markSyncComplete);
+    }, 300000);
+
+    return () => window.clearInterval(intervalId);
+  }, [markSyncComplete, reconcileAll]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
+      if (
+        hiddenAtRef.current !== null &&
+        Date.now() - hiddenAtRef.current > 30000
+      ) {
+        void reconcileAll().finally(markSyncComplete);
+      }
+
+      hiddenAtRef.current = null;
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [markSyncComplete, reconcileAll]);
 
   if (loading && logs.length === 0 && spending === null && spendingLoading) {
     return (
@@ -379,7 +531,12 @@ export function StatisticsPage() {
       <PageHeader
         title="Statistics"
         description="Operational metrics and spending analytics"
-      />
+      >
+        <WebSocketStatusIndicator
+          connectionState={connectionState}
+          isSyncing={isSyncing}
+        />
+      </PageHeader>
 
       <Tabs
         value={activeTab}
@@ -396,6 +553,8 @@ export function StatisticsPage() {
         <TabsContent value="operations">
           <OperationsTab
             logs={logs}
+            newLogIds={newLogIds}
+            clearNewLogHighlight={clearNewLogHighlight}
             models={models}
             connections={connections}
             modelId={modelId}
@@ -412,7 +571,6 @@ export function StatisticsPage() {
             setOperationsStatusFilter={setOperationsStatusFilter}
           />
         </TabsContent>
-
 
         <TabsContent value="throughput">
           <ThroughputTab data={throughput} isLoading={throughputLoading} />

@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { WebSocketStatusIndicator } from "@/components/WebSocketStatusIndicator";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
@@ -46,6 +47,20 @@ const REQUEST_DETAIL_TABS = ["overview", "audit"] as const;
 
 type RequestDetailTab = (typeof REQUEST_DETAIL_TABS)[number];
 
+function getFromTime(timeRange: TimeRange) {
+  const now = new Date();
+  if (timeRange === "1h") {
+    return new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+  }
+  if (timeRange === "24h") {
+    return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  }
+  if (timeRange === "7d") {
+    return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  }
+  return undefined;
+}
+
 export function RequestsPage() {
   const { format: formatTime } = useTimezone();
   const { navigateToConnection } = useConnectionNavigation();
@@ -57,6 +72,9 @@ export function RequestsPage() {
   const [models, setModels] = useState<{ model_id: string; display_name: string | null }[]>([]);
   const [connections, setConnections] = useState<ConnectionDropdownItem[]>([]);
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
+  const [newLogIds, setNewLogIds] = useState<Set<number>>(() => new Set());
+  const [reconcileRevision, setReconcileRevision] = useState(0);
+  const [auditRefreshKey, setAuditRefreshKey] = useState(0);
 
   const initialModelId = searchParams.get("model_id");
   const initialProviderType = searchParams.get("provider_type");
@@ -84,32 +102,6 @@ export function RequestsPage() {
   const [limit, setLimit] = useState(() => parseRequestLimitParam(searchParams.get("limit")));
   const [offset, setOffset] = useState(() => parseNonNegativeIntParam(searchParams.get("offset"), 0));
   const [total, setTotal] = useState(0);
-
-  const [localRevision, setLocalRevision] = useState(0);
-  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleDirty = useCallback(() => {
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
-    refreshTimeoutRef.current = setTimeout(() => {
-      setLocalRevision((r) => r + 1);
-    }, 300);
-  }, []);
-
-  useRealtimeData({
-    profileId: selectedProfile?.id ?? null,
-    channel: "request_logs",
-    onDirty: handleDirty,
-  });
-
-  useEffect(() => {
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const [view, setView] = useState<ViewType>(() =>
     parseEnumParam(
@@ -152,6 +144,15 @@ export function RequestsPage() {
   const [exactLog, setExactLog] = useState<RequestLogEntry | null>(null);
   const [exactLoading, setExactLoading] = useState(false);
 
+  const logsRef = useRef<RequestLogEntry[]>([]);
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
+  const hiddenAtRef = useRef<number | null>(null);
+  const latestMatchingRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    logsRef.current = logs;
+  }, [logs]);
+
   useEffect(() => {
     const nextRequestId = parsePositiveIntParam(searchParams.get("request_id"));
     const nextDetailTab = parseEnumParam(searchParams.get("detail_tab"), REQUEST_DETAIL_TABS, "overview");
@@ -176,7 +177,7 @@ export function RequestsPage() {
       }
     };
 
-    fetchFilters();
+    void fetchFilters();
   }, [revision]);
 
   useEffect(() => {
@@ -261,98 +262,19 @@ export function RequestsPage() {
     setOffset(0);
   }, [revision]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const fetchLogs = async () => {
-        setLoading(true);
-        try {
-          let fromTime: string | undefined;
-          const now = new Date();
-          if (timeRange === "1h") {
-            fromTime = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-          } else if (timeRange === "24h") {
-            fromTime = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-          } else if (timeRange === "7d") {
-            fromTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-          }
+  const matchesActiveFilters = useCallback(
+    (entry: RequestLogEntry) => {
+      if (modelId !== "__all__" && entry.model_id !== modelId) return false;
+      if (providerType !== "all" && entry.provider_type !== providerType) return false;
+      if (connectionId !== "__all__" && entry.connection_id !== Number(connectionId)) return false;
+      if (endpointId !== "__all__" && entry.endpoint_id !== Number(endpointId)) return false;
+      return true;
+    },
+    [connectionId, endpointId, modelId, providerType]
+  );
 
-          const response = await api.stats.requests({
-            model_id: modelId === "__all__" ? undefined : modelId,
-            provider_type: providerType === "all" ? undefined : providerType,
-            connection_id: connectionId === "__all__" ? undefined : Number.parseInt(connectionId, 10),
-            endpoint_id: endpointId === "__all__" ? undefined : Number.parseInt(endpointId, 10),
-            from_time: fromTime,
-            limit,
-            offset,
-          });
-
-          setLogs(response.items);
-          setTotal(response.total);
-        } catch (error) {
-          console.error("Failed to fetch request logs", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchLogs();
-    }, 300);
-
-    return () => clearTimeout(timeout);
-  }, [connectionId, endpointId, limit, modelId, offset, providerType, timeRange, revision, localRevision]);
-
-  useEffect(() => {
-    if (requestId === null) {
-      setExactLog(null);
-      setExactLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchExactLog = async () => {
-      setExactLoading(true);
-      try {
-        const response = await api.stats.requests({ request_id: requestId, limit: 1, offset: 0 });
-        if (!cancelled) {
-          setExactLog(response.items[0] ?? null);
-        }
-      } catch (error) {
-        console.error("Failed to fetch exact request log", error);
-        if (!cancelled) {
-          setExactLog(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setExactLoading(false);
-        }
-      }
-    };
-
-    fetchExactLog();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [requestId, revision, localRevision]);
-
-  useEffect(() => {
-    if (requestId === null) {
-      return;
-    }
-
-    if (exactLog) {
-      setSelectedLog((current) => (current?.id === exactLog.id ? current : exactLog));
-      return;
-    }
-
-    if (!exactLoading) {
-      setSelectedLog(null);
-    }
-  }, [exactLoading, exactLog, requestId]);
-
-  const filteredAndSortedRows = useMemo(() => {
-    let result = logs.filter((log) => {
+  const matchesClientFilters = useCallback(
+    (log: RequestLogEntry) => {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const endpointLabel = log.endpoint_description || log.endpoint_base_url || "";
@@ -375,10 +297,30 @@ export function RequestsPage() {
       if (showPricedOnly && !log.priced_flag) return false;
       if (showBillableOnly && !log.billable_flag) return false;
 
-      if (specialTokenFilter === "has_cached" && !hasSpecialTokenValue(log.cache_read_input_tokens)) return false;
-      if (specialTokenFilter === "has_reasoning" && !hasSpecialTokenValue(log.reasoning_tokens)) return false;
-      if (specialTokenFilter === "has_any_special" && !rowHasAnySpecialToken(log)) return false;
-      if (specialTokenFilter === "missing_special" && rowHasAnySpecialToken(log)) return false;
+      if (
+        specialTokenFilter === "has_cached" &&
+        !hasSpecialTokenValue(log.cache_read_input_tokens)
+      ) {
+        return false;
+      }
+      if (
+        specialTokenFilter === "has_reasoning" &&
+        !hasSpecialTokenValue(log.reasoning_tokens)
+      ) {
+        return false;
+      }
+      if (
+        specialTokenFilter === "has_any_special" &&
+        !rowHasAnySpecialToken(log)
+      ) {
+        return false;
+      }
+      if (
+        specialTokenFilter === "missing_special" &&
+        rowHasAnySpecialToken(log)
+      ) {
+        return false;
+      }
 
       if (outcomeFilter === "success" && log.status_code >= 400) return false;
       if (outcomeFilter === "error" && log.status_code < 400) return false;
@@ -390,7 +332,238 @@ export function RequestsPage() {
       if (triage === "unpriced_only" && log.priced_flag) return false;
 
       return true;
-    });
+    },
+    [
+      latencyBucket,
+      outcomeFilter,
+      searchQuery,
+      showBillableOnly,
+      showPricedOnly,
+      specialTokenFilter,
+      streamFilter,
+      tokenMax,
+      tokenMin,
+      triage,
+    ]
+  );
+
+  const fetchLogs = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!silent) {
+        setLoading(true);
+      }
+
+      try {
+        const requestParams = {
+          model_id: modelId === "__all__" ? undefined : modelId,
+          provider_type: providerType === "all" ? undefined : providerType,
+          connection_id: connectionId === "__all__" ? undefined : Number.parseInt(connectionId, 10),
+          endpoint_id: endpointId === "__all__" ? undefined : Number.parseInt(endpointId, 10),
+          from_time: getFromTime(timeRange),
+        };
+
+        const [response, latestResponse] = await Promise.all([
+          api.stats.requests({
+            ...requestParams,
+            limit,
+            offset,
+          }),
+          api.stats.requests({
+            ...requestParams,
+            limit: 1,
+            offset: 0,
+          }),
+        ]);
+
+        setLogs(response.items);
+        setTotal(response.total);
+        latestMatchingRequestIdRef.current = latestResponse.items[0]?.id ?? 0;
+        setNewLogIds(new Set());
+      } catch (error) {
+        console.error("Failed to fetch request logs", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [connectionId, endpointId, limit, modelId, offset, providerType, timeRange]
+  );
+
+  const fetchExactLog = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (requestId === null) {
+        setExactLog(null);
+        setExactLoading(false);
+        return;
+      }
+
+      if (!silent) {
+        setExactLoading(true);
+      }
+
+      try {
+        const response = await api.stats.requests({ request_id: requestId, limit: 1, offset: 0 });
+        setExactLog(response.items[0] ?? null);
+      } catch (error) {
+        console.error("Failed to fetch exact request log", error);
+        setExactLog(null);
+      } finally {
+        setExactLoading(false);
+      }
+    },
+    [requestId]
+  );
+
+  const reconcileAll = useCallback(async () => {
+    await Promise.all([
+      fetchLogs({ silent: true }),
+      requestId !== null ? fetchExactLog({ silent: true }) : Promise.resolve(),
+    ]);
+  }, [fetchExactLog, fetchLogs, requestId]);
+
+  const handleNewRequestLog = useCallback(
+    (entry: RequestLogEntry) => {
+      if (entry.id <= latestMatchingRequestIdRef.current) {
+        return;
+      }
+
+      if (!matchesActiveFilters(entry)) {
+        return;
+      }
+
+      latestMatchingRequestIdRef.current = entry.id;
+
+      if (requestId !== null) {
+        setTotal((prev) => prev + 1);
+        return;
+      }
+
+      setTotal((prev) => prev + 1);
+
+      if (offset !== 0) {
+        return;
+      }
+
+      const isVisibleAfterClientFilters = matchesClientFilters(entry);
+      if (!isVisibleAfterClientFilters) {
+        return;
+      }
+
+      const container = tableScrollRef.current;
+      const preserveScroll = container !== null && container.scrollTop > 50;
+
+      setLogs((prev) => [entry, ...prev].slice(0, limit));
+      setNewLogIds((prev) => new Set(prev).add(entry.id));
+
+      if (preserveScroll && container) {
+        window.requestAnimationFrame(() => {
+          container.scrollTop += 52;
+        });
+      }
+    },
+    [limit, matchesActiveFilters, matchesClientFilters, offset, requestId]
+  );
+
+  const handleAuditReady = useCallback(
+    (requestLogId: number, auditLogId: number) => {
+      if (auditLogId <= 0) {
+        return;
+      }
+
+      if (detailTab !== "audit") {
+        return;
+      }
+
+      const activeRequestId = selectedLog?.id ?? exactLog?.id ?? requestId;
+      if (activeRequestId !== requestLogId) {
+        return;
+      }
+
+      setAuditRefreshKey((prev) => prev + 1);
+    },
+    [detailTab, exactLog?.id, requestId, selectedLog?.id]
+  );
+
+  const requestRealtimeReconciliation = useCallback(() => {
+    setReconcileRevision((prev) => prev + 1);
+  }, []);
+
+  const { connectionState, isSyncing, markSyncComplete } = useRealtimeData({
+    profileId: selectedProfile?.id ?? null,
+    channel: "request_logs",
+    onData: handleNewRequestLog,
+    onDirty: requestRealtimeReconciliation,
+    onReconnect: requestRealtimeReconciliation,
+    onAuditReady: handleAuditReady,
+  });
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void fetchLogs();
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [fetchLogs, revision]);
+
+  useEffect(() => {
+    void fetchExactLog();
+  }, [fetchExactLog, revision]);
+
+  useEffect(() => {
+    if (requestId === null) {
+      return;
+    }
+
+    if (exactLog) {
+      setSelectedLog((current) => (current?.id === exactLog.id ? current : exactLog));
+      return;
+    }
+
+    if (!exactLoading) {
+      setSelectedLog(null);
+    }
+  }, [exactLoading, exactLog, requestId]);
+
+  useEffect(() => {
+    if (reconcileRevision === 0) {
+      return;
+    }
+
+    void reconcileAll().finally(markSyncComplete);
+  }, [markSyncComplete, reconcileAll, reconcileRevision]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void reconcileAll().finally(markSyncComplete);
+    }, 300000);
+
+    return () => window.clearInterval(intervalId);
+  }, [markSyncComplete, reconcileAll]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
+      if (
+        hiddenAtRef.current !== null &&
+        Date.now() - hiddenAtRef.current > 30000
+      ) {
+        void reconcileAll().finally(markSyncComplete);
+      }
+
+      hiddenAtRef.current = null;
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [markSyncComplete, reconcileAll]);
+
+  const filteredAndSortedRows = useMemo(() => {
+    let result = logs.filter(matchesClientFilters);
 
     if (triage !== "none") {
       result = [...result].sort((a, b) => {
@@ -409,17 +582,9 @@ export function RequestsPage() {
 
     return result;
   }, [
-    latencyBucket,
     logs,
-    outcomeFilter,
-    searchQuery,
-    showBillableOnly,
-    showPricedOnly,
-    specialTokenFilter,
-    streamFilter,
-    tokenMax,
-    tokenMin,
     triage,
+    matchesClientFilters,
   ]);
 
   const displayedRows = requestId !== null ? (exactLog ? [exactLog] : []) : filteredAndSortedRows;
@@ -462,13 +627,30 @@ export function RequestsPage() {
     setOffset(0);
   };
 
+  const clearNewLog = (logId: number) => {
+    setNewLogIds((prev) => {
+      if (!prev.has(logId)) {
+        return prev;
+      }
+
+      const next = new Set(prev);
+      next.delete(logId);
+      return next;
+    });
+  };
+
   return (
     <TooltipProvider>
       <div className="h-full flex flex-col gap-[var(--density-page-gap)]">
         <PageHeader
           title="Requests"
           description="Review routed requests, then inspect the linked audit capture directly in the side drawer."
-        />
+        >
+          <WebSocketStatusIndicator
+            connectionState={connectionState}
+            isSyncing={isSyncing}
+          />
+        </PageHeader>
 
         {requestId !== null ? (
           <div className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/[0.08] via-background to-amber-500/[0.08] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -544,6 +726,9 @@ export function RequestsPage() {
           clearAllFilters={clearAllFilters}
           formatTime={formatTime}
           navigateToConnection={navigateToConnection}
+          scrollContainerRef={tableScrollRef}
+          getRowClassName={(row) => (newLogIds.has(row.id) ? "ws-new-row" : undefined)}
+          onRowAnimationEnd={(row) => clearNewLog(row.id)}
           emptyStateTitle={
             requestId !== null ? `Request #${requestId} was not found` : undefined
           }
@@ -571,7 +756,7 @@ export function RequestsPage() {
           navigateToConnection={navigateToConnection}
           formatTime={formatTime}
           requestId={requestId}
-          auditRefreshKey={localRevision}
+          auditRefreshKey={auditRefreshKey}
           detailTab={detailTab}
           setDetailTab={setDetailTab}
           clearRequestFocus={clearRequestFocus}

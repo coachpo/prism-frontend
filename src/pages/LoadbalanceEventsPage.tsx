@@ -20,12 +20,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { WebSocketStatusIndicator } from "@/components/WebSocketStatusIndicator";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
 import { api } from "@/lib/api";
 import type { LoadbalanceEvent, LoadbalanceStats } from "@/lib/types";
 import { EventTypeBadge, FailureKindBadge } from "@/components/loadbalance/LoadbalanceBadges";
 import { LoadbalanceEventDetailSheet } from "@/components/loadbalance/LoadbalanceEventDetailSheet";
+import { cn } from "@/lib/utils";
 
 const EVENT_TYPE_OPTIONS = [
   { value: "all", label: "All Events" },
@@ -52,6 +54,8 @@ export function LoadbalanceEventsPage() {
   const [stats, setStats] = useState<LoadbalanceStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [newEventIds, setNewEventIds] = useState<Set<number>>(() => new Set());
+  const [reconcileRevision, setReconcileRevision] = useState(0);
 
   const [eventType, setEventType] = useState(searchParams.get("event_type") || "all");
   const [failureKind, setFailureKind] = useState(searchParams.get("failure_kind") || "all");
@@ -62,31 +66,14 @@ export function LoadbalanceEventsPage() {
 
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
-  const [localRevision, setLocalRevision] = useState(0);
-  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleDirty = useCallback(() => {
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
-    refreshTimeoutRef.current = setTimeout(() => {
-      setLocalRevision((r) => r + 1);
-    }, 300);
-  }, []);
-
-  useRealtimeData({
-    profileId: selectedProfile?.id ?? null,
-    channel: "loadbalance_events",
-    onDirty: handleDirty,
-  });
+  const eventsRef = useRef<LoadbalanceEvent[]>([]);
+  const hiddenAtRef = useRef<number | null>(null);
+  const latestGlobalEventIdRef = useRef(0);
+  const latestMatchingEventIdRef = useRef(0);
 
   useEffect(() => {
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-    };
-  }, []);
+    eventsRef.current = events;
+  }, [events]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -97,38 +84,158 @@ export function LoadbalanceEventsPage() {
     setSearchParams(params, { replace: true });
   }, [eventType, failureKind, connectionId, modelId, setSearchParams]);
 
-  const fetchEvents = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params: Parameters<typeof api.loadbalance.listEvents>[0] = { limit, offset };
-      if (eventType !== "all") params.event_type = eventType;
-      if (failureKind !== "all") params.failure_kind = failureKind;
-      if (connectionId) {
-        const parsedConnectionId = Number.parseInt(connectionId, 10);
-        if (!Number.isNaN(parsedConnectionId)) {
-          params.connection_id = parsedConnectionId;
-        }
+  const matchesActiveFilters = useCallback(
+    (event: LoadbalanceEvent) => {
+      if (eventType !== "all" && event.event_type !== eventType) return false;
+      if (failureKind !== "all" && event.failure_kind !== failureKind) return false;
+      if (connectionId && event.connection_id !== Number(connectionId)) return false;
+      if (modelId && event.model_id !== modelId) return false;
+      return true;
+    },
+    [connectionId, eventType, failureKind, modelId]
+  );
+
+  const fetchEvents = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!silent) {
+        setLoading(true);
       }
-      if (modelId) params.model_id = modelId;
 
-      const [eventsData, statsData] = await Promise.all([
-        api.loadbalance.listEvents(params),
-        api.loadbalance.getStats({}),
-      ]);
+      try {
+        const params: Parameters<typeof api.loadbalance.listEvents>[0] = { limit, offset };
+        if (eventType !== "all") params.event_type = eventType;
+        if (failureKind !== "all") params.failure_kind = failureKind;
+        if (connectionId) {
+          const parsedConnectionId = Number.parseInt(connectionId, 10);
+          if (!Number.isNaN(parsedConnectionId)) {
+            params.connection_id = parsedConnectionId;
+          }
+        }
+        if (modelId) params.model_id = modelId;
 
-      setEvents(eventsData.items);
-      setTotal(eventsData.total);
-      setStats(statsData);
-    } catch (error) {
-      console.error("Failed to load loadbalance events", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [connectionId, eventType, failureKind, limit, modelId, offset]);
+        const matchingParams = { ...params };
+
+        const [eventsData, statsData, latestGlobalEvent, latestMatchingEvent] = await Promise.all([
+          api.loadbalance.listEvents(params),
+          api.loadbalance.getStats({}),
+          api.loadbalance.listEvents({ limit: 1, offset: 0 }),
+          api.loadbalance.listEvents({ ...matchingParams, limit: 1, offset: 0 }),
+        ]);
+
+        setEvents(eventsData.items);
+        setTotal(eventsData.total);
+        setStats(statsData);
+        latestGlobalEventIdRef.current = latestGlobalEvent.items[0]?.id ?? 0;
+        latestMatchingEventIdRef.current = latestMatchingEvent.items[0]?.id ?? 0;
+        setNewEventIds(new Set());
+      } catch (error) {
+        console.error("Failed to load loadbalance events", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [connectionId, eventType, failureKind, limit, modelId, offset]
+  );
+
+  const handleNewEvent = useCallback(
+    (event: LoadbalanceEvent) => {
+      if (event.id <= latestGlobalEventIdRef.current) {
+        return;
+      }
+
+      latestGlobalEventIdRef.current = event.id;
+
+      setStats((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          total_events: prev.total_events + 1,
+          events_by_type: {
+            ...prev.events_by_type,
+            [event.event_type]: (prev.events_by_type[event.event_type] ?? 0) + 1,
+          },
+        };
+      });
+
+      if (!matchesActiveFilters(event)) {
+        return;
+      }
+
+      if (event.id <= latestMatchingEventIdRef.current) {
+        return;
+      }
+
+      latestMatchingEventIdRef.current = event.id;
+
+      setTotal((prev) => prev + 1);
+
+      if (offset !== 0) {
+        return;
+      }
+
+      setEvents((prev) => [event, ...prev].slice(0, limit));
+      setNewEventIds((prev) => new Set(prev).add(event.id));
+    },
+    [limit, matchesActiveFilters, offset]
+  );
+
+  const requestRealtimeReconciliation = useCallback(() => {
+    setReconcileRevision((prev) => prev + 1);
+  }, []);
+
+  const { connectionState, isSyncing, markSyncComplete } = useRealtimeData({
+    profileId: selectedProfile?.id ?? null,
+    channel: "loadbalance_events",
+    onData: handleNewEvent,
+    onDirty: requestRealtimeReconciliation,
+    onReconnect: requestRealtimeReconciliation,
+  });
 
   useEffect(() => {
     void fetchEvents();
-  }, [revision, localRevision, fetchEvents]);
+  }, [revision, fetchEvents]);
+
+  useEffect(() => {
+    if (reconcileRevision === 0) {
+      return;
+    }
+
+    void fetchEvents({ silent: true }).finally(markSyncComplete);
+  }, [reconcileRevision, fetchEvents, markSyncComplete]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void fetchEvents({ silent: true }).finally(markSyncComplete);
+    }, 300000);
+
+    return () => window.clearInterval(intervalId);
+  }, [fetchEvents, markSyncComplete]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
+      if (
+        hiddenAtRef.current !== null &&
+        Date.now() - hiddenAtRef.current > 30000
+      ) {
+        void fetchEvents({ silent: true }).finally(markSyncComplete);
+      }
+
+      hiddenAtRef.current = null;
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchEvents, markSyncComplete]);
 
   const handleClearFilters = () => {
     setEventType("all");
@@ -148,16 +255,33 @@ export function LoadbalanceEventsPage() {
     }
   };
 
+  const clearNewEvent = (eventId: number) => {
+    setNewEventIds((prev) => {
+      if (!prev.has(eventId)) {
+        return prev;
+      }
+
+      const next = new Set(prev);
+      next.delete(eventId);
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Loadbalance Events"
         description="Monitor failover transitions and connection recovery"
-      />
+      >
+        <WebSocketStatusIndicator
+          connectionState={connectionState}
+          isSyncing={isSyncing}
+        />
+      </PageHeader>
 
       {stats && (
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg border bg-card p-4">
+          <div className="rounded-lg border bg-card p-4 transition-colors duration-300">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
               <p className="text-sm font-medium text-muted-foreground">Total Events</p>
@@ -165,7 +289,7 @@ export function LoadbalanceEventsPage() {
             <p className="mt-2 text-2xl font-bold">{stats.total_events}</p>
           </div>
 
-          <div className="rounded-lg border bg-card p-4">
+          <div className="rounded-lg border bg-card p-4 transition-colors duration-300">
             <p className="text-sm font-medium text-muted-foreground">Events by Type</p>
             <div className="mt-2 space-y-1">
               {Object.entries(stats.events_by_type).map(([type, count]) => (
@@ -177,7 +301,7 @@ export function LoadbalanceEventsPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border bg-card p-4">
+          <div className="rounded-lg border bg-card p-4 transition-colors duration-300">
             <p className="text-sm font-medium text-muted-foreground">Most Failed Connections</p>
             <div className="mt-2 space-y-1">
               {stats.most_failed_connections.slice(0, 5).map((conn) => (
@@ -257,7 +381,7 @@ export function LoadbalanceEventsPage() {
             <Trash2 className="mr-2 h-4 w-4" />
             Clear Filters
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchEvents}>
+          <Button variant="outline" size="sm" onClick={() => void fetchEvents()}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
@@ -299,8 +423,12 @@ export function LoadbalanceEventsPage() {
               events.map((event) => (
                 <TableRow
                   key={event.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className={cn(
+                    "cursor-pointer hover:bg-muted/50",
+                    newEventIds.has(event.id) && "ws-new-row"
+                  )}
                   onClick={() => setSelectedEventId(event.id)}
+                  onAnimationEnd={() => clearNewEvent(event.id)}
                 >
                   <TableCell className="font-mono text-sm">{event.id}</TableCell>
                   <TableCell>

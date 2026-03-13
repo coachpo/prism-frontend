@@ -181,7 +181,59 @@
     }
 }
 
+@keyframes ws-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ws-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ws-highlight {
+  0% {
+    background-color: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes ws-value-highlight {
+  0% {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-primary) 18%, transparent);
+    background-color: color-mix(in oklab, var(--color-primary) 8%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 1px transparent;
+    background-color: transparent;
+  }
+}
+
 @layer utilities {
+    .ws-new-row {
+        animation: ws-slide-in 300ms ease-out, ws-highlight 1.5s ease-out;
+    }
+    .ws-new-row-left {
+        animation: ws-slide-in-left 300ms ease-out, ws-highlight 1.5s ease-out;
+    }
+    .ws-value-updated {
+        animation: ws-value-highlight 1.5s ease-out;
+        transition: all 300ms ease;
+    }
     .shell-section {
         gap: var(--density-page-gap);
     }
@@ -207,5 +259,15 @@
     .scrollbar-thin::-webkit-scrollbar-thumb {
         background-color: var(--border);
         border-radius: 3px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ws-new-row,
+    .ws-new-row-left,
+    .ws-value-updated {
+        animation: none;
+        transition: background-color 0.5s ease;
+        background-color: color-mix(in oklab, var(--color-primary) 8%, transparent);
     }
 }

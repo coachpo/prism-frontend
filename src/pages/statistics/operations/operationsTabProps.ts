@@ -6,6 +6,8 @@ import type {
 
 export interface OperationsTabProps {
   logs: RequestLogEntry[];
+  newLogIds: Set<number>;
+  clearNewLogHighlight: (logId: number) => void;
   models: { model_id: string; display_name: string | null }[];
   connections: ConnectionDropdownItem[];
   modelId: string;
