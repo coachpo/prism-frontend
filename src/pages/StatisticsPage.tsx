@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
+import { useRealtimeData } from "@/hooks/useRealtimeData";
 import type {
   ConnectionDropdownItem,
   RequestLogEntry,
@@ -43,7 +44,19 @@ export function StatisticsPage() {
 
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const { revision } = useProfileContext();
+  const { revision, selectedProfile } = useProfileContext();
+
+  const [localRevision, setLocalRevision] = useState(0);
+  
+  const handleDirty = useCallback(() => {
+    setLocalRevision((r) => r + 1);
+  }, []);
+  
+  useRealtimeData({
+    profileId: selectedProfile?.id ?? null,
+    channel: "statistics",
+    onDirty: handleDirty,
+  });
 
   const initialOperationsModelId = searchParams.get("model_id");
   const initialOperationsProviderType = searchParams.get("provider_type");
@@ -243,7 +256,7 @@ export function StatisticsPage() {
     }, 450);
 
     return () => clearTimeout(timeout);
-  }, [connectionId, modelId, providerType, setLoading, timeRange, revision]);
+  }, [connectionId, modelId, providerType, setLoading, timeRange, revision, localRevision]);
 
   // Fetch throughput data
   useEffect(() => {
@@ -281,7 +294,7 @@ export function StatisticsPage() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [activeTab, connectionId, modelId, providerType, timeRange, revision]);
+  }, [activeTab, connectionId, modelId, providerType, timeRange, revision, localRevision]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -339,6 +352,7 @@ export function StatisticsPage() {
     spendingOffset,
     spendingTopN,
     revision,
+    localRevision,
   ]);
 
   useEffect(() => {

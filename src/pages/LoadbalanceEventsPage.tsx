@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { BarChart3, Filter, RefreshCw, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useProfileContext } from "@/context/ProfileContext";
+import { useRealtimeData } from "@/hooks/useRealtimeData";
 import { api } from "@/lib/api";
 import type { LoadbalanceEvent, LoadbalanceStats } from "@/lib/types";
 import { EventTypeBadge, FailureKindBadge } from "@/components/loadbalance/LoadbalanceBadges";
@@ -45,7 +46,7 @@ const FAILURE_KIND_OPTIONS = [
 
 export function LoadbalanceEventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { revision } = useProfileContext();
+  const { revision, selectedProfile } = useProfileContext();
 
   const [events, setEvents] = useState<LoadbalanceEvent[]>([]);
   const [stats, setStats] = useState<LoadbalanceStats | null>(null);
@@ -60,6 +61,32 @@ export function LoadbalanceEventsPage() {
   const [offset, setOffset] = useState(0);
 
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+
+  const [localRevision, setLocalRevision] = useState(0);
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDirty = useCallback(() => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    refreshTimeoutRef.current = setTimeout(() => {
+      setLocalRevision((r) => r + 1);
+    }, 300);
+  }, []);
+
+  useRealtimeData({
+    profileId: selectedProfile?.id ?? null,
+    channel: "loadbalance_events",
+    onDirty: handleDirty,
+  });
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -101,7 +128,7 @@ export function LoadbalanceEventsPage() {
 
   useEffect(() => {
     void fetchEvents();
-  }, [revision, fetchEvents]);
+  }, [revision, localRevision, fetchEvents]);
 
   const handleClearFilters = () => {
     setEventType("all");

@@ -10,6 +10,9 @@ export type RealtimeMessage =
   | { type: 'subscribed'; profile_id: number; channel: string }
   | { type: 'unsubscribed' }
   | { type: 'dashboard.dirty'; sections: string[] }
+  | { type: 'statistics.dirty' }
+  | { type: 'request_logs.dirty' }
+  | { type: 'loadbalance_events.dirty' }
   | { type: 'error'; message: string }
   | { type: 'pong' };
 

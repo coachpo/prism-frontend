@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
+import { useRealtimeData } from "@/hooks/useRealtimeData";
 import { useTimezone } from "@/hooks/useTimezone";
 import { api } from "@/lib/api";
 import type { ConnectionDropdownItem, Endpoint, RequestLogEntry } from "@/lib/types";
@@ -49,7 +50,7 @@ export function RequestsPage() {
   const { format: formatTime } = useTimezone();
   const { navigateToConnection } = useConnectionNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { revision } = useProfileContext();
+  const { revision, selectedProfile } = useProfileContext();
 
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +84,32 @@ export function RequestsPage() {
   const [limit, setLimit] = useState(() => parseRequestLimitParam(searchParams.get("limit")));
   const [offset, setOffset] = useState(() => parseNonNegativeIntParam(searchParams.get("offset"), 0));
   const [total, setTotal] = useState(0);
+
+  const [localRevision, setLocalRevision] = useState(0);
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDirty = useCallback(() => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    refreshTimeoutRef.current = setTimeout(() => {
+      setLocalRevision((r) => r + 1);
+    }, 300);
+  }, []);
+
+  useRealtimeData({
+    profileId: selectedProfile?.id ?? null,
+    channel: "request_logs",
+    onDirty: handleDirty,
+  });
+
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const [view, setView] = useState<ViewType>(() =>
     parseEnumParam(
@@ -272,7 +299,7 @@ export function RequestsPage() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [connectionId, endpointId, limit, modelId, offset, providerType, timeRange, revision]);
+  }, [connectionId, endpointId, limit, modelId, offset, providerType, timeRange, revision, localRevision]);
 
   useEffect(() => {
     if (requestId === null) {
@@ -307,7 +334,7 @@ export function RequestsPage() {
     return () => {
       cancelled = true;
     };
-  }, [requestId, revision]);
+  }, [requestId, revision, localRevision]);
 
   useEffect(() => {
     if (requestId === null) {
@@ -544,6 +571,7 @@ export function RequestsPage() {
           navigateToConnection={navigateToConnection}
           formatTime={formatTime}
           requestId={requestId}
+          auditRefreshKey={localRevision}
           detailTab={detailTab}
           setDetailTab={setDetailTab}
           clearRequestFocus={clearRequestFocus}

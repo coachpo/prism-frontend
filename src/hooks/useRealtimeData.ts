@@ -10,7 +10,7 @@ export interface UseRealtimeDataOptions {
   profileId: number | null;
   channel?: string;
   enabled?: boolean;
-  onDirty?: (sections: string[]) => void;
+  onDirty?: () => void;
 }
 
 export interface UseRealtimeDataReturn {
@@ -47,8 +47,8 @@ export function useRealtimeData(options: UseRealtimeDataOptions): UseRealtimeDat
         setIsSubscribed(true);
       } else if (message.type === 'unsubscribed') {
         setIsSubscribed(false);
-      } else if (message.type === 'dashboard.dirty' && onDirtyRef.current) {
-        onDirtyRef.current(message.sections);
+      } else if (message.type === `${channel}.dirty` && onDirtyRef.current) {
+        onDirtyRef.current();
       }
     };
 

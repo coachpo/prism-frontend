@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
+import { WebSocketStatusIndicator } from "@/components/WebSocketStatusIndicator";
 import type {
   ModelConfigListItem,
   RequestLogEntry,
@@ -39,6 +40,9 @@ export function DashboardPage() {
   const [localRevision, setLocalRevision] = useState(0);
   const [loading, setLoading] = useState(true);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
+  const modelDisplayNames = useMemo(() => {
+    return new Map(models.map((m) => [m.model_id, m.display_name || m.model_id]));
+  }, [models]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [providerStats, setProviderStats] = useState<StatsSummary | null>(null);
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
@@ -217,22 +221,7 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Dashboard" description="System overview and health status">
-        <div
-          className={cn(
-            "flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm font-medium transition-colors",
-            isConnected
-              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
-              : "border-muted bg-muted/50 text-muted-foreground"
-          )}
-        >
-          <Zap
-            className={cn(
-              "h-3.5 w-3.5",
-              isConnected ? "fill-emerald-500 text-emerald-500" : "text-muted-foreground"
-            )}
-          />
-          {isConnected ? "Live" : "Offline"}
-        </div>
+        <WebSocketStatusIndicator isConnected={isConnected} />
       </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -411,7 +400,10 @@ export function DashboardPage() {
                         )}
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm font-medium leading-none">{req.model_id}</p>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium leading-none">{modelDisplayNames.get(req.model_id) || req.model_id}</p>
+                          <p className="text-xs text-muted-foreground">{req.model_id}</p>
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {formatTime(req.created_at, { hour: "numeric", minute: "numeric", second: "numeric", hour12: true })} - {req.response_time_ms}ms
                         </p>
@@ -457,7 +449,10 @@ export function DashboardPage() {
                         {i + 1}
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm font-medium leading-none">{model.model_id}</p>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium leading-none">{modelDisplayNames.get(model.model_id) || model.model_id}</p>
+                          <p className="text-xs text-muted-foreground">{model.model_id}</p>
+                        </div>
                         <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
                           <div
                             className="h-full bg-primary"

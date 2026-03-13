@@ -45,6 +45,7 @@ interface RequestLogDetailSheetProps {
   navigateToConnection: (id: number) => Promise<void>;
   formatTime: (date: string, options?: Intl.DateTimeFormatOptions) => string;
   requestId: number | null;
+  auditRefreshKey: number;
   detailTab: RequestDetailTab;
   setDetailTab: (tab: RequestDetailTab) => void;
   clearRequestFocus: () => void;
@@ -125,6 +126,7 @@ export function RequestLogDetailSheet({
   navigateToConnection,
   formatTime,
   requestId,
+  auditRefreshKey,
   detailTab,
   setDetailTab,
   clearRequestFocus,
@@ -133,6 +135,7 @@ export function RequestLogDetailSheet({
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [auditChecked, setAuditChecked] = useState(false);
+  const selectedLogId = selectedLog?.id ?? null;
 
   const displayCurrency = useMemo(
     () => (selectedLog ? getDisplayCurrency(selectedLog) : { symbol: "$", code: "USD" }),
@@ -144,10 +147,10 @@ export function RequestLogDetailSheet({
     setAuditError(null);
     setAuditChecked(false);
     setAuditLoading(false);
-  }, [selectedLog?.id]);
+  }, [selectedLogId]);
 
   useEffect(() => {
-    if (!selectedLog || detailTab !== "audit") {
+    if (selectedLogId === null || detailTab !== "audit") {
       return;
     }
 
@@ -160,7 +163,7 @@ export function RequestLogDetailSheet({
 
       try {
         const auditLookup = await api.audit.list({
-          request_log_id: selectedLog.id,
+          request_log_id: selectedLogId,
           limit: 1,
           offset: 0,
         });
@@ -197,7 +200,7 @@ export function RequestLogDetailSheet({
     return () => {
       cancelled = true;
     };
-  }, [detailTab, selectedLog]);
+  }, [auditRefreshKey, detailTab, selectedLogId]);
 
   const closeSheet = () => {
     setSelectedLog(null);
