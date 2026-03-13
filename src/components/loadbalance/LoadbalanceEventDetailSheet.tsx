@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -20,9 +18,11 @@ interface LoadbalanceEventDetailSheetProps {
 
 function DetailRow({ label, value }: { label: string; value: string | number | null }) {
   return (
-    <div className="flex justify-between border-b py-2 text-sm">
+    <div className="flex items-start justify-between gap-4 border-b py-2 text-sm last:border-b-0">
       <span className="font-medium text-muted-foreground">{label}</span>
-      <span className="font-mono text-foreground">{value ?? "N/A"}</span>
+      <span className="text-right font-mono text-foreground [overflow-wrap:anywhere]">
+        {value ?? "N/A"}
+      </span>
     </div>
   );
 }
@@ -67,27 +67,13 @@ export function LoadbalanceEventDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
-        <SheetHeader>
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <SheetTitle>Loadbalance Event Details</SheetTitle>
-              <SheetDescription>
-                Event ID: {eventId}
-              </SheetDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-6 w-6"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+      <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-xl">
+        <SheetHeader className="space-y-1 border-b bg-background/95 px-6 py-5 pr-14 backdrop-blur">
+          <SheetTitle>Loadbalance Event Details</SheetTitle>
+          <SheetDescription>Event ID: {eventId}</SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
+        <div className="space-y-6 p-6">
           {loading && (
             <div className="space-y-3">
               <Skeleton className="h-10 w-full" />
