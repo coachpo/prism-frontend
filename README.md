@@ -13,7 +13,7 @@ This is the frontend component of Prism, providing a web-based UI for configurin
 - **Styling**: TailwindCSS 4
 - **UI Components**: shadcn/ui
 - **Icons**: lucide-react
-- **Routing**: React Router v6
+- **Routing**: React Router 7
 - **Notifications**: sonner (toast)
 - **Theme**: next-themes (dark/light mode)
 
@@ -27,30 +27,44 @@ frontend/
 │   ├── main.tsx                    # Entry point
 │   ├── App.tsx                     # Router + routes
 │   ├── pages/
-│   │   ├── DashboardPage.tsx       # Overview with model health badges
-│   │   ├── ModelsPage.tsx          # Model CRUD list
-│   │   ├── ModelDetailPage.tsx     # Single model + connections config
-│   │   ├── EndpointConfigPage.tsx  # Global endpoint management
-│   │   ├── StatisticsPage.tsx      # Request logs + aggregated stats
-│   │   ├── AuditPage.tsx           # Audit log viewer
-│   │   └── SettingsPage.tsx        # Provider settings + config export/import
+│   │   ├── DashboardPage.tsx       # Thin dashboard route shell
+│   │   ├── ModelsPage.tsx          # Thin models route shell
+│   │   ├── ModelDetailPage.tsx     # Model detail route shell
+│   │   ├── EndpointsPage.tsx       # Endpoint management route shell
+│   │   ├── StatisticsPage.tsx      # Analytics route shell
+│   │   ├── RequestsPage.tsx        # Request browser route shell
+│   │   ├── ProxyApiKeysPage.tsx    # Proxy key route shell
+│   │   ├── PricingTemplatesPage.tsx # Pricing template route shell
+│   │   ├── LoadbalanceEventsPage.tsx # Failover event route shell
+│   │   ├── dashboard/              # Dashboard widgets + data hook
+│   │   ├── endpoints/              # Endpoint cards, dialogs, page data hook
+│   │   ├── loadbalance-events/     # Filters, table, stats, data hooks
+│   │   ├── model-detail/           # Model detail orchestration + connection helpers
+│   │   ├── models/                 # Models dialogs, table, page data hook
+│   │   ├── pricing-templates/      # Pricing dialogs, table, page data hook
+│   │   ├── proxy-api-keys/         # Proxy key cards, dialogs, page data hook
+│   │   ├── request-logs/           # Filters, detail drawer, table, page data hook
+│   │   ├── settings/               # Settings sections, dialogs, data hooks
+│   │   └── statistics/             # Statistics tabs, charts, page data hooks
 │   ├── components/
 │   │   ├── layout/AppLayout.tsx    # Responsive sidebar nav
 │   │   ├── ProviderIcon.tsx        # SVG brand icons (OpenAI, Anthropic, Gemini)
 │   │   ├── ThemeToggle.tsx         # Dark/light mode toggle
 │   │   └── ui/                     # shadcn/ui primitives
 │   ├── lib/
-│   │   ├── api.ts                  # Typed fetch wrapper for backend API
+│   │   ├── api.ts                  # Public typed API boundary
+│   │   ├── api/                    # Split API modules (core, auth/settings, management, observability)
 │   │   ├── types.ts                # TypeScript interfaces (mirrors backend schemas)
 │   │   └── utils.ts                # cn() helper (clsx + tailwind-merge)
 │   └── hooks/
-│       └── useEndpointNavigation.ts # Navigate to model detail with connection focus
+│       ├── useConnectionNavigation.ts # Navigate to model detail with connection focus
+│       ├── useRealtimeData.ts        # WebSocket-backed live refresh helper
+│       └── useTimezone.ts            # Shared timezone formatting helper
 ├── public/                         # Static assets
 ├── index.html                      # HTML template
 ├── vite.config.ts                  # Vite configuration
-├── tailwind.config.js              # TailwindCSS configuration
+├── components.json                 # shadcn registry configuration
 ├── tsconfig.json                   # TypeScript configuration
-├── components.json                 # shadcn/ui configuration
 └── AGENTS.md                       # Frontend knowledge base
 ```
 
@@ -125,13 +139,12 @@ docker build \
 1. **Dashboard** - Overview of all models with success rate badges
 2. **Models** - CRUD interface for models (native + proxy), load balancing strategies (single/failover), failover recovery controls
 3. **Model Detail** - Connection management, health checks, success rate tracking
-4. **Endpoints** - Global credential management (Base URL + API Key)
-5. **Statistics** - Request logs with filters, aggregated stats (latency, tokens, success rate)
-6. **Audit** - Audit log viewer with request/response body inspection
-7. **Settings** - Provider audit toggles, costing settings, config export/import
-4. **Statistics** - Request logs with filters, aggregated stats (latency, tokens, success rate)
-5. **Audit** - Audit log viewer with request/response body inspection
-6. **Settings** - Provider audit toggles, config export/import
+4. **Endpoints** - Profile-scoped credential management (Base URL + API Key)
+5. **Statistics** - Aggregated latency, token, spending, and throughput views
+6. **Requests** - Request browser with filters, realtime updates, and linked audit detail in the side drawer
+7. **Proxy API Keys** - Issue, rotate, and revoke runtime keys
+8. **Pricing Templates** - Shared pricing configuration for connections
+9. **Settings** - Provider audit toggles, auth setup, costing settings, retention, and config import/export
 
 ### Components
 
@@ -152,7 +165,7 @@ All backend API calls go through `lib/api.ts`, which provides:
 - Typed request/response interfaces
 - Automatic error handling
 - Base URL configuration
-- Namespaced API methods (providers, models, endpoints, connections, stats, audit, config)
+- Namespaced API methods for profiles, auth, providers, models, endpoints, connections, stats, audit, config, and pricing templates
 
 ---
 
@@ -233,10 +246,11 @@ Ensure `lib/types.ts` matches the backend schemas. Run `pnpm run build` to catch
 
 ## Contributing
 
-See the main [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
+This repo does not currently include a shared `CONTRIBUTING.md`; follow the frontend
+route and component conventions in `AGENTS.md` and nearby feature folders.
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](../LICENSE) for details.
+This repo does not currently include a standalone `LICENSE` file.

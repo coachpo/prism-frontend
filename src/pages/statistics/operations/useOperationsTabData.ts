@@ -6,10 +6,18 @@ import type {
 import {
   bucketLogs,
   hasSpecialTokenValue,
+  matchesOperationsLogFilters,
   parseErrorDetailMessage,
   rowHasAnySpecialToken,
 } from "../utils";
 import type { RequestLogEntry } from "@/lib/types";
+import type {
+  ErrorCodeBreakdownItem,
+  LatencyBandDatum,
+  RequestLogsPathBuilder,
+  SpecialTokenCoverageSummary,
+  TopErrorItem,
+} from "./operationsTypes";
 
 const OPERATIONS_REPORT_SYMBOL = "$";
 const OPERATIONS_REPORT_CODE = "USD";
@@ -36,28 +44,14 @@ export function useOperationsTabData({
   formatTime,
 }: UseOperationsTabDataInput) {
   const requestLogRows = useMemo(() => {
-    return logs.filter((log) => {
-      if (specialTokenFilter === "has_cached") {
-        if (!hasSpecialTokenValue(log.cache_read_input_tokens)) return false;
-      } else if (specialTokenFilter === "has_reasoning") {
-        if (!hasSpecialTokenValue(log.reasoning_tokens)) return false;
-      } else if (specialTokenFilter === "has_any_special") {
-        if (!rowHasAnySpecialToken(log)) return false;
-      } else if (specialTokenFilter === "missing_special") {
-        if (rowHasAnySpecialToken(log)) return false;
-      }
-
-      if (operationsStatusFilter === "success") return log.status_code < 400;
-      if (operationsStatusFilter === "4xx") return log.status_code >= 400 && log.status_code < 500;
-      if (operationsStatusFilter === "5xx") return log.status_code >= 500;
-      if (operationsStatusFilter === "error") return log.status_code >= 400;
-      return true;
-    });
+    return logs.filter((log) =>
+      matchesOperationsLogFilters(log, specialTokenFilter, operationsStatusFilter)
+    );
   }, [logs, operationsStatusFilter, specialTokenFilter]);
 
   const chartData = useMemo(() => bucketLogs(requestLogRows, timeRange), [requestLogRows, timeRange]);
 
-  const specialTokenCoverage = useMemo(() => {
+  const specialTokenCoverage = useMemo<SpecialTokenCoverageSummary>(() => {
     let cachedCaptured = 0;
     let reasoningCaptured = 0;
     let anySpecialCaptured = 0;
@@ -91,7 +85,7 @@ export function useOperationsTabData({
     };
   }, [requestLogRows]);
 
-  const errorCodeBreakdown = useMemo(() => {
+  const errorCodeBreakdown = useMemo<ErrorCodeBreakdownItem[]>(() => {
     const map = new Map<string, number>();
     for (const log of requestLogRows) {
       if (log.status_code < 400) continue;
@@ -121,11 +115,8 @@ export function useOperationsTabData({
     [requestLogRows]
   );
 
-  const topErrors = useMemo(() => {
-    const map = new Map<
-      string,
-      { count: number; statusCode: number; detail: string; rawDetail: string }
-    >();
+  const topErrors = useMemo<TopErrorItem[]>(() => {
+    const map = new Map<string, TopErrorItem>();
 
     for (const log of requestLogRows) {
       if (log.status_code < 400) continue;
@@ -147,8 +138,8 @@ export function useOperationsTabData({
       .slice(0, 8);
   }, [requestLogRows]);
 
-  const latencyBandData = useMemo(() => {
-    const buckets = [
+  const latencyBandData = useMemo<LatencyBandDatum[]>(() => {
+    const buckets: LatencyBandDatum[] = [
       { band: "<500ms", count: 0 },
       { band: "500ms-1s", count: 0 },
       { band: "1s-3s", count: 0 },
@@ -229,7 +220,7 @@ export function useOperationsTabData({
         })
       : "-";
 
-  const requestLogsPath = (
+  const requestLogsPath: RequestLogsPathBuilder = (
     overrides: Partial<{
       outcome_filter: "all" | "success" | "error";
       stream_filter: "all" | "stream" | "non_stream";

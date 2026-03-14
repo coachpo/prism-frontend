@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import type { ViewType } from "./queryParams";
 import { HeaderWithTooltip } from "./HeaderWithTooltip";
 
@@ -127,6 +128,56 @@ export const VIEW_COLUMNS: Record<ViewType, ColumnId[]> = {
     "error",
   ],
 };
+
+const RIGHT_ALIGNED_COLUMNS = new Set<ColumnId>([
+  "latency",
+  "input_tokens",
+  "output_tokens",
+  "total_tokens",
+  "cached_tokens",
+  "cache_create_tokens",
+  "reasoning_tokens",
+  "input_cost",
+  "output_cost",
+  "cache_read_cost",
+  "cache_create_cost",
+  "reasoning_cost",
+  "total_cost",
+]);
+
+const CENTER_ALIGNED_COLUMNS = new Set<ColumnId>(["billable", "priced"]);
+
+const ALL_COLUMNS_HEADER_CLASSES: Partial<Record<ColumnId, string>> = {
+  time: "sticky left-0 z-20 w-[170px] min-w-[170px] border-r border-border/70 bg-card",
+  model: "sticky left-[170px] z-20 w-[180px] min-w-[180px] border-r border-border/70 bg-card",
+  provider: "sticky left-[350px] z-20 w-[130px] min-w-[130px] border-r border-border/70 bg-card",
+  endpoint: "sticky left-[480px] z-20 w-[240px] min-w-[240px] border-r border-border/70 bg-card",
+};
+
+const ALL_COLUMNS_BODY_CLASSES: Partial<Record<ColumnId, string>> = {
+  time: "sticky left-0 z-20 border-r border-border/70 bg-card",
+  model: "sticky left-[170px] z-20 border-r border-border/70 bg-card",
+  provider: "sticky left-[350px] z-20 border-r border-border/70 bg-card",
+  endpoint: "sticky left-[480px] z-20 border-r border-border/70 bg-card",
+};
+
+export function getRequestLogsHeaderClassName(column: ColumnId, allColumnsMode: boolean): string {
+  return cn(
+    "whitespace-nowrap text-xs",
+    RIGHT_ALIGNED_COLUMNS.has(column) && "text-right",
+    CENTER_ALIGNED_COLUMNS.has(column) && "text-center",
+    allColumnsMode && ALL_COLUMNS_HEADER_CLASSES[column],
+    allColumnsMode && column === "request_id" && "w-[130px] min-w-[130px]",
+  );
+}
+
+export function getRequestLogsStickyBodyClassName(column: ColumnId, allColumnsMode: boolean): string {
+  if (!allColumnsMode) {
+    return "";
+  }
+
+  return ALL_COLUMNS_BODY_CLASSES[column] ?? "";
+}
 
 
 export function renderTableHeader(column: ColumnId): React.ReactNode {

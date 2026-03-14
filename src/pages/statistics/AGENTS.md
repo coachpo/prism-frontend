@@ -1,13 +1,14 @@
 # FRONTEND STATISTICS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/statistics/` powers the two-tab analytics surface under `../StatisticsPage.tsx`: operations and request telemetry plus spending and cost aggregation, both driven by shared URL-state parsing.
+`pages/statistics/` powers the three-tab analytics surface under `../StatisticsPage.tsx`: operations, throughput, and spending, all driven by shared URL-state parsing.
 
 ## STRUCTURE
 ```
 statistics/
 ├── queryParams.ts               # Shared URL param parsing and defaults
 ├── OperationsTab.tsx
+├── ThroughputTab.tsx
 ├── SpendingTab.tsx
 ├── operations/                  # Operations-tab hooks and contracts
 ├── spending/                    # Spending-tab hooks
@@ -19,6 +20,7 @@ statistics/
 - Route shell and shared page bootstrap: `../StatisticsPage.tsx`
 - Shared query-param contract: `queryParams.ts`
 - Operations-tab rendering: `OperationsTab.tsx`
+- Throughput rendering: `ThroughputTab.tsx`
 - Operations async data hook: `operations/useOperationsTabData.ts`
 - Spending-tab rendering and grouping UI: `SpendingTab.tsx`
 - Spending async data hook: `spending/useSpendingTabData.ts`

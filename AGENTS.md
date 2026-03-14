@@ -19,7 +19,7 @@ src/
 ## CURRENT ROUTES
 
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
-- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/statistics`, `/request-logs`, `/proxy-api-keys`, `/settings`, `/pricing-templates`
+- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/statistics`, `/request-logs`, `/proxy-api-keys`, `/settings`, `/pricing-templates`, `/loadbalance-events`
 - `/` still redirects to `/dashboard`
 
 ## CHILD DOC
@@ -39,7 +39,7 @@ src/
 ## CONVENTIONS
 
 - Prefer `@/` imports for `src` modules.
-- All Prism backend calls should go through `src/lib/api.ts`; that is where `X-Profile-Id` injection and cookie-based auth refresh for `/api/*` live.
+- All Prism backend calls should go through `src/lib/api.ts`; it is the public boundary that re-exports the split API modules where `X-Profile-Id` injection and cookie-based auth refresh for `/api/*` live.
 - `ProfileContext` owns selected-profile and active-profile state, localStorage persistence, and revision bumps; reuse it instead of inventing local profile state.
 - `AuthContext` owns bootstrap, session refresh, proactive 12-minute refresh, and visibility-triggered refresh.
 - `selected profile` and `active profile` are intentionally different concepts in UI copy and behavior.
@@ -55,6 +55,6 @@ src/
 
 ## NOTES
 
-- The old audit page references are stale: `src/lib/api.ts` still exposes audit methods, but `src/App.tsx` does not mount a `/audit` route and `src/pages/audit/` is empty.
+- The old audit page references are stale: `src/lib/api.ts` still exposes audit methods, but `src/App.tsx` does not mount a `/audit` route and audit detail currently lives in the request-log drawer flow instead of a standalone page.
 - `navigationProfileConfig.ts` is the current source of truth for sidebar entries, profile-scoped route prefixes, and the frontend version label.
 - Frontend build metadata comes from `VITE_GIT_RUN_NUMBER` and `VITE_GIT_REVISION`, which are injected by `.github/workflows/docker-images.yml`.

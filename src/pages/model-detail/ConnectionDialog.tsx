@@ -127,7 +127,7 @@ export function ConnectionDialog({
                   </p>
                 )}
                 {globalEndpoints.length === 0 && (
-                  <p className="text-xs text-muted-foreground">No global endpoints found.</p>
+                <p className="text-xs text-muted-foreground">No profile endpoints found.</p>
                 )}
               </TabsContent>
 

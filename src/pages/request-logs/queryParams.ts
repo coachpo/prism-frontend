@@ -24,6 +24,8 @@ export type StreamFilter = "all" | "stream" | "non_stream";
 export type LatencyBucket = "all" | "under_500ms" | "between_500ms_1s" | "between_1s_3s" | "over_3s";
 export type ViewType = "overview" | "performance" | "tokens" | "cost" | "cache" | "errors" | "all";
 export type TriageFilter = "none" | "slowest" | "expensive" | "most_tokens" | "errors_only" | "unpriced_only";
+export const REQUEST_DETAIL_TABS = ["overview", "audit"] as const;
+export type RequestDetailTab = (typeof REQUEST_DETAIL_TABS)[number];
 
 export type OptionWithIcon<T> = {
   value: T;
@@ -115,4 +117,18 @@ export function parseTokenInputValue(value: string): number | null {
   if (!value.trim()) return null;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+export function getFromTime(timeRange: TimeRange): string | undefined {
+  const now = new Date();
+  if (timeRange === "1h") {
+    return new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+  }
+  if (timeRange === "24h") {
+    return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  }
+  if (timeRange === "7d") {
+    return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  }
+  return undefined;
 }

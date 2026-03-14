@@ -47,6 +47,24 @@ export const SPENDING_LIMIT_OPTIONS = [10, 25, 50, 100] as const;
 export const DEFAULT_SPENDING_LIMIT = 25;
 export const DEFAULT_SPENDING_TOP_N = 5;
 
+export type StatisticsTab = (typeof STATISTICS_TABS)[number];
+export type OperationsTimeRange = (typeof OPERATIONS_TIME_RANGES)[number];
+export type SpendingPreset = (typeof SPENDING_PRESETS)[number];
+
+export function getFromTime(timeRange: OperationsTimeRange) {
+  const now = new Date();
+  if (timeRange === "1h") {
+    return new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+  }
+  if (timeRange === "24h") {
+    return new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  }
+  if (timeRange === "7d") {
+    return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  }
+  return undefined;
+}
+
 export function parseEnumParam<T extends string>(
   value: string | null,
   allowed: readonly T[],

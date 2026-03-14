@@ -1,4 +1,5 @@
 import type { ConnectionDropdownItem, RequestLogEntry } from "@/lib/types";
+import type { OperationsStatusFilter, SpecialTokenFilter } from "./queryParams";
 
 export interface TimeBucket {
   label: string;
@@ -32,6 +33,33 @@ export function rowHasAnySpecialToken(log: RequestLogEntry): boolean {
     hasSpecialTokenValue(log.cache_creation_input_tokens) ||
     hasSpecialTokenValue(log.reasoning_tokens)
   );
+}
+
+export function matchesOperationsLogFilters(
+  entry: RequestLogEntry,
+  specialTokenFilter: SpecialTokenFilter,
+  operationsStatusFilter: OperationsStatusFilter
+): boolean {
+  if (specialTokenFilter === "has_cached" && !hasSpecialTokenValue(entry.cache_read_input_tokens)) {
+    return false;
+  }
+  if (specialTokenFilter === "has_reasoning" && !hasSpecialTokenValue(entry.reasoning_tokens)) {
+    return false;
+  }
+  if (specialTokenFilter === "has_any_special" && !rowHasAnySpecialToken(entry)) {
+    return false;
+  }
+  if (specialTokenFilter === "missing_special" && rowHasAnySpecialToken(entry)) {
+    return false;
+  }
+
+  if (operationsStatusFilter === "success") return entry.status_code < 400;
+  if (operationsStatusFilter === "4xx") {
+    return entry.status_code >= 400 && entry.status_code < 500;
+  }
+  if (operationsStatusFilter === "5xx") return entry.status_code >= 500;
+  if (operationsStatusFilter === "error") return entry.status_code >= 400;
+  return true;
 }
 
 export function parseErrorDetailMessage(detail: string | null): string {

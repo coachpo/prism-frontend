@@ -1,0 +1,65 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { ProxyApiKey } from "@/lib/types";
+import { ProxyKeyCard } from "./ProxyKeyCard";
+
+interface ProxyKeysListCardProps {
+  authEnabled: boolean;
+  deletingProxyKeyId: number | null;
+  displayedProxyKeys: ProxyApiKey[];
+  onDelete: (item: ProxyApiKey) => void;
+  onRotate: (keyId: number) => void;
+  rotatingProxyKeyId: number | null;
+}
+
+export function ProxyKeysListCard({
+  authEnabled,
+  deletingProxyKeyId,
+  displayedProxyKeys,
+  onDelete,
+  onRotate,
+  rotatingProxyKeyId,
+}: ProxyKeysListCardProps) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-base">Issued keys</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Rotate or delete keys directly from the list below.
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {displayedProxyKeys.length} key{displayedProxyKeys.length === 1 ? "" : "s"}
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {displayedProxyKeys.length === 0 ? (
+          <div className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+            No proxy keys created yet.
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {displayedProxyKeys.map((item) => {
+              const rotating = rotatingProxyKeyId === item.id;
+              const deleting = deletingProxyKeyId === item.id;
+
+              return (
+                <ProxyKeyCard
+                  key={item.id}
+                  item={item}
+                  authEnabled={authEnabled}
+                  rotating={rotating}
+                  deleting={deleting}
+                  onRotate={() => onRotate(item.id)}
+                  onDelete={() => onDelete(item)}
+                />
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
