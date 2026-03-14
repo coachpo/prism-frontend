@@ -1,4 +1,9 @@
-import type { ConnectionDropdownItem, SpendingGroupBy, SpendingReportResponse } from "@/lib/types";
+import type {
+  ConnectionDropdownItem,
+  Provider,
+  SpendingGroupBy,
+  SpendingReportResponse,
+} from "@/lib/types";
 import type { SpendingPreset } from "../queryParams";
 
 export interface SpendingTabProps {
@@ -28,4 +33,5 @@ export interface SpendingTabProps {
   setSpendingTopN: (value: number) => void;
   models: { model_id: string; display_name: string | null }[];
   connections: ConnectionDropdownItem[];
+  providers: Provider[];
 }

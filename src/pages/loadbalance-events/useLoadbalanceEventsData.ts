@@ -42,20 +42,18 @@ export function useLoadbalanceEventsData({
 
       try {
         const params = buildLoadbalanceListParams(filters);
-        const matchingParams = { ...params };
 
-        const [eventsData, statsData, latestGlobalEvent, latestMatchingEvent] = await Promise.all([
+        const [eventsData, statsData] = await Promise.all([
           api.loadbalance.listEvents(params),
           api.loadbalance.getStats({}),
-          api.loadbalance.listEvents({ limit: 1, offset: 0 }),
-          api.loadbalance.listEvents({ ...matchingParams, limit: 1, offset: 0 }),
         ]);
 
         setEvents(eventsData.items);
         setTotal(eventsData.total);
         setStats(statsData);
-        latestGlobalEventIdRef.current = latestGlobalEvent.items[0]?.id ?? 0;
-        latestMatchingEventIdRef.current = latestMatchingEvent.items[0]?.id ?? 0;
+        const latestEventId = eventsData.items[0]?.id ?? 0;
+        latestGlobalEventIdRef.current = latestEventId;
+        latestMatchingEventIdRef.current = latestEventId;
         setNewEventIds(new Set());
       } catch (error) {
         console.error("Failed to load loadbalance events", error);

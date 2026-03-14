@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
 import { formatProviderType } from "@/lib/utils";
 import type { Provider } from "@/lib/types";
 import {
@@ -20,8 +18,7 @@ interface ProviderSelectProps {
   showAll?: boolean;
   /** Label for the "All" option. Default: "All Providers" */
   allLabel?: string;
-  /** Pass providers externally to skip internal fetch */
-  providers?: Provider[];
+  providers: Provider[];
   className?: string;
   placeholder?: string;
 }
@@ -32,20 +29,10 @@ export function ProviderSelect({
   valueType = "provider_type",
   showAll = true,
   allLabel = "All Providers",
-  providers: externalProviders,
+  providers,
   className,
   placeholder = "Provider",
 }: ProviderSelectProps) {
-  const [internalProviders, setInternalProviders] = useState<Provider[]>([]);
-
-  useEffect(() => {
-    if (!externalProviders) {
-      api.providers.list().then(setInternalProviders).catch(console.error);
-    }
-  }, [externalProviders]);
-
-  const providers = externalProviders ?? internalProviders;
-
   const itemValue = (p: Provider) =>
     valueType === "provider_id" ? String(p.id) : p.provider_type;
 

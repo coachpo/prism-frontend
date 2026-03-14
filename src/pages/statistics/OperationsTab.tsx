@@ -13,6 +13,7 @@ export function OperationsTab({
   clearNewLogHighlight,
   models,
   connections,
+  providers,
   modelId,
   setModelId,
   providerType,
@@ -69,6 +70,7 @@ export function OperationsTab({
       <OperationsFiltersCard
         models={models}
         connections={connections}
+        providers={providers}
         modelId={modelId}
         setModelId={setModelId}
         providerType={providerType}

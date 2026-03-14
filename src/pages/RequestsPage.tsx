@@ -81,6 +81,7 @@ export function RequestsPage() {
           modelId={state.modelId}
           setModelId={state.setModelId}
           models={data.models}
+          providers={data.providers}
           providerType={state.providerType}
           setProviderType={state.setProviderType}
           connectionId={state.connectionId}

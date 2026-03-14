@@ -65,7 +65,7 @@ export function useRequestLogsPageData({
 }: Params) {
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const { connections, endpoints, models } = useRequestLogFilterOptions(revision);
+  const { connections, endpoints, models, providers } = useRequestLogFilterOptions(revision);
   const [auditRefreshKey, setAuditRefreshKey] = useState(0);
   const [total, setTotal] = useState(0);
   const [selectedLog, setSelectedLog] = useState<RequestLogEntry | null>(null);
@@ -133,22 +133,15 @@ export function useRequestLogsPageData({
           from_time: getFromTime(timeRange),
         };
 
-        const [response, latestResponse] = await Promise.all([
-          api.stats.requests({
-            ...requestParams,
-            limit,
-            offset,
-          }),
-          api.stats.requests({
-            ...requestParams,
-            limit: 1,
-            offset: 0,
-          }),
-        ]);
+        const response = await api.stats.requests({
+          ...requestParams,
+          limit,
+          offset,
+        });
 
         setLogs(response.items);
         setTotal(response.total);
-        latestMatchingRequestIdRef.current = latestResponse.items[0]?.id ?? 0;
+        latestMatchingRequestIdRef.current = response.items[0]?.id ?? 0;
       } catch (error) {
         console.error("Failed to fetch request logs", error);
       } finally {
@@ -265,6 +258,7 @@ export function useRequestLogsPageData({
     models,
     newLogIds,
     openLogDetail,
+    providers,
     selectedLog,
     setSelectedLog,
     tableScrollRef,

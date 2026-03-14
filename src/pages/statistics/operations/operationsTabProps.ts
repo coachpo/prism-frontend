@@ -1,4 +1,4 @@
-import type { ConnectionDropdownItem, RequestLogEntry } from "@/lib/types";
+import type { ConnectionDropdownItem, Provider, RequestLogEntry } from "@/lib/types";
 import type {
   OperationsStatusFilter,
   SpecialTokenFilter,
@@ -10,6 +10,7 @@ export interface OperationsTabProps {
   clearNewLogHighlight: (logId: number) => void;
   models: { model_id: string; display_name: string | null }[];
   connections: ConnectionDropdownItem[];
+  providers: Provider[];
   modelId: string;
   setModelId: (val: string) => void;
   providerType: string;

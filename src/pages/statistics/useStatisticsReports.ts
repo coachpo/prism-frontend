@@ -58,20 +58,13 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
           from_time: getFromTime(timeRange),
         };
 
-        const [response, latestResponse] = await Promise.all([
-          api.stats.requests({
-            ...requestParams,
-            limit: 500,
-          }),
-          api.stats.requests({
-            ...requestParams,
-            limit: 1,
-            offset: 0,
-          }),
-        ]);
+        const response = await api.stats.requests({
+          ...requestParams,
+          limit: 500,
+        });
 
         setLogs(response.items);
-        latestOperationsLogIdRef.current = latestResponse.items[0]?.id ?? 0;
+        latestOperationsLogIdRef.current = response.items[0]?.id ?? 0;
       } catch (error) {
         console.error("Failed to fetch statistics:", error);
       } finally {

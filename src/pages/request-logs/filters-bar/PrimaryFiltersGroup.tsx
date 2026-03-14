@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ConnectionDropdownItem, Endpoint } from "@/lib/types";
+import type { ConnectionDropdownItem, Endpoint, Provider } from "@/lib/types";
 import { getConnectionLabel } from "../formatters";
 
 const SELECT_TRIGGER_CLASS_NAME =
@@ -19,6 +19,7 @@ interface PrimaryFiltersGroupProps {
   endpoints: Endpoint[];
   modelId: string;
   models: { model_id: string; display_name: string | null }[];
+  providers: Provider[];
   providerType: string;
   resetOffset: () => void;
   setConnectionId: (id: string) => void;
@@ -34,6 +35,7 @@ export function PrimaryFiltersGroup({
   endpoints,
   modelId,
   models,
+  providers,
   providerType,
   resetOffset,
   setConnectionId,
@@ -69,6 +71,7 @@ export function PrimaryFiltersGroup({
           setProviderType(next);
           resetOffset();
         }}
+        providers={providers}
         className="h-8 w-full text-xs sm:w-[150px] [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate"
       />
 

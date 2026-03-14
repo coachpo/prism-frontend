@@ -1,38 +1,10 @@
 import { useEffect, useState } from "react";
 import { useProfileContext } from "@/context/ProfileContext";
-import { formatTimestamp, getUserTimezonePreference } from "@/lib/timezone";
-
-let timezonePreferencePromise:
-  | {
-      key: string;
-      promise: Promise<string | null>;
-    }
-  | null = null;
-
-async function loadTimezonePreference(
-  key: string,
-  reuseInFlight = false,
-): Promise<string | null> {
-  if (reuseInFlight && timezonePreferencePromise?.key === key) {
-    return timezonePreferencePromise.promise;
-  }
-
-  const loadPromise = getUserTimezonePreference();
-
-  if (reuseInFlight) {
-    timezonePreferencePromise = {
-      key,
-      promise: loadPromise,
-    };
-    void loadPromise.finally(() => {
-      if (timezonePreferencePromise?.promise === loadPromise) {
-        timezonePreferencePromise = null;
-      }
-    });
-  }
-
-  return loadPromise;
-}
+import {
+  clearUserTimezonePreference,
+  formatTimestamp,
+  getUserTimezonePreference,
+} from "@/lib/timezone";
 
 function getBrowserTimezone(): string {
   try {
@@ -54,7 +26,7 @@ export function useTimezone() {
     const loadTimezone = async () => {
       setLoading(true);
       try {
-        const tz = await loadTimezonePreference(timezoneKey, true);
+        const tz = await getUserTimezonePreference(timezoneKey);
         if (!mounted) return;
         setTimezone(tz ?? getBrowserTimezone());
       } finally {
@@ -81,7 +53,8 @@ export function useTimezone() {
     format,
     loading,
     refresh: async () => {
-      const tz = await loadTimezonePreference(timezoneKey, false);
+      clearUserTimezonePreference(timezoneKey);
+      const tz = await getUserTimezonePreference(timezoneKey, true);
       const effectiveTimezone = tz ?? getBrowserTimezone();
       setTimezone(effectiveTimezone);
       return effectiveTimezone;

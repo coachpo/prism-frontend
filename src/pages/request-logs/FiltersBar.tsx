@@ -1,4 +1,4 @@
-import type { ConnectionDropdownItem, Endpoint } from "@/lib/types";
+import type { ConnectionDropdownItem, Endpoint, Provider } from "@/lib/types";
 import { PrimaryFiltersGroup } from "./filters-bar/PrimaryFiltersGroup";
 import { RequestViewTabs } from "./filters-bar/RequestViewTabs";
 import { SearchAndQuickFilters } from "./filters-bar/SearchAndQuickFilters";
@@ -31,6 +31,7 @@ interface FiltersBarProps {
   modelId: string;
   setModelId: (id: string) => void;
   models: { model_id: string; display_name: string | null }[];
+  providers: Provider[];
   providerType: string;
   setProviderType: (type: string) => void;
   connectionId: string;
@@ -73,6 +74,7 @@ export function FiltersBar({
   modelId,
   setModelId,
   models,
+  providers,
   providerType,
   setProviderType,
   connectionId,
@@ -126,6 +128,7 @@ export function FiltersBar({
             modelId={modelId}
             setModelId={setModelId}
             models={models}
+            providers={providers}
             providerType={providerType}
             setProviderType={setProviderType}
             connectionId={connectionId}

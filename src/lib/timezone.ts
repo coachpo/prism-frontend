@@ -1,9 +1,49 @@
 import { api } from "@/lib/api";
 
+const timezonePreferenceCache = new Map<string, string | null>();
+const timezonePreferenceRequestCache = new Map<string, Promise<string | null>>();
 
-export async function getUserTimezonePreference(): Promise<string | null> {
-  const settings = await api.settings.costing.get();
-  return settings.timezone_preference ?? null;
+export async function getUserTimezonePreference(
+  cacheKey: string,
+  forceRefresh = false,
+): Promise<string | null> {
+  if (!forceRefresh && timezonePreferenceCache.has(cacheKey)) {
+    return timezonePreferenceCache.get(cacheKey) ?? null;
+  }
+
+  if (!forceRefresh) {
+    const inFlightRequest = timezonePreferenceRequestCache.get(cacheKey);
+    if (inFlightRequest) {
+      return inFlightRequest;
+    }
+  }
+
+  const loadPromise = api.settings.costing
+    .get()
+    .then((settings) => {
+      const preference = settings.timezone_preference ?? null;
+      timezonePreferenceCache.set(cacheKey, preference);
+      return preference;
+    })
+    .finally(() => {
+      if (timezonePreferenceRequestCache.get(cacheKey) === loadPromise) {
+        timezonePreferenceRequestCache.delete(cacheKey);
+      }
+    });
+
+  timezonePreferenceRequestCache.set(cacheKey, loadPromise);
+  return loadPromise;
+}
+
+export function clearUserTimezonePreference(cacheKey?: string) {
+  if (cacheKey === undefined) {
+    timezonePreferenceCache.clear();
+    timezonePreferenceRequestCache.clear();
+    return;
+  }
+
+  timezonePreferenceCache.delete(cacheKey);
+  timezonePreferenceRequestCache.delete(cacheKey);
 }
 
 export function formatTimestamp(

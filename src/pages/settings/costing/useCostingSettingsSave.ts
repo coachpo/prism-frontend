@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { isValidCurrencyCode } from "@/lib/costing";
 import { api } from "@/lib/api";
+import { clearUserTimezonePreference } from "@/lib/timezone";
 import type { CostingSettingsUpdate } from "@/lib/types";
 import { toast } from "sonner";
 import type { SettingsSaveSection } from "../settingsSaveTypes";
@@ -64,6 +65,7 @@ export function useCostingSettingsSave({
           setRecentlySavedSection("billing");
           toast.success("Billing and currency settings saved");
         } else {
+          clearUserTimezonePreference();
           setCostingForm((prev) => ({
             ...prev,
             timezone_preference: normalizedSaved.timezone_preference,

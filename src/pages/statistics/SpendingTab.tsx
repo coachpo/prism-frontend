@@ -36,6 +36,7 @@ export function SpendingTab({
   setSpendingTopN,
   models,
   connections,
+  providers,
 }: SpendingTabProps) {
   const { format: formatTime } = useTimezone();
 
@@ -48,6 +49,7 @@ export function SpendingTab({
         connections={connections}
         formatTime={formatTime}
         models={models}
+        providers={providers}
         reportCode={reportCode}
         setSpendingConnectionId={setSpendingConnectionId}
         setSpendingFrom={setSpendingFrom}

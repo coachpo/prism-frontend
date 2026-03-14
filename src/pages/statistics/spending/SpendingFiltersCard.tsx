@@ -23,6 +23,7 @@ interface SpendingFiltersCardProps
     SpendingTabProps,
     | "connections"
     | "models"
+    | "providers"
     | "setSpendingConnectionId"
     | "setSpendingFrom"
     | "setSpendingGroupBy"
@@ -52,6 +53,7 @@ export function SpendingFiltersCard({
   connections,
   formatTime,
   models,
+  providers,
   reportCode,
   setSpendingConnectionId,
   setSpendingFrom,
@@ -142,6 +144,7 @@ export function SpendingFiltersCard({
                 setSpendingProviderType(value);
                 setSpendingOffset(0);
               }}
+              providers={providers}
               className="h-8 text-xs"
             />
           </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { ConnectionDropdownItem } from "@/lib/types";
+import type { ConnectionDropdownItem, Provider } from "@/lib/types";
 
 export type StatisticsModelOption = {
   model_id: string;
@@ -10,28 +10,42 @@ export type StatisticsModelOption = {
 export function useStatisticsFilterOptions(revision: number) {
   const [models, setModels] = useState<StatisticsModelOption[]>([]);
   const [connections, setConnections] = useState<ConnectionDropdownItem[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
 
   useEffect(() => {
     const fetchFilters = async () => {
-      try {
-        const [modelsData, connectionsData] = await Promise.all([
-          api.models.list(),
-          api.endpoints.connections(),
-        ]);
+      const [modelsResult, connectionsResult, providersResult] = await Promise.allSettled([
+        api.models.list(),
+        api.endpoints.connections(),
+        api.providers.list(),
+      ]);
+
+      if (modelsResult.status === "fulfilled") {
         setModels(
-          modelsData.map((model) => ({
+          modelsResult.value.map((model) => ({
             model_id: model.model_id,
             display_name: model.display_name,
           }))
         );
-        setConnections(connectionsData.items);
-      } catch (error) {
-        console.error("Failed to fetch filter options:", error);
+      } else {
+        console.error("Failed to fetch statistics models", modelsResult.reason);
+      }
+
+      if (connectionsResult.status === "fulfilled") {
+        setConnections(connectionsResult.value.items);
+      } else {
+        console.error("Failed to fetch statistics connections", connectionsResult.reason);
+      }
+
+      if (providersResult.status === "fulfilled") {
+        setProviders(providersResult.value);
+      } else {
+        console.error("Failed to fetch statistics providers", providersResult.reason);
       }
     };
 
     void fetchFilters();
   }, [revision]);
 
-  return { connections, models };
+  return { connections, models, providers };
 }

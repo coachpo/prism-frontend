@@ -16,7 +16,7 @@ export function useStatisticsPageData({
   state,
 }: UseStatisticsPageDataInput) {
   const latestOperationsLogIdRef = useRef(0);
-  const { connections, models } = useStatisticsFilterOptions(revision);
+  const { connections, models, providers } = useStatisticsFilterOptions(revision);
   const {
     fetchOperationsLogs,
     fetchSpendingData,
@@ -56,6 +56,7 @@ export function useStatisticsPageData({
       models,
       newLogIds,
       operationsStatusFilter: state.operationsStatusFilter,
+      providers,
       providerType: state.providerType,
       setConnectionId: state.setConnectionId,
       setModelId: state.setModelId,
@@ -66,13 +67,14 @@ export function useStatisticsPageData({
       specialTokenFilter: state.specialTokenFilter,
       timeRange: state.timeRange,
     }),
-    [clearNewLogHighlight, connections, logs, models, newLogIds, state]
+    [clearNewLogHighlight, connections, logs, models, newLogIds, providers, state]
   );
 
   const spendingTabProps = useMemo(
     () => ({
       connections,
       models,
+      providers,
       setSpendingConnectionId: state.setSpendingConnectionId,
       setSpendingFrom: state.setSpendingFrom,
       setSpendingGroupBy: state.setSpendingGroupBy,
@@ -98,7 +100,7 @@ export function useStatisticsPageData({
       spendingTopN: state.spendingTopN,
       spendingUpdatedAt,
     }),
-    [connections, models, spending, spendingError, spendingLoading, spendingUpdatedAt, state]
+    [connections, models, providers, spending, spendingError, spendingLoading, spendingUpdatedAt, state]
   );
 
   return {

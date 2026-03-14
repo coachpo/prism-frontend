@@ -23,6 +23,7 @@ interface OperationsFiltersCardProps
     OperationsTabProps,
     | "models"
     | "connections"
+    | "providers"
     | "modelId"
     | "setModelId"
     | "providerType"
@@ -43,6 +44,7 @@ interface OperationsFiltersCardProps
 export function OperationsFiltersCard({
   models,
   connections,
+  providers,
   modelId,
   setModelId,
   providerType,
@@ -106,6 +108,7 @@ export function OperationsFiltersCard({
           <ProviderSelect
             value={providerType}
             onValueChange={setProviderType}
+            providers={providers}
             className="h-8 text-xs"
           />
 
