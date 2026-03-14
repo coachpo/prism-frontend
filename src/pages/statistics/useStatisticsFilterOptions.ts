@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import {
+  getSharedConnectionOptions,
+  getSharedModels,
+  getSharedProviders,
+} from "@/lib/referenceData";
 import type { ConnectionDropdownItem, Provider } from "@/lib/types";
 
 export type StatisticsModelOption = {
@@ -13,12 +17,18 @@ export function useStatisticsFilterOptions(revision: number) {
   const [providers, setProviders] = useState<Provider[]>([]);
 
   useEffect(() => {
+    let active = true;
+
     const fetchFilters = async () => {
       const [modelsResult, connectionsResult, providersResult] = await Promise.allSettled([
-        api.models.list(),
-        api.endpoints.connections(),
-        api.providers.list(),
+        getSharedModels(revision),
+        getSharedConnectionOptions(revision),
+        getSharedProviders(revision),
       ]);
+
+      if (!active) {
+        return;
+      }
 
       if (modelsResult.status === "fulfilled") {
         setModels(
@@ -32,7 +42,7 @@ export function useStatisticsFilterOptions(revision: number) {
       }
 
       if (connectionsResult.status === "fulfilled") {
-        setConnections(connectionsResult.value.items);
+        setConnections(connectionsResult.value);
       } else {
         console.error("Failed to fetch statistics connections", connectionsResult.reason);
       }
@@ -45,6 +55,10 @@ export function useStatisticsFilterOptions(revision: number) {
     };
 
     void fetchFilters();
+
+    return () => {
+      active = false;
+    };
   }, [revision]);
 
   return { connections, models, providers };

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useCoalescedReconcile } from "@/hooks/useCoalescedReconcile";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
 import type { RequestLogEntry } from "@/lib/types";
 import type { StatisticsPageState } from "./useStatisticsPageState";
@@ -31,9 +32,8 @@ export function useStatisticsRealtime({
     specialTokenFilter,
   } = state;
 
-  const [reconcileRevision, setReconcileRevision] = useState(0);
   const [newLogIds, setNewLogIds] = useState<Set<number>>(() => new Set());
-  const hiddenAtRef = useRef<number | null>(null);
+  const markSyncCompleteRef = useRef<() => void>(() => undefined);
 
   const matchesRealtimeFilters = useCallback(
     (entry: RequestLogEntry) => {
@@ -79,17 +79,20 @@ export function useStatisticsRealtime({
     });
   }, []);
 
-  const requestRealtimeReconciliation = useCallback(() => {
-    setReconcileRevision((prev) => prev + 1);
-  }, []);
-
   const reconcileAll = useCallback(async () => {
     await Promise.all([
       fetchOperationsLogs({ silent: true }),
       fetchThroughputData({ silent: true }),
       fetchSpendingData({ silent: true }),
     ]);
+    markSyncCompleteRef.current();
   }, [fetchOperationsLogs, fetchSpendingData, fetchThroughputData]);
+
+  const requestRealtimeReconciliation = useCoalescedReconcile({
+    reconcile: reconcileAll,
+    intervalMs: 300000,
+    visibilityReloadThresholdMs: 30000,
+  });
 
   const { connectionState, isSyncing, markSyncComplete } = useRealtimeData({
     profileId: selectedProfileId,
@@ -100,40 +103,8 @@ export function useStatisticsRealtime({
   });
 
   useEffect(() => {
-    if (reconcileRevision === 0) {
-      return;
-    }
-
-    void reconcileAll().finally(markSyncComplete);
-  }, [markSyncComplete, reconcileAll, reconcileRevision]);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      void reconcileAll().finally(markSyncComplete);
-    }, 300000);
-
-    return () => window.clearInterval(intervalId);
-  }, [markSyncComplete, reconcileAll]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        hiddenAtRef.current = Date.now();
-        return;
-      }
-
-      if (hiddenAtRef.current !== null && Date.now() - hiddenAtRef.current > 30000) {
-        void reconcileAll().finally(markSyncComplete);
-      }
-
-      hiddenAtRef.current = null;
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [markSyncComplete, reconcileAll]);
+    markSyncCompleteRef.current = markSyncComplete;
+  }, [markSyncComplete]);
 
   return {
     clearNewLogHighlight,

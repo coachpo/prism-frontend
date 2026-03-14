@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useCoalescedReconcile } from "@/hooks/useCoalescedReconcile";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
 import { api } from "@/lib/api";
 import type { LoadbalanceEvent, LoadbalanceStats } from "@/lib/types";
@@ -28,11 +29,10 @@ export function useLoadbalanceEventsData({
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [newEventIds, setNewEventIds] = useState<Set<number>>(() => new Set());
-  const [reconcileRevision, setReconcileRevision] = useState(0);
 
-  const hiddenAtRef = useRef<number | null>(null);
   const latestGlobalEventIdRef = useRef(0);
   const latestMatchingEventIdRef = useRef(0);
+  const markSyncCompleteRef = useRef<() => void>(() => undefined);
 
   const fetchEvents = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -108,9 +108,16 @@ export function useLoadbalanceEventsData({
     [filters]
   );
 
-  const requestRealtimeReconciliation = useCallback(() => {
-    setReconcileRevision((prev) => prev + 1);
-  }, []);
+  const fetchEventsAndSync = useCallback(async () => {
+    await fetchEvents({ silent: true });
+    markSyncCompleteRef.current();
+  }, [fetchEvents]);
+
+  const requestRealtimeReconciliation = useCoalescedReconcile({
+    reconcile: fetchEventsAndSync,
+    intervalMs: LOADBALANCE_RECONCILE_INTERVAL_MS,
+    visibilityReloadThresholdMs: LOADBALANCE_VISIBILITY_RELOAD_THRESHOLD_MS,
+  });
 
   const { connectionState, isSyncing, markSyncComplete } = useRealtimeData({
     profileId,
@@ -120,56 +127,13 @@ export function useLoadbalanceEventsData({
     onReconnect: requestRealtimeReconciliation,
   });
 
-  const fetchEventsAndSync = useCallback(
-    async ({ silent = false }: { silent?: boolean } = {}) => {
-      await fetchEvents({ silent });
-      markSyncComplete();
-    },
-    [fetchEvents, markSyncComplete]
-  );
-
   useEffect(() => {
     void fetchEvents();
   }, [fetchEvents, revision]);
 
   useEffect(() => {
-    if (reconcileRevision === 0) {
-      return;
-    }
-
-    void fetchEventsAndSync({ silent: true });
-  }, [fetchEventsAndSync, reconcileRevision]);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      void fetchEventsAndSync({ silent: true });
-    }, LOADBALANCE_RECONCILE_INTERVAL_MS);
-
-    return () => window.clearInterval(intervalId);
-  }, [fetchEventsAndSync]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        hiddenAtRef.current = Date.now();
-        return;
-      }
-
-      if (
-        hiddenAtRef.current !== null &&
-        Date.now() - hiddenAtRef.current > LOADBALANCE_VISIBILITY_RELOAD_THRESHOLD_MS
-      ) {
-        void fetchEventsAndSync({ silent: true });
-      }
-
-      hiddenAtRef.current = null;
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [fetchEventsAndSync]);
+    markSyncCompleteRef.current = markSyncComplete;
+  }, [markSyncComplete]);
 
   const clearNewEvent = (eventId: number) => {
     setNewEventIds((prev) => {

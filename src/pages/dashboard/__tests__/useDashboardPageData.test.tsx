@@ -1,6 +1,7 @@
 import { StrictMode, type ReactNode } from "react";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearSharedReferenceData } from "@/lib/referenceData";
 import { useDashboardPageData } from "../useDashboardPageData";
 
 const api = vi.hoisted(() => ({
@@ -36,6 +37,7 @@ function StrictWrapper({ children }: { children: ReactNode }) {
 describe("useDashboardPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSharedReferenceData();
 
     api.models.list.mockResolvedValue([
       {
@@ -320,6 +322,7 @@ describe("useDashboardPageData", () => {
   });
 
   afterEach(() => {
+    clearSharedReferenceData();
     cleanup();
   });
 

@@ -1,6 +1,7 @@
 import { StrictMode, type ReactNode } from "react";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearSharedReferenceData } from "@/lib/referenceData";
 import { useEndpointsPageData } from "../useEndpointsPageData";
 
 function createDeferred<T>() {
@@ -50,6 +51,7 @@ function StrictWrapper({ children }: { children: ReactNode }) {
 describe("useEndpointsPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSharedReferenceData();
     revisionState.value = 1;
     api.endpoints.list.mockResolvedValue([
       {
@@ -93,6 +95,7 @@ describe("useEndpointsPageData", () => {
   });
 
   afterEach(() => {
+    clearSharedReferenceData();
     cleanup();
   });
 

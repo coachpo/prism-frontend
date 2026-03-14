@@ -50,6 +50,8 @@ const routeFallback = (
   <div className="py-10 text-center text-sm text-muted-foreground">Loading...</div>
 );
 
+const PUBLIC_AUTH_PATHS = new Set(["/login", "/forgot-password", "/reset-password"]);
+
 function withRouteSuspense(element: ReactElement) {
   return <Suspense fallback={routeFallback}>{element}</Suspense>;
 }
@@ -87,10 +89,17 @@ function PublicOnlyRoute({ children }: { children: ReactElement }) {
   return children;
 }
 
+function RoutedAuthProvider({ children }: { children: ReactElement }) {
+  const location = useLocation();
+  const bootstrapMode = PUBLIC_AUTH_PATHS.has(location.pathname) ? "public" : "full";
+
+  return <AuthProvider bootstrapMode={bootstrapMode}>{children}</AuthProvider>;
+}
+
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <RoutedAuthProvider>
         <Routes>
           <Route path="/login" element={<PublicOnlyRoute>{withRouteSuspense(<LoginPage />)}</PublicOnlyRoute>} />
           <Route path="/forgot-password" element={<PublicOnlyRoute>{withRouteSuspense(<ForgotPasswordPage />)}</PublicOnlyRoute>} />
@@ -109,8 +118,8 @@ function App() {
             <Route path="/loadbalance-events" element={withRouteSuspense(<LoadbalanceEventsPage />)} />
           </Route>
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </RoutedAuthProvider>
+    </BrowserRouter>
   );
 }
 

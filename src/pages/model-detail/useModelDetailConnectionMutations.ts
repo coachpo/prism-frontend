@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { clearSharedReferenceData } from "@/lib/referenceData";
 import type {
   Connection,
   ConnectionCreate,
@@ -11,6 +12,7 @@ import type { HeaderRow } from "./useModelDetailDialogState";
 
 interface UseModelDetailConnectionMutationsInput {
   id: string | undefined;
+  revision: number;
   createMode: "select" | "new";
   selectedEndpointId: string;
   newEndpointForm: EndpointCreate;
@@ -24,6 +26,7 @@ interface UseModelDetailConnectionMutationsInput {
 
 export function useModelDetailConnectionMutations({
   id,
+  revision,
   createMode,
   selectedEndpointId,
   newEndpointForm,
@@ -65,6 +68,7 @@ export function useModelDetailConnectionMutations({
           await api.connections.create(Number.parseInt(id, 10), payload);
           toast.success("Connection created");
         }
+        clearSharedReferenceData(undefined, revision);
         setIsConnectionDialogOpen(false);
         void fetchModel();
       } catch (error) {
@@ -80,6 +84,7 @@ export function useModelDetailConnectionMutations({
       headerRows,
       id,
       newEndpointForm,
+      revision,
       selectedEndpointId,
       setIsConnectionDialogOpen,
     ],
@@ -89,25 +94,27 @@ export function useModelDetailConnectionMutations({
     async (connectionId: number) => {
       try {
         await api.connections.delete(connectionId);
+        clearSharedReferenceData(undefined, revision);
         toast.success("Connection deleted");
         void fetchModel();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to delete connection");
       }
     },
-    [fetchModel],
+    [fetchModel, revision],
   );
 
   const handleToggleActive = useCallback(
     async (connection: Connection) => {
       try {
         await api.connections.update(connection.id, { is_active: !connection.is_active });
+        clearSharedReferenceData(undefined, revision);
         void fetchModel();
       } catch {
         toast.error("Failed to toggle connection");
       }
     },
-    [fetchModel],
+    [fetchModel, revision],
   );
 
   return {

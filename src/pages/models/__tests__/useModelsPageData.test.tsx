@@ -1,6 +1,7 @@
 import { StrictMode, type ReactNode } from "react";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearSharedReferenceData } from "@/lib/referenceData";
 import { useModelsPageData } from "../useModelsPageData";
 
 function createDeferred<T>() {
@@ -41,6 +42,7 @@ function StrictWrapper({ children }: { children: ReactNode }) {
 describe("useModelsPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSharedReferenceData();
     api.models.list.mockResolvedValue([
       {
         id: 1,
@@ -79,6 +81,7 @@ describe("useModelsPageData", () => {
   });
 
   afterEach(() => {
+    clearSharedReferenceData();
     cleanup();
   });
 
@@ -87,7 +90,11 @@ describe("useModelsPageData", () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-      expect(result.current.metricsLoading).toBe(false);
+      expect(result.current.modelMetrics24h[1]).toEqual({
+        success_rate: 99.5,
+        request_count_24h: 12,
+        p95_latency_ms: 880,
+      });
     });
 
     expect(api.models.list).toHaveBeenCalledTimes(1);
@@ -97,11 +104,6 @@ describe("useModelsPageData", () => {
       model_ids: ["gpt-5.4"],
       summary_window_hours: 24,
       spending_preset: "last_30_days",
-    });
-    expect(result.current.modelMetrics24h[1]).toEqual({
-      success_rate: 99.5,
-      request_count_24h: 12,
-      p95_latency_ms: 880,
     });
     expect(result.current.modelSpend30dMicros[1]).toBe(123456);
   });

@@ -14,19 +14,10 @@ import { arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from "@dn
 import { toast } from "sonner";
 import { useTimezone } from "@/hooks/useTimezone";
 import { api } from "@/lib/api";
+import { getSharedEndpoints, setSharedEndpoints } from "@/lib/referenceData";
 import type { Endpoint, ModelConfigListItem } from "@/lib/types";
 import { useProfileContext } from "@/context/ProfileContext";
 import type { EndpointFormValues } from "./EndpointDialog";
-
-let endpointsPageBootstrapPromise:
-  | {
-      promise: Promise<{
-        endpoints: Endpoint[];
-        endpointModels: Record<number, ModelConfigListItem[]>;
-      }>;
-      revision: number;
-    }
-  | null = null;
 
 export function useEndpointsPageData() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
@@ -65,11 +56,7 @@ export function useEndpointsPageData() {
   );
 
   const fetchEndpoints = useCallback(async (currentRevision: number, reuseInFlight = false) => {
-    if (reuseInFlight && endpointsPageBootstrapPromise?.revision === currentRevision) {
-      return endpointsPageBootstrapPromise.promise;
-    }
-
-    const loadPromise = api.endpoints.list().then(async (data) => {
+    return getSharedEndpoints(currentRevision, !reuseInFlight).then(async (data) => {
       if (data.length === 0) {
         return { endpointModels: {}, endpoints: data };
       }
@@ -87,21 +74,27 @@ export function useEndpointsPageData() {
         return { endpointModels: {}, endpoints: data };
       }
     });
-
-    if (reuseInFlight) {
-      endpointsPageBootstrapPromise = {
-        promise: loadPromise,
-        revision: currentRevision,
-      };
-      void loadPromise.finally(() => {
-        if (endpointsPageBootstrapPromise?.promise === loadPromise) {
-          endpointsPageBootstrapPromise = null;
-        }
-      });
-    }
-
-    return loadPromise;
   }, []);
+
+  const commitEndpoints = useCallback(
+    (
+      endpointUpdater: (current: Endpoint[]) => Endpoint[],
+      endpointModelsUpdater?: (
+        current: Record<number, ModelConfigListItem[]>,
+      ) => Record<number, ModelConfigListItem[]>,
+    ) => {
+      setEndpoints((current) => {
+        const next = endpointUpdater(current);
+        setSharedEndpoints(revision, next);
+        return next;
+      });
+
+      if (endpointModelsUpdater) {
+        setEndpointModels(endpointModelsUpdater);
+      }
+    },
+    [revision],
+  );
 
   useEffect(() => {
     setIsLoading(true);
@@ -130,11 +123,13 @@ export function useEndpointsPageData() {
 
   const handleCreate = async (values: EndpointFormValues) => {
     try {
-      await api.endpoints.create(values);
+      const created = await api.endpoints.create(values);
       toast.success("Endpoint created");
       setIsCreateOpen(false);
-      const data = await fetchEndpoints(revision, false);
-      applyBootstrapData(data);
+      commitEndpoints(
+        (current) => [...current, created].sort((left, right) => left.position - right.position),
+        (current) => ({ ...current, [created.id]: [] }),
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create endpoint");
     }
@@ -146,15 +141,16 @@ export function useEndpointsPageData() {
     }
 
     try {
-      await api.endpoints.update(editingEndpoint.id, {
+      const updated = await api.endpoints.update(editingEndpoint.id, {
         name: values.name,
         base_url: values.base_url,
         ...(values.api_key.trim() ? { api_key: values.api_key } : {}),
       });
       toast.success("Endpoint updated");
       setEditingEndpoint(null);
-      const data = await fetchEndpoints(revision, false);
-      applyBootstrapData(data);
+      commitEndpoints((current) =>
+        current.map((endpoint) => (endpoint.id === updated.id ? updated : endpoint)),
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update endpoint");
     }
@@ -167,8 +163,14 @@ export function useEndpointsPageData() {
       toast.success("Endpoint deleted");
       setDeleteTarget(null);
       setDeleteError(null);
-      const data = await fetchEndpoints(revision, false);
-      applyBootstrapData(data);
+      commitEndpoints(
+        (current) => current.filter((endpoint) => endpoint.id !== id),
+        (current) => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        },
+      );
     } catch (error) {
       setDeleteTarget(null);
       if (error instanceof Error) {
@@ -194,8 +196,10 @@ export function useEndpointsPageData() {
     try {
       const duplicate = await api.endpoints.duplicate(endpoint.id);
       toast.success(`Endpoint duplicated as ${duplicate.name}`);
-      const data = await fetchEndpoints(revision, false);
-      applyBootstrapData(data);
+      commitEndpoints(
+        (current) => [...current, duplicate].sort((left, right) => left.position - right.position),
+        (current) => ({ ...current, [duplicate.id]: [] }),
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to duplicate endpoint");
     } finally {
@@ -261,13 +265,16 @@ export function useEndpointsPageData() {
 
     const nextEndpoints = arrayMove(previousEndpoints, fromIndex, toIndex);
     setEndpoints(nextEndpoints);
+    setSharedEndpoints(revision, nextEndpoints);
     setReorderInFlight(true);
 
     try {
       const orderedEndpoints = await api.endpoints.movePosition(Number(active.id), toIndex);
       setEndpoints(orderedEndpoints);
+      setSharedEndpoints(revision, orderedEndpoints);
     } catch (error) {
       setEndpoints(previousEndpoints);
+      setSharedEndpoints(revision, previousEndpoints);
       toast.error(error instanceof Error ? error.message : "Failed to reorder endpoints");
     } finally {
       setReorderInFlight(false);

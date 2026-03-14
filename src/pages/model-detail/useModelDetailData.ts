@@ -35,6 +35,8 @@ export function useModelDetailData(id: string | undefined) {
   const [kpiSummary24h, setKpiSummary24h] = useState<StatsSummary | null>(null);
   const [kpiSpend24hMicros, setKpiSpend24hMicros] = useState<number | null>(null);
   const [metrics24hLoading, setMetrics24hLoading] = useState(false);
+  const [connectionMetricsEnabled, setConnectionMetricsEnabled] = useState(false);
+  const [connectionMetricsLoading, setConnectionMetricsLoading] = useState(false);
 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [connectionSearch, setConnectionSearch] = useState("");
@@ -86,6 +88,9 @@ export function useModelDetailData(id: string | undefined) {
     setSpendingLoading,
     setSpendingCurrencySymbol,
     setSpendingCurrencyCode,
+    setConnectionMetricsEnabled,
+    setConnectionMetricsLoading,
+    setConnectionMetrics24h,
   });
 
   const {
@@ -93,11 +98,9 @@ export function useModelDetailData(id: string | undefined) {
     reorderInFlight,
     handleReorderConnections,
     handleHealthCheck,
+    handleHealthCheckAll,
     handleDialogTestConnection,
   } = useModelDetailConnectionFlows({
-    id,
-    revision,
-    loading,
     connections,
     setConnections,
     model,
@@ -113,6 +116,7 @@ export function useModelDetailData(id: string | undefined) {
     handleToggleActive,
   } = useModelDetailConnectionMutations({
     id,
+    revision,
     createMode,
     selectedEndpointId,
     newEndpointForm,
@@ -128,6 +132,7 @@ export function useModelDetailData(id: string | undefined) {
     model,
     allModels,
     isEditModelDialogOpen,
+    revision,
     editRedirectTo,
     setEditRedirectTo,
     setIsEditModelDialogOpen,
@@ -143,9 +148,11 @@ export function useModelDetailData(id: string | undefined) {
   });
 
   useModelDetailMetrics24h({
+    connectionMetricsEnabled,
     model,
     connections,
     revision,
+    setConnectionMetricsLoading,
     setMetrics24hLoading,
     setConnectionMetrics24h,
     setKpiSummary24h,
@@ -175,12 +182,15 @@ export function useModelDetailData(id: string | undefined) {
     kpiSummary24h,
     kpiSpend24hMicros,
     metrics24hLoading,
+    connectionMetricsEnabled,
+    connectionMetricsLoading,
     connections,
     isConnectionDialogOpen,
     setIsConnectionDialogOpen,
     editingConnection,
     connectionSearch,
     setConnectionSearch,
+    setConnectionMetricsEnabled,
     healthCheckingIds,
     dialogTestingConnection,
     dialogTestResult,
@@ -205,6 +215,7 @@ export function useModelDetailData(id: string | undefined) {
     handleConnectionSubmit,
     handleDeleteConnection,
     handleHealthCheck,
+    handleHealthCheckAll,
     handleDialogTestConnection,
     handleToggleActive,
     handleEditModelSubmit,

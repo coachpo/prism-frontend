@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import {
+  getSharedModels,
+  getSharedProviders,
+  setSharedModels,
+} from "@/lib/referenceData";
 import type {
   LoadBalancingStrategy,
+  ModelConfig,
   ModelConfigCreate,
   ModelConfigListItem,
   ModelConfigUpdate,
@@ -10,16 +16,6 @@ import type {
 import { toast } from "sonner";
 import { DEFAULT_VISIBLE_COLUMNS } from "./modelTableDefaults";
 import type { ModelColumnKey, ModelDerivedMetric } from "./modelTableContracts";
-
-let modelsPageBootstrapPromise:
-  | {
-      promise: Promise<{
-        modelsData: ModelConfigListItem[];
-        providersData: Provider[];
-      }>;
-      revision: number;
-    }
-  | null = null;
 
 const DEFAULT_FORM_DATA: ModelConfigCreate = {
   provider_id: 0,
@@ -55,31 +51,16 @@ export function useModelsPageData(revision: number) {
     setProviders(data.providersData);
   };
 
-  const fetchData = async (currentRevision: number, reuseInFlight = false) => {
-    if (reuseInFlight && modelsPageBootstrapPromise?.revision === currentRevision) {
-      return modelsPageBootstrapPromise.promise;
-    }
-
-    const loadPromise = Promise.all([api.models.list(), api.providers.list()]).then(
+  const fetchData = async (currentRevision: number) => {
+    return Promise.all([
+      getSharedModels(currentRevision),
+      getSharedProviders(currentRevision),
+    ]).then(
       ([modelsData, providersData]) => ({
         modelsData,
         providersData,
       })
     );
-
-    if (reuseInFlight) {
-      modelsPageBootstrapPromise = {
-        promise: loadPromise,
-        revision: currentRevision,
-      };
-      void loadPromise.finally(() => {
-        if (modelsPageBootstrapPromise?.promise === loadPromise) {
-          modelsPageBootstrapPromise = null;
-        }
-      });
-    }
-
-    return loadPromise;
   };
 
   useEffect(() => {
@@ -88,7 +69,7 @@ export function useModelsPageData(revision: number) {
     setLoading(true);
     void (async () => {
       try {
-        const data = await fetchData(revision, true);
+        const data = await fetchData(revision);
         if (cancelled) return;
         applyBootstrapData(data);
       } catch (error) {
@@ -177,6 +158,14 @@ export function useModelsPageData(revision: number) {
     };
   }, [models]);
 
+  const commitModels = (updater: (current: ModelConfigListItem[]) => ModelConfigListItem[]) => {
+    setModels((current) => {
+      const next = updater(current);
+      setSharedModels(revision, next);
+      return next;
+    });
+  };
+
   const handleOpenDialog = (model?: ModelConfigListItem) => {
     if (model) {
       setEditingModel(model);
@@ -223,9 +212,14 @@ export function useModelsPageData(revision: number) {
           failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
           failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
         };
-        await api.models.update(editingModel.id, updateData);
-        toast.success("Model updated");
-      } else {
+          const updated = await api.models.update(editingModel.id, updateData);
+          commitModels((current) =>
+            current.map((model) =>
+              model.id === editingModel.id ? toModelListItem(updated, model) : model
+            )
+          );
+          toast.success("Model updated");
+        } else {
         const createData: ModelConfigCreate = {
           ...formData,
           redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
@@ -233,25 +227,23 @@ export function useModelsPageData(revision: number) {
           failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
           failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
         };
-        await api.models.create(createData);
-        toast.success("Model created");
+          const created = await api.models.create(createData);
+          commitModels((current) => [...current, toModelListItem(created)]);
+          toast.success("Model created");
+        }
+        setIsDialogOpen(false);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to save model");
       }
-      setIsDialogOpen(false);
-      const data = await fetchData(revision, false);
-      applyBootstrapData(data);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save model");
-    }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
       await api.models.delete(deleteTarget.id);
+      commitModels((current) => current.filter((model) => model.id !== deleteTarget.id));
       toast.success("Model deleted");
       setDeleteTarget(null);
-      const data = await fetchData(revision, false);
-      applyBootstrapData(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete model");
     }
@@ -347,5 +339,27 @@ export function useModelsPageData(revision: number) {
     typeFilter,
     updateColumnVisibility,
     visibleColumns,
+  };
+}
+
+function toModelListItem(model: ModelConfig, existing?: ModelConfigListItem): ModelConfigListItem {
+  return {
+    id: model.id,
+    provider_id: model.provider_id,
+    provider: model.provider,
+    model_id: model.model_id,
+    display_name: model.display_name,
+    model_type: model.model_type,
+    redirect_to: model.redirect_to,
+    lb_strategy: model.lb_strategy,
+    is_enabled: model.is_enabled,
+    failover_recovery_enabled: model.failover_recovery_enabled,
+    failover_recovery_cooldown_seconds: model.failover_recovery_cooldown_seconds,
+    connection_count: model.connections.length,
+    active_connection_count: model.connections.filter((connection) => connection.is_active).length,
+    health_success_rate: existing?.health_success_rate ?? null,
+    health_total_requests: existing?.health_total_requests ?? 0,
+    created_at: model.created_at,
+    updated_at: model.updated_at,
   };
 }

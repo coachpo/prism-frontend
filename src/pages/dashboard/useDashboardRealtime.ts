@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useCoalescedReconcile } from "@/hooks/useCoalescedReconcile";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
 import type { RequestLogEntry, SpendingReportResponse, StatsSummary } from "@/lib/types";
 import { isSuccessfulRequest } from "./dashboardDataUtils";
@@ -22,8 +23,7 @@ export function useDashboardRealtime({
 }: Params) {
   const [recentNewIds, setRecentNewIds] = useState<Set<number>>(() => new Set());
   const [metricsHighlighted, setMetricsHighlighted] = useState(false);
-  const [reconcileRevision, setReconcileRevision] = useState(0);
-  const hiddenAtRef = useRef<number | null>(null);
+  const markSyncCompleteRef = useRef<() => void>(() => undefined);
   const metricHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const triggerMetricHighlight = useCallback(() => {
@@ -96,9 +96,16 @@ export function useDashboardRealtime({
     [latestDashboardRequestIdRef, setRecentRequests, setSpending, setStats, triggerMetricHighlight]
   );
 
-  const requestRealtimeReconciliation = useCallback(() => {
-    setReconcileRevision((prev) => prev + 1);
-  }, []);
+  const reconcileDashboard = useCallback(async () => {
+    await fetchDashboardData({ silent: true });
+    markSyncCompleteRef.current();
+  }, [fetchDashboardData]);
+
+  const requestRealtimeReconciliation = useCoalescedReconcile({
+    reconcile: reconcileDashboard,
+    intervalMs: 300000,
+    visibilityReloadThresholdMs: 30000,
+  });
 
   const { connectionState, isSyncing, markSyncComplete } = useRealtimeData({
     profileId: selectedProfileId,
@@ -109,40 +116,8 @@ export function useDashboardRealtime({
   });
 
   useEffect(() => {
-    if (reconcileRevision === 0) {
-      return;
-    }
-
-    void fetchDashboardData({ silent: true }).finally(markSyncComplete);
-  }, [fetchDashboardData, markSyncComplete, reconcileRevision]);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      void fetchDashboardData({ silent: true }).finally(markSyncComplete);
-    }, 300000);
-
-    return () => window.clearInterval(intervalId);
-  }, [fetchDashboardData, markSyncComplete]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        hiddenAtRef.current = Date.now();
-        return;
-      }
-
-      if (hiddenAtRef.current !== null && Date.now() - hiddenAtRef.current > 30000) {
-        void fetchDashboardData({ silent: true }).finally(markSyncComplete);
-      }
-
-      hiddenAtRef.current = null;
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [fetchDashboardData, markSyncComplete]);
+    markSyncCompleteRef.current = markSyncComplete;
+  }, [markSyncComplete]);
 
   useEffect(() => {
     return () => {

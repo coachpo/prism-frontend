@@ -72,15 +72,6 @@ export function useProxyApiKeysPageData() {
     };
   }, []);
 
-  async function fetchProxyKeys() {
-    try {
-      const data = await api.settings.auth.proxyKeys.list();
-      setProxyKeys(data);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load proxy API keys");
-    }
-  }
-
   async function handleCreateProxyKey() {
     if (!authSettings) {
       toast.error("Authentication settings are unavailable");
@@ -106,7 +97,7 @@ export function useProxyApiKeysPageData() {
       setLatestGeneratedKey(created.key);
       setProxyKeyName("");
       setProxyKeyNotes("");
-      await fetchProxyKeys();
+      setProxyKeys((current) => [created.item, ...current]);
       toast.success("Proxy API key created");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create proxy API key");
@@ -120,7 +111,9 @@ export function useProxyApiKeysPageData() {
     try {
       const rotated = await api.settings.auth.proxyKeys.rotate(keyId);
       setLatestGeneratedKey(rotated.key);
-      await fetchProxyKeys();
+      setProxyKeys((current) =>
+        current.map((key) => (key.id === keyId ? rotated.item : key))
+      );
       toast.success("Proxy API key rotated");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to rotate proxy API key");
@@ -137,8 +130,8 @@ export function useProxyApiKeysPageData() {
     setDeletingProxyKeyId(deleteConfirm.id);
     try {
       await api.settings.auth.proxyKeys.delete(deleteConfirm.id);
+      setProxyKeys((current) => current.filter((key) => key.id !== deleteConfirm.id));
       setDeleteConfirm(null);
-      await fetchProxyKeys();
       toast.success("Proxy API key deleted");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete proxy API key");

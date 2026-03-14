@@ -15,6 +15,7 @@ const api = vi.hoisted(() => ({
   auth: {
     login: vi.fn(),
     logout: vi.fn(),
+    publicBootstrap: vi.fn(),
     refresh: vi.fn(),
     session: vi.fn(),
     status: vi.fn(),
@@ -49,6 +50,7 @@ describe("AuthProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.auth.status.mockResolvedValue({ auth_enabled: true });
+    api.auth.publicBootstrap.mockResolvedValue({ auth_enabled: true, authenticated: false, username: null });
     api.auth.session.mockResolvedValue({ auth_enabled: true, authenticated: false, username: null });
     api.auth.login.mockResolvedValue({ auth_enabled: true, authenticated: true, username: "alice" });
     api.auth.logout.mockResolvedValue({ auth_enabled: true, authenticated: false, username: null });
@@ -103,6 +105,11 @@ describe("AuthProvider", () => {
     });
     api.auth.refresh.mockImplementationOnce(() => deferredRefresh.promise);
 
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "visible",
+    });
+
     render(
       <AuthProvider>
         <AuthProbe />
@@ -136,5 +143,27 @@ describe("AuthProvider", () => {
     });
 
     expect(api.auth.logout).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the public bootstrap path in public mode", async () => {
+    api.auth.publicBootstrap.mockResolvedValueOnce({
+      auth_enabled: true,
+      authenticated: true,
+      username: "alice",
+    });
+
+    render(
+      <AuthProvider bootstrapMode="public">
+        <AuthProbe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("alice")).toBeInTheDocument();
+    });
+
+    expect(api.auth.publicBootstrap).toHaveBeenCalledTimes(1);
+    expect(api.auth.status).not.toHaveBeenCalled();
+    expect(api.auth.session).not.toHaveBeenCalled();
   });
 });

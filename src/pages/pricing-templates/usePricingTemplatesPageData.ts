@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { isValidCurrencyCode } from "@/lib/costing";
+import {
+  getSharedPricingTemplates,
+  setSharedPricingTemplates,
+} from "@/lib/referenceData";
 import type {
   PricingTemplate,
   PricingTemplateConnectionUsageItem,
@@ -33,17 +37,28 @@ export function usePricingTemplatesPageData(revision: number) {
   const [deletePricingTemplateConflict, setDeletePricingTemplateConflict] = useState<PricingTemplateConnectionUsageItem[] | null>(null);
   const [pricingTemplateDeleting, setPricingTemplateDeleting] = useState(false);
 
+  const commitPricingTemplates = useCallback(
+    (updater: (current: PricingTemplate[]) => PricingTemplate[]) => {
+      setPricingTemplates((current) => {
+        const next = sortPricingTemplates(updater(current));
+        setSharedPricingTemplates(revision, next);
+        return next;
+      });
+    },
+    [revision],
+  );
+
   const fetchPricingTemplates = useCallback(async () => {
     setPricingTemplatesLoading(true);
     try {
-      const data = await api.pricingTemplates.list();
-      setPricingTemplates(data);
+      const data = await getSharedPricingTemplates(revision);
+      setPricingTemplates(sortPricingTemplates(data));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load pricing templates");
     } finally {
       setPricingTemplatesLoading(false);
     }
-  }, []);
+  }, [revision]);
 
   useEffect(() => {
     void fetchPricingTemplates();
@@ -128,7 +143,12 @@ export function usePricingTemplatesPageData(revision: number) {
           reasoning_price: reasoningPrice,
           missing_special_token_price_policy: pricingTemplateForm.missing_special_token_price_policy,
         };
-        await api.pricingTemplates.update(editingPricingTemplate.id, payload);
+        const updated = await api.pricingTemplates.update(editingPricingTemplate.id, payload);
+        commitPricingTemplates((current) =>
+          current.map((template) =>
+            template.id === editingPricingTemplate.id ? updated : template
+          )
+        );
         toast.success("Pricing template updated");
       } else {
         const payload: PricingTemplateCreate = {
@@ -142,12 +162,12 @@ export function usePricingTemplatesPageData(revision: number) {
           reasoning_price: reasoningPrice,
           missing_special_token_price_policy: pricingTemplateForm.missing_special_token_price_policy,
         };
-        await api.pricingTemplates.create(payload);
+        const created = await api.pricingTemplates.create(payload);
+        commitPricingTemplates((current) => [created, ...current]);
         toast.success("Pricing template created");
       }
 
       closePricingTemplateDialog();
-      await fetchPricingTemplates();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         toast.error("This pricing template changed while you were editing it. Reopen the dialog and try again.");
@@ -198,9 +218,11 @@ export function usePricingTemplatesPageData(revision: number) {
     setPricingTemplateDeleting(true);
     try {
       await api.pricingTemplates.delete(deletePricingTemplateConfirm.id);
+      commitPricingTemplates((current) =>
+        current.filter((template) => template.id !== deletePricingTemplateConfirm.id)
+      );
       toast.success("Pricing template deleted");
       setDeletePricingTemplateConfirm(null);
-      void fetchPricingTemplates();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         const conflictRows = parsePricingTemplateUsageRows(error.detail);
@@ -242,4 +264,17 @@ export function usePricingTemplatesPageData(revision: number) {
     setPricingTemplateForm,
     setPricingTemplateUsageDialogOpen,
   };
+}
+
+function sortPricingTemplates(templates: PricingTemplate[]) {
+  return [...templates].sort((left, right) => {
+    const updatedAtDelta =
+      new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime();
+
+    if (updatedAtDelta !== 0) {
+      return updatedAtDelta;
+    }
+
+    return right.id - left.id;
+  });
 }

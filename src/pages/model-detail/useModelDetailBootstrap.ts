@@ -1,7 +1,12 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import {
+  getSharedEndpoints,
+  getSharedModels,
+  getSharedPricingTemplates,
+} from "@/lib/referenceData";
 import type {
   Connection,
   Endpoint,
@@ -10,6 +15,7 @@ import type {
   PricingTemplate,
   SpendingSummary,
 } from "@/lib/types";
+import type { ConnectionDerivedMetrics } from "./modelDetailMetricsAndPaths";
 
 interface UseModelDetailBootstrapInput {
   id: string | undefined;
@@ -25,6 +31,9 @@ interface UseModelDetailBootstrapInput {
   setSpendingLoading: Dispatch<SetStateAction<boolean>>;
   setSpendingCurrencySymbol: Dispatch<SetStateAction<string>>;
   setSpendingCurrencyCode: Dispatch<SetStateAction<string>>;
+  setConnectionMetricsEnabled: Dispatch<SetStateAction<boolean>>;
+  setConnectionMetricsLoading: Dispatch<SetStateAction<boolean>>;
+  setConnectionMetrics24h: Dispatch<SetStateAction<Map<number, ConnectionDerivedMetrics>>>;
 }
 
 export function useModelDetailBootstrap({
@@ -41,9 +50,17 @@ export function useModelDetailBootstrap({
   setSpendingLoading,
   setSpendingCurrencySymbol,
   setSpendingCurrencyCode,
+  setConnectionMetricsEnabled,
+  setConnectionMetricsLoading,
+  setConnectionMetrics24h,
 }: UseModelDetailBootstrapInput) {
+  const modelRequestIdRef = useRef(0);
+  const spendingRequestIdRef = useRef(0);
+  const lazyMetricsBootstrapKeyRef = useRef<string | null>(null);
+
   const fetchSpending = useCallback(
     async (modelId: string) => {
+      const requestId = ++spendingRequestIdRef.current;
       setSpendingLoading(true);
       try {
         const data = await api.stats.spending({
@@ -51,13 +68,21 @@ export function useModelDetailBootstrap({
           group_by: "endpoint",
           preset: "all",
         });
+        if (requestId !== spendingRequestIdRef.current) {
+          return;
+        }
         setSpending(data.summary);
         setSpendingCurrencySymbol(data.report_currency_symbol);
         setSpendingCurrencyCode(data.report_currency_code);
       } catch (error) {
+        if (requestId !== spendingRequestIdRef.current) {
+          return;
+        }
         console.error("Failed to fetch spending", error);
       } finally {
-        setSpendingLoading(false);
+        if (requestId === spendingRequestIdRef.current) {
+          setSpendingLoading(false);
+        }
       }
     },
     [setSpending, setSpendingCurrencyCode, setSpendingCurrencySymbol, setSpendingLoading]
@@ -66,13 +91,28 @@ export function useModelDetailBootstrap({
   const fetchModel = useCallback(async () => {
     if (!id) return;
 
+    const requestId = ++modelRequestIdRef.current;
+    const bootstrapKey = `${id}:${revision}`;
+    spendingRequestIdRef.current += 1;
+    setSpending(null);
+    if (lazyMetricsBootstrapKeyRef.current !== bootstrapKey) {
+      lazyMetricsBootstrapKeyRef.current = bootstrapKey;
+      setConnectionMetricsEnabled(false);
+      setConnectionMetricsLoading(false);
+      setConnectionMetrics24h(new Map());
+    }
+
     try {
       const [data, endpointsList, modelsList, pricingTemplatesList] = await Promise.all([
         api.models.get(Number.parseInt(id, 10)),
-        api.endpoints.list(),
-        api.models.list(),
-        api.pricingTemplates.list(),
+        getSharedEndpoints(revision),
+        getSharedModels(revision),
+        getSharedPricingTemplates(revision),
       ]);
+
+      if (requestId !== modelRequestIdRef.current) {
+        return;
+      }
 
       setModel(data);
       setConnections(data.connections || []);
@@ -82,21 +122,31 @@ export function useModelDetailBootstrap({
 
       void fetchSpending(data.model_id);
     } catch (error) {
+      if (requestId !== modelRequestIdRef.current) {
+        return;
+      }
       toast.error("Failed to fetch model details");
       console.error(error);
       navigate("/models");
     } finally {
-      setLoading(false);
+      if (requestId === modelRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [
     fetchSpending,
     id,
     navigate,
+    revision,
+    setConnectionMetrics24h,
+    setConnectionMetricsEnabled,
+    setConnectionMetricsLoading,
     setAllModels,
     setConnections,
     setGlobalEndpoints,
     setLoading,
     setModel,
+    setSpending,
     setPricingTemplates,
   ]);
 

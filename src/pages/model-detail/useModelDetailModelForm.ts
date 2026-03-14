@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { clearSharedReferenceData } from "@/lib/referenceData";
 import type { ModelConfig, ModelConfigListItem, ModelConfigUpdate } from "@/lib/types";
 import { buildRedirectTargetOptions } from "./useModelDetailDataSupport";
 
@@ -8,6 +9,7 @@ interface UseModelDetailModelFormInput {
   model: ModelConfig | null;
   allModels: ModelConfigListItem[];
   isEditModelDialogOpen: boolean;
+  revision: number;
   editRedirectTo: string;
   setEditRedirectTo: (value: string) => void;
   setIsEditModelDialogOpen: (open: boolean) => void;
@@ -18,6 +20,7 @@ export function useModelDetailModelForm({
   model,
   allModels,
   isEditModelDialogOpen,
+  revision,
   editRedirectTo,
   setEditRedirectTo,
   setIsEditModelDialogOpen,
@@ -52,6 +55,7 @@ export function useModelDetailModelForm({
 
       try {
         await api.models.update(model.id, updateData);
+        clearSharedReferenceData(undefined, revision);
         toast.success("Model updated");
         setIsEditModelDialogOpen(false);
         void fetchModel();
@@ -59,7 +63,7 @@ export function useModelDetailModelForm({
         toast.error(error instanceof Error ? error.message : "Failed to update model");
       }
     },
-    [editRedirectTo, fetchModel, model, setIsEditModelDialogOpen],
+    [editRedirectTo, fetchModel, model, revision, setIsEditModelDialogOpen],
   );
 
   return {

@@ -25,12 +25,15 @@ export function ModelDetailPage() {
     spendingCurrencySymbol,
     spendingCurrencyCode,
     metrics24hLoading,
+    connectionMetricsEnabled,
+    connectionMetricsLoading,
     connections,
     isConnectionDialogOpen,
     setIsConnectionDialogOpen,
     editingConnection,
     connectionSearch,
     setConnectionSearch,
+    setConnectionMetricsEnabled,
     healthCheckingIds,
     dialogTestingConnection,
     dialogTestResult,
@@ -55,6 +58,7 @@ export function ModelDetailPage() {
     handleConnectionSubmit,
     handleDeleteConnection,
     handleHealthCheck,
+    handleHealthCheckAll,
     handleDialogTestConnection,
     handleToggleActive,
     handleEditModelSubmit,
@@ -131,11 +135,15 @@ export function ModelDetailPage() {
         connections={connections}
         connectionSearch={connectionSearch}
         setConnectionSearch={setConnectionSearch}
+        setConnectionMetricsEnabled={setConnectionMetricsEnabled}
         openConnectionDialog={openConnectionDialog}
         handleDeleteConnection={handleDeleteConnection}
         handleHealthCheck={handleHealthCheck}
+        handleHealthCheckAll={handleHealthCheckAll}
         handleToggleActive={handleToggleActive}
         handleReorderConnections={handleReorderConnections}
+        connectionMetricsEnabled={connectionMetricsEnabled}
+        connectionMetricsLoading={connectionMetricsLoading}
         connectionMetrics24h={connectionMetrics24h}
         healthCheckingIds={healthCheckingIds}
         focusedConnectionId={focusedConnectionId}

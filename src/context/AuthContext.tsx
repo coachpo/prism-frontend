@@ -11,16 +11,29 @@ interface AuthBootstrapState {
   username: string | null;
 }
 
-let authBootstrapPromise: Promise<AuthBootstrapState> | null = null;
+type AuthBootstrapMode = "full" | "public";
+
+const authBootstrapPromises = new Map<AuthBootstrapMode, Promise<AuthBootstrapState>>();
 
 async function loadAuthBootstrapState(
+  mode: AuthBootstrapMode,
   reuseInFlight = false,
 ): Promise<AuthBootstrapState> {
-  if (reuseInFlight && authBootstrapPromise) {
-    return authBootstrapPromise;
+  const inFlight = authBootstrapPromises.get(mode);
+  if (reuseInFlight && inFlight) {
+    return inFlight;
   }
 
   const loadPromise = (async (): Promise<AuthBootstrapState> => {
+    if (mode === "public") {
+      const session = await api.auth.publicBootstrap();
+      return {
+        authEnabled: session.auth_enabled,
+        authenticated: session.authenticated,
+        username: session.username,
+      };
+    }
+
     const status = await api.auth.status();
     if (!status.auth_enabled) {
       return {
@@ -62,10 +75,10 @@ async function loadAuthBootstrapState(
   })();
 
   if (reuseInFlight) {
-    authBootstrapPromise = loadPromise;
+    authBootstrapPromises.set(mode, loadPromise);
     void loadPromise.finally(() => {
-      if (authBootstrapPromise === loadPromise) {
-        authBootstrapPromise = null;
+      if (authBootstrapPromises.get(mode) === loadPromise) {
+        authBootstrapPromises.delete(mode);
       }
     });
   }
@@ -73,7 +86,13 @@ async function loadAuthBootstrapState(
   return loadPromise;
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({
+  bootstrapMode = "full",
+  children,
+}: {
+  bootstrapMode?: AuthBootstrapMode;
+  children: ReactNode;
+}) {
   const [authEnabled, setAuthEnabled] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
@@ -136,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const requestVersion = ++authStateVersionRef.current;
     setLoading(true);
     try {
-      const state = await loadAuthBootstrapState(reuseInFlight);
+      const state = await loadAuthBootstrapState(bootstrapMode, reuseInFlight);
       if (requestVersion !== authStateVersionRef.current) {
         return;
       }
@@ -146,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     }
-  }, [applyBootstrapState]);
+  }, [applyBootstrapState, bootstrapMode]);
 
   const refreshAuth = useCallback(async () => {
     await runAuthBootstrap(false);

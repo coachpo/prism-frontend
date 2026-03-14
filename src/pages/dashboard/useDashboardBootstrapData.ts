@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { api } from "@/lib/api";
+import { getSharedModels } from "@/lib/referenceData";
 import type {
   ModelConfigListItem,
   NonEmptyArray,
@@ -57,7 +58,7 @@ async function loadDashboardBootstrapData(
 
   const from24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const to24h = new Date().toISOString();
-  const modelsPromise = api.models.list();
+  const modelsPromise = getSharedModels(revision);
 
   const loadPromise = Promise.all([
     modelsPromise,

@@ -18,6 +18,7 @@ import { buildQuery, request } from "./core";
 
 export const auth = {
   status: () => request<AuthStatus>("/api/auth/status"),
+  publicBootstrap: () => request<SessionResponse>("/api/auth/public-bootstrap"),
   login: (data: LoginRequest) =>
     request<SessionResponse>("/api/auth/login", {
       method: "POST",

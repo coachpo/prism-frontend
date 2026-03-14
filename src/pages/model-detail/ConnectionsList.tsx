@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/EmptyState";
-import { Plus, Search, Shield } from "lucide-react";
+import { Activity, Loader2, Plus, Search, Shield } from "lucide-react";
 import { useTimezone } from "@/hooks/useTimezone";
 import { ConnectionCard } from "./connections-list/ConnectionCard";
 import { SortableConnectionCard } from "./connections-list/SortableConnectionCard";
@@ -36,11 +36,15 @@ interface ConnectionsListProps {
   connections: Connection[];
   connectionSearch: string;
   setConnectionSearch: (search: string) => void;
+  setConnectionMetricsEnabled: (enabled: boolean) => void;
   openConnectionDialog: (connection?: Connection) => void;
   handleDeleteConnection: (id: number) => void;
   handleHealthCheck: (id: number) => void;
+  handleHealthCheckAll: () => void;
   handleToggleActive: (connection: Connection) => void;
   handleReorderConnections: (connectionId: number, toIndex: number) => Promise<void>;
+  connectionMetricsEnabled: boolean;
+  connectionMetricsLoading: boolean;
   connectionMetrics24h: Map<number, ConnectionDerivedMetrics>;
   healthCheckingIds: Set<number>;
   focusedConnectionId: number | null;
@@ -53,11 +57,15 @@ export function ConnectionsList({
   connections,
   connectionSearch,
   setConnectionSearch,
+  setConnectionMetricsEnabled,
   openConnectionDialog,
   handleDeleteConnection,
   handleHealthCheck,
+  handleHealthCheckAll,
   handleToggleActive,
   handleReorderConnections,
+  connectionMetricsEnabled,
+  connectionMetricsLoading,
   connectionMetrics24h,
   healthCheckingIds,
   focusedConnectionId,
@@ -142,10 +150,34 @@ export function ConnectionsList({
             <span className="ml-2 text-xs font-normal text-muted-foreground">({connections.length})</span>
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Health checks run automatically when this page opens. Use manual check for spot validation.
+            Connection metrics and health checks load on demand to avoid large page-open bursts.
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setConnectionMetricsEnabled(true)}
+            disabled={connectionMetricsEnabled || connectionMetricsLoading}
+          >
+            {connectionMetricsLoading ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : null}
+            {connectionMetricsEnabled ? "24h Metrics Loaded" : "Load 24h Metrics"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void handleHealthCheckAll()}
+            disabled={connections.length === 0 || healthCheckingIds.size > 0}
+          >
+            {healthCheckingIds.size > 0 ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Activity className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            Check All
+          </Button>
           {connections.length > 3 ? (
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />

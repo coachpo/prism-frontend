@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import {
+  getSharedConnectionOptions,
+  getSharedEndpoints,
+  getSharedModels,
+  getSharedProviders,
+} from "@/lib/referenceData";
 import type { ConnectionDropdownItem, Endpoint, Provider } from "@/lib/types";
 
 type ModelOption = { model_id: string; display_name: string | null };
@@ -11,14 +16,20 @@ export function useRequestLogFilterOptions(revision: number) {
   const [providers, setProviders] = useState<Provider[]>([]);
 
   useEffect(() => {
+    let active = true;
+
     const fetchFilters = async () => {
       const [modelsResult, connectionsResult, endpointsResult, providersResult] =
         await Promise.allSettled([
-          api.models.list(),
-          api.endpoints.connections(),
-          api.endpoints.list(),
-          api.providers.list(),
+          getSharedModels(revision),
+          getSharedConnectionOptions(revision),
+          getSharedEndpoints(revision),
+          getSharedProviders(revision),
         ]);
+
+      if (!active) {
+        return;
+      }
 
       if (modelsResult.status === "fulfilled") {
         setModels(
@@ -32,7 +43,7 @@ export function useRequestLogFilterOptions(revision: number) {
       }
 
       if (connectionsResult.status === "fulfilled") {
-        setConnections(connectionsResult.value.items);
+        setConnections(connectionsResult.value);
       } else {
         console.error("Failed to load request-log connections", connectionsResult.reason);
       }
@@ -51,6 +62,10 @@ export function useRequestLogFilterOptions(revision: number) {
     };
 
     void fetchFilters();
+
+    return () => {
+      active = false;
+    };
   }, [revision]);
 
   return { connections, endpoints, models, providers };

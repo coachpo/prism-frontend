@@ -7,9 +7,6 @@ import { moveConnectionInList } from "./useModelDetailDataSupport";
 import { useConnectionHealthChecks } from "./useConnectionHealthChecks";
 
 interface UseModelDetailConnectionFlowsInput {
-  id: string | undefined;
-  revision: number;
-  loading: boolean;
   connections: Connection[];
   setConnections: Dispatch<SetStateAction<Connection[]>>;
   model: ModelConfig | null;
@@ -20,9 +17,6 @@ interface UseModelDetailConnectionFlowsInput {
 }
 
 export function useModelDetailConnectionFlows({
-  id,
-  revision,
-  loading,
   connections,
   setConnections,
   model,
@@ -33,10 +27,6 @@ export function useModelDetailConnectionFlows({
 }: UseModelDetailConnectionFlowsInput) {
   const [reorderInFlight, setReorderInFlight] = useState(false);
   const { healthCheckingIds, runHealthChecks } = useConnectionHealthChecks({
-    id,
-    revision,
-    loading,
-    connections,
     setConnections,
   });
 
@@ -94,6 +84,23 @@ export function useModelDetailConnectionFlows({
     [runHealthChecks],
   );
 
+  const handleHealthCheckAll = useCallback(async () => {
+    const { failedCount, successfulChecks } = await runHealthChecks(
+      connections.map((connection) => connection.id)
+    );
+
+    if (successfulChecks.size > 0) {
+      toast.success(
+        `Checked ${successfulChecks.size} connection${successfulChecks.size === 1 ? "" : "s"}`
+      );
+    }
+    if (failedCount > 0) {
+      toast.error(
+        `Health check failed for ${failedCount} connection${failedCount === 1 ? "" : "s"}`
+      );
+    }
+  }, [connections, runHealthChecks]);
+
   const handleDialogTestConnection = useCallback(async () => {
     if (!editingConnection) {
       return;
@@ -116,6 +123,7 @@ export function useModelDetailConnectionFlows({
     reorderInFlight,
     handleReorderConnections,
     handleHealthCheck,
+    handleHealthCheckAll,
     handleDialogTestConnection,
   };
 }

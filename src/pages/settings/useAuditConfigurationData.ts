@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { getSharedProviders, setSharedProviders } from "@/lib/referenceData";
 import type {
   HeaderBlocklistRule,
   HeaderBlocklistRuleCreate,
@@ -28,25 +29,54 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
   const [deleteRuleConfirm, setDeleteRuleConfirm] = useState<HeaderBlocklistRule | null>(null);
   const [systemRulesOpen, setSystemRulesOpen] = useState(false);
   const [userRulesOpen, setUserRulesOpen] = useState(true);
+  const providersRequestIdRef = useRef(0);
+  const rulesRequestIdRef = useRef(0);
 
   const fetchProviders = useCallback(async () => {
+    const requestId = ++providersRequestIdRef.current;
     try {
-      const data = await api.providers.list();
+      const data = await getSharedProviders(revision);
+      if (requestId !== providersRequestIdRef.current) {
+        return;
+      }
       setProviders(data);
     } catch {
+      if (requestId !== providersRequestIdRef.current) {
+        return;
+      }
       toast.error("Failed to load providers");
     }
-  }, []);
+  }, [revision]);
+
+  const commitProviders = useCallback(
+    (updater: (current: Provider[]) => Provider[]) => {
+      setProviders((current) => {
+        const next = updater(current);
+        setSharedProviders(revision, next);
+        return next;
+      });
+    },
+    [revision],
+  );
 
   const fetchRules = useCallback(async () => {
+    const requestId = ++rulesRequestIdRef.current;
     setLoadingRules(true);
     try {
       const rules = await api.config.headerBlocklistRules.list(true);
+       if (requestId !== rulesRequestIdRef.current) {
+        return;
+      }
       setBlocklistRules(rules);
     } catch {
+      if (requestId !== rulesRequestIdRef.current) {
+        return;
+      }
       toast.error("Failed to load header blocklist rules");
     } finally {
-      setLoadingRules(false);
+      if (requestId === rulesRequestIdRef.current) {
+        setLoadingRules(false);
+      }
     }
   }, []);
 
@@ -59,7 +89,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
   const customRules = useMemo(() => blocklistRules.filter((rule) => !rule.is_system), [blocklistRules]);
 
   const toggleAudit = async (providerId: number, checked: boolean) => {
-    setProviders((prev) =>
+    commitProviders((prev) =>
       prev.map((provider) =>
         provider.id === providerId ? { ...provider, audit_enabled: checked } : provider
       )
@@ -68,7 +98,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
     try {
       await api.providers.update(providerId, { audit_enabled: checked });
     } catch {
-      setProviders((prev) =>
+      commitProviders((prev) =>
         prev.map((provider) =>
           provider.id === providerId ? { ...provider, audit_enabled: !checked } : provider
         )
@@ -78,7 +108,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
   };
 
   const toggleBodies = async (providerId: number, checked: boolean) => {
-    setProviders((prev) =>
+    commitProviders((prev) =>
       prev.map((provider) =>
         provider.id === providerId ? { ...provider, audit_capture_bodies: checked } : provider
       )
@@ -87,7 +117,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
     try {
       await api.providers.update(providerId, { audit_capture_bodies: checked });
     } catch {
-      setProviders((prev) =>
+      commitProviders((prev) =>
         prev.map((provider) =>
           provider.id === providerId ? { ...provider, audit_capture_bodies: !checked } : provider
         )

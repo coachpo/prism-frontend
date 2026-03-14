@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearSharedReferenceData } from "@/lib/referenceData";
 import { useRequestLogFilterOptions } from "../useRequestLogFilterOptions";
 
 const api = vi.hoisted(() => ({
@@ -20,6 +21,7 @@ vi.mock("@/lib/api", () => ({ api }));
 describe("useRequestLogFilterOptions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSharedReferenceData();
     api.models.list.mockResolvedValue([
       { model_id: "gpt-5.4", display_name: "GPT-5.4" },
     ]);
@@ -30,6 +32,10 @@ describe("useRequestLogFilterOptions", () => {
       { id: 10, path: "/v1/chat/completions", method: "POST" },
     ]);
     api.providers.list.mockRejectedValue(new Error("provider lookup failed"));
+  });
+
+  afterEach(() => {
+    clearSharedReferenceData();
   });
 
   it("keeps non-provider filter data when provider loading fails", async () => {
