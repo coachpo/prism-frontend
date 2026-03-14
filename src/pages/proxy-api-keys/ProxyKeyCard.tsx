@@ -113,7 +113,6 @@ export function ProxyKeyCard({ item, authEnabled, rotating, deleting, onRotate, 
           <InfoTile
             label="Stored preview"
             value={item.key_preview}
-            helper="Prism only stores the preview. Rotate the key to issue a new full secret."
             mono
             className="lg:col-span-2"
           />
