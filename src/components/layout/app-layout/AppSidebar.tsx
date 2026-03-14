@@ -25,8 +25,8 @@ export function AppSidebar({
       aria-label="Primary navigation"
       className={cn(
         "fixed left-0 top-0 z-50 flex h-full w-[min(88vw,320px)] flex-col bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-200 ease-in-out will-change-transform lg:w-[320px]",
-        "lg:pointer-events-auto lg:translate-x-0",
-        sidebarOpen ? "pointer-events-auto translate-x-0" : "pointer-events-none -translate-x-full"
+        "pointer-events-auto translate-x-0 lg:pointer-events-auto lg:translate-x-0",
+        !sidebarOpen && "max-lg:pointer-events-none max-lg:-translate-x-full"
       )}
     >
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">

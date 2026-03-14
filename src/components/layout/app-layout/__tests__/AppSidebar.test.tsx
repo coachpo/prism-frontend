@@ -29,13 +29,15 @@ function renderSidebar(overrides: Partial<SidebarProps> = {}) {
 }
 
 describe("AppSidebar", () => {
-  it("disables hit testing while hidden on mobile", () => {
+  it("uses mobile-only hit testing disablement while hidden", () => {
     renderSidebar({ sidebarOpen: false });
 
     const sidebar = screen.getByRole("complementary", { name: "Primary navigation" });
 
-    expect(sidebar).toHaveClass("pointer-events-none");
-    expect(sidebar).toHaveClass("-translate-x-full");
+    expect(sidebar).toHaveClass("pointer-events-auto");
+    expect(sidebar).toHaveClass("translate-x-0");
+    expect(sidebar).toHaveClass("max-lg:pointer-events-none");
+    expect(sidebar).toHaveClass("max-lg:-translate-x-full");
     expect(sidebar).toHaveClass("lg:pointer-events-auto");
   });
 
