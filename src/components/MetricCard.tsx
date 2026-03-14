@@ -23,15 +23,17 @@ export function MetricCard({ label, value, detail, icon, trend, className, onCli
       onClick={onClick}
     >
       <CardContent className="p-[var(--density-metric-pad)]">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold tracking-tight">{value}</span>
+            <div className="flex min-w-0 flex-wrap items-baseline gap-2">
+              <span className="min-w-0 break-words text-2xl font-bold leading-tight tracking-tight">
+                {value}
+              </span>
               {trend && (
                 <span
                   className={cn(
-                    "text-xs font-medium",
+                    "shrink-0 text-xs font-medium",
                     trend.positive ? "text-success" : "text-destructive"
                   )}
                 >
@@ -44,7 +46,10 @@ export function MetricCard({ label, value, detail, icon, trend, className, onCli
             )}
           </div>
           {icon && (
-            <div className="flex h-[var(--density-control-h)] w-[var(--density-control-h)] shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div
+              data-slot="icon"
+              className="flex h-[var(--density-control-h)] w-[var(--density-control-h)] shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            >
               {icon}
             </div>
           )}

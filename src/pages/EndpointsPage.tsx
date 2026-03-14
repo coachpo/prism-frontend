@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, GripVertical, Loader2, Plug, Plus } from "lucide-react";
+import { AlertTriangle, Plug, Plus } from "lucide-react";
 import { EndpointDialog } from "./endpoints/EndpointDialog";
 import { EndpointCardView, SortableEndpointCard } from "./endpoints/EndpointCard";
 import { DeleteEndpointDialog } from "./endpoints/DeleteEndpointDialog";
@@ -25,23 +25,6 @@ export function EndpointsPage() {
           Add Endpoint
         </Button>
       </PageHeader>
-
-      {!data.isLoading ? (
-        <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-          {data.reorderInFlight ? (
-            <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" />
-          ) : (
-            <GripVertical className="mt-0.5 h-4 w-4 shrink-0" />
-          )}
-          <p>
-            {data.reorderInFlight
-              ? "Saving your new endpoint order. Drag handles are temporarily disabled until the update finishes."
-              : data.endpoints.length > 1
-                ? "Drag and drop cards using the handle to reorder your endpoints. Keyboard users can focus a handle, press Space, move with arrow keys, and press Space again to drop."
-                : "Add at least two endpoints to enable drag-and-drop ordering."}
-          </p>
-        </div>
-      ) : null}
 
       {data.deleteError ? (
         <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-destructive">

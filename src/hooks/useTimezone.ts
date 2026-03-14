@@ -2,6 +2,38 @@ import { useEffect, useState } from "react";
 import { useProfileContext } from "@/context/ProfileContext";
 import { formatTimestamp, getUserTimezonePreference } from "@/lib/timezone";
 
+let timezonePreferencePromise:
+  | {
+      key: string;
+      promise: Promise<string | null>;
+    }
+  | null = null;
+
+async function loadTimezonePreference(
+  key: string,
+  reuseInFlight = false,
+): Promise<string | null> {
+  if (reuseInFlight && timezonePreferencePromise?.key === key) {
+    return timezonePreferencePromise.promise;
+  }
+
+  const loadPromise = getUserTimezonePreference();
+
+  if (reuseInFlight) {
+    timezonePreferencePromise = {
+      key,
+      promise: loadPromise,
+    };
+    void loadPromise.finally(() => {
+      if (timezonePreferencePromise?.promise === loadPromise) {
+        timezonePreferencePromise = null;
+      }
+    });
+  }
+
+  return loadPromise;
+}
+
 function getBrowserTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -11,9 +43,10 @@ function getBrowserTimezone(): string {
 }
 
 export function useTimezone() {
-  const { revision } = useProfileContext();
+  const { revision, selectedProfileId } = useProfileContext();
   const [timezone, setTimezone] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const timezoneKey = `${selectedProfileId ?? "none"}:${revision}`;
 
   useEffect(() => {
     let mounted = true;
@@ -21,7 +54,7 @@ export function useTimezone() {
     const loadTimezone = async () => {
       setLoading(true);
       try {
-        const tz = await getUserTimezonePreference();
+        const tz = await loadTimezonePreference(timezoneKey, true);
         if (!mounted) return;
         setTimezone(tz ?? getBrowserTimezone());
       } finally {
@@ -36,7 +69,7 @@ export function useTimezone() {
     return () => {
       mounted = false;
     };
-  }, [revision]);
+  }, [timezoneKey]);
 
   const format = (isoString: string, options?: Intl.DateTimeFormatOptions) => {
     const effectiveTimezone = timezone ?? getBrowserTimezone();
@@ -48,7 +81,7 @@ export function useTimezone() {
     format,
     loading,
     refresh: async () => {
-      const tz = await getUserTimezonePreference();
+      const tz = await loadTimezonePreference(timezoneKey, false);
       const effectiveTimezone = tz ?? getBrowserTimezone();
       setTimezone(effectiveTimezone);
       return effectiveTimezone;
