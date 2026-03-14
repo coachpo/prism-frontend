@@ -1,5 +1,4 @@
 import { RoutingDiagramChartShell } from "./RoutingDiagramChartShell";
-import { RoutingDiagramDrilldownHints } from "./RoutingDiagramDrilldownHints";
 import { RoutingDiagramLegend } from "./RoutingDiagramLegend";
 import type { RoutingDiagramChartProps } from "./routingDiagramChartTypes";
 
@@ -11,18 +10,14 @@ export function RoutingDiagramChart({
   onActivateNode,
 }: RoutingDiagramChartProps) {
   return (
-    <>
-      <RoutingDiagramChartShell
-        chartData={chartData}
-        chartHeight={chartHeight}
-        isCompact={isCompact}
-        onActivateLink={onActivateLink}
-        onActivateNode={onActivateNode}
-      >
-        <RoutingDiagramLegend />
-      </RoutingDiagramChartShell>
-
-      <RoutingDiagramDrilldownHints />
-    </>
+    <RoutingDiagramChartShell
+      chartData={chartData}
+      chartHeight={chartHeight}
+      isCompact={isCompact}
+      onActivateLink={onActivateLink}
+      onActivateNode={onActivateNode}
+    >
+      <RoutingDiagramLegend />
+    </RoutingDiagramChartShell>
   );
 }
