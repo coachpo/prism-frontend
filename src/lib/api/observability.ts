@@ -22,6 +22,8 @@ import type {
   SpendingReportResponse,
   StatsRequestParams,
   StatsSummary,
+  ModelMetricsBatchParams,
+  ModelMetricsBatchResponse,
   StatsSummaryParams,
   ThroughputStatsResponse,
 } from "../types";
@@ -36,6 +38,11 @@ export const stats = {
     const query = buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);
     return request<StatsSummary>(`/api/stats/summary${query ? `?${query}` : ""}`);
   },
+  modelMetrics: (params: ModelMetricsBatchParams) =>
+    request<ModelMetricsBatchResponse>("/api/stats/models/metrics", {
+      method: "POST",
+      body: JSON.stringify(params),
+    }),
   connectionSuccessRates: (params?: ConnectionSuccessRateParams) => {
     const query = buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);
     return request<ConnectionSuccessRate[]>(`/api/stats/connection-success-rates${query ? `?${query}` : ""}`);

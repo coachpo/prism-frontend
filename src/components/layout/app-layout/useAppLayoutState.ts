@@ -23,7 +23,7 @@ export function useAppLayoutState() {
     deleteProfile,
   } = useProfileContext();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpenState] = useState(false);
 
   const canCreateProfile = profiles.length < MAX_PROFILES;
   const selectedIsActive =
@@ -74,6 +74,13 @@ export function useAppLayoutState() {
     selectedProfile,
     updateProfile,
   });
+
+  const setSidebarOpen = (open: boolean) => {
+    if (open) {
+      switcherState.closeProfileSwitcher();
+    }
+    setSidebarOpenState(open);
+  };
 
   const handleManageProfiles = () => {
     switcherState.closeProfileSwitcher();

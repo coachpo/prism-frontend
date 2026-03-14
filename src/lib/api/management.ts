@@ -6,6 +6,8 @@ import type {
   ConnectionPricingTemplateUpdate,
   ConnectionUpdate,
   Endpoint,
+  EndpointModelsBatchParams,
+  EndpointModelsBatchResponse,
   EndpointCreate,
   EndpointUpdate,
   HealthCheckResponse,
@@ -59,6 +61,11 @@ export const providers = {
 
 export const models = {
   list: () => request<ModelConfigListItem[]>("/api/models"),
+  byEndpoints: (data: EndpointModelsBatchParams) =>
+    request<EndpointModelsBatchResponse>("/api/models/by-endpoints", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   byEndpoint: (endpointId: number) =>
     request<ModelConfigListItem[]>(`/api/models/by-endpoint/${endpointId}`),
   get: (id: number) => request<ModelConfig>(`/api/models/${id}`),

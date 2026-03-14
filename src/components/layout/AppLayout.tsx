@@ -19,6 +19,7 @@ export function AppLayout() {
 
         <AppSidebar
           activeProfileName={state.activeProfileName}
+          closeProfileSwitcher={state.closeProfileSwitcher}
           hasMismatch={state.hasMismatch}
           selectedProfileName={state.selectedProfileName}
           setSidebarOpen={state.setSidebarOpen}

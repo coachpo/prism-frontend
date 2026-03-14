@@ -8,6 +8,7 @@ type SidebarProps = React.ComponentProps<typeof AppSidebar>;
 function renderSidebar(overrides: Partial<SidebarProps> = {}) {
   const props: SidebarProps = {
     activeProfileName: "Production",
+    closeProfileSwitcher: vi.fn(),
     hasMismatch: false,
     selectedProfileName: "Production",
     setSidebarOpen: vi.fn(),
@@ -48,6 +49,7 @@ describe("AppSidebar", () => {
 
     fireEvent.click(dashboardLink);
 
+    expect(props.closeProfileSwitcher).toHaveBeenCalledTimes(1);
     expect(props.setSidebarOpen).toHaveBeenCalledWith(false);
   });
 });

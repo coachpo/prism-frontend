@@ -165,6 +165,24 @@ export interface StatsSummaryParams {
   connection_id?: number;
 }
 
+export interface ModelMetricsBatchParams {
+  model_ids: string[];
+  summary_window_hours?: number;
+  spending_preset?: "today" | "last_7_days" | "last_30_days" | "custom" | "all";
+}
+
+export interface ModelMetricsBatchItem {
+  model_id: string;
+  success_rate: number;
+  request_count_24h: number;
+  p95_latency_ms: number;
+  spend_30d_micros: number;
+}
+
+export interface ModelMetricsBatchResponse {
+  items: ModelMetricsBatchItem[];
+}
+
 export interface ConnectionSuccessRate {
   connection_id: number;
   total_requests: number;
@@ -259,4 +277,17 @@ export interface ThroughputStatsResponse {
   total_requests: number;
   time_window_seconds: number;
   buckets: ThroughputBucket[];
+}
+
+export interface EndpointModelsBatchParams {
+  endpoint_ids: number[];
+}
+
+export interface EndpointModelsBatchItem {
+  endpoint_id: number;
+  models: ModelConfigListItem[];
+}
+
+export interface EndpointModelsBatchResponse {
+  items: EndpointModelsBatchItem[];
 }

@@ -8,8 +8,18 @@ import type {
   Provider,
 } from "@/lib/types";
 import { toast } from "sonner";
-import { DEFAULT_VISIBLE_COLUMNS, getLast24hFromTime } from "./modelTableDefaults";
+import { DEFAULT_VISIBLE_COLUMNS } from "./modelTableDefaults";
 import type { ModelColumnKey, ModelDerivedMetric } from "./modelTableContracts";
+
+let modelsPageBootstrapPromise:
+  | {
+      promise: Promise<{
+        modelsData: ModelConfigListItem[];
+        providersData: Provider[];
+      }>;
+      revision: number;
+    }
+  | null = null;
 
 const DEFAULT_FORM_DATA: ModelConfigCreate = {
   provider_id: 0,
@@ -40,24 +50,62 @@ export function useModelsPageData(revision: number) {
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [formData, setFormData] = useState<ModelConfigCreate>(DEFAULT_FORM_DATA);
 
-  const fetchData = async () => {
-    try {
-      const [modelsData, providersData] = await Promise.all([
-        api.models.list(),
-        api.providers.list(),
-      ]);
-      setModels(modelsData);
-      setProviders(providersData);
-    } catch (error) {
-      toast.error("Failed to fetch data");
-      console.error(error);
-    } finally {
-      setLoading(false);
+  const applyBootstrapData = (data: { modelsData: ModelConfigListItem[]; providersData: Provider[] }) => {
+    setModels(data.modelsData);
+    setProviders(data.providersData);
+  };
+
+  const fetchData = async (currentRevision: number, reuseInFlight = false) => {
+    if (reuseInFlight && modelsPageBootstrapPromise?.revision === currentRevision) {
+      return modelsPageBootstrapPromise.promise;
     }
+
+    const loadPromise = Promise.all([api.models.list(), api.providers.list()]).then(
+      ([modelsData, providersData]) => ({
+        modelsData,
+        providersData,
+      })
+    );
+
+    if (reuseInFlight) {
+      modelsPageBootstrapPromise = {
+        promise: loadPromise,
+        revision: currentRevision,
+      };
+      void loadPromise.finally(() => {
+        if (modelsPageBootstrapPromise?.promise === loadPromise) {
+          modelsPageBootstrapPromise = null;
+        }
+      });
+    }
+
+    return loadPromise;
   };
 
   useEffect(() => {
-    void fetchData();
+    let cancelled = false;
+
+    setLoading(true);
+    void (async () => {
+      try {
+        const data = await fetchData(revision, true);
+        if (cancelled) return;
+        applyBootstrapData(data);
+      } catch (error) {
+        if (!cancelled) {
+          toast.error("Failed to fetch data");
+          console.error(error);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [revision]);
 
   useEffect(() => {
@@ -67,55 +115,54 @@ export function useModelsPageData(revision: number) {
       if (models.length === 0) {
         setModelMetrics24h({});
         setModelSpend30dMicros({});
+        setMetricsLoading(false);
         return;
       }
 
       setMetricsLoading(true);
-      const fromTime = getLast24hFromTime();
 
       try {
-        const rows = await Promise.all(
-          models.map(async (model) => {
-            try {
-              const [summary, spending] = await Promise.all([
-                api.stats.summary({ model_id: model.model_id, from_time: fromTime }),
-                api.stats.spending({ model_id: model.model_id, preset: "last_30_days", group_by: "none" }),
-              ]);
-              return {
-                id: model.id,
-                success_rate: summary.success_rate,
-                request_count_24h: summary.total_requests,
-                p95_latency_ms: summary.p95_response_time_ms,
-                spend_30d_micros: spending.summary.total_cost_micros,
-              };
-            } catch {
-              return {
-                id: model.id,
-                success_rate: null,
-                request_count_24h: 0,
-                p95_latency_ms: null,
-                spend_30d_micros: 0,
-              };
-            }
-          })
-        );
+        const uniqueModelIds = Array.from(new Set(models.map((model) => model.model_id)));
+        const response = await api.stats.modelMetrics({
+          model_ids: uniqueModelIds,
+          summary_window_hours: 24,
+          spending_preset: "last_30_days",
+        });
 
         if (cancelled) return;
+
+        const metricsByModelId = new Map(response.items.map((item) => [item.model_id, item]));
 
         const nextMetrics: Record<number, ModelDerivedMetric> = {};
         const nextSpend: Record<number, number> = {};
 
-        for (const row of rows) {
-          nextMetrics[row.id] = {
-            success_rate: row.success_rate,
-            request_count_24h: row.request_count_24h,
-            p95_latency_ms: row.p95_latency_ms,
+        for (const model of models) {
+          const row = metricsByModelId.get(model.model_id);
+          nextMetrics[model.id] = {
+            success_rate: row?.success_rate ?? null,
+            request_count_24h: row?.request_count_24h ?? 0,
+            p95_latency_ms: row?.p95_latency_ms ?? null,
           };
-          nextSpend[row.id] = row.spend_30d_micros;
+          nextSpend[model.id] = row?.spend_30d_micros ?? 0;
         }
 
         setModelMetrics24h(nextMetrics);
         setModelSpend30dMicros(nextSpend);
+      } catch {
+        if (!cancelled) {
+          const nextMetrics: Record<number, ModelDerivedMetric> = {};
+          const nextSpend: Record<number, number> = {};
+          for (const model of models) {
+            nextMetrics[model.id] = {
+              success_rate: null,
+              request_count_24h: 0,
+              p95_latency_ms: null,
+            };
+            nextSpend[model.id] = 0;
+          }
+          setModelMetrics24h(nextMetrics);
+          setModelSpend30dMicros(nextSpend);
+        }
       } finally {
         if (!cancelled) {
           setMetricsLoading(false);
@@ -190,7 +237,8 @@ export function useModelsPageData(revision: number) {
         toast.success("Model created");
       }
       setIsDialogOpen(false);
-      void fetchData();
+      const data = await fetchData(revision, false);
+      applyBootstrapData(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save model");
     }
@@ -202,7 +250,8 @@ export function useModelsPageData(revision: number) {
       await api.models.delete(deleteTarget.id);
       toast.success("Model deleted");
       setDeleteTarget(null);
-      void fetchData();
+      const data = await fetchData(revision, false);
+      applyBootstrapData(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete model");
     }

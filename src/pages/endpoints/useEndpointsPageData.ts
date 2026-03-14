@@ -18,6 +18,16 @@ import type { Endpoint, ModelConfigListItem } from "@/lib/types";
 import { useProfileContext } from "@/context/ProfileContext";
 import type { EndpointFormValues } from "./EndpointDialog";
 
+let endpointsPageBootstrapPromise:
+  | {
+      promise: Promise<{
+        endpoints: Endpoint[];
+        endpointModels: Record<number, ModelConfigListItem[]>;
+      }>;
+      revision: number;
+    }
+  | null = null;
+
 export function useEndpointsPageData() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [endpointModels, setEndpointModels] = useState<Record<number, ModelConfigListItem[]>>({});
@@ -46,42 +56,85 @@ export function useEndpointsPageData() {
     })
   );
 
-  const fetchEndpoints = useCallback(async () => {
-    try {
-      const data = await api.endpoints.list();
-      setEndpoints(data);
+  const applyBootstrapData = useCallback(
+    (data: { endpoints: Endpoint[]; endpointModels: Record<number, ModelConfigListItem[]> }) => {
+      setEndpoints(data.endpoints);
+      setEndpointModels(data.endpointModels);
+    },
+    []
+  );
 
-      const modelsMap: Record<number, ModelConfigListItem[]> = {};
-      await Promise.all(
-        data.map(async (endpoint) => {
-          try {
-            const models = await api.models.byEndpoint(endpoint.id);
-            modelsMap[endpoint.id] = models;
-          } catch (error) {
-            console.error(`Failed to fetch models for endpoint ${endpoint.id}`, error);
-            modelsMap[endpoint.id] = [];
-          }
-        })
-      );
-      setEndpointModels(modelsMap);
-    } catch {
-      toast.error("Failed to load endpoints");
-    } finally {
-      setIsLoading(false);
+  const fetchEndpoints = useCallback(async (currentRevision: number, reuseInFlight = false) => {
+    if (reuseInFlight && endpointsPageBootstrapPromise?.revision === currentRevision) {
+      return endpointsPageBootstrapPromise.promise;
     }
+
+    const loadPromise = api.endpoints.list().then(async (data) => {
+      if (data.length === 0) {
+        return { endpointModels: {}, endpoints: data };
+      }
+
+      try {
+        const response = await api.models.byEndpoints({
+          endpoint_ids: data.map((endpoint) => endpoint.id),
+        });
+        const endpointModels = Object.fromEntries(
+          response.items.map((item) => [item.endpoint_id, item.models])
+        ) as Record<number, ModelConfigListItem[]>;
+        return { endpointModels, endpoints: data };
+      } catch (error) {
+        console.error("Failed to load endpoint models", error);
+        return { endpointModels: {}, endpoints: data };
+      }
+    });
+
+    if (reuseInFlight) {
+      endpointsPageBootstrapPromise = {
+        promise: loadPromise,
+        revision: currentRevision,
+      };
+      void loadPromise.finally(() => {
+        if (endpointsPageBootstrapPromise?.promise === loadPromise) {
+          endpointsPageBootstrapPromise = null;
+        }
+      });
+    }
+
+    return loadPromise;
   }, []);
 
   useEffect(() => {
     setIsLoading(true);
-    void fetchEndpoints();
-  }, [fetchEndpoints, revision]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const data = await fetchEndpoints(revision, true);
+        if (cancelled) return;
+        applyBootstrapData(data);
+      } catch {
+        if (!cancelled) {
+          toast.error("Failed to load endpoints");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyBootstrapData, fetchEndpoints, revision]);
 
   const handleCreate = async (values: EndpointFormValues) => {
     try {
       await api.endpoints.create(values);
       toast.success("Endpoint created");
       setIsCreateOpen(false);
-      await fetchEndpoints();
+      const data = await fetchEndpoints(revision, false);
+      applyBootstrapData(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create endpoint");
     }
@@ -100,7 +153,8 @@ export function useEndpointsPageData() {
       });
       toast.success("Endpoint updated");
       setEditingEndpoint(null);
-      await fetchEndpoints();
+      const data = await fetchEndpoints(revision, false);
+      applyBootstrapData(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update endpoint");
     }
@@ -113,7 +167,8 @@ export function useEndpointsPageData() {
       toast.success("Endpoint deleted");
       setDeleteTarget(null);
       setDeleteError(null);
-      await fetchEndpoints();
+      const data = await fetchEndpoints(revision, false);
+      applyBootstrapData(data);
     } catch (error) {
       setDeleteTarget(null);
       if (error instanceof Error) {
@@ -139,7 +194,8 @@ export function useEndpointsPageData() {
     try {
       const duplicate = await api.endpoints.duplicate(endpoint.id);
       toast.success(`Endpoint duplicated as ${duplicate.name}`);
-      await fetchEndpoints();
+      const data = await fetchEndpoints(revision, false);
+      applyBootstrapData(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to duplicate endpoint");
     } finally {

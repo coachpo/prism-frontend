@@ -5,6 +5,7 @@ import { NAV_LINKS, VERSION_LABEL } from "./navigationProfileConfig";
 
 type Props = {
   activeProfileName: string;
+  closeProfileSwitcher: () => void;
   hasMismatch: boolean;
   selectedProfileName: string;
   setSidebarOpen: (open: boolean) => void;
@@ -13,6 +14,7 @@ type Props = {
 
 export function AppSidebar({
   activeProfileName,
+  closeProfileSwitcher,
   hasMismatch,
   selectedProfileName,
   setSidebarOpen,
@@ -72,7 +74,10 @@ export function AppSidebar({
           <NavLink
             key={to}
             to={to}
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => {
+              closeProfileSwitcher();
+              setSidebarOpen(false);
+            }}
             className={({ isActive }) =>
               cn(
                 "flex touch-manipulation items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
