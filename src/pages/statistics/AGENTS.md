@@ -9,9 +9,14 @@ statistics/
 ├── queryParams.ts               # Shared URL param parsing and defaults
 ├── OperationsTab.tsx
 ├── ThroughputTab.tsx
+├── StatisticsPageSkeleton.tsx
 ├── SpendingTab.tsx
 ├── operations/                  # Operations-tab hooks and contracts
 ├── spending/                    # Spending-tab hooks
+├── useStatisticsFilterOptions.ts
+├── useStatisticsPageState.ts
+├── useStatisticsRealtime.ts
+├── useStatisticsReports.ts
 └── utils.ts                     # Shared helpers
 ```
 
@@ -21,9 +26,11 @@ statistics/
 - Shared query-param contract: `queryParams.ts`
 - Operations-tab rendering: `OperationsTab.tsx`
 - Throughput rendering: `ThroughputTab.tsx`
-- Operations async data hook: `operations/useOperationsTabData.ts`
+- Operations async data hook and presentation helpers: `operations/useOperationsTabData.ts`, `operations/`
 - Spending-tab rendering and grouping UI: `SpendingTab.tsx`
-- Spending async data hook: `spending/useSpendingTabData.ts`
+- Spending async data hook and visualizations: `spending/useSpendingTabData.ts`, `spending/`
+- Page bootstrap, filter options, state orchestration, and report loading: `useStatisticsPageData.ts`, `useStatisticsFilterOptions.ts`, `useStatisticsPageState.ts`, `useStatisticsReports.ts`
+- Realtime refresh for statistics channel: `useStatisticsRealtime.ts`
 - Shared presentation helpers: `utils.ts`
 
 ## CONVENTIONS
@@ -32,9 +39,11 @@ statistics/
 - Keep operations-specific and spending-specific async logic in their own hook folders instead of bloating the top-level tab components.
 - Preserve the distinction between operations telemetry filters and spending aggregation filters even when labels overlap.
 - Query-param helpers should own defaults and parsing; tabs should consume typed values, not raw `URLSearchParams`.
+- Statistics websocket refresh belongs in `useStatisticsRealtime.ts`; tabs should react to refreshed state, not own subscriptions.
 
 ## ANTI-PATTERNS
 
 - Do not duplicate filter parsing in tab components when `queryParams.ts` already owns it.
 - Do not mix spending grouping and top-N rules into operations-table logic.
 - Do not regress null-vs-zero rendering for usage or cost metrics; statistics pages rely on that distinction for triage.
+- Do not wire ad hoc websocket listeners from tab components when the shared realtime hook already owns reconnect and dirty-state handling.

@@ -6,18 +6,20 @@
 ## DOMAINS
 
 - Configuration: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `EndpointsPage.tsx`, `PricingTemplatesPage.tsx`
-- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestsPage.tsx`
-- Settings: `SettingsPage.tsx` with `settings/sections/` and `settings/dialogs/`
+- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestsPage.tsx`, `LoadbalanceEventsPage.tsx`
+- Settings: `SettingsPage.tsx` with `settings/sections/`, `settings/costing/`, and `settings/dialogs/`
 - Access + recovery: `LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`, `ProxyApiKeysPage.tsx`
 
 ## WHERE TO LOOK
 
 - Route mount list and auth shell split: `../App.tsx`
+- Dashboard routing-diagram and realtime helpers: `DashboardPage.tsx`, `dashboard/`, `dashboard/useDashboardRealtime.ts`
 - Model detail route shell: `ModelDetailPage.tsx`, `model-detail/AGENTS.md`
 - Request-log route shell and request-focus flow: `RequestsPage.tsx`, `request-logs/AGENTS.md`
 - Statistics filter sync and tab orchestration: `StatisticsPage.tsx`, `statistics/AGENTS.md`
 - Settings section navigation and save-state rendering: `SettingsPage.tsx`, `settings/AGENTS.md`
 - Endpoint CRUD and reorder helpers: `EndpointsPage.tsx`, `endpoints/EndpointDialog.tsx`, `endpoints/endpointCardHelpers.ts`
+- Loadbalance event filters, paging, and detail sheet: `LoadbalanceEventsPage.tsx`, `loadbalance-events/`
 - Pricing template form normalization: `PricingTemplatesPage.tsx`, `pricing-templates/pricingTemplateFormState.ts`
 - Proxy API key issuance, rotation, and one-time secret display: `ProxyApiKeysPage.tsx`
 
@@ -34,6 +36,7 @@
 - Let route files own bookmarkable search-param state and selected drawer or dialog identity; move parsing and defaults into local `queryParams.ts` helpers once state becomes non-trivial.
 - Extract heavy async and dialog orchestration into helper folders instead of letting the route file own everything; `model-detail/` and `request-logs/` are the current examples.
 - Refresh page data from `ProfileContext.revision` when scoped state changes.
+- Dashboard, statistics, request logs, and loadbalance events should use `useRealtimeData()` for websocket-driven refresh instead of bespoke realtime glue.
 - Fetch related datasets in parallel with `Promise.all`; use `Promise.allSettled` for mixed-success bootstrap work.
 
 ## ANTI-PATTERNS
@@ -43,3 +46,4 @@
 - Do not mix destructive settings flows into generic dialogs without explicit confirmation copy.
 - Do not treat auth pages as protected-shell pages; `/login`, `/forgot-password`, and `/reset-password` intentionally bypass `ProfileProvider`.
 - Do not document or build new UI flows around a mounted `/audit` page route unless `../App.tsx` actually adds it.
+- Do not open page-specific websocket clients when `useRealtimeData()` and `src/lib/websocket.ts` already own subscription semantics.

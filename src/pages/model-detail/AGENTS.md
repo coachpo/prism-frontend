@@ -6,22 +6,33 @@
 ## STRUCTURE
 ```
 model-detail/
-├── useModelDetailData.ts          # Page orchestration, fetches, dialogs, reorder, health checks
-├── useModelDetailDataSupport.ts   # Default form factories, redirect-target logic, list transforms
-├── OverviewCards.tsx              # KPI and spending cards
-├── ConnectionsList.tsx            # Searchable sortable connection cards
-├── ConnectionDialog.tsx           # Endpoint source, pricing template, custom header editor
-├── ModelSettingsDialog.tsx        # Model identity and proxy-target editor
-└── modelDetailMetricsAndPaths.ts  # 24h helpers, latency formatting, request-log deep links
+├── useModelDetailData.ts             # High-level page composition
+├── useModelDetailBootstrap.ts        # Parallel bootstrap fetches and redirects
+├── useModelDetailConnectionFlows.ts  # Create/edit/delete/reorder flow orchestration
+├── useModelDetailConnectionMutations.ts
+├── useModelDetailDialogState.ts
+├── useModelDetailModelForm.ts
+├── useConnectionHealthChecks.ts
+├── useConnectionFocus.ts
+├── useModelDetailMetrics24h.ts
+├── OverviewCards.tsx
+├── ConnectionsList.tsx
+├── connections-list/                 # Connection card, sortable shell, list utils
+├── ConnectionDialog.tsx
+├── ModelSettingsDialog.tsx
+└── modelDetailMetricsAndPaths.ts     # Latency formatting and request-log deep links
 ```
 
 ## WHERE TO LOOK
 
 - Route shell: `../ModelDetailPage.tsx`
-- Orchestration, parallel fetches, dialog state, focus handoff: `useModelDetailData.ts`
-- Default endpoint and connection forms, redirect-target options, optimistic reorder helpers: `useModelDetailDataSupport.ts`
+- Orchestration and composition: `useModelDetailData.ts`
+- Bootstrap fetches, focus handoff, and redirects: `useModelDetailBootstrap.ts`, `useConnectionFocus.ts`
+- Connection flow and mutation helpers: `useModelDetailConnectionFlows.ts`, `useModelDetailConnectionMutations.ts`, `useConnectionHealthChecks.ts`
+- 24-hour KPI loading and shaping: `useModelDetailMetrics24h.ts`
+- Default endpoint and connection forms, redirect-target options, optimistic helpers: `useModelDetailDataSupport.ts`, `useModelDetailModelForm.ts`
 - KPI cards and model-level 24h summary display: `OverviewCards.tsx`
-- Drag-and-drop connection list, focus ring, request-log links: `ConnectionsList.tsx`
+- Drag-and-drop connection list, focus ring, request-log links: `ConnectionsList.tsx`, `connections-list/`
 - Inline endpoint creation, custom headers, pricing template selection: `ConnectionDialog.tsx`
 - Proxy redirect target editing: `ModelSettingsDialog.tsx`
 - Request-log path building and latency formatting: `modelDetailMetricsAndPaths.ts`
@@ -32,6 +43,7 @@ model-detail/
 - Fetch model, endpoints, model list, and pricing templates in parallel with `Promise.all`.
 - Use `Promise.allSettled` for batch health checks so one failing connection does not collapse the page.
 - Keep optimistic priority reordering in the hook plus `moveConnectionInList()`; revert UI order if the backend PATCH fails.
+- Split connection mutations, dialog state, health checks, and focus parsing into dedicated hooks instead of letting one monolithic hook absorb every concern.
 - Consume the `focus_connection_id` query param here and build request-log deep links with `buildRequestLogsPath()` instead of duplicating path logic in presentation components.
 
 ## ANTI-PATTERNS
