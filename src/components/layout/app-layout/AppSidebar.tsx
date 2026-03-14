@@ -20,10 +20,11 @@ export function AppSidebar({
 }: Props) {
   return (
     <aside
+      aria-label="Primary navigation"
       className={cn(
-        "fixed left-0 top-0 z-50 flex h-full w-[min(88vw,320px)] flex-col bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-in-out lg:w-[320px]",
-        "lg:translate-x-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed left-0 top-0 z-50 flex h-full w-[min(88vw,320px)] flex-col bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-200 ease-in-out will-change-transform lg:w-[320px]",
+        "lg:pointer-events-auto lg:translate-x-0",
+        sidebarOpen ? "pointer-events-auto translate-x-0" : "pointer-events-none -translate-x-full"
       )}
     >
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
@@ -33,7 +34,7 @@ export function AppSidebar({
         <span className="text-sm font-semibold tracking-tight">Prism</span>
         <button
           onClick={() => setSidebarOpen(false)}
-          className="ml-auto text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground lg:hidden"
+          className="ml-auto touch-manipulation text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground lg:hidden"
         >
           <X className="h-4 w-4" />
           <span className="sr-only">Close sidebar</span>
@@ -66,7 +67,7 @@ export function AppSidebar({
         </div>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-2 py-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
         {NAV_LINKS.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
@@ -74,7 +75,7 @@ export function AppSidebar({
             onClick={() => setSidebarOpen(false)}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
+                "flex touch-manipulation items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-sidebar-foreground/55 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
