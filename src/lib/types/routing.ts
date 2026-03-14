@@ -1,3 +1,5 @@
+export type NonEmptyArray<T> = [T, ...T[]];
+
 export interface Endpoint {
   id: number;
   profile_id?: number;
@@ -169,4 +171,17 @@ export interface ConnectionDropdownItem {
 
 export interface ConnectionDropdownResponse {
   items: ConnectionDropdownItem[];
+}
+
+export interface ModelConnectionsBatchParams {
+  model_config_ids: NonEmptyArray<number>;
+}
+
+export interface ModelConnectionsBatchItem {
+  model_config_id: number;
+  connections: Connection[];
+}
+
+export interface ModelConnectionsBatchResponse {
+  items: ModelConnectionsBatchItem[];
 }

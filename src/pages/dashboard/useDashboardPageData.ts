@@ -44,7 +44,11 @@ export function useDashboardPageData({
     setStats,
     spending,
     stats,
-  } = useDashboardBootstrapData({ latestDashboardRequestIdRef });
+  } = useDashboardBootstrapData({
+    latestDashboardRequestIdRef,
+    revision,
+    selectedProfileId,
+  });
   const {
     clearRecentRequestHighlight,
     connectionState,
@@ -65,7 +69,7 @@ export function useDashboardPageData({
   }, [models]);
 
   useEffect(() => {
-    void fetchDashboardData();
+    void fetchDashboardData({ reuseInFlight: true });
   }, [fetchDashboardData, revision]);
 
   const metricSnapshot = useMemo<DashboardMetricSnapshot>(() => {

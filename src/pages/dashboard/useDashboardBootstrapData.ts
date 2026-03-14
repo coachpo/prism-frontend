@@ -2,7 +2,9 @@ import { useCallback, useState } from "react";
 import { api } from "@/lib/api";
 import type {
   ModelConfigListItem,
+  NonEmptyArray,
   RequestLogEntry,
+  RequestLogListResponse,
   SpendingReportResponse,
   StatsSummary,
 } from "@/lib/types";
@@ -11,9 +13,140 @@ import { getEmptyRoutingDiagramData } from "./dashboardDataUtils";
 
 type Params = {
   latestDashboardRequestIdRef: React.MutableRefObject<number>;
+  revision: number;
+  selectedProfileId: number | null;
 };
 
-export function useDashboardBootstrapData({ latestDashboardRequestIdRef }: Params) {
+interface DashboardBootstrapResult {
+  modelsData: ModelConfigListItem[];
+  providerStatsData: StatsSummary;
+  requestsData: RequestLogListResponse;
+  routingResult: {
+    data: RoutingDiagramData;
+    error: string | null;
+  };
+  spendingData: SpendingReportResponse;
+  statsData: StatsSummary;
+}
+
+let dashboardBootstrapPromise:
+  | {
+      key: string;
+      promise: Promise<DashboardBootstrapResult>;
+    }
+  | null = null;
+
+function buildDashboardBootstrapKey(revision: number, selectedProfileId: number | null) {
+  return `${selectedProfileId ?? "none"}:${revision}`;
+}
+
+function toNonEmptyArray<T>(items: T[]): NonEmptyArray<T> | null {
+  const [first, ...rest] = items;
+  return first === undefined ? null : [first, ...rest];
+}
+
+async function loadDashboardBootstrapData(
+  revision: number,
+  selectedProfileId: number | null,
+  reuseInFlight = false,
+): Promise<DashboardBootstrapResult> {
+  const key = buildDashboardBootstrapKey(revision, selectedProfileId);
+  if (reuseInFlight && dashboardBootstrapPromise?.key === key) {
+    return dashboardBootstrapPromise.promise;
+  }
+
+  const from24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const to24h = new Date().toISOString();
+  const modelsPromise = api.models.list();
+
+  const loadPromise = Promise.all([
+    modelsPromise,
+    api.stats.summary({ from_time: from24h }),
+    api.stats.summary({ from_time: from24h, group_by: "provider" }),
+    api.stats.spending({ preset: "last_30_days", top_n: 5 }),
+    api.stats.requests({ limit: 12 }),
+    (async () => {
+      try {
+        const modelsData = await modelsPromise;
+        const modelConfigIds = toNonEmptyArray(modelsData.map((model) => model.id));
+
+        if (!modelConfigIds) {
+          return {
+            data: getEmptyRoutingDiagramData(),
+            error: null,
+          };
+        }
+
+        const [routeSuccessRates, trafficResult, connectionBatch] = await Promise.all([
+          api.stats.connectionSuccessRates({
+            from_time: from24h,
+            to_time: to24h,
+          }),
+          api.stats.spending({
+            preset: "custom",
+            from_time: from24h,
+            to_time: to24h,
+            group_by: "model_endpoint",
+            limit: 500,
+          }),
+          api.connections.byModels({
+            model_config_ids: modelConfigIds,
+          }),
+        ]);
+
+        const modelsById = new Map(modelsData.map((model) => [model.id, model]));
+
+        return {
+          data: buildRoutingDiagramData({
+            connectionsByModel: connectionBatch.items.flatMap((item) => {
+              const model = modelsById.get(item.model_config_id);
+              return model ? [{ model, connections: item.connections }] : [];
+            }),
+            connectionSuccessRates: routeSuccessRates,
+            trafficGroups: trafficResult.groups,
+          }),
+          error: null,
+        };
+      } catch (error) {
+        console.error("Failed to fetch routing diagram data", error);
+        return {
+          data: getEmptyRoutingDiagramData(),
+          error:
+            "Routing diagram data could not be loaded. The rest of the dashboard is still available.",
+        };
+      }
+    })(),
+  ]).then(
+    ([modelsData, statsData, providerStatsData, spendingData, requestsData, routingResult]) => ({
+      modelsData,
+      statsData,
+      providerStatsData,
+      spendingData,
+      requestsData,
+      routingResult,
+    }),
+  );
+
+  if (reuseInFlight) {
+    dashboardBootstrapPromise = {
+      key,
+      promise: loadPromise,
+    };
+    void loadPromise.finally(() => {
+      if (dashboardBootstrapPromise?.promise === loadPromise) {
+        dashboardBootstrapPromise = null;
+      }
+    });
+  }
+
+  return loadPromise;
+}
+
+export function useDashboardBootstrapData({
+  latestDashboardRequestIdRef,
+  revision,
+  selectedProfileId,
+}: Params) {
   const [loading, setLoading] = useState(true);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
@@ -26,7 +159,13 @@ export function useDashboardBootstrapData({ latestDashboardRequestIdRef }: Param
   const requestVersionRef = useState(() => ({ current: 0 }))[0];
 
   const fetchDashboardData = useCallback(
-    async ({ silent = false }: { silent?: boolean } = {}) => {
+    async ({
+      silent = false,
+      reuseInFlight = false,
+    }: {
+      silent?: boolean;
+      reuseInFlight?: boolean;
+    } = {}) => {
       const requestVersion = ++requestVersionRef.current;
 
       if (!silent) {
@@ -35,63 +174,19 @@ export function useDashboardBootstrapData({ latestDashboardRequestIdRef }: Param
       }
 
       setRoutingDiagramError(null);
-      const from24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const to24h = new Date().toISOString();
-      const modelsPromise = api.models.list();
-      const routeSuccessRatesPromise = api.stats.connectionSuccessRates({
-        from_time: from24h,
-        to_time: to24h,
-      });
-
-      const routingDiagramPromise = (async () => {
-        const [modelsData, routeSuccessRates] = await Promise.all([
-          modelsPromise,
-          routeSuccessRatesPromise,
-        ]);
-        const connectionResults = await Promise.allSettled(
-          modelsData.map(async (model) => ({
-            model,
-            connections: await api.connections.list(model.id),
-          }))
-        );
-        const connectionsByModel = connectionResults.flatMap((result) =>
-          result.status === "fulfilled" ? [result.value] : []
-        );
-
-        const failedConnectionFetches = connectionResults.length - connectionsByModel.length;
-        const issues: string[] = [];
-        if (failedConnectionFetches > 0) {
-          issues.push(
-            `Skipped ${failedConnectionFetches} model${failedConnectionFetches === 1 ? "" : "s"} because connection data could not be loaded.`
-          );
-        }
-
-        const trafficResult = await api.stats.spending({
-          preset: "custom",
-          from_time: from24h,
-          to_time: to24h,
-          group_by: "model_endpoint",
-          limit: 500,
-        });
-
-        return {
-          data: buildRoutingDiagramData({
-            connectionsByModel,
-            connectionSuccessRates: routeSuccessRates,
-            trafficGroups: trafficResult.groups,
-          }),
-          error: issues.length > 0 ? issues.join(" ") : null,
-        };
-      })();
-
       try {
-        const [modelsData, statsData, providerStatsData, spendingData, requestsData] = await Promise.all([
-          modelsPromise,
-          api.stats.summary({ from_time: from24h }),
-          api.stats.summary({ from_time: from24h, group_by: "provider" }),
-          api.stats.spending({ preset: "last_30_days", top_n: 5 }),
-          api.stats.requests({ limit: 12 }),
-        ]);
+        const {
+          modelsData,
+          statsData,
+          providerStatsData,
+          spendingData,
+          requestsData,
+          routingResult,
+        } = await loadDashboardBootstrapData(
+          revision,
+          selectedProfileId,
+          reuseInFlight,
+        );
 
         if (requestVersion !== requestVersionRef.current) {
           return;
@@ -106,37 +201,18 @@ export function useDashboardBootstrapData({ latestDashboardRequestIdRef }: Param
           (maxId, request) => Math.max(maxId, request.id),
           0
         );
+        setRoutingDiagramData(routingResult.data);
+        setRoutingDiagramError(routingResult.error);
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
         if (requestVersion === requestVersionRef.current) {
           setLoading(false);
-        }
-      }
-
-      try {
-        const routingResult = await routingDiagramPromise;
-        if (requestVersion !== requestVersionRef.current) {
-          return;
-        }
-
-        setRoutingDiagramData(routingResult.data);
-        setRoutingDiagramError(routingResult.error);
-      } catch (error) {
-        console.error("Failed to fetch routing diagram data", error);
-        if (requestVersion === requestVersionRef.current) {
-          setRoutingDiagramData(getEmptyRoutingDiagramData());
-          setRoutingDiagramError(
-            "Routing diagram data could not be loaded. The rest of the dashboard is still available."
-          );
-        }
-      } finally {
-        if (requestVersion === requestVersionRef.current) {
           setRoutingDiagramLoading(false);
         }
       }
     },
-    [latestDashboardRequestIdRef, requestVersionRef]
+    [latestDashboardRequestIdRef, requestVersionRef, revision, selectedProfileId]
   );
 
   return {

@@ -5,6 +5,74 @@ import { AuthContext, type AuthContextValue } from "./auth-context";
 
 const PROACTIVE_REFRESH_MS = 12 * 60 * 1000; // 12 minutes
 
+interface AuthBootstrapState {
+  authEnabled: boolean;
+  authenticated: boolean;
+  username: string | null;
+}
+
+let authBootstrapPromise: Promise<AuthBootstrapState> | null = null;
+
+async function loadAuthBootstrapState(
+  reuseInFlight = false,
+): Promise<AuthBootstrapState> {
+  if (reuseInFlight && authBootstrapPromise) {
+    return authBootstrapPromise;
+  }
+
+  const loadPromise = (async (): Promise<AuthBootstrapState> => {
+    const status = await api.auth.status();
+    if (!status.auth_enabled) {
+      return {
+        authEnabled: false,
+        authenticated: false,
+        username: null,
+      };
+    }
+
+    try {
+      const session = await api.auth.session();
+      return {
+        authEnabled: session.auth_enabled,
+        authenticated: session.authenticated,
+        username: session.username,
+      };
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        try {
+          const session = await api.auth.refresh();
+          return {
+            authEnabled: session.auth_enabled,
+            authenticated: session.authenticated,
+            username: session.username,
+          };
+        } catch (refreshError) {
+          if (refreshError instanceof ApiError && refreshError.status === 401) {
+            return {
+              authEnabled: true,
+              authenticated: false,
+              username: null,
+            };
+          }
+          throw refreshError;
+        }
+      }
+      throw error;
+    }
+  })();
+
+  if (reuseInFlight) {
+    authBootstrapPromise = loadPromise;
+    void loadPromise.finally(() => {
+      if (authBootstrapPromise === loadPromise) {
+        authBootstrapPromise = null;
+      }
+    });
+  }
+
+  return loadPromise;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authEnabled, setAuthEnabled] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -12,6 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const authStateVersionRef = useRef(0);
+  const authMutationInFlightRef = useRef(false);
 
   const applySessionState = useCallback((session: SessionResponse) => {
     setAuthEnabled(session.auth_enabled);
@@ -19,14 +89,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(session.username);
   }, []);
 
+  const applyBootstrapState = useCallback((state: AuthBootstrapState) => {
+    setAuthEnabled(state.authEnabled);
+    setAuthenticated(state.authenticated);
+    setUsername(state.username);
+  }, []);
+
+  const runPassiveSessionRefresh = useCallback(async () => {
+    if (authMutationInFlightRef.current) {
+      return;
+    }
+
+    const requestVersion = authStateVersionRef.current;
+
+    try {
+      const session = await api.auth.refresh();
+      if (
+        authMutationInFlightRef.current ||
+        requestVersion !== authStateVersionRef.current
+      ) {
+        return;
+      }
+      applySessionState(session);
+    } catch {
+      // Ignore background refresh failures; bootstrap/manual flows handle state recovery.
+    }
+  }, [applySessionState]);
+
   const startRefreshTimer = useCallback(() => {
     if (refreshTimerRef.current) {
       clearInterval(refreshTimerRef.current);
     }
     refreshTimerRef.current = setInterval(() => {
-      void api.auth.refresh().then(applySessionState).catch(() => {});
+      void runPassiveSessionRefresh();
     }, PROACTIVE_REFRESH_MS);
-  }, [applySessionState]);
+  }, [runPassiveSessionRefresh]);
 
   const stopRefreshTimer = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -35,42 +132,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const refreshAuth = useCallback(async () => {
+  const runAuthBootstrap = useCallback(async (reuseInFlight = false) => {
+    const requestVersion = ++authStateVersionRef.current;
     setLoading(true);
     try {
-      const status = await api.auth.status();
-      setAuthEnabled(status.auth_enabled);
-      if (!status.auth_enabled) {
-        setAuthenticated(false);
-        setUsername(null);
+      const state = await loadAuthBootstrapState(reuseInFlight);
+      if (requestVersion !== authStateVersionRef.current) {
         return;
       }
-      try {
-        const session = await api.auth.session();
-        setAuthEnabled(session.auth_enabled);
-        setAuthenticated(session.authenticated);
-        setUsername(session.username);
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
-          try {
-            const session = await api.auth.refresh();
-            applySessionState(session);
-          } catch (refreshError) {
-            if (refreshError instanceof ApiError && refreshError.status === 401) {
-              setAuthenticated(false);
-              setUsername(null);
-            } else {
-              throw refreshError;
-            }
-          }
-        } else {
-          throw error;
-        }
-      }
+      applyBootstrapState(state);
     } finally {
-      setLoading(false);
+      if (requestVersion === authStateVersionRef.current) {
+        setLoading(false);
+      }
     }
-  }, [applySessionState]);
+  }, [applyBootstrapState]);
+
+  const refreshAuth = useCallback(async () => {
+    await runAuthBootstrap(false);
+  }, [runAuthBootstrap]);
 
   // Start/stop proactive refresh timer based on auth state
   useEffect(() => {
@@ -86,16 +166,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     function handleVisibilityChange() {
       if (document.visibilityState === "visible" && authenticated && authEnabled) {
-        void api.auth.refresh().then(applySessionState).catch(() => {});
+        void runPassiveSessionRefresh();
       }
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [authenticated, authEnabled, applySessionState]);
+  }, [authenticated, authEnabled, runPassiveSessionRefresh]);
 
   useEffect(() => {
-    void refreshAuth();
-  }, [refreshAuth]);
+    void runAuthBootstrap(true);
+  }, [runAuthBootstrap]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -109,16 +189,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password: string,
         sessionDuration: LoginSessionDuration
       ) => {
-        const session = await api.auth.login({
-          username: nextUsername,
-          password,
-          session_duration: sessionDuration,
-        });
-        applySessionState(session);
+        authMutationInFlightRef.current = true;
+        authStateVersionRef.current += 1;
+        try {
+          const session = await api.auth.login({
+            username: nextUsername,
+            password,
+            session_duration: sessionDuration,
+          });
+          setLoading(false);
+          applySessionState(session);
+        } finally {
+          authMutationInFlightRef.current = false;
+        }
       },
       logout: async () => {
-        const session = await api.auth.logout();
-        applySessionState(session);
+        authMutationInFlightRef.current = true;
+        authStateVersionRef.current += 1;
+        try {
+          const session = await api.auth.logout();
+          setLoading(false);
+          applySessionState(session);
+        } finally {
+          authMutationInFlightRef.current = false;
+        }
       },
     }),
     [authEnabled, authenticated, loading, username, refreshAuth, applySessionState]

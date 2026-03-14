@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -30,6 +31,40 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 const STORAGE_KEY = "prism.selectedProfileId";
+
+interface ProfileBootstrapState {
+  activeProfile: Profile | null;
+  profiles: Profile[];
+}
+
+let profileBootstrapPromise: Promise<ProfileBootstrapState> | null = null;
+
+async function loadProfileBootstrapState(
+  reuseInFlight = false,
+): Promise<ProfileBootstrapState> {
+  if (reuseInFlight && profileBootstrapPromise) {
+    return profileBootstrapPromise;
+  }
+
+  const loadPromise = Promise.all([
+    api.profiles.list(),
+    api.profiles.getActive(),
+  ]).then(([profiles, activeProfile]) => ({
+    activeProfile,
+    profiles,
+  }));
+
+  if (reuseInFlight) {
+    profileBootstrapPromise = loadPromise;
+    void loadPromise.finally(() => {
+      if (profileBootstrapPromise === loadPromise) {
+        profileBootstrapPromise = null;
+      }
+    });
+  }
+
+  return loadPromise;
+}
 
 function parseStoredProfileId(raw: string | null): number | null {
   if (!raw) return null;
@@ -65,6 +100,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
+  const selectedProfileIdRef = useRef<number | null>(null);
 
   const selectedProfile = useMemo(
     () => profiles.find((profile) => profile.id === selectedProfileId) ?? null,
@@ -77,6 +113,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const commitSelectedProfileId = useCallback(
     (profileId: number | null, options?: { bumpRevision?: boolean }) => {
+      selectedProfileIdRef.current = profileId;
       setSelectedProfileId(profileId);
       setApiProfileId(profileId);
       if (profileId === null) {
@@ -102,7 +139,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     ): number | null => {
       const candidate =
         options?.preferredProfileId === undefined
-          ? selectedProfileId
+          ? selectedProfileIdRef.current
           : options.preferredProfileId;
       const nextSelected = resolveSelectedProfile(
         snapshotProfiles,
@@ -114,12 +151,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       commitSelectedProfileId(nextSelectedId, {
         bumpRevision:
           Boolean(options?.bumpRevisionOnChange) &&
-          nextSelectedId !== selectedProfileId,
+          nextSelectedId !== selectedProfileIdRef.current,
       });
 
       return nextSelectedId;
     },
-    [commitSelectedProfileId, selectedProfileId]
+    [commitSelectedProfileId]
   );
 
   const selectProfile = useCallback(
@@ -148,10 +185,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       try {
-        const [fetchedProfiles, fetchedActiveProfile] = await Promise.all([
-          api.profiles.list(),
-          api.profiles.getActive(),
-        ]);
+        const { profiles: fetchedProfiles, activeProfile: fetchedActiveProfile } =
+          await loadProfileBootstrapState(true);
         if (!mounted) return;
 
         setProfiles(fetchedProfiles);
