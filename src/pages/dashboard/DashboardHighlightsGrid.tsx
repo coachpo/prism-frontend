@@ -1,4 +1,4 @@
-import { Activity, ArrowUpRight, DollarSign } from "lucide-react";
+import { Activity, ArrowUpRight, DollarSign, FileText } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ interface DashboardHighlightsGridProps {
   highlighted: boolean;
   onInspectSpending: () => void;
   onOpenStatistics: () => void;
+  onReviewRequests: () => void;
   providerRows: StatGroup[];
   snapshot: DashboardMetricSnapshot;
 }
@@ -18,6 +19,7 @@ export function DashboardHighlightsGrid({
   highlighted,
   onInspectSpending,
   onOpenStatistics,
+  onReviewRequests,
   providerRows,
   snapshot,
 }: DashboardHighlightsGridProps) {
@@ -105,7 +107,11 @@ export function DashboardHighlightsGrid({
           <CardTitle>Quick Actions</CardTitle>
           <CardDescription>Jump to focused spending analysis</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
+          <Button variant="outline" className="w-full justify-start" onClick={onReviewRequests}>
+            <FileText className="mr-2 h-4 w-4" />
+            Review Requests
+          </Button>
           <Button variant="outline" className="w-full justify-start" onClick={onInspectSpending}>
             <DollarSign className="mr-2 h-4 w-4" />
             Inspect Spending Breakdown

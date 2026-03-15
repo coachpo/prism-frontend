@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useProfileContext } from "@/context/ProfileContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +12,7 @@ import { useStatisticsPageState } from "./statistics/useStatisticsPageState";
 
 export function StatisticsPage() {
   const { revision } = useProfileContext();
+  const navigate = useNavigate();
   const state = useStatisticsPageState(revision);
   const data = useStatisticsPageData({
     revision,
@@ -39,7 +41,10 @@ export function StatisticsPage() {
         </TabsList>
 
         <TabsContent value="operations">
-          <OperationsTab {...data.operationsTabProps} />
+          <OperationsTab
+            {...data.operationsTabProps}
+            onViewInRequestLogs={(requestId) => navigate(`/request-logs?request_id=${requestId}&detail_tab=overview`)}
+          />
         </TabsContent>
 
         <TabsContent value="throughput">

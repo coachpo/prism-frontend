@@ -16,6 +16,7 @@ interface RoutingDiagramCardProps {
   loading: boolean;
   error: string | null;
   onSelectModel: (modelConfigId: number) => void;
+  onDrillDownRequests?: (params: { endpoint_id?: number; model_id?: string }) => void;
 }
 
 export function RoutingDiagramCard({
@@ -23,6 +24,7 @@ export function RoutingDiagramCard({
   loading,
   error,
   onSelectModel,
+  onDrillDownRequests,
 }: RoutingDiagramCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -60,6 +62,9 @@ export function RoutingDiagramCard({
   const activateNode = (node: RoutingDiagramNode) => {
     if (node.kind === "model" && node.modelConfigId !== null) {
       onSelectModel(node.modelConfigId);
+    }
+    if (node.kind === "endpoint" && node.endpointId !== null && onDrillDownRequests) {
+      onDrillDownRequests({ endpoint_id: node.endpointId });
     }
   };
 

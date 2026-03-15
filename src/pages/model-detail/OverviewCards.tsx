@@ -1,10 +1,11 @@
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { formatProviderType, formatLabel } from "@/lib/utils";
 import { formatMoneyMicros } from "@/lib/costing";
 import { useTimezone } from "@/hooks/useTimezone";
-import { ChevronRight, Coins, Gauge } from "lucide-react";
+import { ChevronRight, Coins, Gauge, FileText } from "lucide-react";
 import { formatLatencyForDisplay } from "./modelDetailMetricsAndPaths";
 import type { ModelConfig, SpendingSummary } from "@/lib/types";
 
@@ -21,6 +22,7 @@ interface OverviewCardsProps {
     requestCount24h: number;
     spend24hMicros: number | null;
   };
+  onViewRequestLogs?: () => void;
 }
 
 export function OverviewCards({
@@ -31,6 +33,7 @@ export function OverviewCards({
   spendingCurrencyCode,
   metrics24hLoading,
   modelKpis,
+  onViewRequestLogs,
 }: OverviewCardsProps) {
   const { format: formatTime } = useTimezone();
 
@@ -196,6 +199,12 @@ export function OverviewCards({
                 </p>
               </div>
             </div>
+          )}
+          {onViewRequestLogs && (
+            <Button variant="outline" size="sm" className="mt-3 w-full gap-1.5 text-xs" onClick={onViewRequestLogs}>
+              <FileText className="h-3.5 w-3.5" />
+              View Request Logs
+            </Button>
           )}
         </CardContent>
       </Card>

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import {
   AlertCircle,
+  ExternalLink,
   Search,
 } from "lucide-react";
 import { AnimatedListItem } from "@/components/AnimatedListItem";
@@ -37,6 +38,7 @@ interface OperationsDebugSectionProps {
   clearNewLogHighlight: (logId: number) => void;
   reportSymbol: string;
   reportCode: string;
+  onViewInRequestLogs?: (requestId: number) => void;
 }
 
 function InvestigateRequestRow({
@@ -44,11 +46,13 @@ function InvestigateRequestRow({
   metric,
   newLogIds,
   clearNewLogHighlight,
+  onViewInRequestLogs,
 }: {
   item: RequestLogEntry;
   metric: ReactNode;
   newLogIds: Set<number>;
   clearNewLogHighlight: (logId: number) => void;
+  onViewInRequestLogs?: (requestId: number) => void;
 }) {
   return (
     <AnimatedListItem
@@ -63,7 +67,24 @@ function InvestigateRequestRow({
           {item.provider_type} · {item.status_code}
         </p>
       </div>
-      <span className="shrink-0 text-xs font-medium">{metric}</span>
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-xs font-medium">{metric}</span>
+        {onViewInRequestLogs && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => onViewInRequestLogs(item.id)}
+              >
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>View in Request Logs</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     </AnimatedListItem>
   );
 }
@@ -78,6 +99,7 @@ export function OperationsDebugSection({
   clearNewLogHighlight,
   reportSymbol,
   reportCode,
+  onViewInRequestLogs,
 }: OperationsDebugSectionProps) {
   const [investigateTab, setInvestigateTab] = useState<InvestigateTab>("errors");
 
@@ -188,6 +210,7 @@ export function OperationsDebugSection({
                   metric={`${item.response_time_ms.toLocaleString()}ms`}
                   newLogIds={newLogIds}
                   clearNewLogHighlight={clearNewLogHighlight}
+                  onViewInRequestLogs={onViewInRequestLogs}
                 />
               ))
             )}
@@ -208,6 +231,7 @@ export function OperationsDebugSection({
                   metric={formatMoneyMicros(item.total_cost_user_currency_micros ?? 0, reportSymbol, reportCode)}
                   newLogIds={newLogIds}
                   clearNewLogHighlight={clearNewLogHighlight}
+                  onViewInRequestLogs={onViewInRequestLogs}
                 />
               ))
             )}

@@ -28,6 +28,7 @@ export function OperationsTab({
   setOperationsStatusFilter,
   clearOperationsFilters,
   manualRefresh,
+  onViewInRequestLogs,
 }: OperationsTabProps) {
   const { format: formatTime } = useTimezone();
   const {
@@ -120,6 +121,7 @@ export function OperationsTab({
         clearNewLogHighlight={clearNewLogHighlight}
         reportSymbol={reportSymbol}
         reportCode={reportCode}
+        onViewInRequestLogs={onViewInRequestLogs}
       />
 
       <SpecialTokenCoverageStrip

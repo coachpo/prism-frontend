@@ -128,6 +128,7 @@ export function ModelDetailPage() {
         spendingCurrencyCode={spendingCurrencyCode}
         metrics24hLoading={metrics24hLoading}
         modelKpis={modelKpis}
+        onViewRequestLogs={() => navigate(`/request-logs?model_id=${encodeURIComponent(model.model_id)}`)}
       />
 
       <ConnectionsList

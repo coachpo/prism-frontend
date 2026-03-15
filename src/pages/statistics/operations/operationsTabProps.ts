@@ -25,4 +25,5 @@ export interface OperationsTabProps {
   setOperationsStatusFilter: (val: OperationsStatusFilter) => void;
   clearOperationsFilters: () => void;
   manualRefresh: () => void;
+  onViewInRequestLogs?: (requestId: number) => void;
 }

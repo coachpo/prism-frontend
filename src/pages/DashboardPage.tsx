@@ -44,6 +44,7 @@ export function DashboardPage() {
         highlighted={data.metricsHighlighted}
         onOpenStatistics={() => navigate("/statistics")}
         onInspectSpending={() => navigate("/statistics?tab=spending")}
+        onReviewRequests={() => navigate("/request-logs")}
       />
 
       <RoutingDiagramCard
@@ -51,6 +52,12 @@ export function DashboardPage() {
         loading={data.routingDiagramLoading}
         error={data.routingDiagramError}
         onSelectModel={(modelConfigId) => navigate(`/models/${modelConfigId}`)}
+        onDrillDownRequests={(params) => {
+          const sp = new URLSearchParams();
+          if (params.endpoint_id) sp.set("endpoint_id", String(params.endpoint_id));
+          if (params.model_id) sp.set("model_id", params.model_id);
+          navigate(`/request-logs?${sp.toString()}`);
+        }}
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
