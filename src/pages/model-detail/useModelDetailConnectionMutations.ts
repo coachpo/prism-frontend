@@ -5,10 +5,18 @@ import { clearSharedReferenceData } from "@/lib/referenceData";
 import type {
   Connection,
   ConnectionCreate,
-  ConnectionUpdate,
+  Endpoint,
   EndpointCreate,
+  ModelConfig,
+  ModelConfigListItem,
 } from "@/lib/types";
 import type { HeaderRow } from "./useModelDetailDialogState";
+import {
+  patchModelListConnectionCounts,
+  removeConnectionFromList,
+  upsertConnectionInList,
+  upsertEndpointInList,
+} from "./useModelDetailDataSupport";
 
 interface UseModelDetailConnectionMutationsInput {
   id: string | undefined;
@@ -21,7 +29,10 @@ interface UseModelDetailConnectionMutationsInput {
   editingConnection: Connection | null;
   endpointSourceDefaultName: string | null;
   setIsConnectionDialogOpen: (open: boolean) => void;
-  fetchModel: () => Promise<void>;
+  setAllModels: React.Dispatch<React.SetStateAction<ModelConfigListItem[]>>;
+  setConnections: React.Dispatch<React.SetStateAction<Connection[]>>;
+  setGlobalEndpoints: React.Dispatch<React.SetStateAction<Endpoint[]>>;
+  setModel: React.Dispatch<React.SetStateAction<ModelConfig | null>>;
 }
 
 export function useModelDetailConnectionMutations({
@@ -35,8 +46,29 @@ export function useModelDetailConnectionMutations({
   editingConnection,
   endpointSourceDefaultName,
   setIsConnectionDialogOpen,
-  fetchModel,
+  setAllModels,
+  setConnections,
+  setGlobalEndpoints,
+  setModel,
 }: UseModelDetailConnectionMutationsInput) {
+  const modelConfigId = id ? Number.parseInt(id, 10) : NaN;
+
+  const commitConnections = useCallback(
+    (updater: (current: Connection[]) => Connection[]) => {
+      setConnections((current) => {
+        const next = updater(current);
+        setModel((previousModel) => (
+          previousModel ? { ...previousModel, connections: next } : previousModel
+        ));
+        if (Number.isFinite(modelConfigId)) {
+          setAllModels((currentModels) => patchModelListConnectionCounts(currentModels, modelConfigId, next));
+        }
+        return next;
+      });
+    },
+    [modelConfigId, setAllModels, setConnections, setModel],
+  );
+
   const handleConnectionSubmit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
@@ -60,17 +92,20 @@ export function useModelDetailConnectionMutations({
       }
 
       try {
+        const savedConnection = editingConnection
+          ? await api.connections.update(editingConnection.id, { ...payload })
+          : await api.connections.create(Number.parseInt(id, 10), payload);
+
         if (editingConnection) {
-          const updateData: ConnectionUpdate = { ...payload };
-          await api.connections.update(editingConnection.id, updateData);
           toast.success("Connection updated");
         } else {
-          await api.connections.create(Number.parseInt(id, 10), payload);
           toast.success("Connection created");
         }
+
         clearSharedReferenceData(undefined, revision);
+        setGlobalEndpoints((current) => upsertEndpointInList(current, savedConnection.endpoint));
+        commitConnections((current) => upsertConnectionInList(current, savedConnection));
         setIsConnectionDialogOpen(false);
-        void fetchModel();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to save connection");
       }
@@ -80,12 +115,13 @@ export function useModelDetailConnectionMutations({
       createMode,
       editingConnection,
       endpointSourceDefaultName,
-      fetchModel,
       headerRows,
       id,
       newEndpointForm,
       revision,
       selectedEndpointId,
+      commitConnections,
+      setGlobalEndpoints,
       setIsConnectionDialogOpen,
     ],
   );
@@ -95,26 +131,29 @@ export function useModelDetailConnectionMutations({
       try {
         await api.connections.delete(connectionId);
         clearSharedReferenceData(undefined, revision);
+        commitConnections((current) => removeConnectionFromList(current, connectionId));
         toast.success("Connection deleted");
-        void fetchModel();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to delete connection");
       }
     },
-    [fetchModel, revision],
+    [commitConnections, revision],
   );
 
   const handleToggleActive = useCallback(
     async (connection: Connection) => {
       try {
-        await api.connections.update(connection.id, { is_active: !connection.is_active });
+        const updatedConnection = await api.connections.update(connection.id, {
+          is_active: !connection.is_active,
+        });
         clearSharedReferenceData(undefined, revision);
-        void fetchModel();
+        setGlobalEndpoints((current) => upsertEndpointInList(current, updatedConnection.endpoint));
+        commitConnections((current) => upsertConnectionInList(current, updatedConnection));
       } catch {
         toast.error("Failed to toggle connection");
       }
     },
-    [fetchModel, revision],
+    [commitConnections, revision, setGlobalEndpoints],
   );
 
   return {

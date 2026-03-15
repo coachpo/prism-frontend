@@ -183,6 +183,26 @@ export interface ModelMetricsBatchResponse {
   items: ModelMetricsBatchItem[];
 }
 
+export interface ConnectionMetricsBatchParams {
+  model_id: string;
+  connection_ids: number[];
+  summary_window_hours?: number;
+}
+
+export interface ConnectionMetricsBatchItem {
+  connection_id: number;
+  success_rate_24h: number | null;
+  request_count_24h: number;
+  p95_latency_ms: number | null;
+  five_xx_rate: number | null;
+  heuristic_failover_events: number;
+  last_failover_like_at: string | null;
+}
+
+export interface ConnectionMetricsBatchResponse {
+  items: ConnectionMetricsBatchItem[];
+}
+
 export interface ConnectionSuccessRate {
   connection_id: number;
   total_requests: number;

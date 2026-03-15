@@ -18,7 +18,7 @@ export async function getUserTimezonePreference(
     }
   }
 
-  const loadPromise = api.settings.costing
+  const loadPromise = api.settings.timezone
     .get()
     .then((settings) => {
       const preference = settings.timezone_preference ?? null;

@@ -3,7 +3,10 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { clearSharedReferenceData } from "@/lib/referenceData";
 import type { ModelConfig, ModelConfigListItem, ModelConfigUpdate } from "@/lib/types";
-import { buildRedirectTargetOptions } from "./useModelDetailDataSupport";
+import {
+  buildRedirectTargetOptions,
+  patchModelListItemFromDetail,
+} from "./useModelDetailDataSupport";
 
 interface UseModelDetailModelFormInput {
   model: ModelConfig | null;
@@ -13,7 +16,8 @@ interface UseModelDetailModelFormInput {
   editRedirectTo: string;
   setEditRedirectTo: (value: string) => void;
   setIsEditModelDialogOpen: (open: boolean) => void;
-  fetchModel: () => Promise<void>;
+  setAllModels: React.Dispatch<React.SetStateAction<ModelConfigListItem[]>>;
+  setModel: React.Dispatch<React.SetStateAction<ModelConfig | null>>;
 }
 
 export function useModelDetailModelForm({
@@ -24,7 +28,8 @@ export function useModelDetailModelForm({
   editRedirectTo,
   setEditRedirectTo,
   setIsEditModelDialogOpen,
-  fetchModel,
+  setAllModels,
+  setModel,
 }: UseModelDetailModelFormInput) {
   useEffect(() => {
     if (!isEditModelDialogOpen || !model || model.model_type !== "proxy") {
@@ -54,16 +59,18 @@ export function useModelDetailModelForm({
       };
 
       try {
-        await api.models.update(model.id, updateData);
+        const updatedModel = await api.models.update(model.id, updateData);
         clearSharedReferenceData(undefined, revision);
+        setModel(updatedModel);
+        setAllModels((currentModels) => patchModelListItemFromDetail(currentModels, updatedModel));
+        setEditRedirectTo(updatedModel.redirect_to || "");
         toast.success("Model updated");
         setIsEditModelDialogOpen(false);
-        void fetchModel();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to update model");
       }
     },
-    [editRedirectTo, fetchModel, model, revision, setIsEditModelDialogOpen],
+    [editRedirectTo, model, revision, setAllModels, setEditRedirectTo, setIsEditModelDialogOpen, setModel],
   );
 
   return {

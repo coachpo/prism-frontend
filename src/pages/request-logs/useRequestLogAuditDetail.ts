@@ -3,6 +3,9 @@ import { api } from "@/lib/api";
 import type { AuditLogDetail } from "@/lib/types";
 import type { RequestDetailTab } from "./queryParams";
 
+const AUDIT_LOOKUP_RETRY_DELAY_MS = 1000;
+const AUDIT_LOOKUP_MAX_RETRIES = 5;
+
 interface UseRequestLogAuditDetailInput {
   selectedLogId: number | null;
   detailTab: RequestDetailTab;
@@ -16,12 +19,14 @@ export function useRequestLogAuditDetail({
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [auditChecked, setAuditChecked] = useState(false);
+  const [lookupAttempt, setLookupAttempt] = useState(0);
 
   useEffect(() => {
     setAuditDetail(null);
     setAuditError(null);
     setAuditChecked(false);
     setAuditLoading(false);
+    setLookupAttempt(0);
   }, [selectedLogId]);
 
   useEffect(() => {
@@ -30,9 +35,12 @@ export function useRequestLogAuditDetail({
     }
 
     let cancelled = false;
+    let retryTimer: number | null = null;
 
     const loadAuditDetail = async () => {
-      setAuditLoading(true);
+      if (lookupAttempt === 0) {
+        setAuditLoading(true);
+      }
       setAuditError(null);
       setAuditChecked(true);
 
@@ -50,6 +58,13 @@ export function useRequestLogAuditDetail({
         const linkedAudit = auditLookup.items[0];
         if (!linkedAudit) {
           setAuditDetail(null);
+          if (lookupAttempt < AUDIT_LOOKUP_MAX_RETRIES) {
+            retryTimer = window.setTimeout(() => {
+              if (!cancelled) {
+                setLookupAttempt((current) => current + 1);
+              }
+            }, AUDIT_LOOKUP_RETRY_DELAY_MS);
+          }
           return;
         }
 
@@ -74,8 +89,11 @@ export function useRequestLogAuditDetail({
 
     return () => {
       cancelled = true;
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+      }
     };
-  }, [detailTab, selectedLogId]);
+  }, [detailTab, lookupAttempt, selectedLogId]);
 
   return {
     auditDetail,

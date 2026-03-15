@@ -6,6 +6,9 @@ import { useCostingSettingsSave } from "../useCostingSettingsSave";
 const api = vi.hoisted(() => ({
   settings: {
     costing: {
+      update: vi.fn(),
+    },
+    timezone: {
       get: vi.fn(),
       update: vi.fn(),
     },
@@ -24,23 +27,19 @@ describe("useCostingSettingsSave", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearUserTimezonePreference();
-    api.settings.costing.get.mockResolvedValue({
-      report_currency_code: "USD",
-      report_currency_symbol: "$",
-      endpoint_fx_mappings: [],
-      timezone_preference: "Europe/Helsinki",
-    });
+    api.settings.timezone.get.mockResolvedValue({ timezone_preference: "Europe/Helsinki" });
     api.settings.costing.update.mockResolvedValue({
       report_currency_code: "USD",
       report_currency_symbol: "$",
       endpoint_fx_mappings: [],
       timezone_preference: "UTC",
     });
+    api.settings.timezone.update.mockResolvedValue({ timezone_preference: "UTC" });
   });
 
   it("clears cached timezone preference after saving timezone settings", async () => {
     await getUserTimezonePreference("profile:1");
-    expect(api.settings.costing.get).toHaveBeenCalledTimes(1);
+    expect(api.settings.timezone.get).toHaveBeenCalledTimes(1);
 
     const { result } = renderHook(() =>
       useCostingSettingsSave({
@@ -67,16 +66,11 @@ describe("useCostingSettingsSave", () => {
       await result.current.handleSaveCostingSettings("timezone");
     });
 
-    api.settings.costing.get.mockResolvedValueOnce({
-      report_currency_code: "USD",
-      report_currency_symbol: "$",
-      endpoint_fx_mappings: [],
-      timezone_preference: "UTC",
-    });
+    api.settings.timezone.get.mockResolvedValueOnce({ timezone_preference: "UTC" });
 
     await getUserTimezonePreference("profile:1");
 
-    expect(api.settings.costing.update).toHaveBeenCalledTimes(1);
-    expect(api.settings.costing.get).toHaveBeenCalledTimes(2);
+    expect(api.settings.timezone.update).toHaveBeenCalledTimes(1);
+    expect(api.settings.timezone.get).toHaveBeenCalledTimes(2);
   });
 });

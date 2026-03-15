@@ -170,10 +170,18 @@ export interface CostingSettingsResponse {
   timezone_preference?: string | null;
 }
 
+export interface TimezonePreferenceResponse {
+  timezone_preference?: string | null;
+}
+
 export interface CostingSettingsUpdate {
   report_currency_code: string;
   report_currency_symbol: string;
   endpoint_fx_mappings: EndpointFxMapping[];
+  timezone_preference?: string | null;
+}
+
+export interface TimezonePreferenceUpdate {
   timezone_preference?: string | null;
 }
 

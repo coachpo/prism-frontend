@@ -74,7 +74,7 @@ export function useModelDetailData(id: string | undefined) {
     openConnectionDialog,
   } = useModelDetailDialogState({ globalEndpoints });
 
-  const { fetchModel } = useModelDetailBootstrap({
+  useModelDetailBootstrap({
     id,
     revision,
     navigate,
@@ -125,7 +125,10 @@ export function useModelDetailData(id: string | undefined) {
     editingConnection,
     endpointSourceDefaultName,
     setIsConnectionDialogOpen,
-    fetchModel,
+    setAllModels,
+    setConnections,
+    setGlobalEndpoints,
+    setModel,
   });
 
   const { redirectTargetOptions, handleEditModelSubmit } = useModelDetailModelForm({
@@ -136,7 +139,8 @@ export function useModelDetailData(id: string | undefined) {
     editRedirectTo,
     setEditRedirectTo,
     setIsEditModelDialogOpen,
-    fetchModel,
+    setAllModels,
+    setModel,
   });
 
   useConnectionFocus({

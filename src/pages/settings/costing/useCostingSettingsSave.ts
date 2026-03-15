@@ -46,10 +46,9 @@ export function useCostingSettingsSave({
 
       setCostingSaving(true);
       try {
-        const saved = await api.settings.costing.update(payload);
-        const normalizedSaved = normalizeCostingForm(saved);
-
         if (section === "billing") {
+          const saved = await api.settings.costing.update(payload);
+          const normalizedSaved = normalizeCostingForm(saved);
           setCostingForm((prev) => ({
             ...prev,
             report_currency_code: normalizedSaved.report_currency_code,
@@ -65,18 +64,21 @@ export function useCostingSettingsSave({
           setRecentlySavedSection("billing");
           toast.success("Billing and currency settings saved");
         } else {
+          const saved = await api.settings.timezone.update({
+            timezone_preference: normalizedCurrentCosting.timezone_preference ?? null,
+          });
           clearUserTimezonePreference();
           setCostingForm((prev) => ({
             ...prev,
-            timezone_preference: normalizedSaved.timezone_preference,
+            timezone_preference: saved.timezone_preference ?? null,
           }));
           setSavedCostingForm((prev) => ({
-            report_currency_code: prev?.report_currency_code ?? normalizedSaved.report_currency_code,
+            report_currency_code: prev?.report_currency_code ?? baseline.report_currency_code,
             report_currency_symbol:
-              prev?.report_currency_symbol ?? normalizedSaved.report_currency_symbol,
+              prev?.report_currency_symbol ?? baseline.report_currency_symbol,
             endpoint_fx_mappings:
-              prev?.endpoint_fx_mappings ?? normalizedSaved.endpoint_fx_mappings,
-            timezone_preference: normalizedSaved.timezone_preference,
+              prev?.endpoint_fx_mappings ?? baseline.endpoint_fx_mappings,
+            timezone_preference: saved.timezone_preference ?? null,
           }));
           setRecentlySavedSection("timezone");
           toast.success("Timezone saved");

@@ -6,7 +6,7 @@ import { clearUserTimezonePreference } from "@/lib/timezone";
 
 const api = vi.hoisted(() => ({
   settings: {
-    costing: {
+    timezone: {
       get: vi.fn(),
     },
   },
@@ -32,7 +32,7 @@ describe("useTimezone", () => {
     profileState.revision = 1;
     profileState.selectedProfileId = 7;
     clearUserTimezonePreference();
-    api.settings.costing.get.mockResolvedValue({ timezone_preference: "Europe/Helsinki" });
+    api.settings.timezone.get.mockResolvedValue({ timezone_preference: "Europe/Helsinki" });
   });
 
   afterEach(() => {
@@ -49,7 +49,7 @@ describe("useTimezone", () => {
       expect(second.result.current.loading).toBe(false);
     });
 
-    expect(api.settings.costing.get).toHaveBeenCalledTimes(1);
+    expect(api.settings.timezone.get).toHaveBeenCalledTimes(1);
     expect(first.result.current.timezone).toBe("Europe/Helsinki");
     expect(second.result.current.timezone).toBe("Europe/Helsinki");
   });
@@ -61,13 +61,13 @@ describe("useTimezone", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    api.settings.costing.get.mockResolvedValueOnce({ timezone_preference: "UTC" });
+    api.settings.timezone.get.mockResolvedValueOnce({ timezone_preference: "UTC" });
 
     await act(async () => {
       await result.current.refresh();
     });
 
-    expect(api.settings.costing.get).toHaveBeenCalledTimes(2);
+    expect(api.settings.timezone.get).toHaveBeenCalledTimes(2);
     expect(result.current.timezone).toBe("UTC");
   });
 });

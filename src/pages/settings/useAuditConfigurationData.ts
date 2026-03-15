@@ -167,14 +167,17 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
 
     try {
       if (editingRule) {
-        await api.config.headerBlocklistRules.update(editingRule.id, ruleForm);
+        const updatedRule = await api.config.headerBlocklistRules.update(editingRule.id, ruleForm);
+        setBlocklistRules((prev) => prev.map((rule) => (rule.id === updatedRule.id ? updatedRule : rule)));
         toast.success("Rule updated successfully");
       } else {
-        await api.config.headerBlocklistRules.create(ruleForm);
+        const createdRule = await api.config.headerBlocklistRules.create(ruleForm);
+        setBlocklistRules((prev) => [...prev, createdRule]);
         toast.success("Rule created successfully");
       }
+      setEditingRule(null);
+      setRuleForm(DEFAULT_RULE_FORM);
       setRuleDialogOpen(false);
-      await fetchRules();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save rule");
     }
@@ -187,9 +190,9 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
 
     try {
       await api.config.headerBlocklistRules.delete(deleteRuleConfirm.id);
+      setBlocklistRules((prev) => prev.filter((rule) => rule.id !== deleteRuleConfirm.id));
       toast.success("Rule deleted successfully");
       setDeleteRuleConfirm(null);
-      await fetchRules();
     } catch {
       toast.error("Failed to delete rule");
     }

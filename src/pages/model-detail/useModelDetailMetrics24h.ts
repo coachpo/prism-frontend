@@ -71,54 +71,23 @@ export function useModelDetailMetrics24h({
           return;
         }
 
-        const perConnection = await Promise.all(
-          connectionIds.map(async (connectionId) => {
-            const [connectionSummary, recentLogs] = await Promise.all([
-              api.stats.summary({
-                model_id: modelId,
-                connection_id: connectionId,
-                from_time: fromTime,
-              }),
-              api.stats.requests({
-                model_id: modelId,
-                connection_id: connectionId,
-                from_time: fromTime,
-                limit: 200,
-              }),
-            ]);
-
-            const logs = recentLogs.items;
-            const fiveXxCount = logs.filter((row) => row.status_code >= 500).length;
-            const sampledCount = logs.length;
-            const latestFailoverLike = logs
-              .filter((row) => row.status_code >= 500)
-              .sort(
-                (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-              )[0]?.created_at ?? null;
-
-            return {
-              connectionId,
-              successRate24h: connectionSummary.success_rate,
-              p95LatencyMs: connectionSummary.p95_response_time_ms,
-              requestCount24h: connectionSummary.total_requests,
-              fiveXxRate: sampledCount > 0 ? (fiveXxCount / sampledCount) * 100 : null,
-              heuristicFailoverEvents: fiveXxCount,
-              lastFailoverLikeAt: latestFailoverLike,
-            };
-          })
-        );
+        const perConnection = await api.stats.connectionMetrics({
+          model_id: modelId,
+          connection_ids: connectionIds,
+          summary_window_hours: 24,
+        });
 
         if (cancelled) return;
 
         const nextConnectionMetrics = new Map<number, ConnectionDerivedMetrics>();
-        for (const row of perConnection) {
-          nextConnectionMetrics.set(row.connectionId, {
-            success_rate_24h: row.successRate24h,
-            p95_latency_ms: row.p95LatencyMs,
-            five_xx_rate: row.fiveXxRate,
-            request_count_24h: row.requestCount24h,
-            heuristic_failover_events: row.heuristicFailoverEvents,
-            last_failover_like_at: row.lastFailoverLikeAt,
+        for (const row of perConnection.items) {
+          nextConnectionMetrics.set(row.connection_id, {
+            success_rate_24h: row.success_rate_24h,
+            p95_latency_ms: row.p95_latency_ms,
+            five_xx_rate: row.five_xx_rate,
+            request_count_24h: row.request_count_24h,
+            heuristic_failover_events: row.heuristic_failover_events,
+            last_failover_like_at: row.last_failover_like_at,
           });
         }
 

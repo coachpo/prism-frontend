@@ -5,6 +5,7 @@ import {
   config,
   loadbalance,
   settingsCosting,
+  settingsTimezone,
   stats,
 } from "./api/observability";
 import {
@@ -32,6 +33,7 @@ export const api = {
   settings: {
     ...settings,
     costing: settingsCosting,
+    timezone: settingsTimezone,
   },
   stats,
 };

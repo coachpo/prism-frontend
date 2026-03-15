@@ -4,6 +4,8 @@ import type {
   AuditLogListResponse,
   AuditLogParams,
   BatchDeleteResponse,
+  ConnectionMetricsBatchParams,
+  ConnectionMetricsBatchResponse,
   ConfigExportResponse,
   ConfigImportRequest,
   ConfigImportResponse,
@@ -25,6 +27,8 @@ import type {
   ModelMetricsBatchParams,
   ModelMetricsBatchResponse,
   StatsSummaryParams,
+  TimezonePreferenceResponse,
+  TimezonePreferenceUpdate,
   ThroughputStatsResponse,
 } from "../types";
 import { buildQuery, request } from "./core";
@@ -40,6 +44,11 @@ export const stats = {
   },
   modelMetrics: (params: ModelMetricsBatchParams) =>
     request<ModelMetricsBatchResponse>("/api/stats/models/metrics", {
+      method: "POST",
+      body: JSON.stringify(params),
+    }),
+  connectionMetrics: (params: ConnectionMetricsBatchParams) =>
+    request<ConnectionMetricsBatchResponse>("/api/stats/models/connections/metrics", {
       method: "POST",
       body: JSON.stringify(params),
     }),
@@ -72,6 +81,15 @@ export const settingsCosting = {
   get: () => request<CostingSettingsResponse>("/api/settings/costing"),
   update: (data: CostingSettingsUpdate) =>
     request<CostingSettingsResponse>("/api/settings/costing", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+};
+
+export const settingsTimezone = {
+  get: () => request<TimezonePreferenceResponse>("/api/settings/timezone"),
+  update: (data: TimezonePreferenceUpdate) =>
+    request<TimezonePreferenceResponse>("/api/settings/timezone", {
       method: "PUT",
       body: JSON.stringify(data),
     }),

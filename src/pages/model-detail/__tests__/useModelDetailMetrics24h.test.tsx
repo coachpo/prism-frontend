@@ -5,7 +5,7 @@ import { useModelDetailMetrics24h } from "../useModelDetailMetrics24h";
 
 const api = vi.hoisted(() => ({
   stats: {
-    requests: vi.fn(),
+    connectionMetrics: vi.fn(),
     spending: vi.fn(),
     summary: vi.fn(),
   },
@@ -83,7 +83,19 @@ describe("useModelDetailMetrics24h", () => {
       report_currency_symbol: "$",
       report_currency_code: "USD",
     });
-    api.stats.requests.mockResolvedValue({ items: [], total: 0, limit: 200, offset: 0 });
+    api.stats.connectionMetrics.mockResolvedValue({
+      items: [
+        {
+          connection_id: 11,
+          success_rate_24h: 91.7,
+          request_count_24h: 12,
+          p95_latency_ms: 500,
+          five_xx_rate: 8.3,
+          heuristic_failover_events: 1,
+          last_failover_like_at: "2026-03-15T10:00:00Z",
+        },
+      ],
+    });
   });
 
   it("skips per-connection requests until connection metrics are enabled", async () => {
@@ -106,7 +118,7 @@ describe("useModelDetailMetrics24h", () => {
       expect(api.stats.spending).toHaveBeenCalledTimes(1);
     });
 
-    expect(api.stats.requests).not.toHaveBeenCalled();
+    expect(api.stats.connectionMetrics).not.toHaveBeenCalled();
   });
 
   it("loads per-connection metrics when explicitly enabled", async () => {
@@ -125,8 +137,8 @@ describe("useModelDetailMetrics24h", () => {
     );
 
     await waitFor(() => {
-      expect(api.stats.summary).toHaveBeenCalledTimes(2);
-      expect(api.stats.requests).toHaveBeenCalledTimes(1);
+      expect(api.stats.summary).toHaveBeenCalledTimes(1);
+      expect(api.stats.connectionMetrics).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -158,8 +170,8 @@ describe("useModelDetailMetrics24h", () => {
     );
 
     await waitFor(() => {
-      expect(api.stats.summary).toHaveBeenCalledTimes(2);
-      expect(api.stats.requests).toHaveBeenCalledTimes(1);
+      expect(api.stats.summary).toHaveBeenCalledTimes(1);
+      expect(api.stats.connectionMetrics).toHaveBeenCalledTimes(1);
     });
 
     rerender({
@@ -173,8 +185,8 @@ describe("useModelDetailMetrics24h", () => {
     });
 
     await waitFor(() => {
-      expect(api.stats.summary).toHaveBeenCalledTimes(2);
-      expect(api.stats.requests).toHaveBeenCalledTimes(1);
+      expect(api.stats.summary).toHaveBeenCalledTimes(1);
+      expect(api.stats.connectionMetrics).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -206,8 +218,8 @@ describe("useModelDetailMetrics24h", () => {
     );
 
     await waitFor(() => {
-      expect(api.stats.summary).toHaveBeenCalledTimes(2);
-      expect(api.stats.requests).toHaveBeenCalledTimes(1);
+      expect(api.stats.summary).toHaveBeenCalledTimes(1);
+      expect(api.stats.connectionMetrics).toHaveBeenCalledTimes(1);
     });
 
     rerender({
@@ -218,8 +230,8 @@ describe("useModelDetailMetrics24h", () => {
     });
 
     await waitFor(() => {
-      expect(api.stats.summary).toHaveBeenCalledTimes(2);
-      expect(api.stats.requests).toHaveBeenCalledTimes(1);
+      expect(api.stats.summary).toHaveBeenCalledTimes(1);
+      expect(api.stats.connectionMetrics).toHaveBeenCalledTimes(1);
     });
   });
 });

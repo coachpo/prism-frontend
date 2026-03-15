@@ -59,6 +59,7 @@ export function moveConnectionInList(
   nextConnections.splice(toIndex, 0, movedConnection);
   return resequenceConnections(nextConnections);
 }
+
 export function applyConnectionHealthChecks(
   connections: Connection[],
   checks: Map<number, HealthCheckResponse>
@@ -85,6 +86,93 @@ export function getSelectedEndpoint(
     return null;
   }
   return globalEndpoints.find((endpoint) => endpoint.id === parsedEndpointId) ?? null;
+}
+
+export function upsertConnectionInList(
+  connections: Connection[],
+  nextConnection: Connection,
+): Connection[] {
+  const hasExistingConnection = connections.some((connection) => connection.id === nextConnection.id);
+  const nextConnections = hasExistingConnection
+    ? connections.map((connection) => (
+      connection.id === nextConnection.id ? nextConnection : connection
+    ))
+    : [...connections, nextConnection];
+
+  return resequenceConnections(
+    [...nextConnections].sort((left, right) => left.priority - right.priority),
+  );
+}
+
+export function removeConnectionFromList(
+  connections: Connection[],
+  connectionId: number,
+): Connection[] {
+  return resequenceConnections(
+    connections.filter((connection) => connection.id !== connectionId),
+  );
+}
+
+export function upsertEndpointInList(
+  endpoints: Endpoint[],
+  endpoint: Endpoint | undefined,
+): Endpoint[] {
+  if (!endpoint) {
+    return endpoints;
+  }
+
+  const hasExistingEndpoint = endpoints.some((current) => current.id === endpoint.id);
+  const nextEndpoints = hasExistingEndpoint
+    ? endpoints.map((current) => (current.id === endpoint.id ? endpoint : current))
+    : [...endpoints, endpoint];
+
+  return [...nextEndpoints].sort((left, right) => left.position - right.position);
+}
+
+export function patchModelListConnectionCounts(
+  models: ModelConfigListItem[],
+  modelConfigId: number,
+  connections: Connection[],
+): ModelConfigListItem[] {
+  return models.map((item) => {
+    if (item.id !== modelConfigId) {
+      return item;
+    }
+
+    return {
+      ...item,
+      connection_count: connections.length,
+      active_connection_count: connections.filter((connection) => connection.is_active).length,
+    };
+  });
+}
+
+export function patchModelListItemFromDetail(
+  models: ModelConfigListItem[],
+  model: ModelConfig,
+): ModelConfigListItem[] {
+  return models.map((item) => {
+    if (item.id !== model.id) {
+      return item;
+    }
+
+    return {
+      ...item,
+      provider_id: model.provider_id,
+      provider: model.provider,
+      model_id: model.model_id,
+      display_name: model.display_name,
+      model_type: model.model_type,
+      redirect_to: model.redirect_to,
+      lb_strategy: model.lb_strategy,
+      is_enabled: model.is_enabled,
+      failover_recovery_enabled: model.failover_recovery_enabled,
+      failover_recovery_cooldown_seconds: model.failover_recovery_cooldown_seconds,
+      connection_count: model.connections.length,
+      active_connection_count: model.connections.filter((connection) => connection.is_active).length,
+      updated_at: model.updated_at,
+    };
+  });
 }
 
 export function buildRedirectTargetOptions(
