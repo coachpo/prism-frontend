@@ -1,5 +1,7 @@
-import { AlertTriangle, Clock3, Coins, Copy, ExternalLink, FileText, Gauge, Hash, Route, Terminal } from "lucide-react";
+import { AlertTriangle, Clock3, Coins, Copy, ExternalLink, FileText, Gauge, Route, Terminal } from "lucide-react";
 import { toast } from "sonner";
+import { ProviderIcon } from "@/components/ProviderIcon";
+import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import { cn, formatProviderType } from "@/lib/utils";
 import type { AuditLogDetail, RequestLogEntry } from "@/lib/types";
 import { formatCost, formatTokens } from "./columns";
 import type { DetailTab } from "./queryParams";
@@ -27,27 +29,32 @@ interface RequestLogDetailSheetProps {
   onClose: () => void;
   onNavigateToConnection: (connectionId: number) => void;
   formatTimestamp: (iso: string) => string;
+  resolveModelLabel: (modelId: string) => string;
+}
+
+function getStatusIntent(statusCode: number) {
+  if (statusCode >= 200 && statusCode < 300) return "success" as const;
+  if (statusCode >= 400 && statusCode < 500) return "warning" as const;
+  return "danger" as const;
 }
 
 function getStatusTone(statusCode: number) {
   if (statusCode >= 200 && statusCode < 300) {
-    return {
-      card: "border-l-emerald-500 bg-emerald-500/[0.05]",
-      badge: "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
-    };
+    return { card: "border-l-emerald-500 bg-emerald-500/[0.05]" };
   }
 
   if (statusCode >= 400 && statusCode < 500) {
-    return {
-      card: "border-l-amber-500 bg-amber-500/[0.06]",
-      badge: "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300",
-    };
+    return { card: "border-l-amber-500 bg-amber-500/[0.06]" };
   }
 
-  return {
-    card: "border-l-red-500 bg-red-500/[0.06]",
-    badge: "border-red-500/30 bg-red-500/15 text-red-700 dark:text-red-300",
-  };
+  return { card: "border-l-red-500 bg-red-500/[0.06]" };
+}
+
+function copyText(content: string, label: string) {
+  navigator.clipboard.writeText(content).then(
+    () => toast.success(`Copied ${label}`),
+    () => toast.error(`Failed to copy ${label}`)
+  );
 }
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -90,75 +97,73 @@ function SectionCard({
   );
 }
 
-function TechnicalBlock({ title, content }: { title: string; content: string }) {
+function PayloadBlock({ title, content }: { title: string; content: string }) {
+  const hasContent = content.length > 0;
+
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-      <pre className="max-h-72 overflow-auto rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-[11px] leading-5 text-zinc-50 shadow-inner">
-        {content}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 rounded-full px-2.5 text-[11px]"
+          disabled={!hasContent}
+          onClick={() => hasContent && copyText(content, title.toLowerCase())}
+        >
+          <Copy className="h-3 w-3" />
+          Copy
+        </Button>
+      </div>
+      <pre className="h-56 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-[11px] leading-5 text-zinc-50 shadow-inner">
+        {hasContent ? content : `No ${title.toLowerCase()} captured.`}
       </pre>
     </div>
   );
 }
 
-function tryFormatJson(raw: string): string {
-  try {
-    return JSON.stringify(JSON.parse(raw), null, 2);
-  } catch {
-    return raw;
-  }
+function ProviderPill({ providerType }: { providerType: string }) {
+  return (
+    <Badge variant="outline" className="gap-1.5 border-border/70 bg-background/80 text-[10px] font-medium">
+      <ProviderIcon providerType={providerType} size={12} />
+      {formatProviderType(providerType)}
+    </Badge>
+  );
 }
 
 function OverviewTab({
   request,
   onNavigateToConnection,
   formatTimestamp,
+  resolveModelLabel,
 }: {
   request: RequestLogEntry;
   onNavigateToConnection: (id: number) => void;
   formatTimestamp: (iso: string) => string;
+  resolveModelLabel: (modelId: string) => string;
 }) {
   const tone = getStatusTone(request.status_code);
-
-  const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(request, null, 2)).then(
-      () => toast.success("Copied request JSON"),
-      () => toast.error("Failed to copy request JSON")
-    );
-  };
-
   const connectionId = request.connection_id;
+  const modelLabel = resolveModelLabel(request.model_id);
 
   return (
     <div className="space-y-4">
       <Card className={cn("overflow-hidden border-l-4 shadow-sm", tone.card)}>
         <CardContent className="space-y-4 p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className={cn("text-[10px] font-medium", tone.badge)}>
-                  {request.status_code}
-                </Badge>
-                {request.is_stream && (
-                  <Badge variant="outline" className="text-[10px] font-medium border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300">
-                    streaming
-                  </Badge>
-                )}
-                <Badge variant="outline" className="text-[10px] font-medium border-border/70 bg-background/80">
-                  {request.provider_type}
-                </Badge>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold tracking-tight">{request.model_id}</h3>
-                <p className="mt-1 font-mono text-xs text-muted-foreground">{request.request_path}</p>
-              </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <ValueBadge label={String(request.status_code)} intent={getStatusIntent(request.status_code)} className="px-1.5 py-0 font-mono" />
+              {request.is_stream && <TypeBadge label="Streaming" intent="blue" className="px-2 py-0.5" />}
+              <ProviderPill providerType={request.provider_type} />
             </div>
 
-            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={handleCopyJson}>
-              <Copy className="h-3.5 w-3.5" />
-              Export JSON
-            </Button>
+            <div>
+              <h3 className="text-lg font-semibold tracking-tight">{modelLabel}</h3>
+              {modelLabel !== request.model_id && (
+                <p className="mt-1 font-mono text-[11px] text-muted-foreground">{request.model_id}</p>
+              )}
+              <p className="mt-1 font-mono text-xs text-muted-foreground">{request.request_path}</p>
+            </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -176,20 +181,30 @@ function OverviewTab({
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
             <div className="space-y-1">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-700 dark:text-red-300">Error detail</p>
-              <p className="text-sm text-red-700 dark:text-red-200">{request.error_detail}</p>
+              <p className="text-sm text-red-700 dark:text-red-200 break-words">{request.error_detail}</p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="space-y-4">
         <SectionCard icon={FileText} title="Request details">
           <DetailRow label="Request ID"><span className="font-mono">#{request.id}</span></DetailRow>
           <DetailRow label="Time"><span className="font-mono text-xs">{formatTimestamp(request.created_at)}</span></DetailRow>
-          <DetailRow label="Model">{request.model_id}</DetailRow>
-          <DetailRow label="Provider"><span className="capitalize">{request.provider_type}</span></DetailRow>
+          <DetailRow label="Model">
+            <div className="space-y-1">
+              <p>{modelLabel}</p>
+              {modelLabel !== request.model_id && <p className="font-mono text-[11px] text-muted-foreground">{request.model_id}</p>}
+            </div>
+          </DetailRow>
+          <DetailRow label="Provider">
+            <span className="flex items-center gap-2">
+              <ProviderIcon providerType={request.provider_type} size={16} />
+              {formatProviderType(request.provider_type)}
+            </span>
+          </DetailRow>
           <DetailRow label="Path"><span className="break-all font-mono text-[12px]">{request.request_path}</span></DetailRow>
-          <DetailRow label="Stream">{request.is_stream ? "Yes" : "No"}</DetailRow>
+          <DetailRow label="Stream">{request.is_stream ? <TypeBadge label="Streaming" intent="blue" /> : "No"}</DetailRow>
         </SectionCard>
 
         <SectionCard icon={Route} title="Routing context">
@@ -262,8 +277,8 @@ function AuditTab({
     return (
       <div className="space-y-4">
         <Skeleton className="h-10 w-full rounded-xl" />
-        <Skeleton className="h-56 w-full rounded-xl" />
-        <Skeleton className="h-56 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     );
   }
@@ -290,45 +305,40 @@ function AuditTab({
 
   return (
     <div className="space-y-4">
-      {audits.map((audit, idx) => {
-        const tone = getStatusTone(audit.response_status);
-
-        return (
-          <Card key={audit.id} className="overflow-hidden border-border/70 shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-border/70 bg-muted/20 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className={cn("text-[10px] font-medium", tone.badge)}>
-                    {audit.response_status}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px] font-medium border-border/70 bg-background/80">
-                    {audits.length > 1 ? `attempt ${idx + 1}` : "audit capture"}
-                  </Badge>
-                </div>
-                <p className="text-sm font-semibold tracking-tight">{audit.request_method} {audit.request_url}</p>
-                <p className="text-xs text-muted-foreground">{formatTimestamp(audit.created_at)}</p>
+      {audits.map((audit) => (
+        <Card key={audit.id} className="overflow-hidden border-border/70 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-border/70 bg-muted/20 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <ValueBadge label={String(audit.response_status)} intent={getStatusIntent(audit.response_status)} className="px-1.5 py-0 font-mono" />
+                <Badge variant="outline" className="border-border/70 bg-background/80 text-[10px] font-medium">
+                  Audit capture
+                </Badge>
               </div>
-
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/80 px-2.5 py-1 font-medium">
-                  <Clock3 className="h-3 w-3" />
-                  {audit.duration_ms.toLocaleString()}ms
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/80 px-2.5 py-1 font-medium">
-                  <Hash className="h-3 w-3" />
-                  #{audit.id}
-                </span>
-              </div>
+              <p className="break-all text-sm font-semibold tracking-tight">{audit.request_method} {audit.request_url}</p>
+              <p className="text-xs text-muted-foreground">{formatTimestamp(audit.created_at)}</p>
             </div>
 
-            <CardContent className="space-y-4 p-4">
-              <TechnicalBlock title="Request" content={audit.request_body ? tryFormatJson(audit.request_body) : `${audit.request_method} ${audit.request_url}`} />
-              <Separator />
-              <TechnicalBlock title={`Response (${audit.response_status})`} content={audit.response_body ? tryFormatJson(audit.response_body) : "No response body captured"} />
-            </CardContent>
-          </Card>
-        );
-      })}
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline" className="gap-1 border-border/70 bg-background/80 px-2.5 py-1 text-[11px] font-medium">
+                <Clock3 className="h-3 w-3" />
+                {audit.duration_ms.toLocaleString()}ms
+              </Badge>
+              <Badge variant="outline" className="border-border/70 bg-background/80 font-mono text-[11px]">
+                #{audit.id}
+              </Badge>
+            </div>
+          </div>
+
+          <CardContent className="space-y-4 p-4">
+            <PayloadBlock title="Request headers" content={audit.request_headers || ""} />
+            <Separator />
+            <PayloadBlock title="Request" content={audit.request_body ?? ""} />
+            <Separator />
+            <PayloadBlock title={`Response (${audit.response_status})`} content={audit.response_body ?? ""} />
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
@@ -341,6 +351,7 @@ export function RequestLogDetailSheet({
   onClose,
   onNavigateToConnection,
   formatTimestamp,
+  resolveModelLabel,
 }: RequestLogDetailSheetProps) {
   const { audits, loading: auditLoading, error: auditError } = useAuditDetail({
     requestLogId: request?.id ?? null,
@@ -376,7 +387,12 @@ export function RequestLogDetailSheet({
               </TabsList>
 
               <TabsContent value="overview" className="mt-0">
-                <OverviewTab request={request} onNavigateToConnection={onNavigateToConnection} formatTimestamp={formatTimestamp} />
+                <OverviewTab
+                  request={request}
+                  onNavigateToConnection={onNavigateToConnection}
+                  formatTimestamp={formatTimestamp}
+                  resolveModelLabel={resolveModelLabel}
+                />
               </TabsContent>
 
               <TabsContent value="audit" className="mt-0">

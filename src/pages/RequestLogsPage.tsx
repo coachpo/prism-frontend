@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useProfileContext } from "@/context/ProfileContext";
@@ -13,11 +13,14 @@ import { RequestLogsTable } from "./request-logs/RequestLogsTable";
 import { RequestLogDetailSheet } from "./request-logs/RequestLogDetailSheet";
 import { SearchX, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { DetailTab } from "./request-logs/queryParams";
 
 export function RequestLogsPage() {
   const { revision } = useProfileContext();
   const { format } = useTimezone();
   const { navigateToConnection } = useConnectionNavigation();
+  const [tableSelectedRequestId, setTableSelectedRequestId] = useState<number | null>(null);
+  const [tableSelectedTab, setTableSelectedTab] = useState<DetailTab>("overview");
   const actions = useRequestLogPageState();
   const { state, isExactMode } = actions;
 
@@ -41,13 +44,51 @@ export function RequestLogsPage() {
     [items, state.search, state.outcome_filter, state.stream_filter, state.latency_bucket, state.token_min, state.token_max, state.priced_only, state.billable_only, state.special_token_filter, state.triage]
   );
 
-  const selectedRequest = useMemo(() => {
+  const exactRequest = useMemo(() => {
     if (!state.request_id) return null;
     const id = parseInt(state.request_id, 10);
     return items.find((r) => r.id === id) ?? null;
   }, [items, state.request_id]);
 
+  const tableSelectedRequest = useMemo(
+    () => items.find((r) => r.id === tableSelectedRequestId) ?? null,
+    [items, tableSelectedRequestId]
+  );
+
+  const selectedRequest = isExactMode ? exactRequest : tableSelectedRequest;
+  const activeTab = isExactMode ? state.detail_tab : tableSelectedTab;
+  const modelLabelById = useMemo(
+    () => new Map(filterOptions.models.map((model) => [model.model_id, model.display_name || model.model_id])),
+    [filterOptions.models]
+  );
+
+  const resolveModelLabel = (modelId: string) => modelLabelById.get(modelId) ?? modelId;
+
   const sheetOpen = selectedRequest !== null;
+
+  const handleSelectRequest = (id: number) => {
+    setTableSelectedRequestId(id);
+    setTableSelectedTab("overview");
+  };
+
+  const handleCloseRequest = () => {
+    if (isExactMode) {
+      actions.clearRequest();
+      return;
+    }
+
+    setTableSelectedRequestId(null);
+    setTableSelectedTab("overview");
+  };
+
+  const handleTabChange = (tab: DetailTab) => {
+    if (isExactMode) {
+      actions.setDetailTab(tab);
+      return;
+    }
+
+    setTableSelectedTab(tab);
+  };
 
   return (
     <TooltipProvider>
@@ -105,7 +146,7 @@ export function RequestLogsPage() {
             limit={state.limit}
             offset={state.offset}
             activeRequestId={selectedRequest?.id ?? null}
-            onSelectRequest={(id) => actions.selectRequest(id)}
+            onSelectRequest={handleSelectRequest}
             onSetLimit={actions.setLimit}
             onNextPage={() => actions.goToNextPage(total)}
             onPreviousPage={actions.goToPreviousPage}
@@ -116,11 +157,12 @@ export function RequestLogsPage() {
         <RequestLogDetailSheet
           request={selectedRequest}
           open={sheetOpen}
-          activeTab={state.detail_tab}
-          onTabChange={actions.setDetailTab}
-          onClose={actions.clearRequest}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onClose={handleCloseRequest}
           onNavigateToConnection={navigateToConnection}
           formatTimestamp={format}
+          resolveModelLabel={resolveModelLabel}
         />
       </div>
     </TooltipProvider>
