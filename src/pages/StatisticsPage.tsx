@@ -1,7 +1,8 @@
 import { useProfileContext } from "@/context/ProfileContext";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { WebSocketStatusIndicator } from "@/components/WebSocketStatusIndicator";
 import { StatisticsPageSkeleton } from "./statistics/StatisticsPageSkeleton";
 import { OperationsTab } from "./statistics/OperationsTab";
 import { SpendingTab } from "./statistics/SpendingTab";
@@ -11,11 +12,10 @@ import { useStatisticsPageData } from "./statistics/useStatisticsPageData";
 import { useStatisticsPageState } from "./statistics/useStatisticsPageState";
 
 export function StatisticsPage() {
-  const { revision, selectedProfile } = useProfileContext();
+  const { revision } = useProfileContext();
   const state = useStatisticsPageState(revision);
   const data = useStatisticsPageData({
     revision,
-    selectedProfileId: selectedProfile?.id ?? null,
     state,
   });
 
@@ -29,10 +29,17 @@ export function StatisticsPage() {
         title="Statistics"
         description="Operational metrics and spending analytics"
       >
-        <WebSocketStatusIndicator
-          connectionState={data.connectionState}
-          isSyncing={data.isSyncing}
-        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void data.refreshAll()}
+          disabled={data.isRefreshingAll}
+        >
+          <RefreshCw
+            className={`mr-2 h-4 w-4${data.isRefreshingAll ? " animate-spin" : ""}`}
+          />
+          Refresh All
+        </Button>
       </PageHeader>
 
       <Tabs
@@ -50,7 +57,11 @@ export function StatisticsPage() {
         </TabsContent>
 
         <TabsContent value="throughput">
-          <ThroughputTab data={data.throughput} isLoading={data.throughputLoading} />
+          <ThroughputTab
+            data={data.throughput}
+            isLoading={data.throughputLoading}
+            manualRefresh={data.refreshThroughput}
+          />
         </TabsContent>
         <TabsContent value="spending">
           <SpendingTab {...data.spendingTabProps} />

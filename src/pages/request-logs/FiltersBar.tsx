@@ -16,102 +16,100 @@ import type {
 } from "./queryParams";
 
 interface FiltersBarProps {
-  view: ViewType;
-  setView: (view: ViewType) => void;
-  triage: TriageFilter;
-  setTriage: (triage: TriageFilter) => void;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  timeRange: TimeRange;
-  setTimeRange: (range: TimeRange) => void;
-  showPricedOnly: boolean;
-  setShowPricedOnly: (show: boolean | ((prev: boolean) => boolean)) => void;
-  showBillableOnly: boolean;
-  setShowBillableOnly: (show: boolean | ((prev: boolean) => boolean)) => void;
-  modelId: string;
-  setModelId: (id: string) => void;
-  models: { model_id: string; display_name: string | null }[];
-  providers: Provider[];
-  providerType: string;
-  setProviderType: (type: string) => void;
+  clearAllFilters: () => void;
   connectionId: string;
-  setConnectionId: (id: string) => void;
   connections: ConnectionDropdownItem[];
   endpointId: string;
-  setEndpointId: (id: string) => void;
   endpoints: Endpoint[];
-  outcomeFilter: OutcomeFilter;
-  setOutcomeFilter: (filter: OutcomeFilter) => void;
-  streamFilter: StreamFilter;
-  setStreamFilter: (filter: StreamFilter) => void;
   latencyBucket: LatencyBucket;
+  modelId: string;
+  models: { model_id: string; display_name: string | null }[];
+  outcomeFilter: OutcomeFilter;
+  providerType: string;
+  providers: Provider[];
+  refresh: () => void;
+  searchQuery: string;
+  setConnectionId: (id: string) => void;
+  setEndpointId: (id: string) => void;
   setLatencyBucket: (bucket: LatencyBucket) => void;
-  specialTokenFilter: SpecialTokenFilter;
+  setModelId: (id: string) => void;
+  setOutcomeFilter: (filter: OutcomeFilter) => void;
+  setProviderType: (type: string) => void;
+  setSearchQuery: (query: string) => void;
+  setShowBillableOnly: (show: boolean | ((prev: boolean) => boolean)) => void;
+  setShowPricedOnly: (show: boolean | ((prev: boolean) => boolean)) => void;
   setSpecialTokenFilter: (filter: SpecialTokenFilter) => void;
-  tokenMinInput: string;
-  setTokenMinInput: (val: string | ((prev: string) => string)) => void;
-  setTokenMin: (val: number | null) => void;
-  tokenMaxInput: string;
-  setTokenMaxInput: (val: string | ((prev: string) => string)) => void;
+  setStreamFilter: (filter: StreamFilter) => void;
+  setTimeRange: (range: TimeRange) => void;
   setTokenMax: (val: number | null) => void;
-  setOffset: (offset: number) => void;
-  clearAllFilters: () => void;
+  setTokenMaxInput: (val: string | ((prev: string) => string)) => void;
+  setTokenMin: (val: number | null) => void;
+  setTokenMinInput: (val: string | ((prev: string) => string)) => void;
+  setTriage: (triage: TriageFilter) => void;
+  setView: (view: ViewType) => void;
+  showBillableOnly: boolean;
+  showPricedOnly: boolean;
+  specialTokenFilter: SpecialTokenFilter;
+  streamFilter: StreamFilter;
+  timeRange: TimeRange;
+  tokenMaxInput: string;
+  tokenMinInput: string;
+  triage: TriageFilter;
+  view: ViewType;
 }
 
 export function FiltersBar({
-  view,
-  setView,
-  triage,
-  setTriage,
-  searchQuery,
-  setSearchQuery,
-  timeRange,
-  setTimeRange,
-  showPricedOnly,
-  setShowPricedOnly,
-  showBillableOnly,
-  setShowBillableOnly,
-  modelId,
-  setModelId,
-  models,
-  providers,
-  providerType,
-  setProviderType,
+  clearAllFilters,
   connectionId,
-  setConnectionId,
   connections,
   endpointId,
-  setEndpointId,
   endpoints,
-  outcomeFilter,
-  setOutcomeFilter,
-  streamFilter,
-  setStreamFilter,
   latencyBucket,
+  modelId,
+  models,
+  outcomeFilter,
+  providerType,
+  providers,
+  refresh,
+  searchQuery,
+  setConnectionId,
+  setEndpointId,
   setLatencyBucket,
-  specialTokenFilter,
+  setModelId,
+  setOutcomeFilter,
+  setProviderType,
+  setSearchQuery,
+  setShowBillableOnly,
+  setShowPricedOnly,
   setSpecialTokenFilter,
-  tokenMinInput,
-  setTokenMinInput,
-  setTokenMin,
-  tokenMaxInput,
-  setTokenMaxInput,
+  setStreamFilter,
+  setTimeRange,
   setTokenMax,
-  setOffset,
-  clearAllFilters,
+  setTokenMaxInput,
+  setTokenMin,
+  setTokenMinInput,
+  setTriage,
+  setView,
+  showBillableOnly,
+  showPricedOnly,
+  specialTokenFilter,
+  streamFilter,
+  timeRange,
+  tokenMaxInput,
+  tokenMinInput,
+  triage,
+  view,
 }: FiltersBarProps) {
-  const resetOffset = () => {
-    setOffset(0);
-  };
-
   return (
     <div className="sticky top-4 z-20">
       <div className="space-y-3 rounded-lg border border-border/70 bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <RequestViewTabs view={view} setView={setView} />
 
-        <TriageFilterGroup triage={triage} setTriage={setTriage} resetOffset={resetOffset} />
+        <TriageFilterGroup triage={triage} setTriage={setTriage} />
 
         <SearchAndQuickFilters
+          clearAllFilters={clearAllFilters}
+          refresh={refresh}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           timeRange={timeRange}
@@ -120,7 +118,6 @@ export function FiltersBar({
           setShowPricedOnly={setShowPricedOnly}
           showBillableOnly={showBillableOnly}
           setShowBillableOnly={setShowBillableOnly}
-          resetOffset={resetOffset}
         />
 
         <div className="flex flex-wrap items-center gap-2">
@@ -137,7 +134,6 @@ export function FiltersBar({
             endpointId={endpointId}
             setEndpointId={setEndpointId}
             endpoints={endpoints}
-            resetOffset={resetOffset}
           />
           <SecondaryFiltersGroup
             outcomeFilter={outcomeFilter}
@@ -148,7 +144,6 @@ export function FiltersBar({
             setLatencyBucket={setLatencyBucket}
             specialTokenFilter={specialTokenFilter}
             setSpecialTokenFilter={setSpecialTokenFilter}
-            resetOffset={resetOffset}
           />
         </div>
 
@@ -160,7 +155,6 @@ export function FiltersBar({
           setTokenMaxInput={setTokenMaxInput}
           setTokenMax={setTokenMax}
           clearAllFilters={clearAllFilters}
-          resetOffset={resetOffset}
         />
       </div>
     </div>

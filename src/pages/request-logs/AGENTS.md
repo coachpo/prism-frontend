@@ -21,7 +21,6 @@ request-logs/
 ├── useRequestLogPageState.ts
 ├── useRequestLogAuditDetail.ts
 ├── useRequestLogsPageData.ts
-├── useRequestLogsRealtime.ts
 └── HeaderWithTooltip.tsx
 ```
 
@@ -32,7 +31,7 @@ request-logs/
 - Filter and triage controls: `FiltersBar.tsx`, `filters-bar/`
 - Column presets, pagination, and sticky all-columns rendering: `RequestLogsTable.tsx`, `columns.tsx`, `table/`
 - Selected-request drawer, linked audit lookup, and export actions: `RequestLogDetailSheet.tsx`, `RequestLogAuditTab.tsx`, `RequestLogOverviewTab.tsx`, `useRequestLogAuditDetail.ts`
-- Page bootstrap, server fetching, and websocket refresh: `useRequestLogsPageData.ts`, `useRequestLogsRealtime.ts`
+- Page bootstrap, server fetching, manual refresh, and partial table reloads: `useRequestLogsPageData.ts`
 - Error, latency, and currency formatting helpers: `formatters.ts`
 
 ## CONVENTIONS
@@ -41,7 +40,7 @@ request-logs/
 - Keep filter defaults and enum parsing in `queryParams.ts`; UI components should not interpret raw `URLSearchParams` themselves.
 - Apply client-side search, triage, token-range, and latency filters on top of the server-filtered page result instead of scattering that logic across table cells.
 - Resolve linked audit payloads lazily through `useRequestLogAuditDetail.ts` when the detail sheet switches to the `audit` tab.
-- Realtime refresh for the request-log channel belongs in `useRequestLogsRealtime.ts`; detail components should consume refreshed data rather than subscribe directly.
+- Keep request-log refresh table-scoped in `useRequestLogsPageData.ts`; filter option loads and audit detail stay independent of the table refresh path.
 - Keep reusable formatting and metric-availability rules in `formatters.ts` so the table and detail sheet render the same semantics.
 
 ## ANTI-PATTERNS
@@ -50,4 +49,4 @@ request-logs/
 - Do not fetch audit detail eagerly from the page shell when the drawer can load it on demand.
 - Do not re-implement error, latency, or currency formatting inside table or sheet components.
 - Do not treat `request_id` focus mode as a normal paginated list; it is a targeted investigation path with its own empty-state behavior.
-- Do not open a second websocket path from request-log components when `useRequestLogsRealtime.ts` already owns audit-ready and dirty-state handling.
+- Do not couple request-log table refresh to unrelated filter-option or audit-detail fetches.

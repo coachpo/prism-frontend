@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { RequestLogEntry } from "@/lib/types";
 import { getFromTime, type RequestDetailTab } from "./queryParams";
@@ -62,6 +62,7 @@ export function useRequestLogsPageData({
   const { connections, endpoints, models, providers } = useRequestLogFilterOptions(revision);
   const [total, setTotal] = useState(0);
   const [selectedLog, setSelectedLog] = useState<RequestLogEntry | null>(null);
+  const fetchRequestIdRef = useRef(0);
 
   useEffect(() => {
     setOffset(0);
@@ -99,6 +100,8 @@ export function useRequestLogsPageData({
   );
 
   const fetchLogs = useCallback(async () => {
+    const fetchRequestId = fetchRequestIdRef.current + 1;
+    fetchRequestIdRef.current = fetchRequestId;
     setLoading(true);
 
     try {
@@ -119,12 +122,18 @@ export function useRequestLogsPageData({
               offset,
             });
 
+      if (fetchRequestId !== fetchRequestIdRef.current) {
+        return;
+      }
+
       setLogs(response.items);
       setTotal(response.total);
     } catch (error) {
       console.error("Failed to fetch request logs", error);
     } finally {
-      setLoading(false);
+      if (fetchRequestId === fetchRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [connectionId, endpointId, limit, modelId, offset, providerType, requestId, timeRange]);
 
@@ -179,6 +188,7 @@ export function useRequestLogsPageData({
     models,
     openLogDetail,
     providers,
+    refresh: fetchLogs,
     selectedLog,
     setSelectedLog,
   };

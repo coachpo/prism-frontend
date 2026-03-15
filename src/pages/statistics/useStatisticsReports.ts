@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
   RequestLogEntry,
@@ -35,18 +35,24 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
   } = state;
 
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [operationsLoading, setOperationsLoading] = useState(activeTab === "operations");
   const [throughput, setThroughput] = useState<ThroughputStatsResponse | null>(null);
-  const [throughputLoading, setThroughputLoading] = useState(false);
+  const [throughputLoading, setThroughputLoading] = useState(activeTab === "throughput");
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
-  const [spendingLoading, setSpendingLoading] = useState(false);
+  const [spendingLoading, setSpendingLoading] = useState(activeTab === "spending");
   const [spendingError, setSpendingError] = useState<string | null>(null);
   const [spendingUpdatedAt, setSpendingUpdatedAt] = useState<string | null>(null);
+  const operationsRequestIdRef = useRef(0);
+  const throughputRequestIdRef = useRef(0);
+  const spendingRequestIdRef = useRef(0);
 
   const fetchOperationsLogs = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
+      const requestId = operationsRequestIdRef.current + 1;
+      operationsRequestIdRef.current = requestId;
+
       if (!silent) {
-        setLoading(true);
+        setOperationsLoading(true);
       }
 
       try {
@@ -63,12 +69,18 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
           limit: 500,
         });
 
+        if (requestId !== operationsRequestIdRef.current) {
+          return;
+        }
+
         setLogs(response.items);
         latestOperationsLogIdRef.current = response.items[0]?.id ?? 0;
       } catch (error) {
         console.error("Failed to fetch statistics:", error);
       } finally {
-        setLoading(false);
+        if (requestId === operationsRequestIdRef.current) {
+          setOperationsLoading(false);
+        }
       }
     },
     [connectionId, latestOperationsLogIdRef, modelId, providerType, timeRange]
@@ -76,6 +88,9 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
 
   const fetchThroughputData = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
+      const requestId = throughputRequestIdRef.current + 1;
+      throughputRequestIdRef.current = requestId;
+
       if (!silent) {
         setThroughputLoading(true);
       }
@@ -88,11 +103,18 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
           connection_id:
             connectionId !== "__all__" ? Number.parseInt(connectionId, 10) : undefined,
         });
+
+        if (requestId !== throughputRequestIdRef.current) {
+          return;
+        }
+
         setThroughput(response);
       } catch (error) {
         console.error("Failed to fetch throughput:", error);
       } finally {
-        setThroughputLoading(false);
+        if (requestId === throughputRequestIdRef.current) {
+          setThroughputLoading(false);
+        }
       }
     },
     [connectionId, modelId, providerType, timeRange]
@@ -100,6 +122,9 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
 
   const fetchSpendingData = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
+      const requestId = spendingRequestIdRef.current + 1;
+      spendingRequestIdRef.current = requestId;
+
       if (!silent) {
         setSpendingLoading(true);
       }
@@ -125,14 +150,25 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
           offset: spendingOffset,
           top_n: spendingTopN,
         });
+
+        if (requestId !== spendingRequestIdRef.current) {
+          return;
+        }
+
         setSpending(response);
         setSpendingUpdatedAt(new Date().toISOString());
       } catch (error) {
+        if (requestId !== spendingRequestIdRef.current) {
+          return;
+        }
+
         const message =
           error instanceof Error ? error.message : "Failed to fetch spending report";
         setSpendingError(message);
       } finally {
-        setSpendingLoading(false);
+        if (requestId === spendingRequestIdRef.current) {
+          setSpendingLoading(false);
+        }
       }
     },
     [
@@ -150,12 +186,16 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
   );
 
   useEffect(() => {
+    if (activeTab !== "operations") {
+      return;
+    }
+
     const timeout = window.setTimeout(() => {
       void fetchOperationsLogs();
-    }, 450);
+    }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [fetchOperationsLogs, revision]);
+  }, [activeTab, fetchOperationsLogs, revision]);
 
   useEffect(() => {
     if (activeTab !== "throughput") {
@@ -170,26 +210,23 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
   }, [activeTab, fetchThroughputData, revision]);
 
   useEffect(() => {
+    if (activeTab !== "spending") {
+      return;
+    }
+
     const timeout = window.setTimeout(() => {
       void fetchSpendingData();
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [fetchSpendingData, revision]);
-
-  const showInitialLoading = useMemo(
-    () => loading && logs.length === 0 && spending === null && spendingLoading,
-    [loading, logs.length, spending, spendingLoading]
-  );
+  }, [activeTab, fetchSpendingData, revision]);
 
   return {
     fetchOperationsLogs,
     fetchSpendingData,
     fetchThroughputData,
-    loading,
     logs,
-    setLogs,
-    showInitialLoading,
+    operationsLoading,
     spending,
     spendingError,
     spendingLoading,

@@ -29,6 +29,9 @@ import {
 
 type SearchParamMutator = (next: URLSearchParams) => void;
 type BooleanStateUpdate = boolean | ((prev: boolean) => boolean);
+type SearchParamUpdateOptions = {
+  resetOffset?: boolean;
+};
 
 function getStringParam(value: string | null, fallback: string): string {
   if (!value) {
@@ -41,11 +44,17 @@ function getStringParam(value: string | null, fallback: string): string {
 export function useRequestLogPageState() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const updateSearchParams = (mutate: SearchParamMutator) => {
+  const updateSearchParams = (
+    mutate: SearchParamMutator,
+    options?: SearchParamUpdateOptions
+  ) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
         mutate(next);
+        if (options?.resetOffset) {
+          next.delete("offset");
+        }
         return next.toString() === prev.toString() ? prev : next;
       },
       { replace: true }
@@ -120,66 +129,93 @@ export function useRequestLogPageState() {
   }, [tokenMax, tokenMin]);
 
   const setModelId = (value: string) => {
-    updateSearchParams((next) => {
-      if (!value || value === "__all__") next.delete("model_id");
-      else next.set("model_id", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (!value || value === "__all__") next.delete("model_id");
+        else next.set("model_id", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setProviderType = (value: string) => {
-    updateSearchParams((next) => {
-      if (!value || value === "all") next.delete("provider_type");
-      else next.set("provider_type", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (!value || value === "all") next.delete("provider_type");
+        else next.set("provider_type", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setConnectionId = (value: string) => {
-    updateSearchParams((next) => {
-      if (!value || value === "__all__") next.delete("connection_id");
-      else next.set("connection_id", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (!value || value === "__all__") next.delete("connection_id");
+        else next.set("connection_id", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setEndpointId = (value: string) => {
-    updateSearchParams((next) => {
-      if (!value || value === "__all__") next.delete("endpoint_id");
-      else next.set("endpoint_id", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (!value || value === "__all__") next.delete("endpoint_id");
+        else next.set("endpoint_id", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setTimeRange = (value: TimeRange) => {
-    updateSearchParams((next) => {
-      if (value === "24h") next.delete("time_range");
-      else next.set("time_range", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (value === "24h") next.delete("time_range");
+        else next.set("time_range", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setSpecialTokenFilter = (value: SpecialTokenFilter) => {
-    updateSearchParams((next) => {
-      if (value === "all") next.delete("special_token_filter");
-      else next.set("special_token_filter", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (value === "all") next.delete("special_token_filter");
+        else next.set("special_token_filter", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setOutcomeFilter = (value: OutcomeFilter) => {
-    updateSearchParams((next) => {
-      if (value === "all") next.delete("outcome_filter");
-      else next.set("outcome_filter", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (value === "all") next.delete("outcome_filter");
+        else next.set("outcome_filter", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setStreamFilter = (value: StreamFilter) => {
-    updateSearchParams((next) => {
-      if (value === "all") next.delete("stream_filter");
-      else next.set("stream_filter", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (value === "all") next.delete("stream_filter");
+        else next.set("stream_filter", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setLimit = (value: number) => {
-    updateSearchParams((next) => {
-      if (value === DEFAULT_REQUEST_LIMIT) next.delete("limit");
-      else next.set("limit", String(value));
-    });
+    updateSearchParams(
+      (next) => {
+        if (value === DEFAULT_REQUEST_LIMIT) next.delete("limit");
+        else next.set("limit", String(value));
+      },
+      { resetOffset: true }
+    );
   };
 
   const setOffset = (value: number) => {
@@ -197,52 +233,73 @@ export function useRequestLogPageState() {
   };
 
   const setTriage = (value: TriageFilter) => {
-    updateSearchParams((next) => {
-      if (value === "none") next.delete("triage");
-      else next.set("triage", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (value === "none") next.delete("triage");
+        else next.set("triage", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setSearchQuery = (value: string) => {
-    updateSearchParams((next) => {
-      if (!value) next.delete("search");
-      else next.set("search", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (!value) next.delete("search");
+        else next.set("search", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setLatencyBucket = (value: LatencyBucket) => {
-    updateSearchParams((next) => {
-      if (value === "all") next.delete("latency_bucket");
-      else next.set("latency_bucket", value);
-    });
+    updateSearchParams(
+      (next) => {
+        if (value === "all") next.delete("latency_bucket");
+        else next.set("latency_bucket", value);
+      },
+      { resetOffset: true }
+    );
   };
 
   const setShowPricedOnly = (value: BooleanStateUpdate) => {
-    updateSearchParams((next) => {
-      if (resolveBooleanUpdate(value, showPricedOnly)) next.set("priced_only", "true");
-      else next.delete("priced_only");
-    });
+    updateSearchParams(
+      (next) => {
+        if (resolveBooleanUpdate(value, showPricedOnly)) next.set("priced_only", "true");
+        else next.delete("priced_only");
+      },
+      { resetOffset: true }
+    );
   };
 
   const setShowBillableOnly = (value: BooleanStateUpdate) => {
-    updateSearchParams((next) => {
-      if (resolveBooleanUpdate(value, showBillableOnly)) next.set("billable_only", "true");
-      else next.delete("billable_only");
-    });
+    updateSearchParams(
+      (next) => {
+        if (resolveBooleanUpdate(value, showBillableOnly)) next.set("billable_only", "true");
+        else next.delete("billable_only");
+      },
+      { resetOffset: true }
+    );
   };
 
   const setTokenMin = (value: number | null) => {
-    updateSearchParams((next) => {
-      if (value === null) next.delete("token_min");
-      else next.set("token_min", String(value));
-    });
+    updateSearchParams(
+      (next) => {
+        if (value === null) next.delete("token_min");
+        else next.set("token_min", String(value));
+      },
+      { resetOffset: true }
+    );
   };
 
   const setTokenMax = (value: number | null) => {
-    updateSearchParams((next) => {
-      if (value === null) next.delete("token_max");
-      else next.set("token_max", String(value));
-    });
+    updateSearchParams(
+      (next) => {
+        if (value === null) next.delete("token_max");
+        else next.set("token_max", String(value));
+      },
+      { resetOffset: true }
+    );
   };
 
   const clearRequestFocus = () => {

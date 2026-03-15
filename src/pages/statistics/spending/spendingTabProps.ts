@@ -34,4 +34,6 @@ export interface SpendingTabProps {
   models: { model_id: string; display_name: string | null }[];
   connections: ConnectionDropdownItem[];
   providers: Provider[];
+  clearSpendingFilters: () => void;
+  manualRefresh: () => void;
 }

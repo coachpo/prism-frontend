@@ -42,10 +42,7 @@ export function RequestLogsTablePagination({
         <span className="text-xs text-muted-foreground">Rows per page</span>
         <Select
           value={String(limit)}
-          onValueChange={(next) => {
-            setLimit(Number.parseInt(next, 10));
-            setOffset(0);
-          }}
+          onValueChange={(next) => setLimit(Number.parseInt(next, 10))}
         >
           <SelectTrigger className="h-7 min-w-[4.5rem] text-xs tabular-nums">
             <SelectValue />

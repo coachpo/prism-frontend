@@ -5,13 +5,11 @@ import { TRIAGE_OPTIONS } from "../queryParams";
 import type { TriageFilter } from "../queryParams";
 
 interface TriageFilterGroupProps {
-  resetOffset: () => void;
   setTriage: (triage: TriageFilter) => void;
   triage: TriageFilter;
 }
 
 export function TriageFilterGroup({
-  resetOffset,
   setTriage,
   triage,
 }: TriageFilterGroupProps) {
@@ -30,10 +28,7 @@ export function TriageFilterGroup({
             "h-7 gap-1.5 rounded-full border-dashed text-xs whitespace-nowrap",
             triage === option.value && "border-solid"
           )}
-          onClick={() => {
-            setTriage(triage === option.value ? "none" : option.value);
-            resetOffset();
-          }}
+          onClick={() => setTriage(triage === option.value ? "none" : option.value)}
         >
           <option.icon className="h-3 w-3" />
           {option.label}

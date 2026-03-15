@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { Activity, TrendingUp, Zap } from "lucide-react";
+import { Activity, TrendingUp, Zap, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/MetricCard";
 import {
@@ -17,9 +18,10 @@ import type { ThroughputStatsResponse } from "@/lib/types";
 interface ThroughputTabProps {
   data: ThroughputStatsResponse | null;
   isLoading: boolean;
+  manualRefresh: () => void;
 }
 
-export function ThroughputTab({ data, isLoading }: ThroughputTabProps) {
+export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabProps) {
   const { format: formatTime } = useTimezone();
 
   const chartData = useMemo(() => {
@@ -54,6 +56,18 @@ export function ThroughputTab({ data, isLoading }: ThroughputTabProps) {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={manualRefresh}
+          disabled={isLoading}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
+      </div>
+
       {/* Metrics Overview */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard

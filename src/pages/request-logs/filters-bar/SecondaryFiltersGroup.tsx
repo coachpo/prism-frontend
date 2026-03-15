@@ -16,7 +16,6 @@ import type {
 interface SecondaryFiltersGroupProps {
   latencyBucket: LatencyBucket;
   outcomeFilter: OutcomeFilter;
-  resetOffset: () => void;
   setLatencyBucket: (bucket: LatencyBucket) => void;
   setOutcomeFilter: (filter: OutcomeFilter) => void;
   setSpecialTokenFilter: (filter: SpecialTokenFilter) => void;
@@ -28,7 +27,6 @@ interface SecondaryFiltersGroupProps {
 export function SecondaryFiltersGroup({
   latencyBucket,
   outcomeFilter,
-  resetOffset,
   setLatencyBucket,
   setOutcomeFilter,
   setSpecialTokenFilter,
@@ -40,10 +38,7 @@ export function SecondaryFiltersGroup({
     <>
       <Select
         value={outcomeFilter}
-        onValueChange={(next) => {
-          setOutcomeFilter(next as OutcomeFilter);
-          resetOffset();
-        }}
+        onValueChange={(next) => setOutcomeFilter(next as OutcomeFilter)}
       >
         <SelectTrigger className="h-8 w-full text-xs sm:w-[130px] [&_[data-slot=select-value]]:truncate">
           <SelectValue placeholder="Outcome" />
@@ -57,10 +52,7 @@ export function SecondaryFiltersGroup({
 
       <Select
         value={streamFilter}
-        onValueChange={(next) => {
-          setStreamFilter(next as StreamFilter);
-          resetOffset();
-        }}
+        onValueChange={(next) => setStreamFilter(next as StreamFilter)}
       >
         <SelectTrigger className="h-8 w-full text-xs sm:w-[150px] [&_[data-slot=select-value]]:truncate">
           <SelectValue placeholder="Stream" />
@@ -74,10 +66,7 @@ export function SecondaryFiltersGroup({
 
       <Select
         value={latencyBucket}
-        onValueChange={(next) => {
-          setLatencyBucket(next as LatencyBucket);
-          resetOffset();
-        }}
+        onValueChange={(next) => setLatencyBucket(next as LatencyBucket)}
       >
         <SelectTrigger className="h-8 w-full text-xs sm:w-[140px] [&_[data-slot=select-value]]:truncate">
           <SelectValue placeholder="Latency" />
@@ -93,10 +82,7 @@ export function SecondaryFiltersGroup({
 
       <Select
         value={specialTokenFilter}
-        onValueChange={(next) => {
-          setSpecialTokenFilter(next as SpecialTokenFilter);
-          resetOffset();
-        }}
+        onValueChange={(next) => setSpecialTokenFilter(next as SpecialTokenFilter)}
       >
         <SelectTrigger className="h-8 w-full text-xs sm:w-[190px] [&_[data-slot=select-value]]:truncate">
           <SelectValue placeholder="Special Tokens" />

@@ -15,7 +15,6 @@ statistics/
 ├── spending/                    # Spending-tab hooks
 ├── useStatisticsFilterOptions.ts
 ├── useStatisticsPageState.ts
-├── useStatisticsRealtime.ts
 ├── useStatisticsReports.ts
 └── utils.ts                     # Shared helpers
 ```
@@ -30,7 +29,7 @@ statistics/
 - Spending-tab rendering and grouping UI: `SpendingTab.tsx`
 - Spending async data hook and visualizations: `spending/useSpendingTabData.ts`, `spending/`
 - Page bootstrap, filter options, state orchestration, and report loading: `useStatisticsPageData.ts`, `useStatisticsFilterOptions.ts`, `useStatisticsPageState.ts`, `useStatisticsReports.ts`
-- Realtime refresh for statistics channel: `useStatisticsRealtime.ts`
+- Periodic polling for data refresh: `useStatisticsPageData.ts` (uses `usePolling` hook from `@/hooks/usePolling`)
 - Shared presentation helpers: `utils.ts`
 
 ## CONVENTIONS
@@ -39,11 +38,11 @@ statistics/
 - Keep operations-specific and spending-specific async logic in their own hook folders instead of bloating the top-level tab components.
 - Preserve the distinction between operations telemetry filters and spending aggregation filters even when labels overlap.
 - Query-param helpers should own defaults and parsing; tabs should consume typed values, not raw `URLSearchParams`.
-- Statistics websocket refresh belongs in `useStatisticsRealtime.ts`; tabs should react to refreshed state, not own subscriptions.
+- Statistics polling refresh belongs in `useStatisticsPageData.ts`; tabs should react to refreshed state, not own subscriptions.
 
 ## ANTI-PATTERNS
 
 - Do not duplicate filter parsing in tab components when `queryParams.ts` already owns it.
 - Do not mix spending grouping and top-N rules into operations-table logic.
 - Do not regress null-vs-zero rendering for usage or cost metrics; statistics pages rely on that distinction for triage.
-- Do not wire ad hoc websocket listeners from tab components when the shared realtime hook already owns reconnect and dirty-state handling.
+- Do not implement separate polling mechanisms in tab components when `useStatisticsPageData.ts` already owns periodic refresh.

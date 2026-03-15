@@ -21,7 +21,6 @@ interface PrimaryFiltersGroupProps {
   models: { model_id: string; display_name: string | null }[];
   providers: Provider[];
   providerType: string;
-  resetOffset: () => void;
   setConnectionId: (id: string) => void;
   setEndpointId: (id: string) => void;
   setModelId: (id: string) => void;
@@ -37,7 +36,6 @@ export function PrimaryFiltersGroup({
   models,
   providers,
   providerType,
-  resetOffset,
   setConnectionId,
   setEndpointId,
   setModelId,
@@ -47,10 +45,7 @@ export function PrimaryFiltersGroup({
     <>
       <Select
         value={modelId}
-        onValueChange={(next) => {
-          setModelId(next);
-          resetOffset();
-        }}
+        onValueChange={setModelId}
       >
         <SelectTrigger className={SELECT_TRIGGER_CLASS_NAME}>
           <SelectValue placeholder="Model" />
@@ -67,20 +62,14 @@ export function PrimaryFiltersGroup({
 
       <ProviderSelect
         value={providerType}
-        onValueChange={(next) => {
-          setProviderType(next);
-          resetOffset();
-        }}
+        onValueChange={setProviderType}
         providers={providers}
         className="h-8 w-full text-xs sm:w-[150px] [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate"
       />
 
       <Select
         value={connectionId}
-        onValueChange={(next) => {
-          setConnectionId(next);
-          resetOffset();
-        }}
+        onValueChange={setConnectionId}
       >
         <SelectTrigger className={SELECT_TRIGGER_CLASS_NAME}>
           <SelectValue placeholder="Connection" />
@@ -97,10 +86,7 @@ export function PrimaryFiltersGroup({
 
       <Select
         value={endpointId}
-        onValueChange={(next) => {
-          setEndpointId(next);
-          resetOffset();
-        }}
+        onValueChange={setEndpointId}
       >
         <SelectTrigger className={SELECT_TRIGGER_CLASS_NAME}>
           <SelectValue placeholder="Endpoint" />

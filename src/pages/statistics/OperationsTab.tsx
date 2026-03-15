@@ -3,9 +3,9 @@ import { useTimezone } from "@/hooks/useTimezone";
 import type { OperationsTabProps } from "./operations/operationsTabProps";
 import { OperationsChartsSection } from "./operations/OperationsChartsSection";
 import { OperationsDebugSection } from "./operations/OperationsDebugSection";
-import { OperationsFiltersCard } from "./operations/OperationsFiltersCard";
 import { OperationsHealthSection } from "./operations/OperationsHealthSection";
 import { useOperationsTabData } from "./operations/useOperationsTabData";
+import { OperationsTabFilters } from "./OperationsTabFilters";
 
 export function OperationsTab({
   logs,
@@ -26,6 +26,8 @@ export function OperationsTab({
   setSpecialTokenFilter,
   operationsStatusFilter,
   setOperationsStatusFilter,
+  clearOperationsFilters,
+  manualRefresh,
 }: OperationsTabProps) {
   const { format: formatTime } = useTimezone();
   const {
@@ -51,8 +53,6 @@ export function OperationsTab({
     rate5xx,
     cacheHitRate,
     ttftP95,
-    operationsAggregationLabel,
-    operationsLastUpdated,
     requestLogsPath,
   } = useOperationsTabData({
     logs,
@@ -67,24 +67,24 @@ export function OperationsTab({
 
   return (
     <div className="space-y-6">
-      <OperationsFiltersCard
-        models={models}
-        connections={connections}
-        providers={providers}
+      <OperationsTabFilters
+        timeRange={timeRange}
+        setTimeRange={setTimeRange}
         modelId={modelId}
         setModelId={setModelId}
         providerType={providerType}
         setProviderType={setProviderType}
         connectionId={connectionId}
         setConnectionId={setConnectionId}
-        timeRange={timeRange}
-        setTimeRange={setTimeRange}
         specialTokenFilter={specialTokenFilter}
         setSpecialTokenFilter={setSpecialTokenFilter}
         operationsStatusFilter={operationsStatusFilter}
         setOperationsStatusFilter={setOperationsStatusFilter}
-        operationsAggregationLabel={operationsAggregationLabel}
-        operationsLastUpdated={operationsLastUpdated}
+        clearFilters={clearOperationsFilters}
+        refresh={manualRefresh}
+        models={models}
+        providers={providers}
+        connections={connections}
       />
 
       <OperationsHealthSection

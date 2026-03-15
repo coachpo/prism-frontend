@@ -4,7 +4,6 @@ import { parseTokenInputValue } from "../queryParams";
 
 interface TokenRangeControlsProps {
   clearAllFilters: () => void;
-  resetOffset: () => void;
   setTokenMax: (val: number | null) => void;
   setTokenMaxInput: (val: string | ((prev: string) => string)) => void;
   setTokenMin: (val: number | null) => void;
@@ -20,7 +19,6 @@ function normalizeTokenInput(value: string): string {
 
 export function TokenRangeControls({
   clearAllFilters,
-  resetOffset,
   setTokenMax,
   setTokenMaxInput,
   setTokenMin,
@@ -38,7 +36,6 @@ export function TokenRangeControls({
           onBlur={() => {
             setTokenMin(parseTokenInputValue(tokenMinInput));
             setTokenMinInput((prev) => normalizeTokenInput(prev));
-            resetOffset();
           }}
           placeholder="optional"
           inputMode="numeric"
@@ -54,7 +51,6 @@ export function TokenRangeControls({
           onBlur={() => {
             setTokenMax(parseTokenInputValue(tokenMaxInput));
             setTokenMaxInput((prev) => normalizeTokenInput(prev));
-            resetOffset();
           }}
           placeholder="optional"
           inputMode="numeric"

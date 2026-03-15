@@ -8,12 +8,12 @@ import { SpendingSummaryMetrics } from "./spending/SpendingSummaryMetrics";
 import type { SpendingTabProps } from "./spending/spendingTabProps";
 import { SpendingVisualizations } from "./spending/SpendingVisualizations";
 import { useSpendingTabData } from "./spending/useSpendingTabData";
+import { SpendingTabFilters } from "./SpendingTabFilters";
 
 export function SpendingTab({
   spending,
   spendingLoading,
   spendingError,
-  spendingUpdatedAt,
   spendingPreset,
   setSpendingPreset,
   spendingFrom,
@@ -34,9 +34,12 @@ export function SpendingTab({
   setSpendingOffset,
   spendingTopN,
   setSpendingTopN,
+  spendingUpdatedAt,
   models,
   connections,
   providers,
+  clearSpendingFilters,
+  manualRefresh,
 }: SpendingTabProps) {
   const { format: formatTime } = useTimezone();
 
@@ -45,6 +48,28 @@ export function SpendingTab({
 
   return (
     <div className="space-y-6">
+      <SpendingTabFilters
+        spendingPreset={spendingPreset}
+        setSpendingPreset={setSpendingPreset}
+        spendingFrom={spendingFrom}
+        setSpendingFrom={setSpendingFrom}
+        spendingTo={spendingTo}
+        setSpendingTo={setSpendingTo}
+        spendingProviderType={spendingProviderType}
+        setSpendingProviderType={setSpendingProviderType}
+        spendingModelId={spendingModelId}
+        setSpendingModelId={setSpendingModelId}
+        spendingConnectionId={spendingConnectionId}
+        setSpendingConnectionId={setSpendingConnectionId}
+        spendingGroupBy={spendingGroupBy}
+        setSpendingGroupBy={setSpendingGroupBy}
+        clearFilters={clearSpendingFilters}
+        refresh={manualRefresh}
+        models={models}
+        providers={providers}
+        connections={connections}
+      />
+
       <SpendingFiltersCard
         connections={connections}
         formatTime={formatTime}

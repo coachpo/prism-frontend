@@ -142,18 +142,18 @@ describe("useRealtimeData", () => {
     expect(result.current.lastData).toEqual(requestLog);
   });
 
-  it("fires onDirty for dirty fallback messages", () => {
+  it("fires onDirty for dashboard dirty fallback messages", () => {
     const onDirty = vi.fn();
 
     renderHook(() =>
       useRealtimeData({
         profileId: 1,
-        channel: "statistics",
+        channel: "dashboard",
         onDirty,
       })
     );
 
-    emit({ type: "statistics.dirty" });
+    emit({ type: "dashboard.dirty" });
 
     expect(onDirty).toHaveBeenCalledTimes(1);
   });

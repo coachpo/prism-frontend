@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { SpendingGroupBy } from "@/lib/types";
 import {
@@ -58,6 +58,8 @@ export interface StatisticsPageState {
   setSpendingOffset: (value: number) => void;
   spendingTopN: number;
   setSpendingTopN: (value: number) => void;
+  clearOperationsFilters: () => void;
+  clearSpendingFilters: () => void;
 }
 
 export function useStatisticsPageState(revision: number): StatisticsPageState {
@@ -197,6 +199,46 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
     });
   }, [revision]);
 
+  const clearOperationsFilters = useCallback(() => {
+    setModelId("__all__");
+    setProviderType("all");
+    setConnectionId("__all__");
+    setTimeRange("24h");
+    setSpecialTokenFilter("all");
+    setOperationsStatusFilter("all");
+  }, [
+    setModelId,
+    setProviderType,
+    setConnectionId,
+    setTimeRange,
+    setSpecialTokenFilter,
+    setOperationsStatusFilter,
+  ]);
+
+  const clearSpendingFilters = useCallback(() => {
+    setSpendingPreset("last_7_days");
+    setSpendingFrom("");
+    setSpendingTo("");
+    setSpendingProviderType("all");
+    setSpendingModelId("");
+    setSpendingConnectionId("");
+    setSpendingGroupBy("model");
+    setSpendingLimit(DEFAULT_SPENDING_LIMIT);
+    setSpendingOffset(0);
+    setSpendingTopN(DEFAULT_SPENDING_TOP_N);
+  }, [
+    setSpendingPreset,
+    setSpendingFrom,
+    setSpendingTo,
+    setSpendingProviderType,
+    setSpendingModelId,
+    setSpendingConnectionId,
+    setSpendingGroupBy,
+    setSpendingLimit,
+    setSpendingOffset,
+    setSpendingTopN,
+  ]);
+
   return {
     activeTab,
     connectionId,
@@ -232,5 +274,7 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
     spendingTo,
     spendingTopN,
     timeRange,
+    clearOperationsFilters,
+    clearSpendingFilters,
   };
 }

@@ -11,7 +11,6 @@ type BufferedEvent<TData> = { type: "data"; payload: TData };
 
 const DIRTY_MESSAGE_TYPES: Record<RealtimeChannel, RealtimeMessage["type"]> = {
   dashboard: "dashboard.dirty",
-  statistics: "statistics.dirty",
 };
 
 const CHANNEL_PAYLOAD_EXTRACTORS: {
@@ -21,8 +20,6 @@ const CHANNEL_PAYLOAD_EXTRACTORS: {
 } = {
   dashboard: (message) =>
     message.type === "dashboard.update" ? message.request_log : null,
-  statistics: (message) =>
-    message.type === "statistics.new" ? message.request_log : null,
 };
 
 export interface UseRealtimeDataOptions<

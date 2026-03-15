@@ -36,7 +36,7 @@
 - Let route files own bookmarkable search-param state and selected drawer or dialog identity; move parsing and defaults into local `queryParams.ts` helpers once state becomes non-trivial.
 - Extract heavy async and dialog orchestration into helper folders instead of letting the route file own everything; `model-detail/` and `request-logs/` are the current examples.
 - Refresh page data from `ProfileContext.revision` when scoped state changes.
-- Dashboard, statistics, request logs, and loadbalance events should use `useRealtimeData()` for websocket-driven refresh instead of bespoke realtime glue.
+- Dashboard realtime should flow through `useRealtimeData()`; statistics, request logs, and loadbalance events refresh through their REST data hooks and page-level polling/manual refresh controls.
 - Fetch related datasets in parallel with `Promise.all`; use `Promise.allSettled` for mixed-success bootstrap work.
 
 ## ANTI-PATTERNS

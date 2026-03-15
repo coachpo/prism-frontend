@@ -23,4 +23,6 @@ export interface OperationsTabProps {
   setSpecialTokenFilter: (val: SpecialTokenFilter) => void;
   operationsStatusFilter: OperationsStatusFilter;
   setOperationsStatusFilter: (val: OperationsStatusFilter) => void;
+  clearOperationsFilters: () => void;
+  manualRefresh: () => void;
 }

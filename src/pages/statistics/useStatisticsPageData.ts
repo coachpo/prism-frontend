@@ -1,29 +1,27 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState, useCallback } from "react";
 import type { StatisticsPageState } from "./useStatisticsPageState";
 import { useStatisticsFilterOptions } from "./useStatisticsFilterOptions";
-import { useStatisticsRealtime } from "./useStatisticsRealtime";
+import { usePolling } from "@/hooks/usePolling";
 import { useStatisticsReports } from "./useStatisticsReports";
 
 interface UseStatisticsPageDataInput {
   revision: number;
-  selectedProfileId: number | null;
   state: StatisticsPageState;
 }
 
 export function useStatisticsPageData({
   revision,
-  selectedProfileId,
   state,
 }: UseStatisticsPageDataInput) {
   const latestOperationsLogIdRef = useRef(0);
+  const [newLogIds, setNewLogIds] = useState<Set<number>>(new Set());
   const { connections, models, providers } = useStatisticsFilterOptions(revision);
   const {
     fetchOperationsLogs,
     fetchSpendingData,
     fetchThroughputData,
     logs,
-    setLogs,
-    showInitialLoading,
+    operationsLoading,
     spending,
     spendingError,
     spendingLoading,
@@ -35,26 +33,67 @@ export function useStatisticsPageData({
     revision,
     state,
   });
-  const { clearNewLogHighlight, connectionState, isSyncing, newLogIds } =
-    useStatisticsRealtime({
-      fetchOperationsLogs,
-      fetchSpendingData,
-      fetchThroughputData,
-      latestOperationsLogIdRef,
-      selectedProfileId,
-      setLogs,
-      state,
+  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
+
+  const refreshOperations = useCallback(async () => {
+    await fetchOperationsLogs({ silent: true });
+  }, [fetchOperationsLogs]);
+
+  const refreshThroughput = useCallback(async () => {
+    await fetchThroughputData({ silent: true });
+  }, [fetchThroughputData]);
+
+  const refreshSpending = useCallback(async () => {
+    await fetchSpendingData({ silent: true });
+  }, [fetchSpendingData]);
+
+  const refreshActiveTab = useCallback(async () => {
+    if (state.activeTab === "throughput") {
+      await refreshThroughput();
+      return;
+    }
+
+    if (state.activeTab === "spending") {
+      await refreshSpending();
+      return;
+    }
+
+    await refreshOperations();
+  }, [refreshOperations, refreshSpending, refreshThroughput, state.activeTab]);
+
+  const refreshAll = useCallback(async () => {
+    setIsRefreshingAll(true);
+
+    try {
+      await Promise.all([
+        fetchOperationsLogs({ silent: true }),
+        fetchSpendingData({ silent: true }),
+        fetchThroughputData({ silent: true }),
+      ]);
+    } finally {
+      setIsRefreshingAll(false);
+    }
+  }, [fetchOperationsLogs, fetchSpendingData, fetchThroughputData]);
+
+  const { isPolling } = usePolling({
+    onPoll: refreshActiveTab,
+  });
+
+  const clearNewLogHighlight = useCallback((logId: number) => {
+    setNewLogIds((prev) => {
+      const next = new Set(prev);
+      next.delete(logId);
+      return next;
     });
+  }, []);
 
   const operationsTabProps = useMemo(
     () => ({
-      clearNewLogHighlight,
       connectionId: state.connectionId,
       connections,
       logs,
       modelId: state.modelId,
       models,
-      newLogIds,
       operationsStatusFilter: state.operationsStatusFilter,
       providers,
       providerType: state.providerType,
@@ -66,8 +105,12 @@ export function useStatisticsPageData({
       setTimeRange: state.setTimeRange,
       specialTokenFilter: state.specialTokenFilter,
       timeRange: state.timeRange,
+      newLogIds,
+      clearNewLogHighlight,
+      clearOperationsFilters: state.clearOperationsFilters,
+      manualRefresh: refreshOperations,
     }),
-    [clearNewLogHighlight, connections, logs, models, newLogIds, providers, state]
+    [connections, logs, models, providers, state, newLogIds, clearNewLogHighlight, refreshOperations]
   );
 
   const spendingTabProps = useMemo(
@@ -99,14 +142,38 @@ export function useStatisticsPageData({
       spendingTo: state.spendingTo,
       spendingTopN: state.spendingTopN,
       spendingUpdatedAt,
+      clearSpendingFilters: state.clearSpendingFilters,
+      manualRefresh: refreshSpending,
     }),
-    [connections, models, providers, spending, spendingError, spendingLoading, spendingUpdatedAt, state]
+    [connections, models, providers, spending, spendingError, spendingLoading, spendingUpdatedAt, state, refreshSpending]
   );
 
+  const showInitialLoading = useMemo(() => {
+    if (state.activeTab === "throughput") {
+      return throughputLoading && throughput === null;
+    }
+
+    if (state.activeTab === "spending") {
+      return spendingLoading && spending === null;
+    }
+
+    return operationsLoading && logs.length === 0;
+  }, [
+    logs.length,
+    operationsLoading,
+    spending,
+    spendingLoading,
+    state.activeTab,
+    throughput,
+    throughputLoading,
+  ]);
+
   return {
-    connectionState,
-    isSyncing,
+    isPolling,
+    isRefreshingAll,
     operationsTabProps,
+    refreshAll,
+    refreshThroughput,
     showInitialLoading,
     spendingTabProps,
     throughput,
