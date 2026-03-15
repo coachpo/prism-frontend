@@ -35,7 +35,10 @@ export function RequestLogsTableRow({
   openLogDetail,
 }: RequestLogsTableRowProps) {
   return (
-    <TableRow className="cursor-pointer text-xs hover:bg-muted/50" onClick={() => openLogDetail(log)}>
+    <TableRow
+      className="cursor-pointer text-xs hover:bg-muted/50"
+      onClick={() => openLogDetail(log)}
+    >
       {columns.map((column) => (
         <RequestLogsTableCell
           key={column}

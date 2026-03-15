@@ -1,6 +1,4 @@
 import { useProfileContext } from "@/context/ProfileContext";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatisticsPageSkeleton } from "./statistics/StatisticsPageSkeleton";
@@ -28,19 +26,7 @@ export function StatisticsPage() {
       <PageHeader
         title="Statistics"
         description="Operational metrics and spending analytics"
-      >
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => void data.refreshAll()}
-          disabled={data.isRefreshingAll}
-        >
-          <RefreshCw
-            className={`mr-2 h-4 w-4${data.isRefreshingAll ? " animate-spin" : ""}`}
-          />
-          Refresh All
-        </Button>
-      </PageHeader>
+      />
 
       <Tabs
         value={state.activeTab}

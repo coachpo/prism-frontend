@@ -99,6 +99,20 @@ export function useRequestLogsPageData({
     [clientFilters]
   );
 
+  const fetchParams = useMemo(
+    () => ({
+      connectionId,
+      endpointId,
+      limit,
+      modelId,
+      offset,
+      providerType,
+      requestId,
+      timeRange,
+    }),
+    [connectionId, endpointId, limit, modelId, offset, providerType, requestId, timeRange]
+  );
+
   const fetchLogs = useCallback(async () => {
     const fetchRequestId = fetchRequestIdRef.current + 1;
     fetchRequestIdRef.current = fetchRequestId;
@@ -106,20 +120,20 @@ export function useRequestLogsPageData({
 
     try {
       const response =
-        requestId !== null
+        fetchParams.requestId !== null
           ? await api.stats.requests({
-              request_id: requestId,
+              request_id: fetchParams.requestId,
               limit: 1,
               offset: 0,
             })
           : await api.stats.requests({
-              model_id: modelId === "__all__" ? undefined : modelId,
-              provider_type: providerType === "all" ? undefined : providerType,
-              connection_id: connectionId === "__all__" ? undefined : Number.parseInt(connectionId, 10),
-              endpoint_id: endpointId === "__all__" ? undefined : Number.parseInt(endpointId, 10),
-              from_time: getFromTime(timeRange),
-              limit,
-              offset,
+              model_id: fetchParams.modelId === "__all__" ? undefined : fetchParams.modelId,
+              provider_type: fetchParams.providerType === "all" ? undefined : fetchParams.providerType,
+              connection_id: fetchParams.connectionId === "__all__" ? undefined : Number.parseInt(fetchParams.connectionId, 10),
+              endpoint_id: fetchParams.endpointId === "__all__" ? undefined : Number.parseInt(fetchParams.endpointId, 10),
+              from_time: getFromTime(fetchParams.timeRange),
+              limit: fetchParams.limit,
+              offset: fetchParams.offset,
             });
 
       if (fetchRequestId !== fetchRequestIdRef.current) {
@@ -135,7 +149,7 @@ export function useRequestLogsPageData({
         setLoading(false);
       }
     }
-  }, [connectionId, endpointId, limit, modelId, offset, providerType, requestId, timeRange]);
+  }, [fetchParams]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -169,7 +183,7 @@ export function useRequestLogsPageData({
   const displayedRows = requestId !== null ? logs : filteredAndSortedRows;
   const displayedLoading = loading;
   const displayedTotal = total;
-  const displayedPageRowCount = requestId !== null ? displayedRows.length : logs.length;
+  const displayedPageRowCount = displayedRows.length;
   const allColumnsMode = view === "all";
 
   const openLogDetail = (log: RequestLogEntry, tab: RequestDetailTab = "overview") => {

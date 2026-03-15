@@ -174,4 +174,50 @@ describe("useRequestLogsPageData", () => {
     });
     expect(result.current.displayedRows).toHaveLength(1);
   });
+
+  it("uses the filtered page row count for pagination state", async () => {
+    api.stats.requests.mockResolvedValue({
+      items: [makeRequestLog(101), makeRequestLog(102)],
+      total: 2,
+      limit: 50,
+      offset: 0,
+    });
+
+    const { result } = renderHook(
+      () =>
+        useRequestLogsPageData({
+          connectionId: "__all__",
+          endpointId: "__all__",
+          latencyBucket: "all",
+          limit: 50,
+          modelId: "__all__",
+          offset: 0,
+          outcomeFilter: "all",
+          providerType: "all",
+          requestId: null,
+          revision: 1,
+          searchQuery: "102",
+          setDetailTab: vi.fn(),
+          setOffset: vi.fn(),
+          showBillableOnly: false,
+          showPricedOnly: false,
+          specialTokenFilter: "all",
+          streamFilter: "all",
+          timeRange: "24h",
+          tokenMax: null,
+          tokenMin: null,
+          triage: "none",
+          view: "default",
+        }),
+      { wrapper: StrictWrapper }
+    );
+
+    await waitFor(() => {
+      expect(result.current.displayedLoading).toBe(false);
+    });
+
+    expect(result.current.displayedRows).toHaveLength(1);
+    expect(result.current.displayedRows[0]?.id).toBe(102);
+    expect(result.current.displayedPageRowCount).toBe(1);
+  });
 });
