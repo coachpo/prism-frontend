@@ -21,10 +21,8 @@ interface RequestLogsTableRowProps {
   allColumnsMode: boolean;
   columns: ColumnId[];
   formatTime: (date: string, options?: Intl.DateTimeFormatOptions) => string;
-  getRowClassName?: (row: RequestLogEntry) => string | undefined;
   log: RequestLogEntry;
   navigateToConnection: (id: number) => Promise<void>;
-  onRowAnimationEnd?: (row: RequestLogEntry) => void;
   openLogDetail: (log: RequestLogEntry) => void;
 }
 
@@ -32,18 +30,12 @@ export function RequestLogsTableRow({
   allColumnsMode,
   columns,
   formatTime,
-  getRowClassName,
   log,
   navigateToConnection,
-  onRowAnimationEnd,
   openLogDetail,
 }: RequestLogsTableRowProps) {
   return (
-    <TableRow
-      className={cn("cursor-pointer text-xs hover:bg-muted/50", getRowClassName?.(log))}
-      onClick={() => openLogDetail(log)}
-      onAnimationEnd={() => onRowAnimationEnd?.(log)}
-    >
+    <TableRow className="cursor-pointer text-xs hover:bg-muted/50" onClick={() => openLogDetail(log)}>
       {columns.map((column) => (
         <RequestLogsTableCell
           key={column}

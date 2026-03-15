@@ -1,7 +1,6 @@
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { WebSocketStatusIndicator } from "@/components/WebSocketStatusIndicator";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
 import { useTimezone } from "@/hooks/useTimezone";
@@ -15,11 +14,10 @@ import { useRequestLogsPageData } from "@/pages/request-logs/useRequestLogsPageD
 export function RequestsPage() {
   const { format: formatTime } = useTimezone();
   const { navigateToConnection } = useConnectionNavigation();
-  const { revision, selectedProfile } = useProfileContext();
+  const { revision } = useProfileContext();
   const state = useRequestLogPageState();
   const data = useRequestLogsPageData({
     connectionId: state.connectionId,
-    detailTab: state.detailTab,
     endpointId: state.endpointId,
     latencyBucket: state.latencyBucket,
     limit: state.limit,
@@ -30,7 +28,6 @@ export function RequestsPage() {
     requestId: state.requestId,
     revision,
     searchQuery: state.searchQuery,
-    selectedProfileId: selectedProfile?.id ?? null,
     setDetailTab: state.setDetailTab,
     setOffset: state.setOffset,
     showBillableOnly: state.showBillableOnly,
@@ -50,12 +47,7 @@ export function RequestsPage() {
         <PageHeader
           title="Requests"
           description="Review routed requests, then inspect the linked audit capture directly in the side drawer."
-        >
-          <WebSocketStatusIndicator
-            connectionState={data.connectionState}
-            isSyncing={data.isSyncing}
-          />
-        </PageHeader>
+        />
 
         {state.requestId !== null ? (
           <RequestFocusBanner
@@ -123,9 +115,6 @@ export function RequestsPage() {
           clearAllFilters={state.clearAllFilters}
           formatTime={formatTime}
           navigateToConnection={navigateToConnection}
-          scrollContainerRef={data.tableScrollRef}
-          getRowClassName={(row) => (data.newLogIds.has(row.id) ? "ws-new-row" : undefined)}
-          onRowAnimationEnd={(row) => data.clearNewLog(row.id)}
           emptyStateTitle={state.requestId !== null ? `Request #${state.requestId} was not found` : undefined}
           emptyStateDescription={
             state.requestId !== null
@@ -151,7 +140,6 @@ export function RequestsPage() {
           navigateToConnection={navigateToConnection}
           formatTime={formatTime}
           requestId={state.requestId}
-          auditRefreshKey={data.auditRefreshKey}
           detailTab={state.detailTab}
           setDetailTab={state.setDetailTab}
           clearRequestFocus={state.clearRequestFocus}

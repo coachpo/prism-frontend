@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
-import { WebSocketStatusIndicator } from "@/components/WebSocketStatusIndicator";
 import { useProfileContext } from "@/context/ProfileContext";
 import { LoadbalanceEventDetailSheet } from "@/components/loadbalance/LoadbalanceEventDetailSheet";
 import { LoadbalanceEventsFiltersCard } from "./loadbalance-events/LoadbalanceEventsFiltersCard";
@@ -10,7 +9,7 @@ import { useLoadbalanceEventFilters } from "./loadbalance-events/useLoadbalanceE
 import { useLoadbalanceEventsData } from "./loadbalance-events/useLoadbalanceEventsData";
 
 export function LoadbalanceEventsPage() {
-  const { revision, selectedProfile } = useProfileContext();
+  const { revision } = useProfileContext();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
   const {
@@ -35,15 +34,10 @@ export function LoadbalanceEventsPage() {
     stats,
     loading,
     total,
-    newEventIds,
-    clearNewEvent,
     refresh,
-    connectionState,
-    isSyncing,
   } = useLoadbalanceEventsData({
     filters,
     revision,
-    profileId: selectedProfile?.id ?? null,
   });
 
   return (
@@ -51,12 +45,7 @@ export function LoadbalanceEventsPage() {
       <PageHeader
         title="Loadbalance Events"
         description="Monitor failover transitions and connection recovery"
-      >
-        <WebSocketStatusIndicator
-          connectionState={connectionState}
-          isSyncing={isSyncing}
-        />
-      </PageHeader>
+      />
 
       <LoadbalanceEventsStats stats={stats} />
 
@@ -79,8 +68,6 @@ export function LoadbalanceEventsPage() {
         total={total}
         offset={offset}
         limit={limit}
-        newEventIds={newEventIds}
-        clearNewEvent={clearNewEvent}
         onSelectEvent={setSelectedEventId}
         onPreviousPage={goToPreviousPage}
         onNextPage={() => goToNextPage(total)}

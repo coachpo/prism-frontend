@@ -10,13 +10,6 @@ const api = vi.hoisted(() => ({
   },
 }));
 
-const realtimeState = vi.hoisted(() => ({
-  clearNewLog: vi.fn(),
-  connectionState: "connected" as const,
-  isSyncing: false,
-  newLogIds: new Set<number>(),
-}));
-
 vi.mock("@/lib/api", () => ({ api }));
 vi.mock("../useRequestLogFilterOptions", () => ({
   useRequestLogFilterOptions: () => ({
@@ -25,9 +18,6 @@ vi.mock("../useRequestLogFilterOptions", () => ({
     models: [],
     providers: [],
   }),
-}));
-vi.mock("../useRequestLogsRealtime", () => ({
-  useRequestLogsRealtime: () => realtimeState,
 }));
 
 function StrictWrapper({ children }: { children: ReactNode }) {
@@ -103,7 +93,6 @@ describe("useRequestLogsPageData", () => {
       () =>
         useRequestLogsPageData({
           connectionId: "__all__",
-          detailTab: "overview",
           endpointId: "__all__",
           latencyBucket: "all",
           limit: 50,
@@ -114,7 +103,6 @@ describe("useRequestLogsPageData", () => {
           requestId: null,
           revision: 1,
           searchQuery: "",
-          selectedProfileId: 1,
           setDetailTab: vi.fn(),
           setOffset: vi.fn(),
           showBillableOnly: false,
@@ -138,5 +126,52 @@ describe("useRequestLogsPageData", () => {
     expect(api.stats.requests).toHaveBeenCalledTimes(1);
     expect(result.current.displayedRows).toHaveLength(1);
     expect(result.current.displayedRows[0]?.id).toBe(101);
+  });
+
+  it("reuses the main requests query for exact request focus", async () => {
+    const { result } = renderHook(
+      () =>
+        useRequestLogsPageData({
+          connectionId: "99",
+          endpointId: "42",
+          latencyBucket: "all",
+          limit: 50,
+          modelId: "other-model",
+          offset: 0,
+          outcomeFilter: "all",
+          providerType: "anthropic",
+          requestId: 101,
+          revision: 1,
+          searchQuery: "",
+          setDetailTab: vi.fn(),
+          setOffset: vi.fn(),
+          showBillableOnly: false,
+          showPricedOnly: false,
+          specialTokenFilter: "all",
+          streamFilter: "all",
+          timeRange: "24h",
+          tokenMax: null,
+          tokenMin: null,
+          triage: "none",
+          view: "default",
+        }),
+      { wrapper: StrictWrapper }
+    );
+
+    await waitFor(() => {
+      expect(api.stats.requests).toHaveBeenCalledTimes(1);
+      expect(result.current.displayedLoading).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.selectedLog?.id).toBe(101);
+    });
+
+    expect(api.stats.requests).toHaveBeenCalledWith({
+      request_id: 101,
+      limit: 1,
+      offset: 0,
+    });
+    expect(result.current.displayedRows).toHaveLength(1);
   });
 });

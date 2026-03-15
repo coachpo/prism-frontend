@@ -1,16 +1,10 @@
-import type { LoadbalanceEvent, RequestLogEntry } from "@/lib/types";
+import type { RequestLogEntry } from "@/lib/types";
 
-export type RealtimeChannel =
-  | "dashboard"
-  | "request_logs"
-  | "statistics"
-  | "loadbalance_events";
+export type RealtimeChannel = "dashboard" | "statistics";
 
 export interface RealtimeChannelPayloadMap {
   dashboard: RequestLogEntry;
-  request_logs: RequestLogEntry;
   statistics: RequestLogEntry;
-  loadbalance_events: LoadbalanceEvent;
 }
 
 export type RealtimeMessage =
@@ -20,15 +14,10 @@ export type RealtimeMessage =
   | { type: "subscribed"; profile_id: number; channel: RealtimeChannel }
   | { type: "unsubscribed"; channel?: RealtimeChannel }
   | { type: "dashboard.update"; request_log: RequestLogEntry }
-  | { type: "request_logs.new"; request_log: RequestLogEntry }
   | { type: "statistics.new"; request_log: RequestLogEntry }
-  | { type: "loadbalance_events.new"; event: LoadbalanceEvent }
-  | { type: "request_logs.audit_ready"; request_log_id: number; audit_log_id: number }
   | { type: "reconnected" }
   | { type: "dashboard.dirty" }
   | { type: "statistics.dirty" }
-  | { type: "request_logs.dirty" }
-  | { type: "loadbalance_events.dirty" }
   | { type: "error"; message: string }
   | { type: "pong" };
 

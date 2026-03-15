@@ -7,15 +7,11 @@ import {
   type RealtimeMessage,
 } from "@/lib/websocket";
 
-type BufferedEvent<TData> =
-  | { type: "data"; payload: TData }
-  | { type: "audit_ready"; requestLogId: number; auditLogId: number };
+type BufferedEvent<TData> = { type: "data"; payload: TData };
 
 const DIRTY_MESSAGE_TYPES: Record<RealtimeChannel, RealtimeMessage["type"]> = {
   dashboard: "dashboard.dirty",
-  request_logs: "request_logs.dirty",
   statistics: "statistics.dirty",
-  loadbalance_events: "loadbalance_events.dirty",
 };
 
 const CHANNEL_PAYLOAD_EXTRACTORS: {
@@ -25,12 +21,8 @@ const CHANNEL_PAYLOAD_EXTRACTORS: {
 } = {
   dashboard: (message) =>
     message.type === "dashboard.update" ? message.request_log : null,
-  request_logs: (message) =>
-    message.type === "request_logs.new" ? message.request_log : null,
   statistics: (message) =>
     message.type === "statistics.new" ? message.request_log : null,
-  loadbalance_events: (message) =>
-    message.type === "loadbalance_events.new" ? message.event : null,
 };
 
 export interface UseRealtimeDataOptions<
@@ -42,7 +34,6 @@ export interface UseRealtimeDataOptions<
   onDirty?: () => void;
   onData?: (payload: RealtimeChannelPayloadMap[TChannel]) => void;
   onReconnect?: () => void;
-  onAuditReady?: (requestLogId: number, auditLogId: number) => void;
 }
 
 export interface UseRealtimeDataReturn<TData> {
@@ -58,12 +49,11 @@ export interface UseRealtimeDataReturn<TData> {
 export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
   options: UseRealtimeDataOptions<TChannel>
 ): UseRealtimeDataReturn<RealtimeChannelPayloadMap[TChannel]> {
-  const { profileId, channel = "dashboard" as TChannel, enabled = true, onDirty, onData, onReconnect, onAuditReady } = options;
+  const { profileId, channel = "dashboard" as TChannel, enabled = true, onDirty, onData, onReconnect } = options;
   const client = getWebSocketClient();
   const onDirtyRef = useRef(onDirty);
   const onDataRef = useRef(onData);
   const onReconnectRef = useRef(onReconnect);
-  const onAuditReadyRef = useRef(onAuditReady);
   const isSyncingRef = useRef(false);
   const pendingDirtyRef = useRef(false);
   const pendingEventsRef = useRef<
@@ -93,10 +83,6 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
     onReconnectRef.current = onReconnect;
   }, [onReconnect]);
 
-  useEffect(() => {
-    onAuditReadyRef.current = onAuditReady;
-  }, [onAuditReady]);
-
   const markSyncComplete = useCallback(() => {
     isSyncingRef.current = false;
     setIsSyncing(false);
@@ -105,15 +91,7 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
     pendingEventsRef.current = [];
 
     for (const pendingEvent of pendingEvents) {
-      if (pendingEvent.type === "data") {
-        onDataRef.current?.(pendingEvent.payload);
-        continue;
-      }
-
-      onAuditReadyRef.current?.(
-        pendingEvent.requestLogId,
-        pendingEvent.auditLogId
-      );
+      onDataRef.current?.(pendingEvent.payload);
     }
 
     if (pendingDirtyRef.current) {
@@ -175,20 +153,6 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
         }
 
         onDataRef.current?.(payload);
-        return;
-      }
-
-      if (channel === "request_logs" && message.type === "request_logs.audit_ready") {
-        if (isSyncingRef.current) {
-          pendingEventsRef.current.push({
-            type: "audit_ready",
-            requestLogId: message.request_log_id,
-            auditLogId: message.audit_log_id,
-          });
-          return;
-        }
-
-        onAuditReadyRef.current?.(message.request_log_id, message.audit_log_id);
       }
     };
 

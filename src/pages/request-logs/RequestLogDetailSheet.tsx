@@ -20,7 +20,6 @@ interface RequestLogDetailSheetProps {
   navigateToConnection: (id: number) => Promise<void>;
   formatTime: (date: string, options?: Intl.DateTimeFormatOptions) => string;
   requestId: number | null;
-  auditRefreshKey: number;
   detailTab: RequestDetailTab;
   setDetailTab: (tab: RequestDetailTab) => void;
   clearRequestFocus: () => void;
@@ -36,7 +35,6 @@ export function RequestLogDetailSheet({
   navigateToConnection,
   formatTime,
   requestId,
-  auditRefreshKey,
   detailTab,
   setDetailTab,
   clearRequestFocus,
@@ -46,7 +44,6 @@ export function RequestLogDetailSheet({
   const { auditDetail, auditLoading, auditError, auditChecked } = useRequestLogAuditDetail({
     selectedLogId,
     detailTab,
-    auditRefreshKey,
   });
 
   const closeSheet = () => {

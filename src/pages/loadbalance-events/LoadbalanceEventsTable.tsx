@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { EventTypeBadge, FailureKindBadge } from "@/components/loadbalance/LoadbalanceBadges";
-import { cn } from "@/lib/utils";
 import { getLoadbalanceRangeLabel } from "./loadbalanceEventUtils";
 import type { LoadbalanceEventRow } from "./types";
 
@@ -18,8 +17,6 @@ interface LoadbalanceEventsTableProps {
   total: number;
   offset: number;
   limit: number;
-  newEventIds: Set<number>;
-  clearNewEvent: (eventId: number) => void;
   onSelectEvent: (eventId: number) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
@@ -31,8 +28,6 @@ export function LoadbalanceEventsTable({
   total,
   offset,
   limit,
-  newEventIds,
-  clearNewEvent,
   onSelectEvent,
   onPreviousPage,
   onNextPage,
@@ -73,12 +68,8 @@ export function LoadbalanceEventsTable({
             ? events.map((event) => (
                 <TableRow
                   key={event.id}
-                  className={cn(
-                    "cursor-pointer hover:bg-muted/50",
-                    newEventIds.has(event.id) && "ws-new-row"
-                  )}
+                  className="cursor-pointer hover:bg-muted/50"
                   onClick={() => onSelectEvent(event.id)}
-                  onAnimationEnd={() => clearNewEvent(event.id)}
                 >
                   <TableCell className="font-mono text-sm">{event.id}</TableCell>
                   <TableCell>

@@ -6,13 +6,11 @@ import type { RequestDetailTab } from "./queryParams";
 interface UseRequestLogAuditDetailInput {
   selectedLogId: number | null;
   detailTab: RequestDetailTab;
-  auditRefreshKey: number;
 }
 
 export function useRequestLogAuditDetail({
   selectedLogId,
   detailTab,
-  auditRefreshKey,
 }: UseRequestLogAuditDetailInput) {
   const [auditDetail, setAuditDetail] = useState<AuditLogDetail | null>(null);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -77,7 +75,7 @@ export function useRequestLogAuditDetail({
     return () => {
       cancelled = true;
     };
-  }, [auditRefreshKey, detailTab, selectedLogId]);
+  }, [detailTab, selectedLogId]);
 
   return {
     auditDetail,

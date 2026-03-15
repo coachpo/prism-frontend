@@ -131,12 +131,12 @@ describe("useRealtimeData", () => {
     const { result } = renderHook(() =>
       useRealtimeData({
         profileId: 1,
-        channel: "request_logs",
+        channel: "dashboard",
         onData,
       })
     );
 
-    emit({ type: "request_logs.new", request_log: requestLog });
+    emit({ type: "dashboard.update", request_log: requestLog });
 
     expect(onData).toHaveBeenCalledWith(requestLog);
     expect(result.current.lastData).toEqual(requestLog);
@@ -174,22 +174,6 @@ describe("useRealtimeData", () => {
     expect(result.current.isSyncing).toBe(true);
   });
 
-  it("fires onAuditReady for targeted audit refresh messages", () => {
-    const onAuditReady = vi.fn();
-
-    renderHook(() =>
-      useRealtimeData({
-        profileId: 1,
-        channel: "request_logs",
-        onAuditReady,
-      })
-    );
-
-    emit({ type: "request_logs.audit_ready", request_log_id: 17, audit_log_id: 33 });
-
-    expect(onAuditReady).toHaveBeenCalledWith(17, 33);
-  });
-
   it("buffers pushed payloads during sync until markSyncComplete is called", () => {
     const onData = vi.fn();
     const requestLog = makeRequestLog({ id: 202 });
@@ -197,14 +181,14 @@ describe("useRealtimeData", () => {
     const { result } = renderHook(() =>
       useRealtimeData({
         profileId: 1,
-        channel: "request_logs",
+        channel: "dashboard",
         onData,
         onReconnect: vi.fn(),
       })
     );
 
     emit({ type: "reconnected" });
-    emit({ type: "request_logs.new", request_log: requestLog });
+    emit({ type: "dashboard.update", request_log: requestLog });
 
     expect(onData).not.toHaveBeenCalled();
 
@@ -220,17 +204,17 @@ describe("useRealtimeData", () => {
     const firstHook = renderHook(() =>
       useRealtimeData({
         profileId: 1,
-        channel: "request_logs",
+        channel: "dashboard",
       })
     );
     const secondHook = renderHook(() =>
       useRealtimeData({
         profileId: 1,
-        channel: "request_logs",
+        channel: "dashboard",
       })
     );
 
-    expect(channelCounts.get("request_logs")).toBe(2);
+    expect(channelCounts.get("dashboard")).toBe(2);
 
     firstHook.unmount();
 
@@ -238,7 +222,7 @@ describe("useRealtimeData", () => {
       vi.advanceTimersByTime(600);
     });
 
-    expect(channelCounts.get("request_logs")).toBe(1);
+    expect(channelCounts.get("dashboard")).toBe(1);
     expect(secondHook.result.current.isSubscribed).toBe(true);
   });
 });
