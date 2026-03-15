@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { RequestLogEntry } from "@/lib/types";
+import { AlertCircle, Clock } from "lucide-react";
 
 export const ROW_HEIGHT = 45;
 
@@ -25,8 +26,8 @@ function statusColor(code: number): string {
 function latencyColor(ms: number): string {
   if (ms < 500) return "text-emerald-600 dark:text-emerald-400";
   if (ms < 2000) return "text-foreground";
-  if (ms < 5000) return "text-amber-600 dark:text-amber-400";
-  return "text-red-600 dark:text-red-400";
+  if (ms < 5000) return "text-amber-600 dark:text-amber-400 font-medium";
+  return "text-red-600 dark:text-red-400 font-bold";
 }
 
 export interface ColumnDef {
@@ -46,7 +47,11 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       width: view === "all" ? "180px" : "150px",
       ...(view === "all" ? { sticky: { left: "0px" } } : {}),
       render: (row, fmt) => (
-        <span className="truncate text-xs text-muted-foreground">{fmt(row.created_at)}</span>
+        <div className="flex items-center gap-2">
+          {row.status_code >= 500 && <AlertCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
+          {row.response_time_ms >= 5000 && row.status_code < 500 && <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+          <span className="truncate text-xs text-muted-foreground font-mono">{fmt(row.created_at)}</span>
+        </div>
       ),
     },
     {
@@ -70,7 +75,7 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       width: "80px",
       align: "center",
       render: (row) => (
-        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", statusColor(row.status_code))}>
+        <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 font-mono", statusColor(row.status_code))}>
           {row.status_code}
         </Badge>
       ),
@@ -81,7 +86,7 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       width: "90px",
       align: "right",
       render: (row) => (
-        <span className={cn("text-xs tabular-nums", latencyColor(row.response_time_ms))}>
+        <span className={cn("text-xs font-mono", latencyColor(row.response_time_ms))}>
           {row.response_time_ms.toLocaleString()}ms
         </span>
       ),
@@ -92,7 +97,7 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       width: "80px",
       align: "right",
       render: (row) => (
-        <span className="text-xs tabular-nums text-muted-foreground">
+        <span className="text-xs font-mono text-muted-foreground">
           {formatTokens(row.total_tokens)}
         </span>
       ),
@@ -103,7 +108,7 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       width: "90px",
       align: "right",
       render: (row) => (
-        <span className="text-xs tabular-nums text-muted-foreground">
+        <span className={cn("text-xs font-mono", row.total_cost_user_currency_micros && row.total_cost_user_currency_micros > 0 ? "text-foreground font-medium" : "text-muted-foreground")}>
           {formatCost(row.total_cost_user_currency_micros, row.report_currency_symbol)}
         </span>
       ),

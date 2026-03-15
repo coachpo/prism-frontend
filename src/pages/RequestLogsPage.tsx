@@ -11,6 +11,8 @@ import { RequestFocusBanner } from "./request-logs/RequestFocusBanner";
 import { FiltersBar } from "./request-logs/FiltersBar";
 import { RequestLogsTable } from "./request-logs/RequestLogsTable";
 import { RequestLogDetailSheet } from "./request-logs/RequestLogDetailSheet";
+import { SearchX, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function RequestLogsPage() {
   const { revision } = useProfileContext();
@@ -49,7 +51,7 @@ export function RequestLogsPage() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
+      <div className="space-y-6 pb-8">
         <PageHeader
           title="Request Logs"
           description="Browse and investigate proxied request history"
@@ -71,22 +73,28 @@ export function RequestLogsPage() {
         )}
 
         {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-            {error}
+          <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <p>{error}</p>
           </div>
         )}
 
         {isExactMode && !loading && items.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-lg border py-16">
-            <p className="text-sm text-muted-foreground">
-              Request #{state.request_id} not found
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border bg-card py-24 text-center shadow-sm">
+            <div className="rounded-full bg-muted p-4 mb-2">
+              <SearchX className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium">Request Not Found</h3>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Request #{state.request_id} could not be found. It may have been deleted or you might not have access to it.
             </p>
-            <button
-              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            <Button
+              variant="outline"
+              className="mt-4"
               onClick={actions.clearRequest}
             >
               Return to request list
-            </button>
+            </Button>
           </div>
         ) : (
           <RequestLogsTable
@@ -96,6 +104,7 @@ export function RequestLogsPage() {
             view={state.view}
             limit={state.limit}
             offset={state.offset}
+            activeRequestId={selectedRequest?.id ?? null}
             onSelectRequest={(id) => actions.selectRequest(id)}
             onSetLimit={actions.setLimit}
             onNextPage={() => actions.goToNextPage(total)}
