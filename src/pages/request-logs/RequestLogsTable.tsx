@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, FileSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,12 @@ interface RequestLogsTableProps {
   onNextPage: () => void;
   onPreviousPage: () => void;
   formatTimestamp: (iso: string) => string;
+}
+
+interface ResolvedColumn extends ColumnDef {
+  left?: number;
+  resolvedWidth: number;
+  sticky: boolean;
 }
 
 const OVERSCAN = 10;
@@ -59,6 +65,30 @@ function getRowTone(row: RequestLogEntry, isSelected: boolean) {
   };
 }
 
+function resolveColumns(columns: ColumnDef[], containerWidth: number, stickyCount: number): ResolvedColumn[] {
+  const baseWidth = columns.reduce((sum, col) => sum + col.width, 0);
+  const growWeight = columns.reduce((sum, col) => sum + (col.grow ?? 0), 0);
+  const extraWidth = Math.max(0, containerWidth - baseWidth);
+
+  let currentLeft = 0;
+  return columns.map((col, index) => {
+    const resolvedWidth = Math.round(col.width + (growWeight > 0 ? extraWidth * ((col.grow ?? 0) / growWeight) : 0));
+    const sticky = index < stickyCount;
+    const next: ResolvedColumn = {
+      ...col,
+      resolvedWidth,
+      sticky,
+      ...(sticky ? { left: currentLeft } : {}),
+    };
+
+    if (sticky) {
+      currentLeft += resolvedWidth;
+    }
+
+    return next;
+  });
+}
+
 export function RequestLogsTable({
   items,
   total,
@@ -77,15 +107,39 @@ export function RequestLogsTable({
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(500);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return undefined;
+
+    const syncSize = () => {
+      setContainerHeight(element.clientHeight);
+      setContainerWidth(element.clientWidth);
+    };
+
+    syncSize();
+    const observer = new ResizeObserver(syncSize);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     setScrollTop(el.scrollTop);
-    if (Math.abs(el.clientHeight - containerHeight) > 10) {
-      setContainerHeight(el.clientHeight);
-    }
-  }, [containerHeight]);
+  }, []);
+
+  const resolvedColumns = useMemo(
+    () => resolveColumns(columns, Math.max(containerWidth - 2, 0), view === "all" ? 2 : 0),
+    [columns, containerWidth, view]
+  );
+
+  const totalWidth = useMemo(
+    () => resolvedColumns.reduce((sum, col) => sum + col.resolvedWidth, 0),
+    [resolvedColumns]
+  );
 
   const totalHeight = items.length * ROW_HEIGHT;
   const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
@@ -100,9 +154,9 @@ export function RequestLogsTable({
   return (
     <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
       <div ref={containerRef} className="max-h-[68vh] overflow-auto" onScroll={handleScroll}>
-        <div className="min-w-[920px]">
+        <div className="w-full" style={{ minWidth: totalWidth }}>
           <div className="sticky top-0 z-10 flex border-b border-border/70 bg-background/92 backdrop-blur-md">
-            {columns.map((col) => (
+            {resolvedColumns.map((col) => (
               <div
                 key={col.key}
                 className={cn(
@@ -111,7 +165,7 @@ export function RequestLogsTable({
                   col.align === "center" && "text-center",
                   col.sticky && "sticky z-20 bg-background/92 backdrop-blur-md"
                 )}
-                style={{ width: col.width, ...(col.sticky ? { left: col.sticky.left } : {}) }}
+                style={{ width: col.resolvedWidth, ...(col.sticky ? { left: col.left } : {}) }}
               >
                 {col.label}
               </div>
@@ -122,8 +176,8 @@ export function RequestLogsTable({
             <div className="space-y-0">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="flex border-b border-border/40 bg-card/70" style={{ height: ROW_HEIGHT }}>
-                  {columns.map((col) => (
-                    <div key={col.key} className="shrink-0 px-3 py-3" style={{ width: col.width }}>
+                  {resolvedColumns.map((col) => (
+                    <div key={col.key} className="shrink-0 px-3 py-3" style={{ width: col.resolvedWidth }}>
                       <Skeleton className="h-4 w-full" />
                     </div>
                   ))}
@@ -162,7 +216,7 @@ export function RequestLogsTable({
                     }}
                     onClick={() => onSelectRequest(row.id)}
                   >
-                    {columns.map((col: ColumnDef) => (
+                    {resolvedColumns.map((col: ResolvedColumn) => (
                       <div
                         key={col.key}
                         className={cn(
@@ -172,7 +226,7 @@ export function RequestLogsTable({
                           col.sticky && "sticky z-[5]",
                           col.sticky && tone.sticky
                         )}
-                        style={{ width: col.width, ...(col.sticky ? { left: col.sticky.left } : {}) }}
+                        style={{ width: col.resolvedWidth, ...(col.sticky ? { left: col.left } : {}) }}
                       >
                         {col.render(row, formatTimestamp)}
                       </div>

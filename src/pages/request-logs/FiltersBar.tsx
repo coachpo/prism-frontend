@@ -1,6 +1,9 @@
-import { Filter, Search, SlidersHorizontal, X } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, Filter, Search, SlidersHorizontal, X } from "lucide-react";
+import { ProviderIcon } from "@/components/ProviderIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { cn, formatProviderType } from "@/lib/utils";
 import type { FilterOptions } from "./useRequestLogsPageData";
 import type { RequestLogPageActions } from "./useRequestLogPageState";
 import {
@@ -50,6 +53,7 @@ function ToolbarLabel({ children }: { children: React.ReactNode }) {
 
 export function FiltersBar({ actions, filterOptions, filterOptionsLoaded }: FiltersBarProps) {
   const { state, hasActiveFilters } = actions;
+  const [localRefinementOpen, setLocalRefinementOpen] = useState(false);
 
   return (
     <Card className="border-border/70 bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
@@ -106,7 +110,10 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded }: Filt
                 {filterOptionsLoaded &&
                   filterOptions.providers.map((p) => (
                     <SelectItem key={p.id} value={p.provider_type}>
-                      {p.provider_type}
+                      <span className="flex items-center gap-2">
+                        <ProviderIcon providerType={p.provider_type} size={14} />
+                        {formatProviderType(p.provider_type)}
+                      </span>
                     </SelectItem>
                   ))}
               </SelectContent>
@@ -166,13 +173,18 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded }: Filt
           </div>
         </div>
 
-        <div className="rounded-xl border border-dashed border-border/70 bg-muted/25 p-3">
-          <div className="mb-3 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            <span>Local refinement</span>
-          </div>
+        <Collapsible open={localRefinementOpen} onOpenChange={setLocalRefinementOpen}>
+          <div className="rounded-xl border border-dashed border-border/70 bg-muted/25 p-3">
+            <CollapsibleTrigger className="mb-0 flex w-full items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors hover:bg-muted/40">
+              <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>Local refinement</span>
+              </div>
+              <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", localRefinementOpen && "rotate-180")} />
+            </CollapsibleTrigger>
 
-          <div className="grid gap-3 xl:grid-cols-[1.1fr_1fr_1fr_1fr_1.2fr_1fr]">
+            <CollapsibleContent className="pt-3">
+              <div className="grid gap-3 xl:grid-cols-[1.1fr_1fr_1fr_1fr_1.2fr_1fr]">
             <div>
               <ToolbarLabel>Outcome</ToolbarLabel>
               <Select value={state.outcome_filter} onValueChange={(v) => actions.setOutcomeFilter(v as typeof state.outcome_filter)}>
@@ -273,39 +285,41 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded }: Filt
                 </SelectContent>
               </Select>
             </div>
-          </div>
+              </div>
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button
-              variant={state.priced_only ? "default" : "outline"}
-              size="sm"
-              className="h-8 rounded-full px-3 text-xs"
-              onClick={() => actions.setPricedOnly(!state.priced_only)}
-            >
-              Priced only
-            </Button>
-            <Button
-              variant={state.billable_only ? "default" : "outline"}
-              size="sm"
-              className="h-8 rounded-full px-3 text-xs"
-              onClick={() => actions.setBillableOnly(!state.billable_only)}
-            >
-              Billable only
-            </Button>
-            <Button
-              variant={state.triage ? "default" : "outline"}
-              size="sm"
-              className={cn(
-                "h-8 rounded-full px-3 text-xs",
-                state.triage && "border-amber-500/60 bg-amber-500 text-amber-950 hover:bg-amber-400"
-              )}
-              onClick={() => actions.setTriage(!state.triage)}
-            >
-              <Filter className="mr-1.5 h-3 w-3" />
-              Triage
-            </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  variant={state.priced_only ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 rounded-full px-3 text-xs"
+                  onClick={() => actions.setPricedOnly(!state.priced_only)}
+                >
+                  Priced only
+                </Button>
+                <Button
+                  variant={state.billable_only ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 rounded-full px-3 text-xs"
+                  onClick={() => actions.setBillableOnly(!state.billable_only)}
+                >
+                  Billable only
+                </Button>
+                <Button
+                  variant={state.triage ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-8 rounded-full px-3 text-xs",
+                    state.triage && "border-amber-500/60 bg-amber-500 text-amber-950 hover:bg-amber-400"
+                  )}
+                  onClick={() => actions.setTriage(!state.triage)}
+                >
+                  <Filter className="mr-1.5 h-3 w-3" />
+                  Triage
+                </Button>
+              </div>
+            </CollapsibleContent>
           </div>
-        </div>
+        </Collapsible>
       </CardContent>
     </Card>
   );
