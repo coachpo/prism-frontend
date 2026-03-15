@@ -71,7 +71,7 @@ frontend/
 ## Setup
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 24+
 - pnpm 10.30.1
 
 ### Installation
