@@ -1,10 +1,8 @@
 import { useState, type ReactNode } from "react";
 import {
   AlertCircle,
-  ArrowRight,
   Search,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { AnimatedListItem } from "@/components/AnimatedListItem";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -26,7 +24,6 @@ import { OPERATIONS_CHART_TOOLTIP_STYLE } from "./chartTooltipStyle";
 import type {
   ErrorCodeBreakdownItem,
   LatencyBandDatum,
-  RequestLogsPathBuilder,
   TopErrorItem,
 } from "./operationsTypes";
 
@@ -40,7 +37,6 @@ interface OperationsDebugSectionProps {
   clearNewLogHighlight: (logId: number) => void;
   reportSymbol: string;
   reportCode: string;
-  requestLogsPath: RequestLogsPathBuilder;
 }
 
 function InvestigateRequestRow({
@@ -82,9 +78,7 @@ export function OperationsDebugSection({
   clearNewLogHighlight,
   reportSymbol,
   reportCode,
-  requestLogsPath,
 }: OperationsDebugSectionProps) {
-  const navigate = useNavigate();
   const [investigateTab, setInvestigateTab] = useState<InvestigateTab>("errors");
 
   return (
@@ -98,7 +92,7 @@ export function OperationsDebugSection({
       <div className="grid gap-4 xl:grid-cols-2">
         <OperationsChartCard title="Latency Distribution" heightClassName="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={latencyBandData} onClick={() => navigate(requestLogsPath())}>
+            <BarChart data={latencyBandData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="band" tick={{ fontSize: 11 }} className="text-muted-foreground" />
               <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
@@ -152,17 +146,7 @@ export function OperationsDebugSection({
 
         {investigateTab === "errors" ? (
           <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground">Most frequent error signatures for this filter set.</p>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(requestLogsPath({ outcome_filter: "error" }))}
-              >
-                Open Request Logs
-                <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Button>
-            </div>
+            <p className="text-xs text-muted-foreground">Most frequent error signatures for this filter set.</p>
 
             {topErrors.length === 0 ? (
               <p className="text-xs text-muted-foreground">No error signatures found.</p>
@@ -192,13 +176,7 @@ export function OperationsDebugSection({
 
         {investigateTab === "slow" ? (
           <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground">Slowest requests by latency in current filtered slice.</p>
-              <Button size="sm" variant="outline" onClick={() => navigate(requestLogsPath())}>
-                Open Request Logs
-                <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Button>
-            </div>
+            <p className="text-xs text-muted-foreground">Slowest requests by latency in current filtered slice.</p>
 
             {slowRequests.length === 0 ? (
               <p className="text-xs text-muted-foreground">No requests found.</p>
@@ -218,13 +196,7 @@ export function OperationsDebugSection({
 
         {investigateTab === "costly" ? (
           <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground">Highest-cost requests in current filtered slice.</p>
-              <Button size="sm" variant="outline" onClick={() => navigate(requestLogsPath())}>
-                Open Request Logs
-                <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Button>
-            </div>
+            <p className="text-xs text-muted-foreground">Highest-cost requests in current filtered slice.</p>
 
             {costlyRequests.length === 0 ? (
               <p className="text-xs text-muted-foreground">No cost records found.</p>

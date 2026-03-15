@@ -1,5 +1,4 @@
 import { TrendingUp, Zap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import {
   Area,
   AreaChart,
@@ -18,23 +17,19 @@ import { formatMoneyMicros } from "@/lib/costing";
 import { OperationsChartCard } from "./chartPresentation";
 import { OPERATIONS_CHART_TOOLTIP_STYLE } from "./chartTooltipStyle";
 import { OperationsSectionTitle } from "./OperationsSectionTitle";
-import type { OperationsChartData, RequestLogsPathBuilder } from "./operationsTypes";
+import type { OperationsChartData } from "./operationsTypes";
 
 interface OperationsChartsSectionProps {
   chartData: OperationsChartData;
   reportSymbol: string;
   reportCode: string;
-  requestLogsPath: RequestLogsPathBuilder;
 }
 
 export function OperationsChartsSection({
   chartData,
   reportSymbol,
   reportCode,
-  requestLogsPath,
 }: OperationsChartsSectionProps) {
-  const navigate = useNavigate();
-
   return (
     <>
       <div className="space-y-3">
@@ -47,7 +42,7 @@ export function OperationsChartsSection({
         <div className="grid gap-4 xl:grid-cols-2">
           <OperationsChartCard title="Request Outcome Over Time" heightClassName="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} onClick={() => navigate(requestLogsPath())}>
+              <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                 <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />

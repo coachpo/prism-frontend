@@ -32,7 +32,6 @@ frontend/
 │   │   ├── ModelDetailPage.tsx     # Model detail route shell
 │   │   ├── EndpointsPage.tsx       # Endpoint management route shell
 │   │   ├── StatisticsPage.tsx      # Analytics route shell
-│   │   ├── RequestsPage.tsx        # Request browser route shell
 │   │   ├── ProxyApiKeysPage.tsx    # Proxy key route shell
 │   │   ├── PricingTemplatesPage.tsx # Pricing template route shell
 │   │   ├── LoadbalanceEventsPage.tsx # Failover event route shell
@@ -43,7 +42,6 @@ frontend/
 │   │   ├── models/                 # Models dialogs, table, page data hook
 │   │   ├── pricing-templates/      # Pricing dialogs, table, page data hook
 │   │   ├── proxy-api-keys/         # Proxy key cards, dialogs, page data hook
-│   │   ├── request-logs/           # Filters, detail drawer, table, page data hook
 │   │   ├── settings/               # Settings sections, dialogs, data hooks
 │   │   └── statistics/             # Statistics tabs, charts, page data hooks
 │   ├── components/
@@ -141,10 +139,9 @@ docker build \
 3. **Model Detail** - Connection management, health checks, success rate tracking
 4. **Endpoints** - Profile-scoped credential management (Base URL + API Key)
 5. **Statistics** - Aggregated latency, token, spending, and throughput views
-6. **Requests** - Request browser with filters, realtime updates, and linked audit detail in the side drawer
-7. **Proxy API Keys** - Issue, rotate, and revoke runtime keys
-8. **Pricing Templates** - Shared pricing configuration for connections
-9. **Settings** - Provider audit toggles, auth setup, costing settings, retention, and config import/export
+6. **Proxy API Keys** - Issue, rotate, and revoke runtime keys
+7. **Pricing Templates** - Shared pricing configuration for connections
+8. **Settings** - Provider audit toggles, auth setup, costing settings, retention, and config import/export
 
 ### Components
 

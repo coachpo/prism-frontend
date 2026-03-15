@@ -25,14 +25,19 @@ export function RoutingDiagramNodeShape({
     payload.kind === "endpoint" ? `${payload.activeConnectionCount} active` : payload.sublabel;
   const textAnchor = payload.kind === "endpoint" ? "end" : "start";
   const textX = payload.kind === "endpoint" ? x - 10 : x + width + 10;
+  const interactive = payload.kind === "model";
 
   return (
     <g
-      className="cursor-pointer outline-none"
-      role="button"
-      tabIndex={0}
+      className={interactive ? "cursor-pointer outline-none" : undefined}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
       aria-label={`${payload.kind === "endpoint" ? "Endpoint" : "Model"}: ${payload.label}`}
       onKeyDown={(event) => {
+        if (!interactive) {
+          return;
+        }
+
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           onActivate(payload);

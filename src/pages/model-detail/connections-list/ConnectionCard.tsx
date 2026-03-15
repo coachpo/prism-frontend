@@ -11,7 +11,6 @@ import type { ConnectionCardProps } from "./connectionCardTypes";
 
 export function ConnectionCard({
   connection,
-  model,
   metrics24h,
   isChecking,
   isFocused,
@@ -75,10 +74,8 @@ export function ConnectionCard({
             />
 
             <ConnectionCardMetrics
-              connection={connection}
               formatTime={formatTime}
               metrics24h={metrics24h}
-              model={model}
             />
           </div>
         </div>

@@ -6,7 +6,6 @@ export function RoutingDiagramChart({
   chartData,
   chartHeight,
   isCompact,
-  onActivateLink,
   onActivateNode,
 }: RoutingDiagramChartProps) {
   return (
@@ -14,7 +13,6 @@ export function RoutingDiagramChart({
       chartData={chartData}
       chartHeight={chartHeight}
       isCompact={isCompact}
-      onActivateLink={onActivateLink}
       onActivateNode={onActivateNode}
     >
       <RoutingDiagramLegend />

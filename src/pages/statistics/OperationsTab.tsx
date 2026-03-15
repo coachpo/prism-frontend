@@ -53,7 +53,6 @@ export function OperationsTab({
     rate5xx,
     cacheHitRate,
     ttftP95,
-    requestLogsPath,
   } = useOperationsTabData({
     logs,
     modelId,
@@ -109,7 +108,6 @@ export function OperationsTab({
         chartData={chartData}
         reportSymbol={reportSymbol}
         reportCode={reportCode}
-        requestLogsPath={requestLogsPath}
       />
 
       <OperationsDebugSection
@@ -122,7 +120,6 @@ export function OperationsTab({
         clearNewLogHighlight={clearNewLogHighlight}
         reportSymbol={reportSymbol}
         reportCode={reportCode}
-        requestLogsPath={requestLogsPath}
       />
 
       <SpecialTokenCoverageStrip

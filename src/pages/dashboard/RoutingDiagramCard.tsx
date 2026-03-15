@@ -7,7 +7,6 @@ import {
   getRoutingDiagramChartData,
   getRoutingDiagramEmptyState,
   type RoutingDiagramData,
-  type RoutingDiagramLink,
   type RoutingDiagramNode,
 } from "./routingDiagram";
 import { RoutingDiagramChart } from "./routing-diagram/RoutingDiagramChart";
@@ -17,8 +16,6 @@ interface RoutingDiagramCardProps {
   loading: boolean;
   error: string | null;
   onSelectModel: (modelConfigId: number) => void;
-  onSelectEndpoint: (endpointId: number) => void;
-  onSelectLink: (modelId: string, endpointId: number) => void;
 }
 
 export function RoutingDiagramCard({
@@ -26,8 +23,6 @@ export function RoutingDiagramCard({
   loading,
   error,
   onSelectModel,
-  onSelectEndpoint,
-  onSelectLink,
 }: RoutingDiagramCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -65,16 +60,7 @@ export function RoutingDiagramCard({
   const activateNode = (node: RoutingDiagramNode) => {
     if (node.kind === "model" && node.modelConfigId !== null) {
       onSelectModel(node.modelConfigId);
-      return;
     }
-
-    if (node.kind === "endpoint" && node.endpointId !== null) {
-      onSelectEndpoint(node.endpointId);
-    }
-  };
-
-  const activateLink = (link: RoutingDiagramLink) => {
-    onSelectLink(link.modelId, link.endpointId);
   };
 
   if (loading) {
@@ -137,7 +123,6 @@ export function RoutingDiagramCard({
               chartData={chartData}
               chartHeight={chartHeight}
               isCompact={isCompact}
-              onActivateLink={activateLink}
               onActivateNode={activateNode}
             />
           </>

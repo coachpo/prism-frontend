@@ -1,16 +1,7 @@
-import type { RoutingDiagramLink } from "../routingDiagram";
 import { getRouteHealthColor } from "./routingDiagramChartUtils";
 import type { RoutingLinkShapeProps } from "./routingDiagramChartTypes";
 
-interface RoutingDiagramLinkShapeProps {
-  onActivate: (link: RoutingDiagramLink) => void;
-  props: RoutingLinkShapeProps;
-}
-
-export function RoutingDiagramLinkShape({
-  onActivate,
-  props,
-}: RoutingDiagramLinkShapeProps) {
+export function RoutingDiagramLinkShape({ props }: { props: RoutingLinkShapeProps }) {
   const {
     sourceX = 0,
     sourceY = 0,
@@ -27,26 +18,14 @@ export function RoutingDiagramLinkShape({
 
   return (
     <path
-      className="cursor-pointer transition-opacity duration-150 hover:opacity-95"
+      className="transition-opacity duration-150 hover:opacity-95"
       d={`M${sourceX},${sourceY} C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`}
       fill="none"
       stroke={strokeColor}
       strokeWidth={Math.max(linkWidth, 1)}
       strokeOpacity={strokeOpacity}
       strokeLinecap="butt"
-      role="button"
-      tabIndex={0}
       aria-label={payload ? `Route from ${payload.endpointLabel} to ${payload.modelLabel}` : "Routing link"}
-      onKeyDown={(event) => {
-        if (!payload) {
-          return;
-        }
-
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onActivate(payload);
-        }
-      }}
     />
   );
 }

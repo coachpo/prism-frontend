@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import {
   Activity,
   Info,
@@ -25,10 +24,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { Connection, ModelConfig } from "@/lib/types";
+import type { Connection } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
-  buildRequestLogsPath,
   formatLatencyForDisplay,
   type ConnectionDerivedMetrics,
 } from "../modelDetailMetricsAndPaths";
@@ -129,15 +127,11 @@ export function ConnectionCardDetails({
 }
 
 export function ConnectionCardMetrics({
-  connection,
   formatTime,
   metrics24h,
-  model,
 }: {
-  connection: Connection;
   formatTime: FormatTime;
   metrics24h: ConnectionDerivedMetrics | undefined;
-  model: ModelConfig;
 }) {
   const successRate = metrics24h?.success_rate_24h ?? null;
 
@@ -160,16 +154,8 @@ export function ConnectionCardMetrics({
         </TooltipProvider>
       </div>
 
-      <Link
-        to={buildRequestLogsPath({
-          modelId: model.model_id,
-          connectionId: connection.id,
-          timeRange: "24h",
-          outcomeFilter: "all",
-        })}
-        className="block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <div className="flex items-center gap-2 pt-0.5 hover:opacity-90">
+      <div className="block rounded-sm">
+        <div className="flex items-center gap-2 pt-0.5">
           <Progress
             value={successRate ?? 0}
             className={cn(
@@ -198,7 +184,7 @@ export function ConnectionCardMetrics({
             {successRate === null ? "-" : `${successRate.toFixed(1)}%`}
           </span>
         </div>
-      </Link>
+      </div>
 
       <div className="grid grid-cols-2 gap-2 text-[11px]">
         <MetricTile

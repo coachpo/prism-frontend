@@ -43,7 +43,6 @@ export function DashboardPage() {
         providerRows={data.providerRows}
         highlighted={data.metricsHighlighted}
         onOpenStatistics={() => navigate("/statistics")}
-        onReviewRequests={() => navigate("/request-logs")}
         onInspectSpending={() => navigate("/statistics?tab=spending")}
       />
 
@@ -52,10 +51,6 @@ export function DashboardPage() {
         loading={data.routingDiagramLoading}
         error={data.routingDiagramError}
         onSelectModel={(modelConfigId) => navigate(`/models/${modelConfigId}`)}
-        onSelectEndpoint={(endpointId) => navigate(`/request-logs?endpoint_id=${endpointId}`)}
-        onSelectLink={(modelId, endpointId) =>
-          navigate(`/request-logs?model_id=${encodeURIComponent(modelId)}&endpoint_id=${endpointId}`)
-        }
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">

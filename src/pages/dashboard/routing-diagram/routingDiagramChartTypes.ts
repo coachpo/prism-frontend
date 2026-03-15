@@ -1,7 +1,6 @@
 import type {
   RoutingDiagramChartLink,
   RoutingDiagramChartNode,
-  RoutingDiagramLink,
   RoutingDiagramNode,
 } from "../routingDiagram";
 
@@ -12,7 +11,6 @@ export interface RoutingDiagramChartProps {
   };
   chartHeight: number;
   isCompact: boolean;
-  onActivateLink: (link: RoutingDiagramLink) => void;
   onActivateNode: (node: RoutingDiagramNode) => void;
 }
 

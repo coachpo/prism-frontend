@@ -9,7 +9,7 @@ import type {
   RoutingLinkShapeProps,
   RoutingNodeShapeProps,
 } from "./routingDiagramChartTypes";
-import { getChartPayload, isRoutingDiagramLink, isRoutingDiagramNode } from "./routingDiagramChartUtils";
+import { getChartPayload, isRoutingDiagramNode } from "./routingDiagramChartUtils";
 
 interface RoutingDiagramChartShellProps extends RoutingDiagramChartProps {
   children?: ReactNode;
@@ -19,7 +19,6 @@ export function RoutingDiagramChartShell({
   chartData,
   chartHeight,
   isCompact,
-  onActivateLink,
   onActivateNode,
   children,
 }: RoutingDiagramChartShellProps) {
@@ -31,7 +30,7 @@ export function RoutingDiagramChartShell({
           <span>Link width reflects active connection count. Color reflects 24h route success rate.</span>
         </div>
         <span className="rounded-full border bg-background/80 px-2.5 py-1 font-medium text-foreground">
-          Click nodes or links to drill down
+          Click model nodes to open details
         </span>
       </div>
 
@@ -53,25 +52,15 @@ export function RoutingDiagramChartShell({
             onClick={(item: unknown, elementType: unknown) => {
               if (elementType === "node") {
                 const node = getChartPayload(item);
-                if (isRoutingDiagramNode(node)) {
+                if (isRoutingDiagramNode(node) && node.kind === "model") {
                   onActivateNode(node);
-                }
-                return;
-              }
-
-              if (elementType === "link") {
-                const link = getChartPayload(item);
-                if (isRoutingDiagramLink(link)) {
-                  onActivateLink(link);
                 }
               }
             }}
             node={(props: RoutingNodeShapeProps) => (
               <RoutingDiagramNodeShape compact={isCompact} onActivate={onActivateNode} props={props} />
             )}
-            link={(props: RoutingLinkShapeProps) => (
-              <RoutingDiagramLinkShape onActivate={onActivateLink} props={props} />
-            )}
+            link={(props: RoutingLinkShapeProps) => <RoutingDiagramLinkShape props={props} />}
           >
             <RechartsTooltip
               cursor={false}

@@ -30,10 +30,9 @@ export function RoutingDiagramTooltip({ active, payload }: RoutingDiagramTooltip
             label="24h successful requests"
             value={chartPayload.trafficRequestCount24h.toLocaleString()}
           />
-          <TooltipRow
-            label="Action"
-            value={chartPayload.kind === "endpoint" ? "Open request logs" : "Open model detail"}
-          />
+          {chartPayload.kind === "model" ? (
+            <TooltipRow label="Action" value="Open model detail" />
+          ) : null}
         </div>
       </div>
     );
