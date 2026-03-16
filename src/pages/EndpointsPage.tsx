@@ -1,5 +1,5 @@
 import { DragOverlay, DndContext } from "@dnd-kit/core";
-import { SortableContext } from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -54,9 +54,9 @@ export function EndpointsPage() {
       ) : null}
 
       {data.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col gap-3">
           {[1, 2, 3, 4, 5, 6].map((index) => (
-            <Skeleton key={index} className="h-[280px] rounded-xl" />
+            <Skeleton key={index} className="h-[88px] rounded-xl" />
           ))}
         </div>
       ) : data.endpoints.length === 0 ? (
@@ -81,8 +81,8 @@ export function EndpointsPage() {
             void data.handleDragEnd(event);
           }}
         >
-          <SortableContext items={data.endpointIds} strategy={data.rectSortingStrategy}>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <SortableContext items={data.endpointIds} strategy={verticalListSortingStrategy}>
+            <div className="flex flex-col gap-3">
               {data.endpoints.map((endpoint) => (
                 <SortableEndpointCard
                   key={endpoint.id}

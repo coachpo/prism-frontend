@@ -1,9 +1,9 @@
-import type { ButtonHTMLAttributes, CSSProperties } from "react";
+import type { ButtonHTMLAttributes } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import type { Endpoint, ModelConfigListItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -38,25 +38,13 @@ export interface EndpointCardViewProps {
 
 type SortableEndpointCardProps = EndpointCardViewProps;
 
-const DETAIL_PANEL_STYLE: CSSProperties = {
-  boxShadow: "inset 0 1px 0 color-mix(in oklab, var(--background) 85%, transparent)",
-};
-
-const ENDPOINT_CARD_ACCENT_STYLE: CSSProperties = {
-  backgroundImage:
-    "radial-gradient(circle at top left, color-mix(in oklab, var(--primary) 16%, transparent), transparent 58%)",
-};
-
-const ENDPOINT_CARD_HOVER_GLOW_STYLE: CSSProperties = {
-  backgroundColor: "color-mix(in oklab, var(--primary) 22%, transparent)",
-};
-
 function EndpointActionButton({
   className,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { className?: string }) {
   return (
     <Button
+      type="button"
       variant="ghost"
       size="icon"
       className={cn(
@@ -65,48 +53,6 @@ function EndpointActionButton({
       )}
       {...props}
     />
-  );
-}
-
-function EndpointDetailPanel({
-  icon: Icon,
-  label,
-  value,
-  helper,
-  mono = false,
-}: {
-  icon: typeof Globe2;
-  label: string;
-  value: string;
-  helper?: string;
-  mono?: boolean;
-}) {
-  return (
-    <div
-      className="rounded-xl border border-border/70 bg-background/80 p-4"
-      style={DETAIL_PANEL_STYLE}
-    >
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-          <Icon className="h-4 w-4" />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            {label}
-          </p>
-          <p
-            className={cn(
-              "mt-2 text-sm text-foreground/95",
-              mono ? "break-all font-mono" : undefined
-            )}
-          >
-            {value}
-          </p>
-          {helper ? <p className="mt-2 text-xs text-muted-foreground">{helper}</p> : null}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -135,30 +81,19 @@ export function EndpointCardView({
   return (
     <Card
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden border-border/70 bg-gradient-to-b from-card via-card to-muted/20 transition-[border-color,box-shadow,opacity,transform] hover:border-primary/20 hover:shadow-xl",
+        "relative overflow-hidden border-border/70 bg-card transition-[border-color,box-shadow,opacity,transform] hover:border-primary/20 hover:shadow-md",
         isDragging && "border-dashed border-primary/40 bg-muted/30 opacity-30 shadow-none",
-        isOverlay && "scale-[1.02] cursor-grabbing border-primary/50 shadow-2xl ring-2 ring-primary/30"
+        isOverlay && "scale-[1.01] cursor-grabbing border-primary/50 shadow-xl ring-2 ring-primary/30"
       )}
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-10 -top-10 h-20 rounded-full opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-100"
-        style={ENDPOINT_CARD_HOVER_GLOW_STYLE}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-24"
-        style={ENDPOINT_CARD_ACCENT_STYLE}
-      />
-
-      <CardHeader className="relative border-b border-border/60 pb-4">
-        <div className="flex min-w-0 items-start gap-3">
+      <div className="relative flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 items-center gap-3 sm:w-[200px] lg:w-[240px] shrink-0">
           <button
             type="button"
             ref={dragHandleRef ?? undefined}
             disabled={reorderDisabled || isOverlay}
             className={cn(
-              "mt-0.5 flex h-9 w-9 shrink-0 touch-none items-center justify-center rounded-xl border border-transparent bg-background/60 text-muted-foreground/60 transition-colors",
+              "flex h-8 w-8 shrink-0 touch-none items-center justify-center rounded-lg border border-transparent bg-background/60 text-muted-foreground/60 transition-colors",
               !reorderDisabled && !isOverlay && "cursor-grab hover:text-foreground active:cursor-grabbing",
               (reorderDisabled || isOverlay) && "cursor-default opacity-60",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -167,114 +102,115 @@ export function EndpointCardView({
             {...(dragHandleAttributes ?? {})}
             {...(dragHandleListeners ?? {})}
           >
-            <GripVertical className="h-4.5 w-4.5" />
+            <GripVertical className="h-4 w-4" />
           </button>
 
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1 space-y-3">
-                <div className="space-y-2">
-                  <CardTitle className="pr-2 text-base font-semibold whitespace-normal break-words [overflow-wrap:anywhere]">
-                    {endpoint.name}
-                  </CardTitle>
-                </div>
-              </div>
+            <h3 className="truncate text-sm font-semibold text-foreground" title={endpoint.name}>
+              {endpoint.name}
+            </h3>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">Created {createdAt}</p>
+          </div>
+        </div>
 
-              {!isOverlay ? (
-                <div className="flex shrink-0 items-center gap-1 rounded-full border border-border/70 bg-muted/35 p-1">
-                  <EndpointActionButton
-                    aria-label={`Duplicate endpoint ${endpoint.name}`}
-                    disabled={isDuplicating}
-                    onClick={() => {
-                      void onDuplicate?.(endpoint);
-                    }}
-                  >
-                    {isDuplicating ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </EndpointActionButton>
-                  <EndpointActionButton
-                    aria-label={`Edit endpoint ${endpoint.name}`}
-                    onClick={() => {
-                      void onEdit?.(endpoint);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </EndpointActionButton>
-                  <EndpointActionButton
-                    aria-label={`Delete endpoint ${endpoint.name}`}
-                    className="text-destructive hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => {
-                      void onDelete?.(endpoint);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </EndpointActionButton>
-                </div>
-              ) : null}
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 lg:gap-6">
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex items-center gap-2 text-xs">
+              <Globe2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="block min-w-0 flex-1 truncate font-mono text-foreground/90" title={endpoint.base_url}>
+                {endpoint.base_url}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <KeyRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="block min-w-0 flex-1 truncate font-mono text-foreground/90" title={maskedKey}>
+                {maskedKey}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 shrink-0 items-center gap-2 sm:w-[160px] lg:w-[220px]">
+            <div className="flex shrink-0 items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Models
+              </span>
+              <Badge
+                variant="outline"
+                className="h-4 px-1.5 text-[10px] bg-muted/30 text-muted-foreground"
+              >
+                {models.length}
+              </Badge>
+            </div>
+            
+            <div className="flex min-w-0 flex-1 flex-wrap gap-1">
+              {models.length > 0 ? (
+                <>
+                  {models.slice(0, 2).map((model) => (
+                    <Badge
+                      key={model.id}
+                      variant="outline"
+                      className={cn(
+                        "max-w-full rounded-full border px-1.5 py-0 text-[10px] font-medium",
+                        getModelBadgeClass(model)
+                      )}
+                      title={model.display_name || model.model_id}
+                    >
+                      <span className="block max-w-full truncate">{model.display_name || model.model_id}</span>
+                    </Badge>
+                  ))}
+                  {models.length > 2 ? (
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border-border/70 bg-muted/30 px-1.5 py-0 text-[10px] font-medium text-muted-foreground"
+                    >
+                      +{models.length - 2}
+                    </Badge>
+                  ) : null}
+                </>
+              ) : (
+                <span className="text-[10px] italic text-muted-foreground">None</span>
+              )}
             </div>
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="relative flex flex-1 flex-col gap-4 pt-5">
-        <div className="grid gap-3">
-          <EndpointDetailPanel icon={Globe2} label="Base URL" value={endpoint.base_url} mono />
-          <EndpointDetailPanel icon={KeyRound} label="API Key" value={maskedKey} mono />
-        </div>
-
-        <div className="rounded-xl border border-border/70 bg-background/75 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Attached Models
-              </p>
-              <p className="mt-1 text-sm text-foreground/85">
-                {models.length > 0 ? `${models.length} routing target${models.length === 1 ? "" : "s"}` : "No routing targets yet"}
-              </p>
+        {!isOverlay ? (
+          <div className="flex shrink-0 items-center justify-end sm:ml-2">
+            <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border/70 bg-muted/35 p-0.5">
+              <EndpointActionButton
+                aria-label={`Duplicate endpoint ${endpoint.name}`}
+                disabled={isDuplicating}
+                onClick={() => {
+                  void onDuplicate?.(endpoint);
+                }}
+              >
+                {isDuplicating ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </EndpointActionButton>
+              <EndpointActionButton
+                aria-label={`Edit endpoint ${endpoint.name}`}
+                onClick={() => {
+                  void onEdit?.(endpoint);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </EndpointActionButton>
+              <EndpointActionButton
+                aria-label={`Delete endpoint ${endpoint.name}`}
+                className="text-destructive hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => {
+                  void onDelete?.(endpoint);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </EndpointActionButton>
             </div>
-            <Badge
-              variant="outline"
-              className="rounded-full border-border/70 bg-muted/30 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-            >
-              {models.length}
-            </Badge>
           </div>
-
-          {models.length > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {models.slice(0, 5).map((model) => (
-                <Badge
-                  key={model.id}
-                  variant="outline"
-                  className={cn(
-                    "rounded-full border px-2.5 py-1 text-[10px] font-medium",
-                    getModelBadgeClass(model)
-                  )}
-                >
-                  {model.display_name || model.model_id}
-                </Badge>
-              ))}
-              {models.length > 5 ? (
-                <Badge
-                  variant="outline"
-                  className="rounded-full border-border/70 bg-muted/30 px-2.5 py-1 text-[10px] font-medium text-muted-foreground"
-                >
-                  +{models.length - 5} more
-                </Badge>
-              ) : null}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm italic text-muted-foreground">Not attached to any models</p>
-          )}
-        </div>
-      </CardContent>
-
-      <CardFooter className="relative mt-auto justify-start gap-3 border-t border-border/60 text-[11px] text-muted-foreground">
-        <p>Created {createdAt}</p>
-      </CardFooter>
+        ) : null}
+      </div>
     </Card>
   );
 }

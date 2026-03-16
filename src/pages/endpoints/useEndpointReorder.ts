@@ -10,7 +10,7 @@ import {
   type DragStartEvent,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
-import { arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { setSharedEndpoints } from "@/lib/referenceData";
@@ -102,7 +102,7 @@ export function useEndpointReorder({ endpoints, revision, setEndpoints }: UseEnd
     handleDragCancel,
     handleDragEnd,
     handleDragStart,
-    rectSortingStrategy,
+    verticalListSortingStrategy,
     reorderInFlight,
     sensors,
   };
