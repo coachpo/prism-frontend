@@ -3,12 +3,19 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Endpoint, ModelConfigListItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Copy, GripVertical, Loader2, Pencil, Trash2 } from "lucide-react";
 import {
-  getEndpointHost,
+  Copy,
+  Globe2,
+  GripVertical,
+  KeyRound,
+  Loader2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import {
   getMaskedApiKey,
   getModelBadgeClass,
 } from "./endpointCardHelpers";
@@ -31,6 +38,62 @@ export interface EndpointCardViewProps {
 
 type SortableEndpointCardProps = EndpointCardViewProps;
 
+function EndpointActionButton({
+  className,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { className?: string }) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn(
+        "h-8 w-8 shrink-0 rounded-full border border-transparent bg-background/70 text-muted-foreground transition-colors hover:border-border hover:bg-background hover:text-foreground",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+function EndpointDetailPanel({
+  icon: Icon,
+  label,
+  value,
+  helper,
+  mono = false,
+}: {
+  icon: typeof Globe2;
+  label: string;
+  value: string;
+  helper?: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border/70 bg-background/80 p-4 shadow-[inset_0_1px_0_hsl(var(--background)/0.85)]">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            {label}
+          </p>
+          <p
+            className={cn(
+              "mt-2 text-sm text-foreground/95",
+              mono ? "break-all font-mono" : undefined
+            )}
+          >
+            {value}
+          </p>
+          {helper ? <p className="mt-2 text-xs text-muted-foreground">{helper}</p> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function EndpointCardView({
   endpoint,
   formatTime,
@@ -47,23 +110,33 @@ export function EndpointCardView({
   onEdit,
 }: EndpointCardViewProps) {
   const maskedKey = getMaskedApiKey(endpoint);
+  const createdAt = formatTime(endpoint.created_at, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 
   return (
     <Card
       className={cn(
-        "group flex h-full flex-col border-border/80 bg-card transition-[border-color,box-shadow,opacity] hover:border-border",
-        isDragging && "border-dashed border-primary/40 bg-muted/30 opacity-30",
+        "group relative flex h-full flex-col overflow-hidden border-border/70 bg-gradient-to-b from-card via-card to-muted/20 transition-[border-color,box-shadow,opacity,transform] hover:border-primary/20 hover:shadow-[0_24px_60px_-40px_hsl(var(--primary)/0.45)]",
+        isDragging && "border-dashed border-primary/40 bg-muted/30 opacity-30 shadow-none",
         isOverlay && "scale-[1.02] cursor-grabbing border-primary/50 shadow-2xl ring-2 ring-primary/30"
       )}
     >
-      <CardHeader className="pb-3">
-        <div className="grid min-w-0 grid-cols-[auto,minmax(0,1fr)] items-start gap-x-3 gap-y-2">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.16),transparent_58%)]"
+      />
+
+      <CardHeader className="relative border-b border-border/60 pb-4">
+        <div className="flex min-w-0 items-start gap-3">
           <button
             type="button"
             ref={dragHandleRef ?? undefined}
             disabled={reorderDisabled || isOverlay}
             className={cn(
-              "mt-0.5 flex h-11 w-11 shrink-0 touch-none items-center justify-center rounded-lg border border-transparent text-muted-foreground/60 transition-colors sm:h-9 sm:w-9",
+              "mt-0.5 flex h-9 w-9 shrink-0 touch-none items-center justify-center rounded-xl border border-transparent bg-background/60 text-muted-foreground/60 transition-colors",
               !reorderDisabled && !isOverlay && "cursor-grab hover:text-foreground active:cursor-grabbing",
               (reorderDisabled || isOverlay) && "cursor-default opacity-60",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -72,106 +145,90 @@ export function EndpointCardView({
             {...(dragHandleAttributes ?? {})}
             {...(dragHandleListeners ?? {})}
           >
-            <GripVertical className="h-5 w-5" />
+            <GripVertical className="h-4.5 w-4.5" />
           </button>
 
-          <div className="min-w-0 space-y-2">
-            <CardTitle className="pr-2 text-base font-semibold whitespace-normal break-words [overflow-wrap:anywhere]">
-              {endpoint.name}
-            </CardTitle>
-            <Badge
-              variant="outline"
-              className="max-w-full truncate border-border/70 bg-muted/30 px-2 py-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
-            >
-              {getEndpointHost(endpoint.base_url)}
-            </Badge>
-          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="space-y-2">
+                  <CardTitle className="pr-2 text-base font-semibold whitespace-normal break-words [overflow-wrap:anywhere]">
+                    {endpoint.name}
+                  </CardTitle>
+                </div>
+              </div>
 
-          {!isOverlay ? (
-            <div className="col-start-2 flex min-w-0 flex-wrap items-center justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Duplicate endpoint ${endpoint.name}`}
-                className="h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                disabled={isDuplicating}
-                onClick={() => {
-                  void onDuplicate?.(endpoint);
-                }}
-              >
-                {isDuplicating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Edit endpoint ${endpoint.name}`}
-                className="h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                onClick={() => {
-                  void onEdit?.(endpoint);
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Delete endpoint ${endpoint.name}`}
-                className="h-9 w-9 shrink-0 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => {
-                  void onDelete?.(endpoint);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {!isOverlay ? (
+                <div className="flex shrink-0 items-center gap-1 rounded-full border border-border/70 bg-muted/35 p-1">
+                  <EndpointActionButton
+                    aria-label={`Duplicate endpoint ${endpoint.name}`}
+                    disabled={isDuplicating}
+                    onClick={() => {
+                      void onDuplicate?.(endpoint);
+                    }}
+                  >
+                    {isDuplicating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </EndpointActionButton>
+                  <EndpointActionButton
+                    aria-label={`Edit endpoint ${endpoint.name}`}
+                    onClick={() => {
+                      void onEdit?.(endpoint);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </EndpointActionButton>
+                  <EndpointActionButton
+                    aria-label={`Delete endpoint ${endpoint.name}`}
+                    className="text-destructive hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => {
+                      void onDelete?.(endpoint);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </EndpointActionButton>
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-1 flex-col gap-4">
-        <div className="space-y-2">
-          <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Base URL
-            </p>
-            <p className="mt-1 break-all font-mono text-xs text-foreground/90">{endpoint.base_url}</p>
-          </div>
-          <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  API Key
-                </p>
-                <p className="mt-1 break-all font-mono text-xs text-foreground/90">{maskedKey}</p>
-              </div>
-            </div>
-          </div>
+      <CardContent className="relative flex flex-1 flex-col gap-4 pt-5">
+        <div className="grid gap-3">
+          <EndpointDetailPanel icon={Globe2} label="Base URL" value={endpoint.base_url} mono />
+          <EndpointDetailPanel icon={KeyRound} label="API Key" value={maskedKey} mono />
         </div>
 
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Attached Models
-            </p>
+        <div className="rounded-xl border border-border/70 bg-background/75 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Attached Models
+              </p>
+              <p className="mt-1 text-sm text-foreground/85">
+                {models.length > 0 ? `${models.length} routing target${models.length === 1 ? "" : "s"}` : "No routing targets yet"}
+              </p>
+            </div>
             <Badge
               variant="outline"
-              className="rounded-full border-border/70 bg-background px-2 py-0 text-[10px] font-medium text-muted-foreground"
+              className="rounded-full border-border/70 bg-muted/30 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
             >
               {models.length}
             </Badge>
           </div>
+
           {models.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="mt-4 flex flex-wrap gap-2">
               {models.slice(0, 5).map((model) => (
                 <Badge
                   key={model.id}
                   variant="outline"
                   className={cn(
-                    "rounded-full border px-2.5 py-0.5 text-[10px] font-medium",
+                    "rounded-full border px-2.5 py-1 text-[10px] font-medium",
                     getModelBadgeClass(model)
                   )}
                 >
@@ -181,23 +238,21 @@ export function EndpointCardView({
               {models.length > 5 ? (
                 <Badge
                   variant="outline"
-                  className="rounded-full border-border/70 bg-muted/30 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                  className="rounded-full border-border/70 bg-muted/30 px-2.5 py-1 text-[10px] font-medium text-muted-foreground"
                 >
                   +{models.length - 5} more
                 </Badge>
               ) : null}
             </div>
           ) : (
-            <p className="text-xs italic text-muted-foreground">Not attached to any models</p>
+            <p className="mt-4 text-sm italic text-muted-foreground">Not attached to any models</p>
           )}
         </div>
-
-        <div className="mt-auto border-t border-dashed border-border/70 pt-3">
-          <p className="text-[11px] text-muted-foreground">
-            Created {formatTime(endpoint.created_at, { year: "numeric", month: "short", day: "numeric" })}
-          </p>
-        </div>
       </CardContent>
+
+      <CardFooter className="relative mt-auto justify-start gap-3 border-t border-border/60 text-[11px] text-muted-foreground">
+        <p>Created {createdAt}</p>
+      </CardFooter>
     </Card>
   );
 }
