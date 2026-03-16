@@ -1,6 +1,8 @@
+import { RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WebSocketStatusIndicator } from "@/components/WebSocketStatusIndicator";
 import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useTimezone } from "@/hooks/useTimezone";
 import { DashboardHighlightsGrid } from "@/pages/dashboard/DashboardHighlightsGrid";
@@ -27,6 +29,17 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Dashboard" description="System overview and health status">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => void data.refreshDashboard()}
+          disabled={data.isRefreshing}
+          aria-label="Refresh dashboard"
+          title="Refresh dashboard"
+        >
+          <RefreshCw className={`h-4 w-4 ${data.isRefreshing ? "animate-spin" : ""}`} />
+        </Button>
         <WebSocketStatusIndicator
           connectionState={data.connectionState}
           isSyncing={data.isSyncing}
