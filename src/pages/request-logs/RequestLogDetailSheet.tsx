@@ -5,6 +5,7 @@ import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -115,9 +116,11 @@ function PayloadBlock({ title, content }: { title: string; content: string }) {
           Copy
         </Button>
       </div>
-      <pre className="h-56 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-[11px] leading-5 text-zinc-50 shadow-inner">
-        {hasContent ? content : `No ${title.toLowerCase()} captured.`}
-      </pre>
+      <ScrollArea className="h-56 rounded-xl border border-zinc-800 bg-zinc-950 shadow-inner">
+        <pre className="min-h-full whitespace-pre-wrap break-all p-3 text-[11px] leading-5 text-zinc-50">
+          {hasContent ? content : `No ${title.toLowerCase()} captured.`}
+        </pre>
+      </ScrollArea>
     </div>
   );
 }
