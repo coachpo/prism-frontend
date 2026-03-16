@@ -58,15 +58,6 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded }: Filt
   return (
     <Card className="border-border/70 bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
       <CardContent className="space-y-4 p-4">
-        {hasActiveFilters && (
-          <div className="flex justify-end">
-            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={actions.clearFilters}>
-              <X className="h-3 w-3" />
-              Clear all
-            </Button>
-          </div>
-        )}
-
         <div className="grid gap-3 xl:grid-cols-6">
           <div className="xl:col-span-2">
             <ToolbarLabel>Search</ToolbarLabel>
@@ -172,6 +163,15 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded }: Filt
             </Select>
           </div>
         </div>
+
+        {hasActiveFilters && (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={actions.clearFilters}>
+              <X className="h-3 w-3" />
+              Clear all
+            </Button>
+          </div>
+        )}
 
         <Collapsible open={localRefinementOpen} onOpenChange={setLocalRefinementOpen}>
           <div className="rounded-xl border border-dashed border-border/70 bg-muted/25 p-3">
