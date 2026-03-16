@@ -23,6 +23,10 @@ interface ThroughputTabProps {
 
 export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabProps) {
   const { format: formatTime } = useTimezone();
+  const axisTextColor = "var(--muted-foreground)";
+  const axisStrokeColor = "var(--border)";
+  const tooltipSurfaceColor = "var(--popover)";
+  const tooltipTextColor = "var(--popover-foreground)";
 
   const chartData = useMemo(() => {
     if (!data?.buckets) return [];
@@ -120,25 +124,30 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
                 <XAxis
                   dataKey="time"
                   className="text-xs"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  tick={{ fill: axisTextColor }}
+                  axisLine={{ stroke: axisStrokeColor }}
+                  tickLine={{ stroke: axisStrokeColor }}
                 />
                 <YAxis
                   className="text-xs"
-                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  tick={{ fill: axisTextColor }}
+                  axisLine={{ stroke: axisStrokeColor }}
+                  tickLine={{ stroke: axisStrokeColor }}
                   label={{
                     value: "RPM",
                     angle: -90,
                     position: "insideLeft",
-                    style: { fill: "hsl(var(--muted-foreground))" },
+                    style: { fill: axisTextColor },
                   }}
                 />
                 <RechartsTooltip
                   contentStyle={{
-                    backgroundColor: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
+                    backgroundColor: tooltipSurfaceColor,
+                    border: `1px solid ${axisStrokeColor}`,
                     borderRadius: "var(--radius)",
+                    color: tooltipTextColor,
                   }}
-                  labelStyle={{ color: "hsl(var(--popover-foreground))" }}
+                  labelStyle={{ color: tooltipTextColor }}
                   formatter={(value: number, name: string) => {
                     if (name === "rpm") return [value.toFixed(3), "RPM"];
                     if (name === "requests") return [value, "Requests"];

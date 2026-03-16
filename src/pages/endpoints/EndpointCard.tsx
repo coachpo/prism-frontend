@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,19 @@ export interface EndpointCardViewProps {
 
 type SortableEndpointCardProps = EndpointCardViewProps;
 
+const DETAIL_PANEL_STYLE: CSSProperties = {
+  boxShadow: "inset 0 1px 0 color-mix(in oklab, var(--background) 85%, transparent)",
+};
+
+const ENDPOINT_CARD_ACCENT_STYLE: CSSProperties = {
+  backgroundImage:
+    "radial-gradient(circle at top left, color-mix(in oklab, var(--primary) 16%, transparent), transparent 58%)",
+};
+
+const ENDPOINT_CARD_HOVER_GLOW_STYLE: CSSProperties = {
+  backgroundColor: "color-mix(in oklab, var(--primary) 22%, transparent)",
+};
+
 function EndpointActionButton({
   className,
   ...props
@@ -69,7 +82,10 @@ function EndpointDetailPanel({
   mono?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-background/80 p-4 shadow-[inset_0_1px_0_hsl(var(--background)/0.85)]">
+    <div
+      className="rounded-xl border border-border/70 bg-background/80 p-4"
+      style={DETAIL_PANEL_STYLE}
+    >
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
           <Icon className="h-4 w-4" />
@@ -119,14 +135,20 @@ export function EndpointCardView({
   return (
     <Card
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden border-border/70 bg-gradient-to-b from-card via-card to-muted/20 transition-[border-color,box-shadow,opacity,transform] hover:border-primary/20 hover:shadow-[0_24px_60px_-40px_hsl(var(--primary)/0.45)]",
+        "group relative flex h-full flex-col overflow-hidden border-border/70 bg-gradient-to-b from-card via-card to-muted/20 transition-[border-color,box-shadow,opacity,transform] hover:border-primary/20 hover:shadow-xl",
         isDragging && "border-dashed border-primary/40 bg-muted/30 opacity-30 shadow-none",
         isOverlay && "scale-[1.02] cursor-grabbing border-primary/50 shadow-2xl ring-2 ring-primary/30"
       )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.16),transparent_58%)]"
+        className="pointer-events-none absolute inset-x-10 -top-10 h-20 rounded-full opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-100"
+        style={ENDPOINT_CARD_HOVER_GLOW_STYLE}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-24"
+        style={ENDPOINT_CARD_ACCENT_STYLE}
       />
 
       <CardHeader className="relative border-b border-border/60 pb-4">
