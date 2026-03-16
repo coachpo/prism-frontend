@@ -39,11 +39,6 @@ export interface LoadbalanceEventListResponse {
   offset: number;
 }
 
-export interface LoadbalanceStats {
-  total_events: number;
-  events_by_type: Record<string, number>;
-  most_failed_connections: Array<{
-    connection_id: number;
-    failure_count: number;
-  }>;
+export interface LoadbalanceEventDeleteResponse {
+  accepted: boolean;
 }

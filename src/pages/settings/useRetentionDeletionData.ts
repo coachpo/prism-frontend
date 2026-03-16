@@ -1,16 +1,19 @@
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { DELETE_CONFIRM_KEYWORD } from "./settingsPageHelpers";
-
-type CleanupType = "" | "requests" | "audits";
-type RetentionPreset = "" | "7" | "30" | "90" | "all";
+import {
+  DELETE_CONFIRM_KEYWORD,
+  type CleanupType,
+  type DeleteCleanupType,
+  type RetentionPreset,
+  getCleanupTypeLabel,
+} from "./settingsPageHelpers";
 
 export function useRetentionDeletionData() {
   const [cleanupType, setCleanupType] = useState<CleanupType>("");
   const [retentionPreset, setRetentionPreset] = useState<RetentionPreset>("");
   const [deleteConfirm, setDeleteConfirm] = useState<{
-    type: "requests" | "audits";
+    type: DeleteCleanupType;
     days: number | null;
     deleteAll: boolean;
   } | null>(null);
@@ -47,16 +50,26 @@ export function useRetentionDeletionData() {
     setDeleting(true);
     try {
       if (type === "requests") {
-        const result = deleteAll
-          ? await api.stats.delete({ delete_all: true })
-          : await api.stats.delete({ older_than_days: days! });
-        toast.success(`Deleted ${result.deleted_count} request logs`);
+        if (deleteAll) {
+          await api.stats.delete({ delete_all: true });
+        } else {
+          await api.stats.delete({ older_than_days: days! });
+        }
+      } else if (type === "audits") {
+        if (deleteAll) {
+          await api.audit.delete({ delete_all: true });
+        } else {
+          await api.audit.delete({ older_than_days: days! });
+        }
       } else {
-        const result = deleteAll
-          ? await api.audit.delete({ delete_all: true })
-          : await api.audit.delete({ older_than_days: days! });
-        toast.success(`Deleted ${result.deleted_count} audit logs`);
+        if (deleteAll) {
+          await api.loadbalance.deleteEvents({ delete_all: true });
+        } else {
+          await api.loadbalance.deleteEvents({ older_than_days: days! });
+        }
       }
+
+      toast.success(`${getCleanupTypeLabel(type)} deletion requested`);
 
       setDeleteConfirm(null);
       setDeleteConfirmPhrase("");

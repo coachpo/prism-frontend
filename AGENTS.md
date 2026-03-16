@@ -19,7 +19,7 @@ src/
 ## CURRENT ROUTES
 
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
-- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/statistics`, `/proxy-api-keys`, `/settings`, `/pricing-templates`, `/loadbalance-events`
+- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/statistics`, `/proxy-api-keys`, `/settings`, `/pricing-templates`
 - `/` still redirects to `/dashboard`
 
 ## CHILD DOCS
@@ -62,5 +62,6 @@ src/
 
 - `src/lib/api.ts` still exposes audit methods even though the frontend no longer mounts a dedicated audit or request-log investigation route.
 - `navigationProfileConfig.ts` is the current source of truth for sidebar entries, profile-scoped route prefixes, and the frontend version label.
+- Loadbalance events no longer mount as a standalone route; the model-scoped view lives on `src/pages/ModelDetailPage.tsx`.
 - Frontend build metadata comes from `VITE_GIT_RUN_NUMBER` and `VITE_GIT_REVISION`, which are injected by `.github/workflows/docker-images.yml`.
 - Shared realtime hook coverage currently lives in `src/hooks/__tests__/useRealtimeData.test.tsx` rather than beside `src/lib/websocket.ts`.

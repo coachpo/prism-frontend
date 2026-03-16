@@ -6,7 +6,6 @@ import {
   Coins,
   Plug,
   KeyRound,
-  Activity,
   FileText,
 } from "lucide-react";
 
@@ -17,7 +16,6 @@ export const NAV_LINKS = [
   { to: "/pricing-templates", icon: Coins, label: "Pricing Templates" },
   { to: "/statistics", icon: BarChart3, label: "Statistics" },
   { to: "/request-logs", icon: FileText, label: "Request Logs" },
-  { to: "/loadbalance-events", icon: Activity, label: "Loadbalance Events" },
   { to: "/proxy-api-keys", icon: KeyRound, label: "API Keys" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
@@ -28,7 +26,6 @@ export const PROFILE_SCOPED_PREFIXES = [
   "/pricing-templates",
   "/statistics",
   "/request-logs",
-  "/loadbalance-events",
 ];
 
 export const MAX_PROFILES = 10;

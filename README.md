@@ -34,11 +34,9 @@ frontend/
 │   │   ├── StatisticsPage.tsx      # Analytics route shell
 │   │   ├── ProxyApiKeysPage.tsx    # Proxy key route shell
 │   │   ├── PricingTemplatesPage.tsx # Pricing template route shell
-│   │   ├── LoadbalanceEventsPage.tsx # Failover event route shell
 │   │   ├── dashboard/              # Dashboard widgets + data hook
 │   │   ├── endpoints/              # Endpoint cards, dialogs, page data hook
-│   │   ├── loadbalance-events/     # Filters, table, stats, data hooks
-│   │   ├── model-detail/           # Model detail orchestration + connection helpers
+│   │   ├── model-detail/           # Model detail orchestration, connection helpers, loadbalance events
 │   │   ├── models/                 # Models dialogs, table, page data hook
 │   │   ├── pricing-templates/      # Pricing dialogs, table, page data hook
 │   │   ├── proxy-api-keys/         # Proxy key cards, dialogs, page data hook

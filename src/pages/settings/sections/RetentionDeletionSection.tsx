@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
+  type CleanupType,
+  type RetentionPreset,
+} from "../settingsPageHelpers";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -12,10 +16,10 @@ import {
 
 interface RetentionDeletionSectionProps {
   selectedProfileLabel: string;
-  cleanupType: "" | "requests" | "audits";
-  setCleanupType: (type: "" | "requests" | "audits") => void;
-  retentionPreset: "" | "7" | "30" | "90" | "all";
-  setRetentionPreset: (preset: "" | "7" | "30" | "90" | "all") => void;
+  cleanupType: CleanupType;
+  setCleanupType: (type: CleanupType) => void;
+  retentionPreset: RetentionPreset;
+  setRetentionPreset: (preset: RetentionPreset) => void;
   deleting: boolean;
   handleOpenDeleteConfirm: () => void;
 }
@@ -38,35 +42,36 @@ export function RetentionDeletionSection({
             Retention & Deletion
           </CardTitle>
           <CardDescription className="text-xs">
-            Delete historical logs in {selectedProfileLabel} with explicit retention and confirmation controls.
+            Delete historical data in {selectedProfileLabel} with explicit retention and confirmation controls.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label>Log type</Label>
+              <Label>Data type</Label>
               <Select
                 value={cleanupType}
                 onValueChange={(value) =>
-                  setCleanupType(value as "requests" | "audits")
+                  setCleanupType(value as CleanupType)
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select log type" />
+                  <SelectValue placeholder="Select data type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="requests">Request Logs</SelectItem>
                   <SelectItem value="audits">Audit Logs</SelectItem>
+                  <SelectItem value="loadbalance_events">Loadbalance Events</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Delete logs older than</Label>
+              <Label>Delete data older than</Label>
               <Select
                 value={retentionPreset}
                 onValueChange={(value) =>
-                  setRetentionPreset(value as "7" | "30" | "90" | "all")
+                  setRetentionPreset(value as RetentionPreset)
                 }
               >
                 <SelectTrigger>
@@ -77,7 +82,7 @@ export function RetentionDeletionSection({
                   <SelectItem value="30">30 days</SelectItem>
                   <SelectItem value="90">90 days</SelectItem>
                   <SelectItem value="all" className="text-destructive">
-                    All logs
+                    All data
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -91,7 +96,7 @@ export function RetentionDeletionSection({
                 disabled={deleting || !cleanupType || !retentionPreset}
                 onClick={handleOpenDeleteConfirm}
               >
-                Delete logs
+                Delete data
               </Button>
             </div>
           </div>

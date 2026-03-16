@@ -150,11 +150,11 @@ export interface AuditLogParams {
 }
 
 export interface AuditLogDeleteResponse {
-  deleted_count: number;
+  accepted: boolean;
 }
 
 export interface BatchDeleteResponse {
-  deleted_count: number;
+  accepted: boolean;
 }
 
 export interface EndpointFxMapping {

@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { useModelDetailData } from "./model-detail/useModelDetailData";
+import { LoadbalanceEventsTab } from "./model-detail/LoadbalanceEventsTab";
 import { OverviewCards } from "./model-detail/OverviewCards";
 import { ConnectionsList } from "./model-detail/ConnectionsList";
 import { ConnectionDialog } from "./model-detail/ConnectionDialog";
@@ -12,7 +15,8 @@ import { ModelSettingsDialog } from "./model-detail/ModelSettingsDialog";
 export function ModelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+  const [activeTab, setActiveTab] = useState<"connections" | "events">("connections");
+
   const {
     model,
     loading,
@@ -131,26 +135,43 @@ export function ModelDetailPage() {
         onViewRequestLogs={() => navigate(`/request-logs?model_id=${encodeURIComponent(model.model_id)}`)}
       />
 
-      <ConnectionsList
-        model={model}
-        connections={connections}
-        connectionSearch={connectionSearch}
-        setConnectionSearch={setConnectionSearch}
-        setConnectionMetricsEnabled={setConnectionMetricsEnabled}
-        openConnectionDialog={openConnectionDialog}
-        handleDeleteConnection={handleDeleteConnection}
-        handleHealthCheck={handleHealthCheck}
-        handleHealthCheckAll={handleHealthCheckAll}
-        handleToggleActive={handleToggleActive}
-        handleReorderConnections={handleReorderConnections}
-        connectionMetricsEnabled={connectionMetricsEnabled}
-        connectionMetricsLoading={connectionMetricsLoading}
-        connectionMetrics24h={connectionMetrics24h}
-        healthCheckingIds={healthCheckingIds}
-        focusedConnectionId={focusedConnectionId}
-        connectionCardRefs={connectionCardRefs}
-        reorderInFlight={reorderInFlight}
-      />
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "connections" | "events")} className="space-y-4">
+        <TabsList className="grid h-11 w-full max-w-md grid-cols-2 rounded-xl bg-muted/70 p-1">
+          <TabsTrigger value="connections" className="rounded-lg text-sm font-medium">
+            Connections
+          </TabsTrigger>
+          <TabsTrigger value="events" className="rounded-lg text-sm font-medium">
+            Loadbalance Events
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="connections" className="mt-0 space-y-4">
+          <ConnectionsList
+            model={model}
+            connections={connections}
+            connectionSearch={connectionSearch}
+            setConnectionSearch={setConnectionSearch}
+            setConnectionMetricsEnabled={setConnectionMetricsEnabled}
+            openConnectionDialog={openConnectionDialog}
+            handleDeleteConnection={handleDeleteConnection}
+            handleHealthCheck={handleHealthCheck}
+            handleHealthCheckAll={handleHealthCheckAll}
+            handleToggleActive={handleToggleActive}
+            handleReorderConnections={handleReorderConnections}
+            connectionMetricsEnabled={connectionMetricsEnabled}
+            connectionMetricsLoading={connectionMetricsLoading}
+            connectionMetrics24h={connectionMetrics24h}
+            healthCheckingIds={healthCheckingIds}
+            focusedConnectionId={focusedConnectionId}
+            connectionCardRefs={connectionCardRefs}
+            reorderInFlight={reorderInFlight}
+          />
+        </TabsContent>
+
+        <TabsContent value="events" className="mt-0 space-y-4">
+          <LoadbalanceEventsTab modelId={model.model_id} />
+        </TabsContent>
+      </Tabs>
 
       <ConnectionDialog
         isOpen={isConnectionDialogOpen}

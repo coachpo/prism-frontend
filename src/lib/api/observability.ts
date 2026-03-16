@@ -16,9 +16,9 @@ import type {
   HeaderBlocklistRule,
   HeaderBlocklistRuleCreate,
   HeaderBlocklistRuleUpdate,
+  LoadbalanceEventDeleteResponse,
   LoadbalanceEventDetail,
   LoadbalanceEventListResponse,
-  LoadbalanceStats,
   RequestLogListResponse,
   SpendingReportParams,
   SpendingReportResponse,
@@ -139,12 +139,7 @@ export const audit = {
 
 export const loadbalance = {
   listEvents: (params: {
-    connection_id?: number;
-    event_type?: string;
-    failure_kind?: string;
-    model_id?: string;
-    from_time?: string;
-    to_time?: string;
+    model_id: string;
     limit?: number;
     offset?: number;
   }) => {
@@ -154,10 +149,6 @@ export const loadbalance = {
   getEvent: (eventId: number) => request<LoadbalanceEventDetail>(`/api/loadbalance/events/${eventId}`),
   deleteEvents: (params: { before?: string; older_than_days?: number; delete_all?: boolean }) => {
     const query = buildQuery(params);
-    return request<{ deleted_count: number }>(`/api/loadbalance/events?${query}`, { method: "DELETE" });
-  },
-  getStats: (params: { from_time?: string; to_time?: string }) => {
-    const query = buildQuery(params);
-    return request<LoadbalanceStats>(`/api/loadbalance/stats${query ? `?${query}` : ""}`);
+    return request<LoadbalanceEventDeleteResponse>(`/api/loadbalance/events?${query}`, { method: "DELETE" });
   },
 };

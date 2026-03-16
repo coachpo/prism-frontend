@@ -17,9 +17,11 @@ model-detail/
 ├── useModelDetailMetrics24h.ts
 ├── OverviewCards.tsx
 ├── ConnectionsList.tsx
+├── LoadbalanceEventsTab.tsx
 ├── connections-list/                 # Connection card, sortable shell, list utils
 ├── ConnectionDialog.tsx
 ├── ModelSettingsDialog.tsx
+├── useModelLoadbalanceEvents.ts
 └── modelDetailMetricsAndPaths.ts     # Latency formatting and connection naming helpers
 ```
 
@@ -33,6 +35,7 @@ model-detail/
 - Default endpoint and connection forms, redirect-target options, optimistic helpers: `useModelDetailDataSupport.ts`, `useModelDetailModelForm.ts`
 - KPI cards and model-level 24h summary display: `OverviewCards.tsx`
 - Drag-and-drop connection list, focus ring, and 24-hour metrics cards: `ConnectionsList.tsx`, `connections-list/`
+- Model-scoped loadbalance event paging, refresh, and detail drawer wiring: `LoadbalanceEventsTab.tsx`, `useModelLoadbalanceEvents.ts`, `../../components/loadbalance/`
 - Inline endpoint creation, custom headers, pricing template selection: `ConnectionDialog.tsx`
 - Proxy redirect target editing: `ModelSettingsDialog.tsx`
 - Latency formatting and connection naming helpers: `modelDetailMetricsAndPaths.ts`

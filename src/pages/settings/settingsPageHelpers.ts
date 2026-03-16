@@ -12,11 +12,26 @@ export const SETTINGS_SECTIONS = [
 
 export const SETTINGS_SECTION_IDS = new Set<string>(SETTINGS_SECTIONS.map((section) => section.id));
 
+export type CleanupType = "" | "requests" | "audits" | "loadbalance_events";
+export type DeleteCleanupType = Exclude<CleanupType, "">;
+export type RetentionPreset = "" | "7" | "30" | "90" | "all";
+
 export const DELETE_CONFIRM_KEYWORD = "DELETE";
 export const FX_RATE_MAX_DECIMALS = 6;
 export const TIMEZONE_PREVIEW_SOURCE = new Date("2026-02-27T21:39:00Z");
 export const AUTH_PASSWORD_MIN_LENGTH = 8;
 export const AUTH_PASSWORD_MAX_LENGTH = 512;
+
+export function getCleanupTypeLabel(type: DeleteCleanupType): string {
+  switch (type) {
+    case "requests":
+      return "Request Logs";
+    case "audits":
+      return "Audit Logs";
+    case "loadbalance_events":
+      return "Loadbalance Events";
+  }
+}
 
 export const DEFAULT_COSTING_FORM: CostingSettingsUpdate = {
   report_currency_code: "USD",

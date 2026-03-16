@@ -6,7 +6,7 @@
 ## DOMAINS
 
 - Configuration: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `EndpointsPage.tsx`, `PricingTemplatesPage.tsx`
-- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `LoadbalanceEventsPage.tsx`
+- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`
 - Settings: `SettingsPage.tsx` with `settings/sections/`, `settings/costing/`, and `settings/dialogs/`
 - Access + recovery: `LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`, `ProxyApiKeysPage.tsx`
 
@@ -18,7 +18,7 @@
 - Statistics filter sync and tab orchestration: `StatisticsPage.tsx`, `statistics/AGENTS.md`
 - Settings section navigation and save-state rendering: `SettingsPage.tsx`, `settings/AGENTS.md`
 - Endpoint CRUD and reorder helpers: `EndpointsPage.tsx`, `endpoints/EndpointDialog.tsx`, `endpoints/endpointCardHelpers.ts`
-- Loadbalance event filters, paging, and detail sheet: `LoadbalanceEventsPage.tsx`, `loadbalance-events/`
+- Model-scoped loadbalance event tab and detail sheet: `ModelDetailPage.tsx`, `model-detail/`, `components/loadbalance/`
 - Pricing template form normalization: `PricingTemplatesPage.tsx`, `pricing-templates/pricingTemplateFormState.ts`
 - Proxy API key issuance, rotation, and one-time secret display: `ProxyApiKeysPage.tsx`
 

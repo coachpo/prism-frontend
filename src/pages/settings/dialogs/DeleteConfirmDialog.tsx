@@ -9,15 +9,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getCleanupTypeLabel, type DeleteCleanupType } from "../settingsPageHelpers";
 
 interface DeleteConfirmDialogProps {
   deleteConfirm: {
-    type: "requests" | "audits";
+    type: DeleteCleanupType;
     days: number | null;
     deleteAll: boolean;
   } | null;
   setDeleteConfirm: (confirm: {
-    type: "requests" | "audits";
+    type: DeleteCleanupType;
     days: number | null;
     deleteAll: boolean;
   } | null) => void;
@@ -62,12 +63,12 @@ export function DeleteConfirmDialog({
             <p className="font-medium">Deletion summary</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
               <li>
-                Log type: {deleteConfirm?.type === "requests" ? "Request Logs" : "Audit Logs"}
+                Data type: {deleteConfirm ? getCleanupTypeLabel(deleteConfirm.type) : "-"}
               </li>
               <li>
                 Retention:{" "}
                 {deleteConfirm?.deleteAll
-                  ? "All logs"
+                  ? "All data"
                   : `Older than ${deleteConfirm?.days} days`}
               </li>
             </ul>

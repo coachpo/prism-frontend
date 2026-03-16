@@ -1,3 +1,6 @@
+import { useTimezone } from "@/hooks/useTimezone";
+import type { LoadbalanceEvent } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -6,13 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { EventTypeBadge, FailureKindBadge } from "@/components/loadbalance/LoadbalanceBadges";
-import { getLoadbalanceRangeLabel } from "./loadbalanceEventUtils";
-import type { LoadbalanceEventRow } from "./types";
+import { EventTypeBadge, FailureKindBadge } from "./LoadbalanceBadges";
 
 interface LoadbalanceEventsTableProps {
-  events: LoadbalanceEventRow[];
+  events: LoadbalanceEvent[];
   loading: boolean;
   total: number;
   offset: number;
@@ -20,6 +20,14 @@ interface LoadbalanceEventsTableProps {
   onSelectEvent: (eventId: number) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
+}
+
+function getLoadbalanceRangeLabel(total: number, offset: number, limit: number) {
+  if (total === 0) {
+    return "Showing 0 of 0 events";
+  }
+
+  return `Showing ${offset + 1} to ${Math.min(offset + limit, total)} of ${total} events`;
 }
 
 export function LoadbalanceEventsTable({
@@ -32,34 +40,35 @@ export function LoadbalanceEventsTable({
   onPreviousPage,
   onNextPage,
 }: LoadbalanceEventsTableProps) {
+  const { format: formatTime } = useTimezone();
+
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="overflow-hidden rounded-xl border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>ID</TableHead>
-            <TableHead>Event Type</TableHead>
-            <TableHead>Failure Kind</TableHead>
+            <TableHead>Event</TableHead>
+            <TableHead>Failure</TableHead>
             <TableHead>Connection</TableHead>
-            <TableHead>Consecutive Failures</TableHead>
-            <TableHead>Cooldown (s)</TableHead>
-            <TableHead>Model</TableHead>
-            <TableHead>Created At</TableHead>
+            <TableHead>Failures</TableHead>
+            <TableHead>Cooldown</TableHead>
+            <TableHead>Created</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground">
-                Loading...
+              <TableCell colSpan={7} className="h-28 text-center text-muted-foreground">
+                Loading loadbalance events...
               </TableCell>
             </TableRow>
           ) : null}
 
           {!loading && events.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground">
-                No events found
+              <TableCell colSpan={7} className="h-28 text-center text-muted-foreground">
+                No loadbalance events recorded for this model yet.
               </TableCell>
             </TableRow>
           ) : null}
@@ -71,21 +80,25 @@ export function LoadbalanceEventsTable({
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => onSelectEvent(event.id)}
                 >
-                  <TableCell className="font-mono text-sm">{event.id}</TableCell>
+                  <TableCell className="font-mono text-xs">{event.id}</TableCell>
                   <TableCell>
                     <EventTypeBadge eventType={event.event_type} />
                   </TableCell>
                   <TableCell>
                     <FailureKindBadge failureKind={event.failure_kind} />
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{event.connection_id}</TableCell>
-                  <TableCell className="font-mono text-sm">{event.consecutive_failures}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {event.cooldown_seconds.toFixed(2)}
+                  <TableCell className="font-mono text-xs">#{event.connection_id}</TableCell>
+                  <TableCell className="font-mono text-xs">{event.consecutive_failures}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {event.cooldown_seconds.toFixed(1)}s
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{event.model_id || "N/A"}</TableCell>
-                  <TableCell className="text-sm">
-                    {new Date(event.created_at).toLocaleString()}
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatTime(event.created_at, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
                   </TableCell>
                 </TableRow>
               ))
@@ -93,8 +106,8 @@ export function LoadbalanceEventsTable({
         </TableBody>
       </Table>
 
-      <div className="flex items-center justify-between border-t p-4">
-        <p className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between border-t px-4 py-3">
+        <p className="text-xs text-muted-foreground">
           {getLoadbalanceRangeLabel(total, offset, limit)}
         </p>
         <div className="flex gap-2">

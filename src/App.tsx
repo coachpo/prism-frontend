@@ -39,9 +39,6 @@ const ForgotPasswordPage = lazy(() =>
 const ResetPasswordPage = lazy(() =>
   import("@/pages/ResetPasswordPage").then((module) => ({ default: module.ResetPasswordPage }))
 );
-const LoadbalanceEventsPage = lazy(() =>
-  import("@/pages/LoadbalanceEventsPage").then((module) => ({ default: module.LoadbalanceEventsPage }))
-);
 const RequestLogsPage = lazy(() =>
   import("@/pages/RequestLogsPage").then((module) => ({ default: module.RequestLogsPage }))
 );
@@ -114,7 +111,6 @@ function App() {
             <Route path="/settings" element={withRouteSuspense(<SettingsPage />)} />
             <Route path="/proxy-api-keys" element={withRouteSuspense(<ProxyApiKeysPage />)} />
             <Route path="/pricing-templates" element={withRouteSuspense(<PricingTemplatesPage />)} />
-            <Route path="/loadbalance-events" element={withRouteSuspense(<LoadbalanceEventsPage />)} />
             <Route path="/request-logs" element={withRouteSuspense(<RequestLogsPage />)} />
           </Route>
         </Routes>
