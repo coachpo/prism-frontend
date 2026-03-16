@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Filter, Search, SlidersHorizontal, X } from "lucide-react";
+import { ChevronDown, Filter, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +28,8 @@ interface FiltersBarProps {
   actions: RequestLogPageActions;
   filterOptions: FilterOptions;
   filterOptionsLoaded: boolean;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }
 
 const TIME_LABELS: Record<string, string> = {
@@ -51,7 +53,7 @@ function ToolbarLabel({ children }: { children: React.ReactNode }) {
   return <Label className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{children}</Label>;
 }
 
-export function FiltersBar({ actions, filterOptions, filterOptionsLoaded }: FiltersBarProps) {
+export function FiltersBar({ actions, filterOptions, filterOptionsLoaded, onRefresh, isRefreshing }: FiltersBarProps) {
   const { state, hasActiveFilters } = actions;
   const [localRefinementOpen, setLocalRefinementOpen] = useState(false);
 
@@ -165,10 +167,23 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded }: Filt
         </div>
 
         {hasActiveFilters && (
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onRefresh} disabled={isRefreshing}>
+              <RefreshCw className="h-3.5 w-3.5" />
+              Refresh
+            </Button>
             <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={actions.clearFilters}>
               <X className="h-3 w-3" />
               Clear all
+            </Button>
+          </div>
+        )}
+
+        {!hasActiveFilters && (
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onRefresh} disabled={isRefreshing}>
+              <RefreshCw className="h-3.5 w-3.5" />
+              Refresh
             </Button>
           </div>
         )}

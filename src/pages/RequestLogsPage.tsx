@@ -24,7 +24,7 @@ export function RequestLogsPage() {
   const actions = useRequestLogPageState();
   const { state, isExactMode } = actions;
 
-  const { items, total, loading, error, filterOptions, filterOptionsLoaded } =
+  const { items, total, loading, error, filterOptions, filterOptionsLoaded, refresh } =
     useRequestLogsPageData({ revision, state });
 
   const filteredItems = useMemo(
@@ -110,6 +110,8 @@ export function RequestLogsPage() {
             actions={actions}
             filterOptions={filterOptions}
             filterOptionsLoaded={filterOptionsLoaded}
+            onRefresh={refresh}
+            isRefreshing={loading}
           />
         )}
 
