@@ -1,27 +1,41 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useCoalescedReconcile } from "@/hooks/useCoalescedReconcile";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
-import type { RequestLogEntry, SpendingReportResponse, StatsSummary } from "@/lib/types";
-import { isSuccessfulRequest } from "./dashboardDataUtils";
+import type {
+  DashboardRealtimeUpdatePayload,
+  RequestLogEntry,
+  SpendingReportResponse,
+  StatsSummary,
+  ThroughputStatsResponse,
+} from "@/lib/types";
+import { applyRoutingDiagramRealtimeUpdate, type RoutingDiagramData } from "./routingDiagram";
 
 type Params = {
-  fetchDashboardData: (args?: { silent?: boolean }) => Promise<void>;
+  fetchDashboardData: (args?: { forceRefresh?: boolean; silent?: boolean }) => Promise<void>;
   latestDashboardRequestIdRef: React.MutableRefObject<number>;
   selectedProfileId: number | null;
+  setProviderStats: React.Dispatch<React.SetStateAction<StatsSummary | null>>;
   setRecentRequests: React.Dispatch<React.SetStateAction<RequestLogEntry[]>>;
+  setRoutingDiagramData: React.Dispatch<React.SetStateAction<RoutingDiagramData | null>>;
+  setRoutingDiagramError: React.Dispatch<React.SetStateAction<string | null>>;
   setSpending: React.Dispatch<React.SetStateAction<SpendingReportResponse | null>>;
   setStats: React.Dispatch<React.SetStateAction<StatsSummary | null>>;
+  setThroughput: React.Dispatch<React.SetStateAction<ThroughputStatsResponse | null>>;
 };
 
 export function useDashboardRealtime({
   fetchDashboardData,
   latestDashboardRequestIdRef,
   selectedProfileId,
+  setProviderStats,
   setRecentRequests,
+  setRoutingDiagramData,
+  setRoutingDiagramError,
   setSpending,
   setStats,
+  setThroughput,
 }: Params) {
   const [recentNewIds, setRecentNewIds] = useState<Set<number>>(() => new Set());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [metricsHighlighted, setMetricsHighlighted] = useState(false);
   const markSyncCompleteRef = useRef<() => void>(() => undefined);
   const metricHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,7 +52,9 @@ export function useDashboardRealtime({
   }, []);
 
   const applyDashboardUpdate = useCallback(
-    (entry: RequestLogEntry) => {
+    (update: DashboardRealtimeUpdatePayload) => {
+      const entry = update.request_log;
+
       if (entry.id <= latestDashboardRequestIdRef.current) {
         return;
       }
@@ -48,71 +64,52 @@ export function useDashboardRealtime({
       setRecentRequests((prev) => [entry, ...prev].slice(0, 12));
       setRecentNewIds((prev) => new Set(prev).add(entry.id));
 
-      setStats((prev) => {
-        if (!prev) {
-          return prev;
-        }
-
-        const nextTotalRequests = prev.total_requests + 1;
-        const nextSuccessCount = prev.success_count + (isSuccessfulRequest(entry) ? 1 : 0);
-        const nextAverageLatency =
-          nextTotalRequests > 0
-            ? (prev.avg_response_time_ms * prev.total_requests + entry.response_time_ms) /
-              nextTotalRequests
-            : 0;
-
-        return {
-          ...prev,
-          total_requests: nextTotalRequests,
-          success_count: nextSuccessCount,
-          error_count: nextTotalRequests - nextSuccessCount,
-          success_rate:
-            nextTotalRequests > 0
-              ? Math.round((nextSuccessCount / nextTotalRequests) * 10000) / 100
-              : 0,
-          avg_response_time_ms: Math.round(nextAverageLatency * 10) / 10,
-        };
-      });
-
-      setSpending((prev) => {
-        if (!prev) {
-          return prev;
-        }
-
-        const costDelta =
-          entry.total_cost_user_currency_micros ?? entry.total_cost_original_micros ?? 0;
-
-        return {
-          ...prev,
-          summary: {
-            ...prev.summary,
-            total_cost_micros: prev.summary.total_cost_micros + costDelta,
-          },
-        };
-      });
+      setStats(update.stats_summary_24h);
+      setProviderStats(update.provider_summary_24h);
+      setSpending(update.spending_summary_30d);
+      setThroughput(update.throughput_24h);
+      setRoutingDiagramError(null);
+      setRoutingDiagramData((prev) =>
+        applyRoutingDiagramRealtimeUpdate(prev, update.routing_route_24h)
+      );
 
       triggerMetricHighlight();
     },
-    [latestDashboardRequestIdRef, setRecentRequests, setSpending, setStats, triggerMetricHighlight]
+    [
+      latestDashboardRequestIdRef,
+      setProviderStats,
+      setRecentRequests,
+      setRoutingDiagramData,
+      setRoutingDiagramError,
+      setSpending,
+      setStats,
+      setThroughput,
+      triggerMetricHighlight,
+    ]
   );
 
-  const reconcileDashboard = useCallback(async () => {
-    await fetchDashboardData({ silent: true });
-    markSyncCompleteRef.current();
-  }, [fetchDashboardData]);
+  const handleReconnect = useCallback(() => {
+    queueMicrotask(() => {
+      markSyncCompleteRef.current();
+    });
+  }, []);
 
-  const requestRealtimeReconciliation = useCoalescedReconcile({
-    reconcile: reconcileDashboard,
-    intervalMs: 300000,
-    visibilityReloadThresholdMs: 30000,
-  });
+  const refreshDashboard = useCallback(async () => {
+    setIsRefreshing(true);
+
+    try {
+      await fetchDashboardData({ forceRefresh: true, silent: true });
+      triggerMetricHighlight();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchDashboardData, triggerMetricHighlight]);
 
   const { connectionState, isSyncing, markSyncComplete } = useRealtimeData({
     profileId: selectedProfileId,
     channel: "dashboard",
     onData: applyDashboardUpdate,
-    onDirty: requestRealtimeReconciliation,
-    onReconnect: requestRealtimeReconciliation,
+    onReconnect: handleReconnect,
   });
 
   useEffect(() => {
@@ -142,8 +139,10 @@ export function useDashboardRealtime({
   return {
     clearRecentRequestHighlight,
     connectionState,
+    isRefreshing,
     isSyncing,
     metricsHighlighted,
     recentNewIds,
+    refreshDashboard,
   };
 }

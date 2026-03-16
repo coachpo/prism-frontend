@@ -39,9 +39,13 @@ export function useDashboardPageData({
     routingDiagramData,
     routingDiagramError,
     routingDiagramLoading,
+    setProviderStats,
     setRecentRequests,
+    setRoutingDiagramData,
+    setRoutingDiagramError,
     setSpending,
     setStats,
+    setThroughput,
     spending,
     stats,
     throughput,
@@ -53,16 +57,22 @@ export function useDashboardPageData({
   const {
     clearRecentRequestHighlight,
     connectionState,
+    isRefreshing,
     isSyncing,
     metricsHighlighted,
     recentNewIds,
+    refreshDashboard,
   } = useDashboardRealtime({
     fetchDashboardData,
     latestDashboardRequestIdRef,
     selectedProfileId,
+    setProviderStats,
     setRecentRequests,
+    setRoutingDiagramData,
+    setRoutingDiagramError,
     setSpending,
     setStats,
+    setThroughput,
   });
 
   const modelDisplayNames = useMemo(() => {
@@ -111,6 +121,7 @@ export function useDashboardPageData({
   return {
     clearRecentRequestHighlight,
     connectionState,
+    isRefreshing,
     isSyncing,
     loading,
     metricSnapshot,
@@ -119,6 +130,7 @@ export function useDashboardPageData({
     providerRows,
     recentNewIds,
     recentRequests,
+    refreshDashboard,
     routingDiagramData,
     routingDiagramError,
     routingDiagramLoading,

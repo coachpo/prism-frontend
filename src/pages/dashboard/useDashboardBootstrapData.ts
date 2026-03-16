@@ -51,8 +51,12 @@ function toNonEmptyArray<T>(items: T[]): NonEmptyArray<T> | null {
 async function loadDashboardBootstrapData(
   revision: number,
   selectedProfileId: number | null,
-  reuseInFlight = false,
+  options: {
+    forceRefresh?: boolean;
+    reuseInFlight?: boolean;
+  } = {},
 ): Promise<DashboardBootstrapResult> {
+  const { forceRefresh = false, reuseInFlight = false } = options;
   const key = buildDashboardBootstrapKey(revision, selectedProfileId);
   if (reuseInFlight && dashboardBootstrapPromise?.key === key) {
     return dashboardBootstrapPromise.promise;
@@ -60,7 +64,7 @@ async function loadDashboardBootstrapData(
 
   const from24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const to24h = new Date().toISOString();
-  const modelsPromise = getSharedModels(revision);
+  const modelsPromise = getSharedModels(revision, forceRefresh);
 
   const loadPromise = Promise.all([
     modelsPromise,
@@ -167,9 +171,11 @@ export function useDashboardBootstrapData({
   const fetchDashboardData = useCallback(
     async ({
       silent = false,
+      forceRefresh = false,
       reuseInFlight = false,
     }: {
       silent?: boolean;
+      forceRefresh?: boolean;
       reuseInFlight?: boolean;
     } = {}) => {
       const requestVersion = ++requestVersionRef.current;
@@ -192,10 +198,22 @@ export function useDashboardBootstrapData({
         } = await loadDashboardBootstrapData(
           revision,
           selectedProfileId,
-          reuseInFlight,
+          {
+            forceRefresh,
+            reuseInFlight,
+          },
         );
 
         if (requestVersion !== requestVersionRef.current) {
+          return;
+        }
+
+        const latestFetchedRequestId = requestsData.items.reduce(
+          (maxId, request) => Math.max(maxId, request.id),
+          0,
+        );
+
+        if (latestFetchedRequestId < latestDashboardRequestIdRef.current) {
           return;
         }
 
@@ -205,10 +223,7 @@ export function useDashboardBootstrapData({
         setSpending(spendingData);
         setThroughput(throughputData);
         setRecentRequests(requestsData.items);
-        latestDashboardRequestIdRef.current = requestsData.items.reduce(
-          (maxId, request) => Math.max(maxId, request.id),
-          0
-        );
+        latestDashboardRequestIdRef.current = latestFetchedRequestId;
         setRoutingDiagramData(routingResult.data);
         setRoutingDiagramError(routingResult.error);
       } catch (error) {
@@ -232,9 +247,13 @@ export function useDashboardBootstrapData({
     routingDiagramData,
     routingDiagramError,
     routingDiagramLoading,
+    setProviderStats,
     setRecentRequests,
+    setRoutingDiagramData,
+    setRoutingDiagramError,
     setSpending,
     setStats,
+    setThroughput,
     spending,
     stats,
     throughput,
