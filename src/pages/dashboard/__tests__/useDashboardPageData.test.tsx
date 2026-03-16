@@ -16,6 +16,7 @@ const api = vi.hoisted(() => ({
     requests: vi.fn(),
     spending: vi.fn(),
     summary: vi.fn(),
+    throughput: vi.fn(),
   },
 }));
 
@@ -99,7 +100,7 @@ describe("useDashboardPageData", () => {
 
     api.stats.summary
       .mockResolvedValueOnce({
-        total_requests: 20,
+        total_requests: 24,
         success_count: 19,
         error_count: 1,
         success_rate: 95,
@@ -111,7 +112,7 @@ describe("useDashboardPageData", () => {
         groups: [],
       })
       .mockResolvedValueOnce({
-        total_requests: 20,
+        total_requests: 24,
         success_count: 19,
         error_count: 1,
         success_rate: 95,
@@ -194,6 +195,21 @@ describe("useDashboardPageData", () => {
         report_currency_code: "USD",
         report_currency_symbol: "$",
       });
+
+    api.stats.throughput.mockResolvedValue({
+      average_rpm: 0.833,
+      peak_rpm: 2,
+      current_rpm: 1,
+      total_requests: 20,
+      time_window_seconds: 1440,
+      buckets: [
+        {
+          timestamp: "2026-03-16T10:00:00+00:00",
+          request_count: 1,
+          rpm: 1,
+        },
+      ],
+    });
 
     api.stats.requests.mockResolvedValue({
       items: [
@@ -347,7 +363,11 @@ describe("useDashboardPageData", () => {
     expect(api.stats.connectionSuccessRates).toHaveBeenCalledTimes(1);
     expect(api.stats.summary).toHaveBeenCalledTimes(2);
     expect(api.stats.spending).toHaveBeenCalledTimes(2);
+    expect(api.stats.throughput).toHaveBeenCalledTimes(1);
     expect(api.stats.requests).toHaveBeenCalledTimes(1);
+    expect(result.current.metricSnapshot.averageRpm).toBe(0.833);
+    expect(result.current.metricSnapshot.averageRpmRequestTotal).toBe(20);
+    expect(result.current.metricSnapshot.totalRequests).toBe(24);
     expect(result.current.metricSnapshot.totalModels).toBe(2);
     expect(result.current.routingDiagramData?.links).toHaveLength(2);
     expect(result.current.modelDisplayNames.get("gpt-5.4")).toBe("GPT-5.4");

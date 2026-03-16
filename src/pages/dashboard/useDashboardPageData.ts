@@ -3,7 +3,6 @@ import type {
   SpendingTopModel,
   StatGroup,
 } from "@/lib/types";
-import { getSystemHealthLabel } from "./dashboardDataUtils";
 import { useDashboardBootstrapData } from "./useDashboardBootstrapData";
 import { useDashboardRealtime } from "./useDashboardRealtime";
 
@@ -14,12 +13,13 @@ interface UseDashboardPageDataInput {
 
 export interface DashboardMetricSnapshot {
   activeModels: number;
+  averageRpm: number;
+  averageRpmRequestTotal: number;
   avgLatency: number;
   errorRate: number;
   p95Latency: number;
   streamShare: number;
   successRate: number;
-  systemHealthLabel: string;
   totalCost: number;
   totalModels: number;
   totalRequests: number;
@@ -44,6 +44,7 @@ export function useDashboardPageData({
     setStats,
     spending,
     stats,
+    throughput,
   } = useDashboardBootstrapData({
     latestDashboardRequestIdRef,
     revision,
@@ -86,17 +87,18 @@ export function useDashboardPageData({
 
     return {
       activeModels,
+      averageRpm: throughput?.average_rpm ?? 0,
+      averageRpmRequestTotal: throughput?.total_requests ?? 0,
       avgLatency,
       errorRate: Math.max(0, 100 - successRate),
       p95Latency,
       streamShare,
       successRate,
-      systemHealthLabel: getSystemHealthLabel(successRate),
       totalCost,
       totalModels: models.length,
       totalRequests,
     };
-  }, [models, recentRequests, spending, stats]);
+  }, [models, recentRequests, spending, stats, throughput]);
 
   const providerRows = useMemo<StatGroup[]>(() => {
     return [...(providerStats?.groups ?? [])].sort((left, right) => right.total_requests - left.total_requests);

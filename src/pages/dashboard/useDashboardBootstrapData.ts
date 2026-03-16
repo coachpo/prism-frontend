@@ -8,6 +8,7 @@ import type {
   RequestLogListResponse,
   SpendingReportResponse,
   StatsSummary,
+  ThroughputStatsResponse,
 } from "@/lib/types";
 import { buildRoutingDiagramData, type RoutingDiagramData } from "./routingDiagram";
 import { getEmptyRoutingDiagramData } from "./dashboardDataUtils";
@@ -28,6 +29,7 @@ interface DashboardBootstrapResult {
   };
   spendingData: SpendingReportResponse;
   statsData: StatsSummary;
+  throughputData: ThroughputStatsResponse;
 }
 
 let dashboardBootstrapPromise:
@@ -65,6 +67,7 @@ async function loadDashboardBootstrapData(
     api.stats.summary({ from_time: from24h }),
     api.stats.summary({ from_time: from24h, group_by: "provider" }),
     api.stats.spending({ preset: "last_30_days", top_n: 5 }),
+    api.stats.throughput({ from_time: from24h, to_time: to24h }),
     api.stats.requests({ limit: 12 }),
     (async () => {
       try {
@@ -118,11 +121,12 @@ async function loadDashboardBootstrapData(
       }
     })(),
   ]).then(
-    ([modelsData, statsData, providerStatsData, spendingData, requestsData, routingResult]) => ({
+    ([modelsData, statsData, providerStatsData, spendingData, throughputData, requestsData, routingResult]) => ({
       modelsData,
       statsData,
       providerStatsData,
       spendingData,
+      throughputData,
       requestsData,
       routingResult,
     }),
@@ -153,6 +157,7 @@ export function useDashboardBootstrapData({
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [providerStats, setProviderStats] = useState<StatsSummary | null>(null);
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
+  const [throughput, setThroughput] = useState<ThroughputStatsResponse | null>(null);
   const [recentRequests, setRecentRequests] = useState<RequestLogEntry[]>([]);
   const [routingDiagramData, setRoutingDiagramData] = useState<RoutingDiagramData | null>(null);
   const [routingDiagramLoading, setRoutingDiagramLoading] = useState(true);
@@ -181,6 +186,7 @@ export function useDashboardBootstrapData({
           statsData,
           providerStatsData,
           spendingData,
+          throughputData,
           requestsData,
           routingResult,
         } = await loadDashboardBootstrapData(
@@ -197,6 +203,7 @@ export function useDashboardBootstrapData({
         setStats(statsData);
         setProviderStats(providerStatsData);
         setSpending(spendingData);
+        setThroughput(throughputData);
         setRecentRequests(requestsData.items);
         latestDashboardRequestIdRef.current = requestsData.items.reduce(
           (maxId, request) => Math.max(maxId, request.id),
@@ -230,5 +237,6 @@ export function useDashboardBootstrapData({
     setStats,
     spending,
     stats,
+    throughput,
   };
 }
