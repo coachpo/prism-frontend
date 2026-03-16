@@ -9,18 +9,6 @@ export function isSuccessfulRequest(entry: RequestLogEntry) {
   return entry.status_code < 400;
 }
 
-export function getSystemHealthLabel(successRate: number) {
-  if (successRate >= 99) {
-    return "Healthy";
-  }
-
-  if (successRate >= 90) {
-    return "Degraded";
-  }
-
-  return "Critical";
-}
-
 export function getEmptyRoutingDiagramData(): RoutingDiagramData {
   return {
     nodes: [],

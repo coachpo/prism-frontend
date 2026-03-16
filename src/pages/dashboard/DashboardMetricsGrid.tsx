@@ -1,4 +1,4 @@
-import { Activity, DollarSign, Server, Zap } from "lucide-react";
+import { Activity, DollarSign, Server } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { formatMoneyMicros } from "@/lib/costing";
 import { cn } from "@/lib/utils";
@@ -43,17 +43,11 @@ export function DashboardMetricsGrid({
         )}
       />
       <MetricCard
-        label="System Health"
-        value={snapshot.systemHealthLabel}
-        detail="Based on 24h success rate"
-        icon={<Zap className="h-4 w-4" />}
+        label="Average RPM"
+        value={snapshot.averageRpm.toFixed(3)}
+        detail={`${snapshot.averageRpmRequestTotal.toLocaleString()} total requests`}
+        icon={<Activity className="h-4 w-4" />}
         className={cn(
-          "[&_[data-slot=icon]]:bg-violet-500/10 [&_[data-slot=icon]]:text-violet-500",
-          snapshot.successRate >= 99
-            ? "text-emerald-600"
-            : snapshot.successRate >= 90
-              ? "text-amber-600"
-              : "text-red-600",
           highlighted && "ws-value-updated"
         )}
       />
