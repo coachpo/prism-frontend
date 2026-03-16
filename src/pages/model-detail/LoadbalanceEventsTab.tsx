@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Activity, RefreshCw } from "lucide-react";
 import { LoadbalanceEventDetailSheet } from "@/components/loadbalance/LoadbalanceEventDetailSheet";
 import { LoadbalanceEventsTable } from "@/components/loadbalance/LoadbalanceEventsTable";
@@ -13,6 +13,15 @@ interface LoadbalanceEventsTabProps {
 
 export function LoadbalanceEventsTab({ modelId }: LoadbalanceEventsTabProps) {
   const { revision } = useProfileContext();
+  return <LoadbalanceEventsTabContent key={`${modelId}:${revision}`} modelId={modelId} revision={revision} />;
+}
+
+interface LoadbalanceEventsTabContentProps {
+  modelId: string;
+  revision: number;
+}
+
+function LoadbalanceEventsTabContent({ modelId, revision }: LoadbalanceEventsTabContentProps) {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const {
     events,
@@ -24,10 +33,6 @@ export function LoadbalanceEventsTab({ modelId }: LoadbalanceEventsTabProps) {
     goToPreviousPage,
     goToNextPage,
   } = useModelLoadbalanceEvents(modelId, revision);
-
-  useEffect(() => {
-    setSelectedEventId(null);
-  }, [modelId, revision]);
 
   return (
     <>
