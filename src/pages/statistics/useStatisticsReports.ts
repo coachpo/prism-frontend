@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
-  RequestLogEntry,
   SpendingReportResponse,
+  StatisticsRequestLogEntry,
   ThroughputStatsResponse,
 } from "@/lib/types";
 import { getFromTime } from "./queryParams";
@@ -34,7 +34,7 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
     timeRange,
   } = state;
 
-  const [logs, setLogs] = useState<RequestLogEntry[]>([]);
+  const [logs, setLogs] = useState<StatisticsRequestLogEntry[]>([]);
   const [operationsLoading, setOperationsLoading] = useState(activeTab === "operations");
   const [throughput, setThroughput] = useState<ThroughputStatsResponse | null>(null);
   const [throughputLoading, setThroughputLoading] = useState(activeTab === "throughput");
@@ -64,9 +64,9 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
           from_time: getFromTime(timeRange),
         };
 
-        const response = await api.stats.requests({
+        const response = await api.stats.operationsRequests({
           ...requestParams,
-          limit: 500,
+          limit: 200,
         });
 
         if (requestId !== operationsRequestIdRef.current) {

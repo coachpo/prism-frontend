@@ -1,11 +1,11 @@
 import type {
   AuditLogDeleteResponse,
   AuditLogDetail,
-  AuditLogListResponse,
-  AuditLogParams,
-  BatchDeleteResponse,
-  ConnectionMetricsBatchParams,
-  ConnectionMetricsBatchResponse,
+    AuditLogListResponse,
+    AuditLogParams,
+    BatchDeleteResponse,
+    ConnectionMetricsBatchParams,
+    ConnectionMetricsBatchResponse,
   ConfigExportResponse,
   ConfigImportRequest,
   ConfigImportResponse,
@@ -19,11 +19,12 @@ import type {
   LoadbalanceEventDeleteResponse,
   LoadbalanceEventDetail,
   LoadbalanceEventListResponse,
-  RequestLogListResponse,
-  SpendingReportParams,
-  SpendingReportResponse,
-  StatsRequestParams,
-  StatsSummary,
+    RequestLogListResponse,
+    SpendingReportParams,
+    SpendingReportResponse,
+    StatisticsRequestLogListResponse,
+    StatsRequestParams,
+    StatsSummary,
   ModelMetricsBatchParams,
   ModelMetricsBatchResponse,
   StatsSummaryParams,
@@ -37,6 +38,12 @@ export const stats = {
   requests: (params?: StatsRequestParams) => {
     const query = buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);
     return request<RequestLogListResponse>(`/api/stats/requests${query ? `?${query}` : ""}`);
+  },
+  operationsRequests: (params?: StatsRequestParams) => {
+    const query = buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);
+    return request<StatisticsRequestLogListResponse>(
+      `/api/stats/requests/operations${query ? `?${query}` : ""}`
+    );
   },
   summary: (params?: StatsSummaryParams) => {
     const query = buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);

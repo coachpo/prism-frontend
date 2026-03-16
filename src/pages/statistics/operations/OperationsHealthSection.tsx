@@ -10,11 +10,11 @@ import {
 } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { formatMoneyMicros } from "@/lib/costing";
-import type { RequestLogEntry } from "@/lib/types";
+import type { StatisticsRequestLogEntry } from "@/lib/types";
 import { OperationsSectionTitle } from "./OperationsSectionTitle";
 
 interface OperationsHealthSectionProps {
-  requestLogRows: RequestLogEntry[];
+  requestLogRows: StatisticsRequestLogEntry[];
   filteredRequestCount: number;
   filteredErrorCount: number;
   filteredSuccessCount: number;

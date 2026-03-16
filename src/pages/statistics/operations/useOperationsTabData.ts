@@ -10,7 +10,7 @@ import {
   parseErrorDetailMessage,
   rowHasAnySpecialToken,
 } from "../utils";
-import type { RequestLogEntry } from "@/lib/types";
+import type { StatisticsRequestLogEntry } from "@/lib/types";
 import type {
   ErrorCodeBreakdownItem,
   LatencyBandDatum,
@@ -22,7 +22,7 @@ const OPERATIONS_REPORT_SYMBOL = "$";
 const OPERATIONS_REPORT_CODE = "USD";
 
 interface UseOperationsTabDataInput {
-  logs: RequestLogEntry[];
+  logs: StatisticsRequestLogEntry[];
   modelId: string;
   providerType: string;
   connectionId: string;

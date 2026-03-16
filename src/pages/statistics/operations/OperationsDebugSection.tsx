@@ -17,7 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatMoneyMicros } from "@/lib/costing";
-import type { RequestLogEntry } from "@/lib/types";
+import type { StatisticsRequestLogEntry } from "@/lib/types";
 import type { InvestigateTab } from "../queryParams";
 import { OperationsChartCard } from "./chartPresentation";
 import { OperationsSectionTitle } from "./OperationsSectionTitle";
@@ -32,8 +32,8 @@ interface OperationsDebugSectionProps {
   errorCodeBreakdown: ErrorCodeBreakdownItem[];
   latencyBandData: LatencyBandDatum[];
   topErrors: TopErrorItem[];
-  slowRequests: RequestLogEntry[];
-  costlyRequests: RequestLogEntry[];
+  slowRequests: StatisticsRequestLogEntry[];
+  costlyRequests: StatisticsRequestLogEntry[];
   newLogIds: Set<number>;
   clearNewLogHighlight: (logId: number) => void;
   reportSymbol: string;
@@ -48,7 +48,7 @@ function InvestigateRequestRow({
   clearNewLogHighlight,
   onViewInRequestLogs,
 }: {
-  item: RequestLogEntry;
+  item: StatisticsRequestLogEntry;
   metric: ReactNode;
   newLogIds: Set<number>;
   clearNewLogHighlight: (logId: number) => void;

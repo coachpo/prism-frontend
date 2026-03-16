@@ -1,4 +1,7 @@
-import type { ConnectionDropdownItem, RequestLogEntry } from "@/lib/types";
+import type {
+  ConnectionDropdownItem,
+  StatisticsRequestLogEntry,
+} from "@/lib/types";
 import type { OperationsStatusFilter, SpecialTokenFilter } from "./queryParams";
 
 export interface TimeBucket {
@@ -27,7 +30,7 @@ export function hasSpecialTokenValue(value: number | null | undefined): boolean 
   return value !== null && value !== undefined;
 }
 
-export function rowHasAnySpecialToken(log: RequestLogEntry): boolean {
+export function rowHasAnySpecialToken(log: StatisticsRequestLogEntry): boolean {
   return (
     hasSpecialTokenValue(log.cache_read_input_tokens) ||
     hasSpecialTokenValue(log.cache_creation_input_tokens) ||
@@ -36,7 +39,7 @@ export function rowHasAnySpecialToken(log: RequestLogEntry): boolean {
 }
 
 export function matchesOperationsLogFilters(
-  entry: RequestLogEntry,
+  entry: StatisticsRequestLogEntry,
   specialTokenFilter: SpecialTokenFilter,
   operationsStatusFilter: OperationsStatusFilter
 ): boolean {
@@ -87,7 +90,7 @@ export function parseErrorDetailMessage(detail: string | null): string {
   return trimmed;
 }
 
-export function bucketLogs(logs: RequestLogEntry[], timeRange: string): TimeBucket[] {
+export function bucketLogs(logs: StatisticsRequestLogEntry[], timeRange: string): TimeBucket[] {
   if (logs.length === 0) return [];
 
   const sorted = [...logs].sort(

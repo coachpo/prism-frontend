@@ -1,11 +1,15 @@
-import type { ConnectionDropdownItem, Provider, RequestLogEntry } from "@/lib/types";
+import type {
+  ConnectionDropdownItem,
+  Provider,
+  StatisticsRequestLogEntry,
+} from "@/lib/types";
 import type {
   OperationsStatusFilter,
   SpecialTokenFilter,
 } from "../queryParams";
 
 export interface OperationsTabProps {
-  logs: RequestLogEntry[];
+  logs: StatisticsRequestLogEntry[];
   newLogIds: Set<number>;
   clearNewLogHighlight: (logId: number) => void;
   models: { model_id: string; display_name: string | null }[];
