@@ -287,13 +287,13 @@ export interface SpendingReportResponse {
 export interface ThroughputBucket {
   timestamp: string;
   request_count: number;
-  tps: number;
+  rpm: number;
 }
 
 export interface ThroughputStatsResponse {
-  average_tps: number;
-  peak_tps: number;
-  current_tps: number;
+  average_rpm: number;
+  peak_rpm: number;
+  current_rpm: number;
   total_requests: number;
   time_window_seconds: number;
   buckets: ThroughputBucket[];

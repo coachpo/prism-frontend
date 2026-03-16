@@ -33,7 +33,7 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
         hour: "2-digit",
         minute: "2-digit",
       }),
-      tps: bucket.tps,
+      rpm: bucket.rpm,
       requests: bucket.request_count,
     }));
   }, [data, formatTime]);
@@ -68,23 +68,22 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
         </Button>
       </div>
 
-      {/* Metrics Overview */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          label="Average TPS"
-          value={data.average_tps.toFixed(3)}
+          label="Average RPM"
+          value={data.average_rpm.toFixed(3)}
           detail={`${data.total_requests.toLocaleString()} total requests`}
           icon={<Activity className="h-4 w-4" />}
         />
         <MetricCard
-          label="Peak TPS"
-          value={data.peak_tps.toFixed(3)}
+          label="Peak RPM"
+          value={data.peak_rpm.toFixed(3)}
           detail="Highest 1-minute throughput"
           icon={<TrendingUp className="h-4 w-4" />}
         />
         <MetricCard
-          label="Current TPS"
-          value={data.current_tps.toFixed(3)}
+          label="Current RPM"
+          value={data.current_rpm.toFixed(3)}
           detail="Most recent 1-minute bucket"
           icon={<Zap className="h-4 w-4" />}
         />
@@ -96,12 +95,11 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
         />
       </div>
 
-      {/* TPS Over Time Chart */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Transactions Per Second (TPS) Over Time
+            Requests Per Minute (RPM) Over Time
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -113,7 +111,7 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={chartData}>
                 <defs>
-                  <linearGradient id="tpsGradient" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="rpmGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.72} />
                     <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.14} />
                   </linearGradient>
@@ -128,7 +126,7 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
                   className="text-xs"
                   tick={{ fill: "hsl(var(--muted-foreground))" }}
                   label={{
-                    value: "TPS",
+                    value: "RPM",
                     angle: -90,
                     position: "insideLeft",
                     style: { fill: "hsl(var(--muted-foreground))" },
@@ -142,25 +140,25 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
                   }}
                   labelStyle={{ color: "hsl(var(--popover-foreground))" }}
                   formatter={(value: number, name: string) => {
-                    if (name === "tps") return [value.toFixed(3), "TPS"];
+                    if (name === "rpm") return [value.toFixed(3), "RPM"];
                     if (name === "requests") return [value, "Requests"];
                     return [value, name];
                   }}
                 />
                 <Area
                   type="monotone"
-                  dataKey="tps"
+                  dataKey="rpm"
                   stroke="var(--chart-1)"
                   strokeWidth={2.5}
-                  fill="url(#tpsGradient)"
+                  fill="url(#rpmGradient)"
                 />
               </AreaChart>
             </ResponsiveContainer>
           )}
           <div className="mt-4 text-xs text-muted-foreground">
             <p>
-              Each data point represents a 1-minute time bucket. TPS is calculated as requests per
-              60 seconds.
+              Each data point represents a 1-minute time bucket. RPM matches the requests recorded
+              in that minute, and Average RPM normalizes the selected window to requests per minute.
             </p>
           </div>
         </CardContent>
