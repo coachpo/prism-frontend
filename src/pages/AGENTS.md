@@ -6,14 +6,15 @@
 ## DOMAINS
 
 - Configuration: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `EndpointsPage.tsx`, `PricingTemplatesPage.tsx`
-- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`
+- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestLogsPage.tsx`
 - Settings: `SettingsPage.tsx` with `settings/sections/`, `settings/costing/`, and `settings/dialogs/`
 - Access + recovery: `LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`, `ProxyApiKeysPage.tsx`
 
 ## WHERE TO LOOK
 
 - Route mount list and auth shell split: `../App.tsx`
-- Dashboard routing-diagram and realtime helpers: `DashboardPage.tsx`, `dashboard/`, `dashboard/useDashboardRealtime.ts`
+- Dashboard bootstrap and realtime flow: `DashboardPage.tsx`, `dashboard/AGENTS.md`
+- Request-log investigation flow, filters, and detail: `RequestLogsPage.tsx`, `request-logs/AGENTS.md`
 - Model detail route shell: `ModelDetailPage.tsx`, `model-detail/AGENTS.md`
 - Statistics filter sync and tab orchestration: `StatisticsPage.tsx`, `statistics/AGENTS.md`
 - Settings section navigation and save-state rendering: `SettingsPage.tsx`, `settings/AGENTS.md`
@@ -24,6 +25,8 @@
 
 ## CHILD DOCS
 
+- `dashboard/AGENTS.md`: bootstrap/realtime flow and routing-diagram visualization.
+- `request-logs/AGENTS.md`: investigation flow, query params, and payload inspection.
 - `settings/AGENTS.md`: section and dialog architecture, auth setup, destructive flow patterns.
 - `statistics/AGENTS.md`: operations vs spending tabs, shared query-param contract, data-hook boundaries.
 - `model-detail/AGENTS.md`: model detail orchestration, connection dialogs, reorder flow, and KPI helpers.
@@ -43,5 +46,4 @@
 - Do not bypass `useProfileContext()` for selected-profile labels or refresh triggers.
 - Do not mix destructive settings flows into generic dialogs without explicit confirmation copy.
 - Do not treat auth pages as protected-shell pages; `/login`, `/forgot-password`, and `/reset-password` intentionally bypass `ProfileProvider`.
-- Do not document or build new UI flows around a mounted `/audit` page route unless `../App.tsx` actually adds it.
 - Do not open page-specific websocket clients when `useRealtimeData()` and `src/lib/websocket.ts` already own subscription semantics.

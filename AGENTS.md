@@ -8,9 +8,8 @@ React 19 + TypeScript dashboard for Prism management workflows. Built with Vite 
 src/
 ├── main.tsx                        # Bootstraps app providers and App
 ├── App.tsx                         # BrowserRouter + AuthProvider + protected shell + auth/public routes
-├── context/ProfileContext.tsx      # Selected vs active profile state, localStorage, API header sync
-├── context/AuthContext.tsx         # Operator auth bootstrap, refresh, login/logout state
-├── hooks/                          # useConnectionNavigation, useRealtimeData, useTimezone
+├── context/AGENTS.md               # Auth bootstrap and profile-scoping boundaries
+├── hooks/AGENTS.md                 # Realtime, polling, and timezone hooks
 ├── lib/AGENTS.md                   # api/core/websocket/webauthn/types boundary
 ├── components/                     # App shell, shared widgets, shadcn/ui
 └── pages/AGENTS.md                 # Route layer + child feature docs
@@ -19,21 +18,24 @@ src/
 ## CURRENT ROUTES
 
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
-- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/statistics`, `/proxy-api-keys`, `/settings`, `/pricing-templates`
+- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/statistics`, `/request-logs`, `/proxy-api-keys`, `/settings`, `/pricing-templates`
 - `/` still redirects to `/dashboard`
 
 ## CHILD DOCS
 
-- `src/pages/AGENTS.md`: route-level guide for page flows, helper-folder boundaries, and child docs under `settings/`, `statistics/`, and `model-detail/`.
+- `src/context/AGENTS.md`: auth bootstrap modes, proactive refresh, and profile-scoping boundaries.
+- `src/hooks/AGENTS.md`: shared realtime, polling, and timezone logic.
 - `src/lib/AGENTS.md`: split API client modules, websocket client, WebAuthn helpers, and type boundaries.
+- `src/pages/AGENTS.md`: route-level guide for page flows and child docs under `dashboard/`, `request-logs/`, `settings/`, `statistics/`, and `model-detail/`.
 
 ## WHERE TO LOOK
 
-- Profile scope behavior: `src/context/ProfileContext.tsx`, `src/lib/api.ts`
+- Profile scope behavior: `src/context/ProfileContext.tsx`, `src/lib/api/core.ts`
 - App shell + profile UX: `src/components/layout/AppLayout.tsx`, `src/components/layout/app-layout/navigationProfileConfig.ts`
-- Operator auth bootstrap and redirects: `src/context/AuthContext.tsx`, `src/context/useAuth.ts`, `src/App.tsx`
+- Operator auth bootstrap and redirects: `src/context/AuthContext.tsx`, `src/context/AGENTS.md`
+- Request-log investigation route and helpers: `src/pages/RequestLogsPage.tsx`, `src/pages/request-logs/AGENTS.md`
 - Type and payload alignment: `src/lib/types.ts`, `src/lib/types/`, `src/lib/configImportValidation.ts`
-- Realtime client and hook boundary: `src/lib/websocket.ts`, `src/hooks/useRealtimeData.ts`
+- Realtime client and hook boundary: `src/lib/websocket.ts`, `src/hooks/AGENTS.md`
 - Passkey browser helpers: `src/lib/webauthn.ts`, `src/pages/settings/sections/authentication/usePasskeyManagement.ts`
 - Cost and time formatting: `src/lib/costing.ts`, `src/lib/timezone.ts`, `src/hooks/useTimezone.ts`
 - Connection owner navigation: `src/hooks/useConnectionNavigation.ts`
@@ -45,7 +47,7 @@ src/
 - All Prism backend calls should go through `src/lib/api.ts`; it is the public boundary that re-exports the split API modules where `X-Profile-Id` injection and cookie-based auth refresh for `/api/*` live.
 - `ProfileContext` owns selected-profile and active-profile state, localStorage persistence, and revision bumps; reuse it instead of inventing local profile state.
 - `AuthContext` owns bootstrap, session refresh, proactive 12-minute refresh, and visibility-triggered refresh.
-- Shared realtime flows should use `useRealtimeData()` over the singleton client in `src/lib/websocket.ts`.
+- Shared realtime flows should use `useRealtimeData()` from `src/hooks/AGENTS.md`.
 - `selected profile` and `active profile` are intentionally different concepts in UI copy and behavior.
 - `packageManager` is pinned to `pnpm@10.30.1`.
 
@@ -60,7 +62,7 @@ src/
 
 ## NOTES
 
-- `src/lib/api.ts` still exposes audit methods even though the frontend no longer mounts a dedicated audit or request-log investigation route.
+- `src/lib/api.ts` exposes the audit methods consumed by the mounted request-log investigation route in `src/pages/RequestLogsPage.tsx`.
 - `navigationProfileConfig.ts` is the current source of truth for sidebar entries, profile-scoped route prefixes, and the frontend version label.
 - Loadbalance events no longer mount as a standalone route; the model-scoped view lives on `src/pages/ModelDetailPage.tsx`.
 - Frontend build metadata comes from `VITE_GIT_RUN_NUMBER` and `VITE_GIT_REVISION`, which are injected by `.github/workflows/docker-images.yml`.

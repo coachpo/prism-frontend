@@ -9,14 +9,15 @@ lib/
 ├── api.ts                 # Public API facade re-exporting split modules
 ├── api/
 │   ├── core.ts           # API base, X-Profile-Id injection, auth refresh, ApiError, query builder
-│   ├── authSettings.ts   # /api/auth and /api/settings/auth* client methods
+│   ├── authSettings.ts   # Auth/public-bootstrap, proxy keys, WebAuthn methods
 │   ├── management.ts     # Profiles, providers, models, endpoints, connections, pricing templates
-│   └── observability.ts  # Stats, config, audit, loadbalance, settings/costing
+│   └── observability.ts  # Stats, spending, metrics, timezone, config, audit, loadbalance
 ├── websocket.ts          # Singleton WebSocketClient with channel ref-counts and reconnects
 ├── webauthn.ts           # Browser passkey ceremony helpers over api.settings.auth.webauthn
 ├── types.ts + types/     # Backend-aligned payload and domain types
 ├── configImportValidation.ts
 ├── costing.ts
+├── referenceData.ts      # Shared reference-data cache keyed by profile revision
 ├── timezone.ts
 ├── clipboard.ts
 └── utils.ts
@@ -26,9 +27,10 @@ lib/
 
 - Public import boundary: `api.ts`
 - API base URL, `X-Profile-Id` injection, auth refresh retry, query building: `api/core.ts`
-- Operator auth, settings auth flows, proxy keys, passkeys: `api/authSettings.ts`
+- Operator auth, public-bootstrap, proxy keys, passkeys: `api/authSettings.ts`
 - Management CRUD clients: `api/management.ts`
-- Observability/config/audit/loadbalance clients: `api/observability.ts`
+- Stats, spending, metrics, timezone, config, audit, loadbalance: `api/observability.ts`
+- Shared models/providers/endpoints/connections/pricing template cache: `referenceData.ts`
 - WebSocket channels, reconnects, shared subscription counts: `websocket.ts`
 - Browser passkey helpers and support checks: `webauthn.ts`
 - Backend-aligned payload types: `types.ts`, `types/`
@@ -38,6 +40,7 @@ lib/
 - Pages and hooks should import from `api.ts` or the exported helpers, not call `fetch()` directly.
 - `setApiProfileId()` is fed by `ProfileContext`; `api/core.ts` is the only place that injects `X-Profile-Id` into `/api/*` requests.
 - `request()` handles cookie credentials, `ApiError`, and one refresh retry for eligible `/api/*` paths; keep additional retry logic out of callers.
+- `referenceData.ts` already owns shared cache reuse for common lookup datasets; extend it before adding another caching layer.
 - `websocket.ts` owns the singleton client, channel ref-counts, reconnect behavior, and profile switches; consumers should use `useRealtimeData()` instead of creating clients directly.
 - Keep browser WebAuthn ceremony code in `webauthn.ts`; API modules should stay transport-focused.
 - Keep backend payload naming aligned with server schemas; the type layer intentionally stays snake_case.

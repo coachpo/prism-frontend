@@ -1,7 +1,7 @@
 # FRONTEND MODEL DETAIL DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/model-detail/` owns the heavy lifting behind `../ModelDetailPage.tsx`: model bootstrap, connection CRUD, optimistic priority reorder, auto health checks, and 24-hour KPIs.
+`pages/model-detail/` owns the heavy lifting behind `../ModelDetailPage.tsx`: model bootstrap, connection CRUD, optimistic priority reorder, manual health-check orchestration, and 24-hour KPIs.
 
 ## STRUCTURE
 ```

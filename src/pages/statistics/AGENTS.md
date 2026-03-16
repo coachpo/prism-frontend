@@ -29,7 +29,8 @@ statistics/
 - Spending-tab rendering and grouping UI: `SpendingTab.tsx`
 - Spending async data hook and visualizations: `spending/useSpendingTabData.ts`, `spending/`
 - Page bootstrap, filter options, state orchestration, and report loading: `useStatisticsPageData.ts`, `useStatisticsFilterOptions.ts`, `useStatisticsPageState.ts`, `useStatisticsReports.ts`
-- Periodic polling for data refresh: `useStatisticsPageData.ts` (uses `usePolling` hook from `@/hooks/usePolling`)
+- Periodic polling for data refresh: `useStatisticsPageData.ts` (uses `usePolling` hook)
+- Timezone-aware formatting: `useTimezone` hook from `@/hooks/useTimezone`
 - Shared presentation helpers: `utils.ts`
 
 ## CONVENTIONS
