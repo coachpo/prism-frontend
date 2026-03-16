@@ -30,9 +30,7 @@ interface RequestLogsTableProps {
 }
 
 interface ResolvedColumn extends ColumnDef {
-  left?: number;
   resolvedWidth: number;
-  sticky: boolean;
 }
 
 const OVERSCAN = 10;
@@ -40,52 +38,38 @@ const OVERSCAN = 10;
 function getRowTone(row: RequestLogEntry, isSelected: boolean) {
   if (isSelected) {
     return {
-      row: "border-primary/30 bg-primary/10 hover:bg-primary/12",
-      sticky: "bg-primary/10",
+      row: "border-sky-500/20 bg-sky-500/[0.08] hover:bg-sky-500/[0.12]",
     };
   }
 
   if (row.status_code >= 500) {
     return {
       row: "border-red-500/15 bg-red-500/[0.06] hover:bg-red-500/[0.10]",
-      sticky: "bg-red-500/[0.06]",
     };
   }
 
   if (row.status_code >= 400 || row.response_time_ms >= 5000) {
     return {
       row: "border-amber-500/15 bg-amber-500/[0.05] hover:bg-amber-500/[0.09]",
-      sticky: "bg-amber-500/[0.05]",
     };
   }
 
   return {
     row: "border-border/50 bg-card hover:bg-muted/40",
-    sticky: "bg-card",
   };
 }
 
-function resolveColumns(columns: ColumnDef[], containerWidth: number, stickyCount: number): ResolvedColumn[] {
+function resolveColumns(columns: ColumnDef[], containerWidth: number): ResolvedColumn[] {
   const baseWidth = columns.reduce((sum, col) => sum + col.width, 0);
   const growWeight = columns.reduce((sum, col) => sum + (col.grow ?? 0), 0);
   const extraWidth = Math.max(0, containerWidth - baseWidth);
 
-  let currentLeft = 0;
-  return columns.map((col, index) => {
+  return columns.map((col) => {
     const resolvedWidth = Math.round(col.width + (growWeight > 0 ? extraWidth * ((col.grow ?? 0) / growWeight) : 0));
-    const sticky = index < stickyCount;
-    const next: ResolvedColumn = {
+    return {
       ...col,
       resolvedWidth,
-      sticky,
-      ...(sticky ? { left: currentLeft } : {}),
     };
-
-    if (sticky) {
-      currentLeft += resolvedWidth;
-    }
-
-    return next;
   });
 }
 
@@ -132,8 +116,8 @@ export function RequestLogsTable({
   }, []);
 
   const resolvedColumns = useMemo(
-    () => resolveColumns(columns, Math.max(containerWidth - 2, 0), view === "all" ? 2 : 0),
-    [columns, containerWidth, view]
+    () => resolveColumns(columns, Math.max(containerWidth - 2, 0)),
+    [columns, containerWidth]
   );
 
   const totalWidth = useMemo(
@@ -162,10 +146,9 @@ export function RequestLogsTable({
                 className={cn(
                   "shrink-0 px-3 py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground",
                   col.align === "right" && "text-right",
-                  col.align === "center" && "text-center",
-                  col.sticky && "sticky z-20 bg-background/92 backdrop-blur-md"
+                  col.align === "center" && "text-center"
                 )}
-                style={{ width: col.resolvedWidth, ...(col.sticky ? { left: col.left } : {}) }}
+                style={{ width: col.resolvedWidth }}
               >
                 {col.label}
               </div>
@@ -220,13 +203,11 @@ export function RequestLogsTable({
                       <div
                         key={col.key}
                         className={cn(
-                          "shrink-0 overflow-hidden px-3",
-                          col.align === "right" && "text-right",
-                          col.align === "center" && "text-center",
-                          col.sticky && "sticky z-[5]",
-                          col.sticky && tone.sticky
+                          "flex h-full shrink-0 items-center overflow-hidden px-3",
+                          col.align === "right" && "justify-end text-right",
+                          col.align === "center" && "justify-center text-center"
                         )}
-                        style={{ width: col.resolvedWidth, ...(col.sticky ? { left: col.left } : {}) }}
+                        style={{ width: col.resolvedWidth }}
                       >
                         {col.render(row, formatTimestamp)}
                       </div>
