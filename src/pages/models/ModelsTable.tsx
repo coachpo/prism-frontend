@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatMoneyMicros } from "@/lib/costing";
 import type { ModelConfigListItem } from "@/lib/types";
 import { cn, formatLabel, formatProviderType } from "@/lib/utils";
-import { formatLatencyCell } from "./modelMetricFormatters";
+import { formatLatencyForDisplay } from "../model-detail/modelDetailMetricsAndPaths";
 import type { ModelDerivedMetric } from "./modelTableContracts";
 
 type Props = {
@@ -177,7 +177,7 @@ export function ModelsTable({
 
               {activeColumns.p95 && (
                 <TableCell className="hidden lg:table-cell text-right text-sm tabular-nums text-muted-foreground">
-                  {metricsLoading ? "..." : formatLatencyCell(p95LatencyMs)}
+                  {metricsLoading ? "..." : formatLatencyForDisplay(p95LatencyMs)}
                 </TableCell>
               )}
 

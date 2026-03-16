@@ -128,6 +128,65 @@ describe("useAuditDetail", () => {
     expect(result.current.audits[0]?.id).toBe(22);
   });
 
+  it("hides previous request data while a different request is loading", async () => {
+    const secondList = deferred<AuditLogListResponse>();
+
+    api.audit.list.mockImplementation(({ request_log_id }: { request_log_id: number }) => {
+      if (request_log_id === 1) {
+        return Promise.resolve({
+          items: [createAuditListItem(11, 1)],
+          total: 1,
+          limit: 20,
+          offset: 0,
+        });
+      }
+
+      return secondList.promise;
+    });
+    api.audit.get.mockImplementation((id: number) =>
+      Promise.resolve(createAudit(id, id === 11 ? 1 : 2))
+    );
+
+    const { result, rerender } = renderHook(
+      ({ requestLogId, enabled }) => useAuditDetail({ requestLogId, enabled }),
+      {
+        initialProps: {
+          requestLogId: 1,
+          enabled: true,
+        },
+      }
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.audits[0]?.id).toBe(11);
+    });
+
+    rerender({
+      requestLogId: 2,
+      enabled: true,
+    });
+
+    expect(result.current.audits).toEqual([]);
+    expect(result.current.error).toBeNull();
+    expect(result.current.loading).toBe(true);
+
+    await act(async () => {
+      secondList.resolve({
+        items: [createAuditListItem(22, 2)],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.audits[0]?.id).toBe(22);
+    });
+  });
+
   it("clears state when audit loading is disabled", async () => {
     api.audit.list.mockResolvedValue({
       items: [createAuditListItem(31, 3)],

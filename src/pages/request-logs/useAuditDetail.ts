@@ -14,10 +14,14 @@ export function useAuditDetail({ requestLogId, enabled }: UseAuditDetailParams) 
   const [audits, setAudits] = useState<AuditLogDetail[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadedRequestLogId, setLoadedRequestLogId] = useState<number | null>(null);
   const activeLogIdRef = useRef<number | null>(null);
+  const isActive = enabled && requestLogId !== null;
+  const hasCurrentRequestState = requestLogId !== null && loadedRequestLogId === requestLogId;
 
   const fetchAudits = useCallback(async (logId: number) => {
     activeLogIdRef.current = logId;
+    setLoadedRequestLogId(logId);
     setLoading(true);
     setError(null);
     setAudits([]);
@@ -70,20 +74,24 @@ export function useAuditDetail({ requestLogId, enabled }: UseAuditDetailParams) 
   }, []);
 
   useEffect(() => {
-    if (!enabled || requestLogId === null) {
+    if (!isActive || requestLogId === null) {
       activeLogIdRef.current = null;
-      setAudits([]);
-      setLoading(false);
-      setError(null);
       return;
     }
 
-    fetchAudits(requestLogId);
+    const fetchTimeoutId = setTimeout(() => {
+      void fetchAudits(requestLogId);
+    }, 0);
 
     return () => {
+      clearTimeout(fetchTimeoutId);
       activeLogIdRef.current = null;
     };
-  }, [requestLogId, enabled, fetchAudits]);
+  }, [fetchAudits, isActive, requestLogId]);
 
-  return { audits, loading, error };
+  return {
+    audits: isActive && hasCurrentRequestState ? audits : [],
+    error: isActive && hasCurrentRequestState ? error : null,
+    loading: isActive ? !hasCurrentRequestState || loading : false,
+  };
 }

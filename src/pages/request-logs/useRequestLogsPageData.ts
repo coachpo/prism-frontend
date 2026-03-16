@@ -70,7 +70,13 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
   }, []);
 
   useEffect(() => {
-    bootstrapFilterOptions();
+    const bootstrapId = setTimeout(() => {
+      void bootstrapFilterOptions();
+    }, 0);
+
+    return () => {
+      clearTimeout(bootstrapId);
+    };
   }, [bootstrapFilterOptions, revision]);
 
   const fetchData = useCallback(() => {

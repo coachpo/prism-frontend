@@ -4,7 +4,6 @@ import { AuthProvider } from "@/context/AuthContext";
 import { useAuth } from "@/context/useAuth";
 import { ProfileProvider } from "@/context/ProfileContext";
 import { AppLayout } from "@/components/layout/AppLayout";
-import "./App.css";
 
 const DashboardPage = lazy(() =>
   import("@/pages/DashboardPage").then((module) => ({ default: module.DashboardPage }))

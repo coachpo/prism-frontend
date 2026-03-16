@@ -1,4 +1,3 @@
-import type { FormEvent } from "react";
 import { ProviderSelect } from "@/components/ProviderSelect";
 import { SwitchController } from "@/components/SwitchController";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { LoadBalancingStrategy, ModelConfigCreate, ModelConfigListItem, Provider } from "@/lib/types";
+import type { SubmitEventLike } from "./modelFormState";
 
 type Props = {
   editingModel: ModelConfigListItem | null;
@@ -26,7 +26,7 @@ type Props = {
   setIsDialogOpen: (open: boolean) => void;
   setLoadBalancingStrategy: (value: LoadBalancingStrategy) => void;
   setModelType: (value: "native" | "proxy") => void;
-  onSubmit: (event: FormEvent) => void;
+  onSubmit: (event: SubmitEventLike) => void;
 };
 
 export function ModelDialog({

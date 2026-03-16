@@ -11,6 +11,3 @@ export const DEFAULT_VISIBLE_COLUMNS: Record<ModelColumnKey, boolean> = {
   spend: true,
   status: true,
 };
-
-export const getLast24hFromTime = (): string =>
-  new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

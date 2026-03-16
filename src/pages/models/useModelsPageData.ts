@@ -7,27 +7,26 @@ import {
 } from "@/lib/referenceData";
 import type {
   LoadBalancingStrategy,
-  ModelConfig,
   ModelConfigCreate,
   ModelConfigListItem,
-  ModelConfigUpdate,
   Provider,
 } from "@/lib/types";
 import { toast } from "sonner";
 import { DEFAULT_VISIBLE_COLUMNS } from "./modelTableDefaults";
-import type { ModelColumnKey, ModelDerivedMetric } from "./modelTableContracts";
-
-const DEFAULT_FORM_DATA: ModelConfigCreate = {
-  provider_id: 0,
-  model_id: "",
-  display_name: "",
-  model_type: "native",
-  redirect_to: null,
-  lb_strategy: "single",
-  is_enabled: true,
-  failover_recovery_enabled: true,
-  failover_recovery_cooldown_seconds: 60,
-};
+import type { ModelColumnKey } from "./modelTableContracts";
+import {
+  createEditModelFormData,
+  createNewModelFormData,
+  DEFAULT_MODEL_FORM_DATA,
+  getNativeModelsForProvider,
+  setLoadBalancingStrategyOnForm,
+  setModelTypeOnForm,
+  toModelCreatePayload,
+  toModelListItem,
+  toModelUpdatePayload,
+  type SubmitEventLike,
+} from "./modelFormState";
+import { useModelMetrics24h } from "./useModelMetrics24h";
 
 export function useModelsPageData(revision: number) {
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
@@ -41,10 +40,8 @@ export function useModelsPageData(revision: number) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [visibleColumns, setVisibleColumns] = useState<Record<ModelColumnKey, boolean>>(DEFAULT_VISIBLE_COLUMNS);
-  const [modelMetrics24h, setModelMetrics24h] = useState<Record<number, ModelDerivedMetric>>({});
-  const [modelSpend30dMicros, setModelSpend30dMicros] = useState<Record<number, number>>({});
-  const [metricsLoading, setMetricsLoading] = useState(false);
-  const [formData, setFormData] = useState<ModelConfigCreate>(DEFAULT_FORM_DATA);
+  const [formData, setFormData] = useState<ModelConfigCreate>(DEFAULT_MODEL_FORM_DATA);
+  const { metricsLoading, modelMetrics24h, modelSpend30dMicros } = useModelMetrics24h(models);
 
   const applyBootstrapData = (data: { modelsData: ModelConfigListItem[]; providersData: Provider[] }) => {
     setModels(data.modelsData);
@@ -89,75 +86,6 @@ export function useModelsPageData(revision: number) {
     };
   }, [revision]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchModelMetrics = async () => {
-      if (models.length === 0) {
-        setModelMetrics24h({});
-        setModelSpend30dMicros({});
-        setMetricsLoading(false);
-        return;
-      }
-
-      setMetricsLoading(true);
-
-      try {
-        const uniqueModelIds = Array.from(new Set(models.map((model) => model.model_id)));
-        const response = await api.stats.modelMetrics({
-          model_ids: uniqueModelIds,
-          summary_window_hours: 24,
-          spending_preset: "last_30_days",
-        });
-
-        if (cancelled) return;
-
-        const metricsByModelId = new Map(response.items.map((item) => [item.model_id, item]));
-
-        const nextMetrics: Record<number, ModelDerivedMetric> = {};
-        const nextSpend: Record<number, number> = {};
-
-        for (const model of models) {
-          const row = metricsByModelId.get(model.model_id);
-          nextMetrics[model.id] = {
-            success_rate: row?.success_rate ?? null,
-            request_count_24h: row?.request_count_24h ?? 0,
-            p95_latency_ms: row?.p95_latency_ms ?? null,
-          };
-          nextSpend[model.id] = row?.spend_30d_micros ?? 0;
-        }
-
-        setModelMetrics24h(nextMetrics);
-        setModelSpend30dMicros(nextSpend);
-      } catch {
-        if (!cancelled) {
-          const nextMetrics: Record<number, ModelDerivedMetric> = {};
-          const nextSpend: Record<number, number> = {};
-          for (const model of models) {
-            nextMetrics[model.id] = {
-              success_rate: null,
-              request_count_24h: 0,
-              p95_latency_ms: null,
-            };
-            nextSpend[model.id] = 0;
-          }
-          setModelMetrics24h(nextMetrics);
-          setModelSpend30dMicros(nextSpend);
-        }
-      } finally {
-        if (!cancelled) {
-          setMetricsLoading(false);
-        }
-      }
-    };
-
-    void fetchModelMetrics();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [models]);
-
   const commitModels = (updater: (current: ModelConfigListItem[]) => ModelConfigListItem[]) => {
     setModels((current) => {
       const next = updater(current);
@@ -169,29 +97,16 @@ export function useModelsPageData(revision: number) {
   const handleOpenDialog = (model?: ModelConfigListItem) => {
     if (model) {
       setEditingModel(model);
-      setFormData({
-        provider_id: model.provider_id,
-        model_id: model.model_id,
-        display_name: model.display_name || "",
-        model_type: model.model_type,
-        redirect_to: model.redirect_to,
-        lb_strategy: model.lb_strategy,
-        is_enabled: model.is_enabled,
-        failover_recovery_enabled: model.failover_recovery_enabled,
-        failover_recovery_cooldown_seconds: model.failover_recovery_cooldown_seconds,
-      });
+      setFormData(createEditModelFormData(model));
     } else {
       setEditingModel(null);
-      setFormData({
-        ...DEFAULT_FORM_DATA,
-        provider_id: providers[0]?.id ?? 0,
-      });
+      setFormData(createNewModelFormData(providers));
     }
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: SubmitEventLike) => {
+    event.preventDefault();
     if (!formData.provider_id) {
       toast.error("Please select a provider");
       return;
@@ -202,39 +117,22 @@ export function useModelsPageData(revision: number) {
     }
     try {
       if (editingModel) {
-        const updateData: ModelConfigUpdate = {
-          provider_id: formData.provider_id,
-          display_name: formData.display_name || null,
-          model_type: formData.model_type,
-          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
-          lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
-          is_enabled: formData.is_enabled,
-          failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
-          failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
-        };
-          const updated = await api.models.update(editingModel.id, updateData);
-          commitModels((current) =>
-            current.map((model) =>
-              model.id === editingModel.id ? toModelListItem(updated, model) : model
-            )
-          );
-          toast.success("Model updated");
-        } else {
-        const createData: ModelConfigCreate = {
-          ...formData,
-          redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
-          lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
-          failover_recovery_enabled: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_enabled : true,
-          failover_recovery_cooldown_seconds: formData.model_type === "native" && formData.lb_strategy === "failover" ? formData.failover_recovery_cooldown_seconds : 60,
-        };
-          const created = await api.models.create(createData);
-          commitModels((current) => [...current, toModelListItem(created)]);
-          toast.success("Model created");
-        }
-        setIsDialogOpen(false);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to save model");
+        const updated = await api.models.update(editingModel.id, toModelUpdatePayload(formData));
+        commitModels((current) =>
+          current.map((model) =>
+            model.id === editingModel.id ? toModelListItem(updated, model) : model
+          )
+        );
+        toast.success("Model updated");
+      } else {
+        const created = await api.models.create(toModelCreatePayload(formData));
+        commitModels((current) => [...current, toModelListItem(created)]);
+        toast.success("Model created");
       }
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save model");
+    }
   };
 
   const handleDelete = async () => {
@@ -250,11 +148,10 @@ export function useModelsPageData(revision: number) {
   };
 
   const selectedProvider = providers.find((p) => p.id === formData.provider_id);
-  const nativeModelsForProvider = models.filter(
-    (m) =>
-      m.model_type === "native" &&
-      m.provider_id === formData.provider_id &&
-      (!editingModel || m.model_id !== formData.model_id)
+  const nativeModelsForProvider = getNativeModelsForProvider(
+    models,
+    formData.provider_id,
+    editingModel ? formData.model_id : undefined,
   );
 
   const filtered = models.filter((m) => {
@@ -293,15 +190,11 @@ export function useModelsPageData(revision: number) {
   };
 
   const setModelType = (value: "native" | "proxy") => {
-    setFormData({
-      ...formData,
-      model_type: value,
-      redirect_to: value === "native" ? null : formData.redirect_to,
-    });
+    setFormData((current) => setModelTypeOnForm(current, value));
   };
 
   const setLoadBalancingStrategy = (value: LoadBalancingStrategy) => {
-    setFormData({ ...formData, lb_strategy: value });
+    setFormData((current) => setLoadBalancingStrategyOnForm(current, value));
   };
 
   return {
@@ -339,27 +232,5 @@ export function useModelsPageData(revision: number) {
     typeFilter,
     updateColumnVisibility,
     visibleColumns,
-  };
-}
-
-function toModelListItem(model: ModelConfig, existing?: ModelConfigListItem): ModelConfigListItem {
-  return {
-    id: model.id,
-    provider_id: model.provider_id,
-    provider: model.provider,
-    model_id: model.model_id,
-    display_name: model.display_name,
-    model_type: model.model_type,
-    redirect_to: model.redirect_to,
-    lb_strategy: model.lb_strategy,
-    is_enabled: model.is_enabled,
-    failover_recovery_enabled: model.failover_recovery_enabled,
-    failover_recovery_cooldown_seconds: model.failover_recovery_cooldown_seconds,
-    connection_count: model.connections.length,
-    active_connection_count: model.connections.filter((connection) => connection.is_active).length,
-    health_success_rate: existing?.health_success_rate ?? null,
-    health_total_requests: existing?.health_total_requests ?? 0,
-    created_at: model.created_at,
-    updated_at: model.updated_at,
   };
 }

@@ -1,0 +1,87 @@
+import { AlertTriangle, Clock3 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { AuditLogDetail } from "@/lib/types";
+import { ValueBadge } from "@/components/StatusBadge";
+import { RequestLogPayloadBlock } from "./RequestLogPayloadBlock";
+import { getStatusIntent } from "./requestLogDetailUtils";
+
+interface RequestLogAuditTabProps {
+  audits: AuditLogDetail[];
+  loading: boolean;
+  error: string | null;
+  formatTimestamp: (iso: string) => string;
+}
+
+export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: RequestLogAuditTabProps) {
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-10 text-center">
+        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium">Audit capture unavailable</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (audits.length === 0) {
+    return (
+      <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">
+        No audit records found for this request.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {audits.map((audit) => (
+        <Card key={audit.id} className="overflow-hidden border-border/70 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-border/70 bg-muted/20 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <ValueBadge label={String(audit.response_status)} intent={getStatusIntent(audit.response_status)} className="px-1.5 py-0 font-mono" />
+                <Badge variant="outline" className="border-border/70 bg-background/80 text-[10px] font-medium">
+                  Audit capture
+                </Badge>
+              </div>
+              <p className="break-all text-sm font-semibold tracking-tight">{audit.request_method} {audit.request_url}</p>
+              <p className="text-xs text-muted-foreground">{formatTimestamp(audit.created_at)}</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline" className="gap-1 border-border/70 bg-background/80 px-2.5 py-1 text-[11px] font-medium">
+                <Clock3 className="h-3 w-3" />
+                {audit.duration_ms.toLocaleString()}ms
+              </Badge>
+              <Badge variant="outline" className="border-border/70 bg-background/80 font-mono text-[11px]">
+                #{audit.id}
+              </Badge>
+            </div>
+          </div>
+
+          <CardContent className="space-y-4 p-4">
+            <RequestLogPayloadBlock title="Request headers" content={audit.request_headers || ""} />
+            <Separator />
+            <RequestLogPayloadBlock title="Request" content={audit.request_body ?? ""} />
+            <Separator />
+            <RequestLogPayloadBlock title={`Response (${audit.response_status})`} content={audit.response_body ?? ""} />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
