@@ -2,7 +2,7 @@ import { Activity, ArrowUpRight, DollarSign, FileText } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn, formatProviderType } from "@/lib/utils";
 import type { StatGroup } from "@/lib/types";
 import type { DashboardMetricSnapshot } from "./useDashboardPageData";
 
@@ -83,7 +83,7 @@ export function DashboardHighlightsGrid({
                 return (
                   <div key={provider.key} className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium capitalize">{provider.key}</p>
+                      <p className="text-sm font-medium">{formatProviderType(provider.key)}</p>
                       <p className="text-xs text-muted-foreground tabular-nums">
                         {provider.total_requests.toLocaleString()} req
                       </p>
