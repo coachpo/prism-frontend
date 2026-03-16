@@ -57,7 +57,7 @@ export function EndpointCardView({
       )}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-start gap-3">
+        <div className="grid min-w-0 grid-cols-[auto,minmax(0,1fr)] items-start gap-x-3 gap-y-2">
           <button
             type="button"
             ref={dragHandleRef ?? undefined}
@@ -75,7 +75,7 @@ export function EndpointCardView({
             <GripVertical className="h-5 w-5" />
           </button>
 
-          <div className="min-w-0 flex-1 space-y-2">
+          <div className="min-w-0 space-y-2">
             <CardTitle className="pr-2 text-base font-semibold whitespace-normal break-words [overflow-wrap:anywhere]">
               {endpoint.name}
             </CardTitle>
@@ -88,12 +88,12 @@ export function EndpointCardView({
           </div>
 
           {!isOverlay ? (
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="col-start-2 flex min-w-0 flex-wrap items-center justify-end gap-1">
               <Button
                 variant="ghost"
                 size="icon"
                 aria-label={`Duplicate endpoint ${endpoint.name}`}
-                className="h-9 w-9 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                className="h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 disabled={isDuplicating}
                 onClick={() => {
                   void onDuplicate?.(endpoint);
@@ -109,7 +109,7 @@ export function EndpointCardView({
                 variant="ghost"
                 size="icon"
                 aria-label={`Edit endpoint ${endpoint.name}`}
-                className="h-9 w-9 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                className="h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 onClick={() => {
                   void onEdit?.(endpoint);
                 }}
@@ -120,7 +120,7 @@ export function EndpointCardView({
                 variant="ghost"
                 size="icon"
                 aria-label={`Delete endpoint ${endpoint.name}`}
-                className="h-9 w-9 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="h-9 w-9 shrink-0 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => {
                   void onDelete?.(endpoint);
                 }}
