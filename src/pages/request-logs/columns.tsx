@@ -1,5 +1,6 @@
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
+import { formatMoneyMicros } from "@/lib/costing";
 import { cn, formatProviderType } from "@/lib/utils";
 import type { RequestLogEntry } from "@/lib/types";
 import { AlertCircle, Clock } from "lucide-react";
@@ -8,8 +9,7 @@ export const ROW_HEIGHT = 45;
 
 function formatCost(micros: number | null, symbol: string | null): string {
   if (micros === null || micros === 0) return "—";
-  const value = micros / 1_000_000;
-  return `${symbol ?? "$"}${value.toFixed(4)}`;
+  return formatMoneyMicros(micros, symbol ?? "$", undefined, 2, 6);
 }
 
 function formatTokens(tokens: number | null): string {
