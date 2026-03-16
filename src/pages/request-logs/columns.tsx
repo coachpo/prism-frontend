@@ -37,7 +37,11 @@ export interface ColumnDef {
   width: number;
   grow?: number;
   align?: "left" | "right" | "center";
-  render: (row: RequestLogEntry, formatTimestamp: (iso: string) => string) => React.ReactNode;
+  render: (
+    row: RequestLogEntry,
+    formatTimestamp: (iso: string) => string,
+    resolveModelLabel: (modelId: string) => string
+  ) => React.ReactNode;
 }
 
 export function getColumns(view: "all" | "compact"): ColumnDef[] {
@@ -60,7 +64,9 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       label: "Model",
       width: view === "all" ? 210 : 180,
       grow: 2,
-      render: (row) => <span className="truncate text-xs font-medium">{row.model_id}</span>,
+      render: (row, _formatTimestamp, resolveModelLabel) => (
+        <span className="truncate text-xs font-medium">{resolveModelLabel(row.model_id)}</span>
+      ),
     },
     {
       key: "provider_type",

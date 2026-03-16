@@ -27,6 +27,7 @@ interface RequestLogsTableProps {
   onNextPage: () => void;
   onPreviousPage: () => void;
   formatTimestamp: (iso: string) => string;
+  resolveModelLabel: (modelId: string) => string;
 }
 
 interface ResolvedColumn extends ColumnDef {
@@ -86,6 +87,7 @@ export function RequestLogsTable({
   onNextPage,
   onPreviousPage,
   formatTimestamp,
+  resolveModelLabel,
 }: RequestLogsTableProps) {
   const columns = useMemo(() => getColumns(view), [view]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -209,7 +211,7 @@ export function RequestLogsTable({
                         )}
                         style={{ width: col.resolvedWidth }}
                       >
-                        {col.render(row, formatTimestamp)}
+                        {col.render(row, formatTimestamp, resolveModelLabel)}
                       </div>
                     ))}
                   </div>

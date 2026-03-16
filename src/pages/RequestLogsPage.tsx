@@ -153,6 +153,7 @@ export function RequestLogsPage() {
             onNextPage={() => actions.goToNextPage(total)}
             onPreviousPage={actions.goToPreviousPage}
             formatTimestamp={format}
+            resolveModelLabel={resolveModelLabel}
           />
         )}
 
