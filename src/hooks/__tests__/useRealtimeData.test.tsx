@@ -1,7 +1,7 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRealtimeData } from "@/hooks/useRealtimeData";
-import type { RequestLogEntry } from "@/lib/types";
+import type { DashboardRealtimeUpdatePayload, RequestLogEntry } from "@/lib/types";
 import type { RealtimeMessage } from "@/lib/websocket";
 
 type MockHandler = (message: RealtimeMessage) => void;
@@ -109,6 +109,82 @@ function makeRequestLog(overrides: Partial<RequestLogEntry> = {}): RequestLogEnt
   };
 }
 
+function makeDashboardUpdatePayload(
+  overrides: Partial<DashboardRealtimeUpdatePayload> = {}
+): DashboardRealtimeUpdatePayload {
+  return {
+    request_log: makeRequestLog(),
+    stats_summary_24h: {
+      total_requests: 24,
+      success_count: 23,
+      error_count: 1,
+      success_rate: 95.83,
+      avg_response_time_ms: 140,
+      p95_response_time_ms: 240,
+      total_input_tokens: 120,
+      total_output_tokens: 180,
+      total_tokens: 300,
+      groups: [],
+    },
+    provider_summary_24h: {
+      total_requests: 24,
+      success_count: 23,
+      error_count: 1,
+      success_rate: 95.83,
+      avg_response_time_ms: 140,
+      p95_response_time_ms: 240,
+      total_input_tokens: 120,
+      total_output_tokens: 180,
+      total_tokens: 300,
+      groups: [],
+    },
+    spending_summary_30d: {
+      summary: {
+        total_cost_micros: 250,
+        successful_request_count: 23,
+        priced_request_count: 23,
+        unpriced_request_count: 0,
+        total_input_tokens: 120,
+        total_output_tokens: 180,
+        total_cache_read_input_tokens: 0,
+        total_cache_creation_input_tokens: 0,
+        total_reasoning_tokens: 0,
+        total_tokens: 300,
+        avg_cost_per_successful_request_micros: 10,
+      },
+      groups: [],
+      groups_total: 0,
+      top_spending_models: [{ model_id: "gpt-4o-mini", total_cost_micros: 250 }],
+      top_spending_endpoints: [],
+      unpriced_breakdown: {},
+      report_currency_code: "USD",
+      report_currency_symbol: "$",
+    },
+    throughput_24h: {
+      average_rpm: 1,
+      peak_rpm: 2,
+      current_rpm: 1,
+      total_requests: 24,
+      time_window_seconds: 3600,
+      buckets: [{ timestamp: "2026-03-13T12:00:00Z", request_count: 1, rpm: 1 }],
+    },
+    routing_route_24h: {
+      model_id: "gpt-4o-mini",
+      model_config_id: 14,
+      model_label: "GPT-4o Mini",
+      endpoint_id: 2,
+      endpoint_label: "Primary endpoint",
+      active_connection_count: 1,
+      traffic_request_count_24h: 12,
+      request_count_24h: 12,
+      success_count_24h: 11,
+      error_count_24h: 1,
+      success_rate_24h: 91.67,
+    },
+    ...overrides,
+  };
+}
+
 describe("useRealtimeData", () => {
   beforeEach(() => {
     mockConnected = true;
@@ -126,7 +202,7 @@ describe("useRealtimeData", () => {
 
   it("fires onData for pushed payload messages", () => {
     const onData = vi.fn();
-    const requestLog = makeRequestLog();
+    const payload = makeDashboardUpdatePayload();
 
     const { result } = renderHook(() =>
       useRealtimeData({
@@ -136,26 +212,10 @@ describe("useRealtimeData", () => {
       })
     );
 
-    emit({ type: "dashboard.update", request_log: requestLog });
+    emit({ type: "dashboard.update", ...payload });
 
-    expect(onData).toHaveBeenCalledWith(requestLog);
-    expect(result.current.lastData).toEqual(requestLog);
-  });
-
-  it("fires onDirty for dashboard dirty fallback messages", () => {
-    const onDirty = vi.fn();
-
-    renderHook(() =>
-      useRealtimeData({
-        profileId: 1,
-        channel: "dashboard",
-        onDirty,
-      })
-    );
-
-    emit({ type: "dashboard.dirty" });
-
-    expect(onDirty).toHaveBeenCalledTimes(1);
+    expect(onData).toHaveBeenCalledWith(payload);
+    expect(result.current.lastData).toEqual(payload);
   });
 
   it("fires onReconnect for synthetic reconnect messages", () => {
@@ -176,7 +236,9 @@ describe("useRealtimeData", () => {
 
   it("buffers pushed payloads during sync until markSyncComplete is called", () => {
     const onData = vi.fn();
-    const requestLog = makeRequestLog({ id: 202 });
+    const payload = makeDashboardUpdatePayload({
+      request_log: makeRequestLog({ id: 202 }),
+    });
 
     const { result } = renderHook(() =>
       useRealtimeData({
@@ -188,7 +250,7 @@ describe("useRealtimeData", () => {
     );
 
     emit({ type: "reconnected" });
-    emit({ type: "dashboard.update", request_log: requestLog });
+    emit({ type: "dashboard.update", ...payload });
 
     expect(onData).not.toHaveBeenCalled();
 
@@ -196,8 +258,31 @@ describe("useRealtimeData", () => {
       result.current.markSyncComplete();
     });
 
-    expect(onData).toHaveBeenCalledWith(requestLog);
+    expect(onData).toHaveBeenCalledWith(payload);
     expect(result.current.isSyncing).toBe(false);
+  });
+
+  it("does not enter syncing mode on reconnect when no reconcile callback is provided", () => {
+    const onData = vi.fn();
+    const payload = makeDashboardUpdatePayload({
+      request_log: makeRequestLog({ id: 303 }),
+    });
+
+    const { result } = renderHook(() =>
+      useRealtimeData({
+        profileId: 1,
+        channel: "dashboard",
+        onData,
+      })
+    );
+
+    emit({ type: "reconnected" });
+
+    expect(result.current.isSyncing).toBe(false);
+
+    emit({ type: "dashboard.update", ...payload });
+
+    expect(onData).toHaveBeenCalledWith(payload);
   });
 
   it("keeps a shared channel subscribed while another hook instance remains mounted", () => {

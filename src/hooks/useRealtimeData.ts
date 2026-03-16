@@ -9,17 +9,22 @@ import {
 
 type BufferedEvent<TData> = { type: "data"; payload: TData };
 
-const DIRTY_MESSAGE_TYPES: Record<RealtimeChannel, RealtimeMessage["type"]> = {
-  dashboard: "dashboard.dirty",
-};
-
 const CHANNEL_PAYLOAD_EXTRACTORS: {
   [K in RealtimeChannel]: (
     message: RealtimeMessage
   ) => RealtimeChannelPayloadMap[K] | null;
 } = {
   dashboard: (message) =>
-    message.type === "dashboard.update" ? message.request_log : null,
+    message.type === "dashboard.update"
+      ? {
+          request_log: message.request_log,
+          stats_summary_24h: message.stats_summary_24h,
+          provider_summary_24h: message.provider_summary_24h,
+          spending_summary_30d: message.spending_summary_30d,
+          throughput_24h: message.throughput_24h,
+          routing_route_24h: message.routing_route_24h,
+        }
+      : null,
 };
 
 export interface UseRealtimeDataOptions<
@@ -28,7 +33,6 @@ export interface UseRealtimeDataOptions<
   profileId: number | null;
   channel?: TChannel;
   enabled?: boolean;
-  onDirty?: () => void;
   onData?: (payload: RealtimeChannelPayloadMap[TChannel]) => void;
   onReconnect?: () => void;
 }
@@ -46,13 +50,11 @@ export interface UseRealtimeDataReturn<TData> {
 export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
   options: UseRealtimeDataOptions<TChannel>
 ): UseRealtimeDataReturn<RealtimeChannelPayloadMap[TChannel]> {
-  const { profileId, channel = "dashboard" as TChannel, enabled = true, onDirty, onData, onReconnect } = options;
+  const { profileId, channel = "dashboard" as TChannel, enabled = true, onData, onReconnect } = options;
   const client = getWebSocketClient();
-  const onDirtyRef = useRef(onDirty);
   const onDataRef = useRef(onData);
   const onReconnectRef = useRef(onReconnect);
   const isSyncingRef = useRef(false);
-  const pendingDirtyRef = useRef(false);
   const pendingEventsRef = useRef<
     BufferedEvent<RealtimeChannelPayloadMap[TChannel]>[]
   >([]);
@@ -67,10 +69,6 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
   const [lastData, setLastData] = useState<
     RealtimeChannelPayloadMap[TChannel] | null
   >(null);
-
-  useEffect(() => {
-    onDirtyRef.current = onDirty;
-  }, [onDirty]);
 
   useEffect(() => {
     onDataRef.current = onData;
@@ -89,11 +87,6 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
 
     for (const pendingEvent of pendingEvents) {
       onDataRef.current?.(pendingEvent.payload);
-    }
-
-    if (pendingDirtyRef.current) {
-      pendingDirtyRef.current = false;
-      onDirtyRef.current?.();
     }
   }, [setIsSyncing]);
 
@@ -125,17 +118,10 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
       }
 
       if (message.type === "reconnected") {
-        isSyncingRef.current = true;
-        setIsSyncing(true);
-        onReconnectRef.current?.();
-        return;
-      }
-
-      if (message.type === DIRTY_MESSAGE_TYPES[channel]) {
-        if (isSyncingRef.current) {
-          pendingDirtyRef.current = true;
-        } else {
-          onDirtyRef.current?.();
+        if (onReconnectRef.current) {
+          isSyncingRef.current = true;
+          setIsSyncing(true);
+          onReconnectRef.current();
         }
         return;
       }
@@ -170,7 +156,6 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
       clearInterval(statusTimer);
       unsubscribeHandler();
       isSyncingRef.current = false;
-      pendingDirtyRef.current = false;
       pendingEventsRef.current = [];
       setIsSyncing(false);
 

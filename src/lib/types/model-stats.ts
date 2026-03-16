@@ -324,6 +324,29 @@ export interface ThroughputStatsResponse {
   buckets: ThroughputBucket[];
 }
 
+export interface DashboardRouteSnapshot {
+  model_id: string;
+  model_config_id: number | null;
+  model_label: string;
+  endpoint_id: number;
+  endpoint_label: string;
+  active_connection_count: number;
+  traffic_request_count_24h: number;
+  request_count_24h: number;
+  success_count_24h: number;
+  error_count_24h: number;
+  success_rate_24h: number | null;
+}
+
+export interface DashboardRealtimeUpdatePayload {
+  request_log: RequestLogEntry;
+  stats_summary_24h: StatsSummary;
+  provider_summary_24h: StatsSummary;
+  spending_summary_30d: SpendingReportResponse;
+  throughput_24h: ThroughputStatsResponse;
+  routing_route_24h: DashboardRouteSnapshot | null;
+}
+
 export interface EndpointModelsBatchParams {
   endpoint_ids: number[];
 }

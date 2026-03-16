@@ -1,9 +1,9 @@
-import type { RequestLogEntry } from "@/lib/types";
+import type { DashboardRealtimeUpdatePayload } from "@/lib/types";
 
 export type RealtimeChannel = "dashboard";
 
 export interface RealtimeChannelPayloadMap {
-  dashboard: RequestLogEntry;
+  dashboard: DashboardRealtimeUpdatePayload;
 }
 
 export type RealtimeMessage =
@@ -12,9 +12,8 @@ export type RealtimeMessage =
   | { type: "heartbeat" }
   | { type: "subscribed"; profile_id: number; channel: RealtimeChannel }
   | { type: "unsubscribed"; channel?: RealtimeChannel }
-  | { type: "dashboard.update"; request_log: RequestLogEntry }
+  | ({ type: "dashboard.update" } & DashboardRealtimeUpdatePayload)
   | { type: "reconnected" }
-  | { type: "dashboard.dirty" }
   | { type: "error"; message: string }
   | { type: "pong" };
 
