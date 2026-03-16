@@ -16,16 +16,21 @@
 - Dashboard bootstrap and realtime flow: `DashboardPage.tsx`, `dashboard/AGENTS.md`
 - Request-log investigation flow, filters, and detail: `RequestLogsPage.tsx`, `request-logs/AGENTS.md`
 - Model detail route shell: `ModelDetailPage.tsx`, `model-detail/AGENTS.md`
+- Models table, filters, dialog flow, and 24h metric hydration: `ModelsPage.tsx`, `models/AGENTS.md`
 - Statistics filter sync and tab orchestration: `StatisticsPage.tsx`, `statistics/AGENTS.md`
 - Settings section navigation and save-state rendering: `SettingsPage.tsx`, `settings/AGENTS.md`
 - Endpoint CRUD and reorder helpers: `EndpointsPage.tsx`, `endpoints/EndpointDialog.tsx`, `endpoints/endpointCardHelpers.ts`
 - Model-scoped loadbalance event tab and detail sheet: `ModelDetailPage.tsx`, `model-detail/`, `components/loadbalance/`
-- Pricing template form normalization: `PricingTemplatesPage.tsx`, `pricing-templates/pricingTemplateFormState.ts`
-- Proxy API key issuance, rotation, and one-time secret display: `ProxyApiKeysPage.tsx`
+- Pricing template form normalization and usage conflicts: `PricingTemplatesPage.tsx`, `pricing-templates/AGENTS.md`
+- Proxy API key issuance, rotation, and one-time secret display: `ProxyApiKeysPage.tsx`, `proxy-api-keys/AGENTS.md`
 
 ## CHILD DOCS
 
 - `dashboard/AGENTS.md`: bootstrap/realtime flow and routing-diagram visualization.
+- `endpoints/AGENTS.md`: endpoint CRUD dialogs, summary cards, bootstrap, and reorder helpers.
+- `models/AGENTS.md`: model toolbar, table, dialog state, and 24h metrics hook.
+- `pricing-templates/AGENTS.md`: pricing template CRUD dialogs, usage lookup, and conflict handling.
+- `proxy-api-keys/AGENTS.md`: proxy-key issuance, rotation, delete confirmation, and auth-status UX.
 - `request-logs/AGENTS.md`: investigation flow, query params, and payload inspection.
 - `settings/AGENTS.md`: section and dialog architecture, auth setup, destructive flow patterns.
 - `statistics/AGENTS.md`: operations vs spending tabs, shared query-param contract, data-hook boundaries.
@@ -37,6 +42,7 @@
 - Let route files own bookmarkable search-param state and selected drawer or dialog identity; move parsing and defaults into local `queryParams.ts` helpers once state becomes non-trivial.
 - Extract heavy async and dialog orchestration into helper folders instead of letting the route file own everything; `model-detail/` remains the primary example.
 - Refresh page data from `ProfileContext.revision` when scoped state changes.
+- Prefer shared loaders in `@/lib/referenceData` before introducing another page-local cache for models, endpoints, providers, connections, or pricing templates.
 - Dashboard realtime should flow through `useRealtimeData()`; statistics and loadbalance events refresh through their REST data hooks and page-level polling/manual refresh controls.
 - Fetch related datasets in parallel with `Promise.all`; use `Promise.allSettled` for mixed-success bootstrap work.
 

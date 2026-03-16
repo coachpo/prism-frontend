@@ -19,13 +19,13 @@ dashboard/
 ## WHERE TO LOOK
 - High-level route data orchestration: `useDashboardPageData.ts`
 - Initial bootstrap fan-out and routing-diagram payloads: `useDashboardBootstrapData.ts`
-- Realtime payload flow: `useDashboardRealtime.ts` (consumes `dashboard.update` and `dashboard.dirty`)
+- Realtime payload flow: `useDashboardRealtime.ts` (consumes `dashboard.update` request-log, summary, provider, spending, throughput, and routing fields)
 - Routing diagram aggregation and rendering: `routingDiagram.ts`, `routing-diagram/`
 - Metric and recent-activity presentation: `DashboardMetricsGrid.tsx`, `RecentActivityCard.tsx`, `TopSpendingModelsCard.tsx`
 
 ## CONVENTIONS
 - Dashboard uses `useRealtimeData()` for live updates.
-- Fall back to `dashboard.dirty` signal for full REST refresh if partial updates are insufficient.
+- Reconnect and manual refresh fall back to REST reconciliation; the backend currently emits `dashboard.update` only.
 - Keep routing-diagram layout/rendering isolated from bootstrap and realtime orchestration.
 - Reuse shared reference-data loaders and keep dashboard-specific state shaping in the dashboard hooks.
 

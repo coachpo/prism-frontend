@@ -26,7 +26,7 @@ src/
 - `src/context/AGENTS.md`: auth bootstrap modes, proactive refresh, and profile-scoping boundaries.
 - `src/hooks/AGENTS.md`: shared realtime, polling, and timezone logic.
 - `src/lib/AGENTS.md`: split API client modules, websocket client, WebAuthn helpers, and type boundaries.
-- `src/pages/AGENTS.md`: route-level guide for page flows and child docs under `dashboard/`, `request-logs/`, `settings/`, `statistics/`, and `model-detail/`.
+- `src/pages/AGENTS.md`: route-level guide for page flows and child docs under `dashboard/`, `endpoints/`, `model-detail/`, `models/`, `pricing-templates/`, `proxy-api-keys/`, `request-logs/`, `settings/`, and `statistics/`.
 
 ## WHERE TO LOOK
 
