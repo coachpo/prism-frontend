@@ -1,30 +1,62 @@
 import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { Location } from "react-router-dom";
-import { SETTINGS_SECTIONS, SETTINGS_SECTION_IDS } from "./settingsPageHelpers";
+import {
+  INSTANCE_SECTION_IDS,
+  SETTINGS_SECTIONS,
+  SETTINGS_SECTION_IDS,
+  SETTINGS_TABS,
+  type SettingsTab,
+} from "./settingsPageHelpers";
 
 interface UseSettingsSectionNavigationResult {
+  activeTab: SettingsTab;
+  setActiveTab: Dispatch<SetStateAction<SettingsTab>>;
   activeSectionId: string;
   setActiveSectionId: Dispatch<SetStateAction<string>>;
   isAuditConfigurationFocused: boolean;
   setIsAuditConfigurationFocused: Dispatch<SetStateAction<boolean>>;
 }
 
+function resolveInitialTab(hash: string): SettingsTab {
+  return INSTANCE_SECTION_IDS.has(hash) ? SETTINGS_TABS.instance : SETTINGS_TABS.profile;
+}
+
+function resolveTabForHash(hash: string): SettingsTab | null {
+  if (INSTANCE_SECTION_IDS.has(hash)) {
+    return SETTINGS_TABS.instance;
+  }
+  if (SETTINGS_SECTION_IDS.has(hash)) {
+    return SETTINGS_TABS.profile;
+  }
+  return null;
+}
+
 export function useSettingsSectionNavigation(location: Location): UseSettingsSectionNavigationResult {
+  const initialHash = location.hash.replace("#", "");
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => resolveInitialTab(initialHash));
   const [activeSectionId, setActiveSectionId] = useState<string>(() => {
-    const hashSection = location.hash.replace("#", "");
-    return SETTINGS_SECTION_IDS.has(hashSection) ? hashSection : SETTINGS_SECTIONS[0].id;
+    return SETTINGS_SECTION_IDS.has(initialHash) ? initialHash : SETTINGS_SECTIONS[0].id;
   });
   const [isAuditConfigurationFocused, setIsAuditConfigurationFocused] = useState(false);
 
   useEffect(() => {
     const hash = location.hash.replace("#", "");
+    const hashTab = resolveTabForHash(hash);
     const hasKnownSection = SETTINGS_SECTION_IDS.has(hash);
-    const target = hash ? document.getElementById(hash) : null;
-    const shouldHighlightAudit =
-      hash === "audit-configuration" && target instanceof HTMLElement;
+    const shouldHighlightAudit = hash === "audit-configuration";
+    let isCancelled = false;
+
+    if (hashTab) {
+      queueMicrotask(() => {
+        if (!isCancelled) {
+          setActiveTab(hashTab);
+        }
+      });
+    }
 
     const frameId = window.requestAnimationFrame(() => {
+      const target = hash ? document.getElementById(hash) : null;
       if (hasKnownSection) {
         setActiveSectionId(hash);
       }
@@ -36,6 +68,7 @@ export function useSettingsSectionNavigation(location: Location): UseSettingsSec
 
     if (!shouldHighlightAudit) {
       return () => {
+        isCancelled = true;
         window.cancelAnimationFrame(frameId);
       };
     }
@@ -45,12 +78,17 @@ export function useSettingsSectionNavigation(location: Location): UseSettingsSec
     }, 3000);
 
     return () => {
+      isCancelled = true;
       window.cancelAnimationFrame(frameId);
       window.clearTimeout(clearHighlightTimer);
     };
   }, [location.hash]);
 
   useEffect(() => {
+    if (activeTab !== SETTINGS_TABS.profile) {
+      return;
+    }
+
     const sections = SETTINGS_SECTIONS.map((section) => document.getElementById(section.id)).filter(
       (section): section is HTMLElement => section instanceof HTMLElement
     );
@@ -98,9 +136,11 @@ export function useSettingsSectionNavigation(location: Location): UseSettingsSec
       scrollTarget.removeEventListener("scroll", updateActiveSection);
       window.removeEventListener("resize", updateActiveSection);
     };
-  }, []);
+  }, [activeTab]);
 
   return {
+    activeTab,
+    setActiveTab,
     activeSectionId,
     setActiveSectionId,
     isAuditConfigurationFocused,

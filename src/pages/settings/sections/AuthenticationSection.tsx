@@ -46,7 +46,7 @@ export function AuthenticationSection({
               </CardTitle>
               <CardDescription className="text-xs">
                 Configure the single Prism operator account and verified recovery email
-                used for sign-in.
+                used for sign-in. Applies to all profiles.
               </CardDescription>
             </div>
             <Badge variant={authEnabled ? "default" : "outline"} className="w-fit">

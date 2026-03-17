@@ -1,9 +1,17 @@
 import type { Connection, CostingSettingsUpdate, EndpointFxMapping } from "@/lib/types";
 import { isValidPositiveDecimalString } from "@/lib/costing";
 
+export const SETTINGS_TABS = {
+  profile: "profile",
+  instance: "instance",
+} as const;
+
+export type SettingsTab = (typeof SETTINGS_TABS)[keyof typeof SETTINGS_TABS];
+
+export const INSTANCE_SECTION_IDS = new Set(["authentication"]);
+
 export const SETTINGS_SECTIONS = [
   { id: "backup", label: "Backup" },
-  { id: "authentication", label: "Authentication" },
   { id: "billing-currency", label: "Billing & Currency" },
   { id: "timezone", label: "Timezone" },
   { id: "audit-configuration", label: "Audit & Privacy" },

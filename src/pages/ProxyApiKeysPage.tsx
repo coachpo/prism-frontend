@@ -14,7 +14,7 @@ export function ProxyApiKeysPage() {
     <div className="space-y-6">
       <PageHeader
         title="Proxy API Keys"
-        description="Manage machine credentials used by upstream clients to access the Prism proxy."
+        description="Manage machine credentials used by upstream clients to access the Prism proxy. Applies to all profiles."
       >
         <Badge variant="outline" className={data.authStatusTone}>
           {data.authStatusLabel}
