@@ -61,8 +61,8 @@ export function ConnectionCardHeader({
       <StatusBadge label={healthLabel} intent={healthIntent} />
       <ValueBadge
         label={`P${connection.priority}`}
-        intent={connection.priority === 0 ? "success" : connection.priority >= 10 ? "warning" : "muted"}
-        className="tabular-nums"
+        intent="default"
+        className={cn("tabular-nums", getPriorityBadgeClasses(connection.priority))}
       />
       <StatusBadge
         label={connection.pricing_template ? "Pricing On" : "Pricing Off"}
@@ -299,4 +299,24 @@ function getHealthBadgeProps(
   }
 
   return { healthLabel: "Unknown", healthIntent: "muted" };
+}
+
+function getPriorityBadgeClasses(priority: number): string {
+  if (priority === 0) {
+    return "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  }
+
+  if (priority === 1) {
+    return "border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-400";
+  }
+
+  if (priority === 2) {
+    return "border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-400";
+  }
+
+  if (priority === 3) {
+    return "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400";
+  }
+
+  return "border-muted-foreground/20 bg-muted/60 text-muted-foreground";
 }
