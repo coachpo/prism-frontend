@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DashboardHighlightsGrid } from "../DashboardHighlightsGrid";
 
 describe("DashboardHighlightsGrid", () => {
-  it("uses shared provider labels for the provider mix card", () => {
+  it("uses shared provider labels and icons for the provider mix card", () => {
     render(
       <DashboardHighlightsGrid
         highlighted={false}
@@ -18,6 +18,22 @@ describe("DashboardHighlightsGrid", () => {
             error_count: 1,
             avg_response_time_ms: 320,
             total_tokens: 1000,
+          },
+          {
+            key: "anthropic",
+            total_requests: 126,
+            success_count: 126,
+            error_count: 0,
+            avg_response_time_ms: 410,
+            total_tokens: 800,
+          },
+          {
+            key: "gemini",
+            total_requests: 8,
+            success_count: 8,
+            error_count: 0,
+            avg_response_time_ms: 290,
+            total_tokens: 200,
           },
         ]}
         snapshot={{
@@ -36,7 +52,16 @@ describe("DashboardHighlightsGrid", () => {
       />
     );
 
-    expect(screen.getByText("OpenAI")).toBeInTheDocument();
+    const openAiLabel = screen.getByText("OpenAI");
+    const anthropicLabel = screen.getByText("Anthropic");
+    const geminiLabel = screen.getByText("Gemini");
+
+    expect(openAiLabel).toBeInTheDocument();
+    expect(anthropicLabel).toBeInTheDocument();
+    expect(geminiLabel).toBeInTheDocument();
     expect(screen.queryByText("Openai")).not.toBeInTheDocument();
+    expect(openAiLabel.previousElementSibling?.tagName).toBe("svg");
+    expect(anthropicLabel.previousElementSibling?.tagName).toBe("svg");
+    expect(geminiLabel.previousElementSibling?.tagName).toBe("svg");
   });
 });

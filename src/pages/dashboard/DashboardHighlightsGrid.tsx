@@ -1,5 +1,6 @@
 import { Activity, ArrowUpRight, DollarSign, FileText } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { ProviderIcon } from "@/components/ProviderIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatProviderType } from "@/lib/utils";
@@ -83,7 +84,12 @@ export function DashboardHighlightsGrid({
                 return (
                   <div key={provider.key} className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{formatProviderType(provider.key)}</p>
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <ProviderIcon providerType={provider.key} size={14} />
+                        <p className="truncate text-sm font-medium">
+                          {formatProviderType(provider.key)}
+                        </p>
+                      </div>
                       <p className="text-xs text-muted-foreground tabular-nums">
                         {provider.total_requests.toLocaleString()} req
                       </p>
