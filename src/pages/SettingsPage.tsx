@@ -53,7 +53,7 @@ export function SettingsPage() {
       >
         <TabsList>
           <TabsTrigger value={SETTINGS_TABS.profile}>Profile</TabsTrigger>
-          <TabsTrigger value={SETTINGS_TABS.instance}>Instance</TabsTrigger>
+          <TabsTrigger value={SETTINGS_TABS.global}>Global</TabsTrigger>
         </TabsList>
 
         <TabsContent value={SETTINGS_TABS.profile}>
@@ -176,7 +176,7 @@ export function SettingsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value={SETTINGS_TABS.instance}>
+        <TabsContent value={SETTINGS_TABS.global}>
           <div className="space-y-6">
             <div className="rounded-lg border border-blue-500/25 bg-blue-500/10 p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

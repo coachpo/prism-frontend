@@ -92,7 +92,7 @@ describe("useSettingsSectionNavigation", () => {
     view.rerender(<SettingsNavigationHarness hash="#authentication" />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("active-tab")).toHaveTextContent(SETTINGS_TABS.instance);
+      expect(screen.getByTestId("active-tab")).toHaveTextContent(SETTINGS_TABS.global);
     });
     await waitFor(() => {
       expect(scrollIntoView).toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe("useSettingsSectionNavigation", () => {
     render(<SettingsNavigationHarness hash="#authentication" />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("active-tab")).toHaveTextContent(SETTINGS_TABS.instance);
+      expect(screen.getByTestId("active-tab")).toHaveTextContent(SETTINGS_TABS.global);
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Show Profile Tab" }));

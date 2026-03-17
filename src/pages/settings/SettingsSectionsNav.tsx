@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SETTINGS_SECTIONS } from "./settingsPageHelpers";
 
 interface SettingsSectionsNavProps {
@@ -15,9 +15,6 @@ export function SettingsSectionsNav({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm">Settings Sections</CardTitle>
-        <CardDescription className="text-xs">
-          Use quick jump links to navigate this page.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-1">
         {SETTINGS_SECTIONS.map((section) => (

@@ -19,12 +19,12 @@ interface UseSettingsSectionNavigationResult {
 }
 
 function resolveInitialTab(hash: string): SettingsTab {
-  return INSTANCE_SECTION_IDS.has(hash) ? SETTINGS_TABS.instance : SETTINGS_TABS.profile;
+  return INSTANCE_SECTION_IDS.has(hash) ? SETTINGS_TABS.global : SETTINGS_TABS.profile;
 }
 
 function resolveTabForHash(hash: string): SettingsTab | null {
   if (INSTANCE_SECTION_IDS.has(hash)) {
-    return SETTINGS_TABS.instance;
+    return SETTINGS_TABS.global;
   }
   if (SETTINGS_SECTION_IDS.has(hash)) {
     return SETTINGS_TABS.profile;
