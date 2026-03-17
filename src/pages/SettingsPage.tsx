@@ -184,7 +184,7 @@ export function SettingsPage() {
                   variant="outline"
                   className="w-fit border-blue-500/30 bg-blue-500/15 text-blue-700 dark:text-blue-300"
                 >
-                  Instance-wide settings
+                  Global settings
                 </Badge>
                 <p className="text-sm text-blue-800 dark:text-blue-300">
                   Changes here apply to all profiles and the entire Prism instance.
