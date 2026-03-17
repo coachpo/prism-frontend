@@ -9,7 +9,7 @@ This is the frontend component of Prism, providing a web-based UI for configurin
 ## Architecture
 
 - **Framework**: React 19 with TypeScript
-- **Build Tool**: Vite 7
+- **Build Tool**: Vite 8
 - **Styling**: TailwindCSS 4
 - **UI Components**: shadcn/ui
 - **Icons**: lucide-react

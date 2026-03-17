@@ -1,7 +1,7 @@
 # FRONTEND KNOWLEDGE BASE
 
 ## OVERVIEW
-React 19 + TypeScript dashboard for Prism management workflows. Built with Vite 7, Tailwind CSS 4, shadcn/ui, and React Router 7, with profile-aware API scoping, cookie-backed operator auth, shared realtime WebSocket plumbing, and a central typed client boundary.
+React 19 + TypeScript dashboard for Prism management workflows. Built with Vite 8, Tailwind CSS 4, shadcn/ui, and React Router 7, with profile-aware API scoping, cookie-backed operator auth, shared realtime WebSocket plumbing, and a central typed client boundary.
 
 ## STRUCTURE
 ```
@@ -50,6 +50,7 @@ src/
 - Shared realtime flows should use `useRealtimeData()` from `src/hooks/AGENTS.md`.
 - `selected profile` and `active profile` are intentionally different concepts in UI copy and behavior.
 - `packageManager` is pinned to `pnpm@10.30.1`.
+- Frontend tests are co-located `__tests__/` Vitest suites with shared setup in `src/test/setup.ts`.
 
 ## ANTI-PATTERNS
 
