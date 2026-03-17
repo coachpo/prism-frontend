@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { buildPasskeyMetadata, getPasskeyStateBadge } from "./passkeyMetadata";
 import { usePasskeyManagement } from "./usePasskeyManagement";
 
-export function PasskeysCard() {
+export function PasskeysCard({ authEnabled }: { authEnabled: boolean }) {
   const {
     deviceName,
     handleRegisterClick,
@@ -33,7 +33,7 @@ export function PasskeysCard() {
     setDeviceName,
     setRegisterDialogOpen,
     setRemoveDialogOpen,
-  } = usePasskeyManagement();
+  } = usePasskeyManagement(authEnabled);
 
   return (
     <>
@@ -43,7 +43,7 @@ export function PasskeysCard() {
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Fingerprint className="h-4 w-4 text-primary" />
+                  <Fingerprint className="h-4 w-4" />
                   Passkeys
                 </CardTitle>
                 <Badge
@@ -62,7 +62,7 @@ export function PasskeysCard() {
             <Button
               type="button"
               onClick={handleRegisterClick}
-              disabled={!isPasskeySupported || loadingPasskeys || registering}
+              disabled={!authEnabled || !isPasskeySupported || loadingPasskeys || registering}
               className="h-9 w-9 rounded-full p-0 sm:w-auto sm:rounded-md sm:px-4"
             >
               <Plus className="h-4 w-4 shrink-0 sm:mr-2" />
@@ -73,7 +73,15 @@ export function PasskeysCard() {
         </CardHeader>
 
         <CardContent className="space-y-4 pt-0">
-          {!isPasskeySupported ? (
+          {!authEnabled ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed px-4 py-10 text-center">
+              <Fingerprint className="mb-3 h-8 w-8 text-muted-foreground/50" />
+              <p className="text-sm font-medium">Authentication is disabled</p>
+              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                Enable authentication to register and manage passkeys.
+              </p>
+            </div>
+          ) : !isPasskeySupported ? (
             <div className="rounded-lg border border-destructive/25 bg-destructive/10 p-4">
               <p className="text-sm text-destructive">
                 Your browser or device does not support Passkeys (WebAuthn).
@@ -105,7 +113,7 @@ export function PasskeysCard() {
                       className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex min-w-0 flex-1 items-start gap-4">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/50 text-primary">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/50">
                           <Fingerprint className="h-5 w-5" />
                         </div>
 

@@ -74,7 +74,7 @@ export function AuthenticationSection({
             {...props}
           />
 
-          <PasskeysCard />
+          <PasskeysCard authEnabled={authEnabled} />
         </CardContent>
       </Card>
     </section>

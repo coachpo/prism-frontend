@@ -4,7 +4,7 @@ import { registerPasskey } from "@/lib/webauthn";
 import { toast } from "sonner";
 import type { PasskeyCredential } from "./types";
 
-export function usePasskeyManagement() {
+export function usePasskeyManagement(authEnabled: boolean) {
   const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
   const [loadingPasskeys, setLoadingPasskeys] = useState(true);
   const [registering, setRegistering] = useState(false);
@@ -27,6 +27,11 @@ export function usePasskeyManagement() {
   }, []);
 
   useEffect(() => {
+    if (!authEnabled) {
+      setLoadingPasskeys(false);
+      return;
+    }
+
     if (!window.PublicKeyCredential) {
       setIsPasskeySupported(false);
       setLoadingPasskeys(false);
@@ -34,7 +39,7 @@ export function usePasskeyManagement() {
     }
 
     void fetchPasskeys();
-  }, [fetchPasskeys]);
+  }, [authEnabled, fetchPasskeys]);
 
   const handleRegisterClick = () => {
     setDeviceName("");
