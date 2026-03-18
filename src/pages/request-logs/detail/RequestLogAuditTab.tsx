@@ -1,6 +1,7 @@
 import { AlertTriangle, Clock3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { AuditLogDetail } from "@/lib/types";
@@ -30,9 +31,11 @@ export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: 
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-10 text-center">
         <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-        <div className="space-y-1">
+        <div className="max-w-full space-y-2">
           <p className="text-sm font-medium">Audit capture unavailable</p>
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="font-mono text-xs text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+            {error}
+          </p>
         </div>
       </div>
     );
@@ -58,7 +61,11 @@ export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: 
                   Audit capture
                 </Badge>
               </div>
-              <p className="break-all text-sm font-semibold tracking-tight">{audit.request_method} {audit.request_url}</p>
+              <ScrollArea className="max-h-24 rounded-lg border border-border/60 bg-background/70 shadow-inner">
+                <pre className="whitespace-pre-wrap break-words p-3 font-mono text-[12px] font-medium leading-5 tracking-tight text-foreground [overflow-wrap:anywhere]">
+                  {`${audit.request_method} ${audit.request_url}`}
+                </pre>
+              </ScrollArea>
               <p className="text-xs text-muted-foreground">{formatTimestamp(audit.created_at)}</p>
             </div>
 

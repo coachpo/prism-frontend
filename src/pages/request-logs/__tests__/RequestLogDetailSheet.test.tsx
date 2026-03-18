@@ -169,6 +169,47 @@ describe("RequestLogDetailSheet", () => {
     expect(screen.queryByText("$0.0234")).not.toBeInTheDocument();
   });
 
+  it("formats structured error detail for readability", () => {
+    renderSheet({
+      request: {
+        ...baseRequest,
+        status_code: 429,
+        error_detail:
+          '{"error":{"message":"The usage limit has been reached","type":"usage_limit_reached","param":null,"code":null,"plan_type":"basic","resets_in_seconds":28797}}',
+      },
+    });
+
+    expect(screen.getByText(/formatted for readability/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /copy/i })).toBeInTheDocument();
+    expect(screen.getByText(/"type": "usage_limit_reached"/)).toBeInTheDocument();
+    expect(screen.queryByText(/"type":"usage_limit_reached"/)).not.toBeInTheDocument();
+  });
+
+  it("applies wrapped monospace styling to long technical overview fields", () => {
+    renderSheet({
+      request: {
+        ...baseRequest,
+        model_id: "provider/super-long-model-id-with-many-segments-and-qualifiers",
+        request_path: "/v1/responses/really/long/path/segment/that/should/wrap/in/the/drawer/without/overflow",
+        endpoint_base_url:
+          "https://api.example.com/v1/really/long/base/url/with/many/path/segments/and/query/like/values/that/should/wrap",
+      },
+    });
+
+    const baseUrl = screen.getByText(
+      "https://api.example.com/v1/really/long/base/url/with/many/path/segments/and/query/like/values/that/should/wrap"
+    );
+
+    expect(baseUrl).toHaveClass("font-mono", "whitespace-pre-wrap", "break-words");
+
+    const wrappedPath = screen
+      .getAllByText("/v1/responses/really/long/path/segment/that/should/wrap/in/the/drawer/without/overflow")
+      .find((element) => element.className.includes("whitespace-pre-wrap"));
+
+    expect(wrappedPath).toBeDefined();
+    expect(wrappedPath).toHaveClass("font-mono", "whitespace-pre-wrap", "break-words");
+  });
+
   it("renders the error audit state", () => {
     useAuditDetailMock.mockReturnValue({
       audits: [],
@@ -200,5 +241,28 @@ describe("RequestLogDetailSheet", () => {
     expect(screen.getByText("POST https://api.example.com/v1/chat/completions")).toBeInTheDocument();
     expect(screen.getByText('{"messages":[]}')).toBeInTheDocument();
     expect(screen.getByText('{"id":"resp_1"}')).toBeInTheDocument();
+  });
+
+  it("wraps the audit request URL in a monospace block", () => {
+    useAuditDetailMock.mockReturnValue({
+      audits: [
+        {
+          ...baseAudit,
+          request_url:
+            "https://api.example.com/v1/chat/completions/really/long/path/that/should/wrap/in/the/audit/header/without/horizontal/overflow",
+        },
+      ],
+      error: null,
+      loading: false,
+    });
+
+    renderSheet({ activeTab: "audit" });
+
+    const requestLine = screen.getByText(
+      "POST https://api.example.com/v1/chat/completions/really/long/path/that/should/wrap/in/the/audit/header/without/horizontal/overflow"
+    );
+
+    expect(requestLine.tagName).toBe("PRE");
+    expect(requestLine).toHaveClass("font-mono", "whitespace-pre-wrap", "break-words");
   });
 });
