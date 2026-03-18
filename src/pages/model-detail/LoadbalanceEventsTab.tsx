@@ -54,9 +54,10 @@ function LoadbalanceEventsTabContent({ modelId, revision }: LoadbalanceEventsTab
             variant="outline"
             onClick={() => void refresh()}
             disabled={loading}
+            aria-label="Refresh loadbalance events"
+            title="Refresh loadbalance events"
           >
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh
           </Button>
         </div>
 

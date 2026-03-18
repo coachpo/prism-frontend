@@ -181,9 +181,8 @@ export function SpendingTabFilters({
           <Trash2 className="mr-2 h-4 w-4" />
           Clear Filters
         </Button>
-        <Button variant="outline" size="sm" onClick={refresh}>
+        <Button variant="outline" size="sm" onClick={refresh} aria-label="Refresh spending statistics" title="Refresh spending statistics">
           <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
         </Button>
       </div>
     </div>

@@ -168,9 +168,16 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded, onRefr
 
         {hasActiveFilters && (
           <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onRefresh} disabled={isRefreshing}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              aria-label="Refresh request logs"
+              title="Refresh request logs"
+            >
               <RefreshCw className="h-3.5 w-3.5" />
-              Refresh
             </Button>
             <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={actions.clearFilters}>
               <X className="h-3 w-3" />
@@ -181,9 +188,16 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded, onRefr
 
         {!hasActiveFilters && (
           <div className="flex justify-end">
-            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onRefresh} disabled={isRefreshing}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              aria-label="Refresh request logs"
+              title="Refresh request logs"
+            >
               <RefreshCw className="h-3.5 w-3.5" />
-              Refresh
             </Button>
           </div>
         )}

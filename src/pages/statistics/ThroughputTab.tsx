@@ -66,9 +66,10 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
           size="sm"
           onClick={manualRefresh}
           disabled={isLoading}
+          aria-label="Refresh throughput statistics"
+          title="Refresh throughput statistics"
         >
           <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
         </Button>
       </div>
 
