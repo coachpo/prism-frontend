@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Plug, Plus } from "lucide-react";
+import { Plug, Plus } from "lucide-react";
 import { EndpointDialog } from "./endpoints/EndpointDialog";
 import { EndpointCardView, SortableEndpointCard } from "./endpoints/EndpointCard";
 import { DeleteEndpointDialog } from "./endpoints/DeleteEndpointDialog";
@@ -25,24 +25,6 @@ export function EndpointsPage() {
           Add Endpoint
         </Button>
       </PageHeader>
-
-      {data.deleteError ? (
-        <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            <h5 className="font-medium leading-none tracking-tight">Cannot Delete Endpoint</h5>
-          </div>
-          <div className="mt-2 text-sm opacity-90">{data.deleteError}</div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 border-destructive/20 hover:bg-destructive/20"
-            onClick={() => data.setDeleteError(null)}
-          >
-            Dismiss
-          </Button>
-        </div>
-      ) : null}
 
       {!data.isLoading ? (
         <EndpointsSummaryCards

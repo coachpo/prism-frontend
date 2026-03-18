@@ -2,6 +2,7 @@ import { StrictMode, type ReactNode } from "react";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DragEndEvent } from "@dnd-kit/core";
+import { toast } from "sonner";
 import { clearSharedReferenceData } from "@/lib/referenceData";
 import { useEndpointsPageData } from "../useEndpointsPageData";
 
@@ -279,6 +280,31 @@ describe("useEndpointsPageData", () => {
     expect(api.endpoints.delete).toHaveBeenCalledWith(10);
     expect(result.current.endpoints.map((endpoint) => endpoint.id)).toEqual([11]);
     expect(result.current.endpointModels[10]).toBeUndefined();
+  });
+
+  it("shows a destructive toast when endpoint deletion is blocked by connections", async () => {
+    api.endpoints.delete.mockRejectedValueOnce(
+      new Error("Cannot delete endpoint that is referenced by connections")
+    );
+
+    const { result } = renderHook(() => useEndpointsPageData(), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.setDeleteTarget(result.current.endpoints[0]);
+    });
+
+    await act(async () => {
+      await result.current.handleDelete(10);
+    });
+
+    expect(result.current.deleteTarget).toBeNull();
+    expect(toast.error).toHaveBeenCalledWith(
+      "Cannot delete endpoint that is referenced by connections"
+    );
   });
 
   it("reorders endpoints and rolls back when movePosition fails", async () => {

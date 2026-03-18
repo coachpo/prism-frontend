@@ -14,7 +14,6 @@ export function useEndpointsPageData() {
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
   const [duplicatingEndpointId, setDuplicatingEndpointId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Endpoint | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { revision } = useProfileContext();
   const { format: formatTime } = useTimezone();
   const { commitEndpoints, endpointModels, endpoints, isLoading, setEndpoints } =
@@ -62,7 +61,6 @@ export function useEndpointsPageData() {
       await api.endpoints.delete(id);
       toast.success("Endpoint deleted");
       setDeleteTarget(null);
-      setDeleteError(null);
       commitEndpoints(
         (current) => current.filter((endpoint) => endpoint.id !== id),
         (current) => {
@@ -81,7 +79,7 @@ export function useEndpointsPageData() {
           normalizedMessage.includes("cannot delete endpoint") ||
           normalizedMessage.includes("referenced by connections")
         ) {
-          setDeleteError(error.message);
+          toast.error(error.message);
           return;
         }
       }
@@ -134,7 +132,6 @@ export function useEndpointsPageData() {
   };
 
   return {
-    deleteError,
     deleteTarget,
     duplicatingEndpointId,
     editingEndpoint,
@@ -150,7 +147,6 @@ export function useEndpointsPageData() {
     isCreateOpen,
     isDeletingEndpoint,
     isLoading,
-    setDeleteError,
     setDeleteTarget,
     setEditingEndpoint,
     setIsCreateOpen,
