@@ -8,10 +8,11 @@ React 19 + TypeScript dashboard for Prism management workflows. Built with Vite 
 src/
 ├── main.tsx                        # Bootstraps app providers and App
 ├── App.tsx                         # BrowserRouter + AuthProvider + protected shell + auth/public routes
+├── components/AGENTS.md            # Shared shell, widgets, loadbalance, statistics, and ui boundary
 ├── context/AGENTS.md               # Auth bootstrap and profile-scoping boundaries
 ├── hooks/AGENTS.md                 # Realtime, polling, and timezone hooks
 ├── lib/AGENTS.md                   # api/core/websocket/webauthn/types boundary
-├── components/                     # App shell, shared widgets, shadcn/ui
+├── components/                     # App shell, shared widgets, loadbalance, statistics, shadcn/ui
 └── pages/AGENTS.md                 # Route layer + child feature docs
 ```
 
@@ -25,6 +26,7 @@ src/
 
 - `src/context/AGENTS.md`: auth bootstrap modes, proactive refresh, and profile-scoping boundaries.
 - `src/hooks/AGENTS.md`: shared realtime, polling, and timezone logic.
+- `src/components/AGENTS.md`: shared shell, layout state, loadbalance widgets, statistics cards, and ui wrappers.
 - `src/lib/AGENTS.md`: split API client modules, websocket client, WebAuthn helpers, and type boundaries.
 - `src/pages/AGENTS.md`: route-level guide for page flows and child docs under `dashboard/`, `endpoints/`, `model-detail/`, `models/`, `pricing-templates/`, `proxy-api-keys/`, `request-logs/`, `settings/`, and `statistics/`.
 
@@ -32,6 +34,7 @@ src/
 
 - Profile scope behavior: `src/context/ProfileContext.tsx`, `src/lib/api/core.ts`
 - App shell + profile UX: `src/components/layout/AppLayout.tsx`, `src/components/layout/app-layout/navigationProfileConfig.ts`
+- Shared shell, loadbalance, statistics, and widget boundaries: `src/components/AGENTS.md`
 - Operator auth bootstrap and redirects: `src/context/AuthContext.tsx`, `src/context/AGENTS.md`
 - Request-log investigation route and helpers: `src/pages/RequestLogsPage.tsx`, `src/pages/request-logs/AGENTS.md`
 - Type and payload alignment: `src/lib/types.ts`, `src/lib/types/`, `src/lib/configImportValidation.ts`
@@ -39,6 +42,7 @@ src/
 - Passkey browser helpers: `src/lib/webauthn.ts`, `src/pages/settings/sections/authentication/usePasskeyManagement.ts`
 - Cost and time formatting: `src/lib/costing.ts`, `src/lib/timezone.ts`, `src/hooks/useTimezone.ts`
 - Connection owner navigation: `src/hooks/useConnectionNavigation.ts`
+- Frontend test setup: `src/test/setup.ts`
 - Page-specific workflows: `src/pages/AGENTS.md`
 
 ## CONVENTIONS
