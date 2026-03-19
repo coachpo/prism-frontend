@@ -11,6 +11,7 @@ model-detail/
 ├── useModelDetailConnectionFlows.ts  # Create/edit/delete/reorder flow orchestration
 ├── useModelDetailConnectionMutations.ts
 ├── useModelDetailDialogState.ts
+├── useModelDetailDataSupport.ts      # Default form factories, redirect targets, optimistic helpers
 ├── useModelDetailModelForm.ts
 ├── useConnectionHealthChecks.ts
 ├── useConnectionFocus.ts
@@ -35,7 +36,7 @@ model-detail/
 - Default endpoint and connection forms, redirect-target options, optimistic helpers: `useModelDetailDataSupport.ts`, `useModelDetailModelForm.ts`
 - KPI cards and model-level 24h summary display: `OverviewCards.tsx`
 - Drag-and-drop connection list, focus ring, and 24-hour metrics cards: `ConnectionsList.tsx`, `connections-list/`
-- Model-scoped loadbalance event paging, refresh, and detail drawer wiring: `LoadbalanceEventsTab.tsx`, `useModelLoadbalanceEvents.ts`, `../../components/loadbalance/`
+- Model-scoped loadbalance event paging, refresh, and detail drawer wiring: `LoadbalanceEventsTab.tsx`, `useModelLoadbalanceEvents.ts`, `../../components/AGENTS.md`
 - Inline endpoint creation, custom headers, pricing template selection: `ConnectionDialog.tsx`
 - Proxy redirect target editing: `ModelSettingsDialog.tsx`
 - Latency formatting and connection naming helpers: `modelDetailMetricsAndPaths.ts`

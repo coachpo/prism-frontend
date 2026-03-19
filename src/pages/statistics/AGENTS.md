@@ -13,6 +13,7 @@ statistics/
 ├── SpendingTab.tsx
 ├── operations/                  # Operations-tab hooks and contracts
 ├── spending/                    # Spending-tab hooks
+├── useStatisticsPageData.ts      # Shared bootstrap, polling, and refresh orchestration
 ├── useStatisticsFilterOptions.ts
 ├── useStatisticsPageState.ts
 ├── useStatisticsReports.ts
@@ -28,6 +29,7 @@ statistics/
 - Operations async data hook and presentation helpers: `operations/useOperationsTabData.ts`, `operations/`
 - Spending-tab rendering and grouping UI: `SpendingTab.tsx`
 - Spending async data hook and visualizations: `spending/useSpendingTabData.ts`, `spending/`
+- Shared statistics cards and chart wrappers: `../../components/AGENTS.md`
 - Page bootstrap, filter options, state orchestration, and report loading: `useStatisticsPageData.ts`, `useStatisticsFilterOptions.ts`, `useStatisticsPageState.ts`, `useStatisticsReports.ts`
 - Periodic polling for data refresh: `useStatisticsPageData.ts` (uses `usePolling` hook)
 - Timezone-aware formatting: `useTimezone` hook from `@/hooks/useTimezone`

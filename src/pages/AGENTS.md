@@ -19,8 +19,8 @@
 - Models table, filters, dialog flow, and 24h metric hydration: `ModelsPage.tsx`, `models/AGENTS.md`
 - Statistics filter sync and tab orchestration: `StatisticsPage.tsx`, `statistics/AGENTS.md`
 - Settings section navigation and save-state rendering: `SettingsPage.tsx`, `settings/AGENTS.md`
-- Endpoint CRUD and reorder helpers: `EndpointsPage.tsx`, `endpoints/EndpointDialog.tsx`, `endpoints/endpointCardHelpers.ts`
-- Model-scoped loadbalance event tab and detail sheet: `ModelDetailPage.tsx`, `model-detail/`, `components/loadbalance/`
+- Endpoint CRUD and reorder helpers: `EndpointsPage.tsx`, `endpoints/EndpointDialog.tsx`, `endpoints/useEndpointReorder.ts`, `endpoints/endpointCardHelpers.ts`
+- Model-scoped loadbalance event tab and detail sheet: `ModelDetailPage.tsx`, `model-detail/`, `../components/AGENTS.md`
 - Pricing template form normalization and usage conflicts: `PricingTemplatesPage.tsx`, `pricing-templates/AGENTS.md`
 - Proxy API key issuance, rotation, and one-time secret display: `ProxyApiKeysPage.tsx`, `proxy-api-keys/AGENTS.md`
 
