@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuditLogDetail, RequestLogEntry } from "@/lib/types";
 import { RequestLogDetailSheet } from "../RequestLogDetailSheet";
@@ -183,6 +183,52 @@ describe("RequestLogDetailSheet", () => {
     expect(screen.getByRole("button", { name: /copy/i })).toBeInTheDocument();
     expect(screen.getByText(/"type": "usage_limit_reached"/)).toBeInTheDocument();
     expect(screen.queryByText(/"type":"usage_limit_reached"/)).not.toBeInTheDocument();
+  });
+
+  it("copies the visible error detail through the Clipboard API when available", async () => {
+    const writeTextMock = vi.fn<Clipboard["writeText"]>().mockResolvedValue(undefined);
+    const originalClipboard = navigator.clipboard;
+    const originalExecCommand = document.execCommand;
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: writeTextMock },
+    });
+
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      value: vi.fn(() => true),
+    });
+
+    try {
+      renderSheet({
+        request: {
+          ...baseRequest,
+          status_code: 429,
+          error_detail:
+            '{"error":{"message":"The usage limit has been reached","type":"usage_limit_reached","param":null,"code":null,"plan_type":"basic","resets_in_seconds":28797}}',
+        },
+      });
+
+      const formattedDetail = screen.getByText(/"type": "usage_limit_reached"/).textContent;
+      expect(formattedDetail).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: /copy/i }));
+
+      await waitFor(() => {
+        expect(writeTextMock).toHaveBeenCalledWith(formattedDetail);
+      });
+    } finally {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: originalClipboard,
+      });
+
+      Object.defineProperty(document, "execCommand", {
+        configurable: true,
+        value: originalExecCommand,
+      });
+    }
   });
 
   it("applies wrapped monospace styling to long technical overview fields", () => {

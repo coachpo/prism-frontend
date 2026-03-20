@@ -23,18 +23,14 @@ function fallbackCopyText(text: string): boolean {
 }
 
 export async function copyTextToClipboard(text: string): Promise<boolean> {
-  if (fallbackCopyText(text)) {
-    return true;
-  }
-
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
-      return false;
+      return fallbackCopyText(text);
     }
   }
 
-  return false;
+  return fallbackCopyText(text);
 }
