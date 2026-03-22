@@ -40,7 +40,7 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
 
   const handleExport = async () => {
     if (!exportSecretsAcknowledged) {
-      toast.error("Acknowledge that endpoint API keys are omitted before exporting.");
+      toast.error("Acknowledge that endpoint API keys are included before exporting.");
       return;
     }
 

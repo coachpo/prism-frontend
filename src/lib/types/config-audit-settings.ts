@@ -1,15 +1,17 @@
 import type { LoadBalancingStrategy, ModelType } from "./model-stats";
 
 export interface ConfigEndpointExport {
-  endpoint_id: number;
   name: string;
   base_url: string;
   api_key: string;
   position?: number | null;
 }
 
+export interface ConfigEndpointImport extends ConfigEndpointExport {
+  endpoint_id?: number | null;
+}
+
 export interface ConfigPricingTemplateExport {
-  pricing_template_id: number;
   name: string;
   description: string | null;
   pricing_unit: "PER_1M";
@@ -23,10 +25,26 @@ export interface ConfigPricingTemplateExport {
   version: number;
 }
 
+export interface ConfigPricingTemplateImport extends ConfigPricingTemplateExport {
+  pricing_template_id?: number | null;
+}
+
 export interface ConfigConnectionExport {
-  connection_id: number;
-  endpoint_id: number;
-  pricing_template_id: number | null;
+  endpoint_name: string;
+  pricing_template_name: string | null;
+  is_active: boolean;
+  priority: number;
+  name: string | null;
+  auth_type: string | null;
+  custom_headers: Record<string, string> | null;
+}
+
+export interface ConfigConnectionImport {
+  connection_id?: number | null;
+  endpoint_id?: number | null;
+  endpoint_name?: string | null;
+  pricing_template_id?: number | null;
+  pricing_template_name?: string | null;
   is_active: boolean;
   priority: number;
   name: string | null;
@@ -47,9 +65,29 @@ export interface ConfigModelExport {
   connections: ConfigConnectionExport[];
 }
 
+export interface ConfigModelImport {
+  provider_type: string;
+  model_id: string;
+  display_name: string | null;
+  model_type: ModelType;
+  redirect_to: string | null;
+  lb_strategy: LoadBalancingStrategy;
+  is_enabled: boolean;
+  failover_recovery_enabled: boolean;
+  failover_recovery_cooldown_seconds: number;
+  connections: ConfigConnectionImport[];
+}
+
 export interface ConfigEndpointFxRateExport {
   model_id: string;
-  endpoint_id: number;
+  endpoint_name: string;
+  fx_rate: string;
+}
+
+export interface ConfigEndpointFxRateImport {
+  model_id: string;
+  endpoint_id?: number | null;
+  endpoint_name?: string | null;
   fx_rate: string;
 }
 
@@ -57,6 +95,13 @@ export interface ConfigUserSettingsExport {
   report_currency_code: string;
   report_currency_symbol: string;
   endpoint_fx_mappings: ConfigEndpointFxRateExport[];
+  timezone_preference?: string | null;
+}
+
+export interface ConfigUserSettingsImport {
+  report_currency_code?: string;
+  report_currency_symbol?: string;
+  endpoint_fx_mappings: ConfigEndpointFxRateImport[];
   timezone_preference?: string | null;
 }
 
@@ -73,10 +118,10 @@ export interface ConfigExportResponse {
 export interface ConfigImportRequest {
   version: 2;
   exported_at?: string;
-  endpoints: ConfigEndpointExport[];
-  pricing_templates: ConfigPricingTemplateExport[];
-  models: ConfigModelExport[];
-  user_settings?: ConfigUserSettingsExport | null;
+  endpoints: ConfigEndpointImport[];
+  pricing_templates: ConfigPricingTemplateImport[];
+  models: ConfigModelImport[];
+  user_settings?: ConfigUserSettingsImport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
 }
 
