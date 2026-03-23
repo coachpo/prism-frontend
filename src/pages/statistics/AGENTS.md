@@ -1,51 +1,49 @@
 # FRONTEND STATISTICS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/statistics/` powers the three-tab analytics surface under `../StatisticsPage.tsx`: operations, throughput, and spending, all driven by shared URL-state parsing.
+`pages/statistics/` owns the analytics route behind `../StatisticsPage.tsx`: operations, throughput, and spending views, all driven by shared URL-state and page-level polling and report orchestration.
 
 ## STRUCTURE
 ```
 statistics/
-├── queryParams.ts               # Shared URL param parsing and defaults
+├── queryParams.ts                 # Shared URL param parsing and defaults
 ├── OperationsTab.tsx
 ├── ThroughputTab.tsx
-├── StatisticsPageSkeleton.tsx
 ├── SpendingTab.tsx
-├── operations/                  # Operations-tab hooks and contracts
-├── spending/                    # Spending-tab hooks
-├── useStatisticsPageData.ts      # Shared bootstrap, polling, and refresh orchestration
+├── OperationsTabFilters.tsx
+├── SpendingTabFilters.tsx
+├── StatisticsPageSkeleton.tsx
+├── useStatisticsPageData.ts       # Shared bootstrap, polling, and refresh orchestration
 ├── useStatisticsFilterOptions.ts
 ├── useStatisticsPageState.ts
 ├── useStatisticsReports.ts
-└── utils.ts                     # Shared helpers
+├── utils.ts                       # Shared helpers
+├── operations/                    # Operations charts, cards, types, and async hook
+└── spending/                      # Spending summaries, tables, charts, and async hook
 ```
 
 ## WHERE TO LOOK
 
-- Route shell and shared page bootstrap: `../StatisticsPage.tsx`
-- Shared query-param contract: `queryParams.ts`
-- Operations-tab rendering: `OperationsTab.tsx`
+- Thin route shell and top-level tab orchestration: `../StatisticsPage.tsx`
+- Shared query-param contract and defaults: `queryParams.ts`
+- Page bootstrap, filter options, polling, and refresh orchestration: `useStatisticsPageData.ts`, `useStatisticsFilterOptions.ts`, `useStatisticsPageState.ts`, `useStatisticsReports.ts`
+- Operations rendering and local cluster: `OperationsTab.tsx`, `OperationsTabFilters.tsx`, `operations/`
 - Throughput rendering: `ThroughputTab.tsx`
-- Operations async data hook and presentation helpers: `operations/useOperationsTabData.ts`, `operations/`
-- Spending-tab rendering and grouping UI: `SpendingTab.tsx`
-- Spending async data hook and visualizations: `spending/useSpendingTabData.ts`, `spending/`
+- Spending rendering and local cluster: `SpendingTab.tsx`, `SpendingTabFilters.tsx`, `spending/`
 - Shared statistics cards and chart wrappers: `../../components/AGENTS.md`
-- Page bootstrap, filter options, state orchestration, and report loading: `useStatisticsPageData.ts`, `useStatisticsFilterOptions.ts`, `useStatisticsPageState.ts`, `useStatisticsReports.ts`
-- Periodic polling for data refresh: `useStatisticsPageData.ts` (uses `usePolling` hook)
-- Timezone-aware formatting: `useTimezone` hook from `@/hooks/useTimezone`
-- Shared presentation helpers: `utils.ts`
+- Shared presentation helpers and timezone-aware formatting inputs: `utils.ts`, `@/hooks/useTimezone`
 
 ## CONVENTIONS
 
-- Treat URL state as source of truth for filters, tabs, presets, and pagination; bookmarkability is intentional.
-- Keep operations-specific and spending-specific async logic in their own hook folders instead of bloating the top-level tab components.
-- Preserve the distinction between operations telemetry filters and spending aggregation filters even when labels overlap.
-- Query-param helpers should own defaults and parsing; tabs should consume typed values, not raw `URLSearchParams`.
-- Statistics polling refresh belongs in `useStatisticsPageData.ts`; tabs should react to refreshed state, not own subscriptions.
+- Treat URL state as the source of truth for filters, tabs, presets, and pagination. Bookmarkability is part of the contract.
+- Keep operations-specific async and presentation logic inside `operations/`, and spending-specific logic inside `spending/`, instead of bloating the top-level tab files.
+- Preserve the split between operations telemetry filters, throughput views, and spending aggregation even when labels overlap.
+- Statistics polling belongs in `useStatisticsPageData.ts`. Tabs consume refreshed state, they do not own their own polling loops.
+- The dense `operations/` and `spending/` subfolders stay parent-covered. Do not add extra AGENTS files for them.
 
 ## ANTI-PATTERNS
 
 - Do not duplicate filter parsing in tab components when `queryParams.ts` already owns it.
-- Do not mix spending grouping and top-N rules into operations-table logic.
-- Do not regress null-vs-zero rendering for usage or cost metrics; statistics pages rely on that distinction for triage.
-- Do not implement separate polling mechanisms in tab components when `useStatisticsPageData.ts` already owns periodic refresh.
+- Do not mix spending grouping and top-N rules into operations-table or throughput logic.
+- Do not regress null-vs-zero rendering for usage or cost metrics. Statistics depends on that distinction for triage.
+- Do not create standalone AGENTS files for `operations/` or `spending/`. This parent doc owns both local clusters.

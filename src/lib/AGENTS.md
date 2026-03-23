@@ -30,8 +30,8 @@ lib/
 - Operator auth, public-bootstrap, proxy keys, passkeys: `api/authSettings.ts`
 - Management CRUD clients: `api/management.ts`
 - Stats, spending, metrics, timezone, config, audit, loadbalance: `api/observability.ts`
-- Shared reference-data cache, request dedupe, and revision-keyed invalidation: `referenceData.ts`
-- WebSocket channels, reconnects, shared subscription counts: `websocket.ts`
+- Shared reference-data cache and request dedupe for models, providers, endpoints, connection options, and pricing templates, all keyed by profile revision: `referenceData.ts`
+- WebSocket connection state, reconnects, channel ref-counts, and profile switching: `websocket.ts`
 - Browser passkey helpers and support checks: `webauthn.ts`
 - Backend-aligned payload types: `types.ts`, `types/`
 
@@ -40,8 +40,8 @@ lib/
 - Pages and hooks should import from `api.ts` or the exported helpers, not call `fetch()` directly.
 - `setApiProfileId()` is fed by `ProfileContext`; `api/core.ts` is the only place that injects `X-Profile-Id` into `/api/*` requests.
 - `request()` handles cookie credentials, `ApiError`, and one refresh retry for eligible `/api/*` paths; keep additional retry logic out of callers.
-- `referenceData.ts` already owns shared cache reuse, request dedupe, and revision-bump invalidation for common lookup datasets; extend it before adding another caching layer.
-- `websocket.ts` owns the singleton client, channel ref-counts, reconnect behavior, and profile switches; consumers should use `useRealtimeData()` instead of creating clients directly.
+- `referenceData.ts` owns shared cache reuse, request dedupe, and revision-keyed invalidation for the shared lookup datasets it already exports. Extend it before adding another cache.
+- `websocket.ts` owns the singleton client, channel ref-counts, reconnect behavior, and profile switches. Consumers should use `useRealtimeData()` instead of creating clients directly.
 - Keep browser WebAuthn ceremony code in `webauthn.ts`; API modules should stay transport-focused.
 - Keep backend payload naming aligned with server schemas; the type layer intentionally stays snake_case.
 
@@ -49,5 +49,6 @@ lib/
 
 - Do not bypass `api/core.ts` for Prism backend requests or inject `X-Profile-Id` from pages.
 - Do not create ad hoc websocket clients or duplicate subscribe/unsubscribe bookkeeping outside `websocket.ts`.
+- Do not add a parallel reference-data cache for models, providers, endpoints, connections, or pricing templates when `referenceData.ts` already owns those datasets.
 - Do not move passkey browser ceremony into page components when `webauthn.ts` already owns it.
 - Do not camelCase backend response fields in the shared type layer; mirror the API contract directly.
