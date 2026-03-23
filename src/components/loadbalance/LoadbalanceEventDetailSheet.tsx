@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Sheet,
   SheetContent,
@@ -7,6 +7,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTimezone } from "@/hooks/useTimezone";
 import { api } from "@/lib/api";
 import type { LoadbalanceEventDetail } from "@/lib/types";
 import { EventTypeBadge, FailureKindBadge } from "./LoadbalanceBadges";
@@ -16,13 +17,13 @@ interface LoadbalanceEventDetailSheetProps {
   onClose: () => void;
 }
 
-function DetailRow({ label, value }: { label: string; value: string | number | null }) {
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b py-2 text-sm last:border-b-0">
+    <div className="grid gap-1 border-b py-3 last:border-b-0 sm:grid-cols-[128px,1fr] sm:gap-4">
       <span className="font-medium text-muted-foreground">{label}</span>
-      <span className="text-right font-mono text-foreground [overflow-wrap:anywhere]">
+      <div className="text-sm text-foreground [overflow-wrap:anywhere] sm:text-right">
         {value ?? "N/A"}
-      </span>
+      </div>
     </div>
   );
 }
@@ -31,6 +32,7 @@ export function LoadbalanceEventDetailSheet({
   eventId,
   onClose,
 }: LoadbalanceEventDetailSheetProps) {
+  const { format: formatTime } = useTimezone();
   const [eventCache, setEventCache] = useState<Record<number, LoadbalanceEventDetail>>({});
   const [errorCache, setErrorCache] = useState<Record<number, string>>({});
 
@@ -91,30 +93,38 @@ export function LoadbalanceEventDetailSheet({
           {event && !loading && (
             <>
               <section className="space-y-3 rounded-2xl border bg-card p-4">
-                <h3 className="text-sm font-semibold">Event Information</h3>
+                <h3 className="text-sm font-semibold">Summary</h3>
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-muted-foreground">Event Type</span>
-                    <EventTypeBadge eventType={event.event_type} />
-                  </div>
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-muted-foreground">Failure Kind</span>
-                    <FailureKindBadge failureKind={event.failure_kind} />
-                  </div>
-                  <DetailRow label="Connection ID" value={event.connection_id} />
-                  <DetailRow label="Consecutive Failures" value={event.consecutive_failures} />
-                  <DetailRow label="Cooldown (seconds)" value={event.cooldown_seconds.toFixed(2)} />
                   <DetailRow
-                    label="Blocked Until (mono)"
+                    label="Event"
                     value={
-                      event.blocked_until_mono !== null
-                        ? event.blocked_until_mono.toFixed(2)
-                        : null
+                      <div className="flex flex-col items-start gap-2 sm:items-end">
+                        <EventTypeBadge eventType={event.event_type} />
+                        <span>{event.summary.event}</span>
+                      </div>
                     }
                   />
                   <DetailRow
-                    label="Created At"
-                    value={new Date(event.created_at).toLocaleString()}
+                    label="Reason"
+                    value={
+                      <div className="flex flex-col items-start gap-2 sm:items-end">
+                        <FailureKindBadge failureKind={event.failure_kind} />
+                        <span>{event.summary.reason}</span>
+                      </div>
+                    }
+                  />
+                  <DetailRow label="Operation" value={event.summary.operation} />
+                  <DetailRow label="Cooldown" value={event.summary.cooldown} />
+                  <DetailRow
+                    label="Created"
+                    value={formatTime(event.created_at, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    })}
                   />
                 </div>
               </section>
@@ -122,10 +132,17 @@ export function LoadbalanceEventDetailSheet({
               <section className="space-y-3 rounded-2xl border bg-card p-4">
                 <h3 className="text-sm font-semibold">Context</h3>
                 <div className="space-y-1">
+                  <DetailRow label="Event Type" value={<EventTypeBadge eventType={event.event_type} />} />
+                  <DetailRow
+                    label="Failure Kind"
+                    value={<FailureKindBadge failureKind={event.failure_kind} />}
+                  />
                   <DetailRow label="Model ID" value={event.model_id} />
+                  <DetailRow label="Connection ID" value={event.connection_id} />
                   <DetailRow label="Endpoint ID" value={event.endpoint_id} />
                   <DetailRow label="Provider ID" value={event.provider_id} />
                   <DetailRow label="Profile ID" value={event.profile_id} />
+                  <DetailRow label="Consecutive Failures" value={event.consecutive_failures} />
                 </div>
               </section>
 

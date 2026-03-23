@@ -11,6 +11,13 @@ export type LoadbalanceFailureKind =
   | "connect_error"
   | "timeout";
 
+export interface LoadbalanceEventSummary {
+  event: string;
+  reason: string;
+  operation: string;
+  cooldown: string;
+}
+
 export interface LoadbalanceEvent {
   id: number;
   profile_id: number;
@@ -23,6 +30,7 @@ export interface LoadbalanceEvent {
   model_id: string | null;
   endpoint_id: number | null;
   provider_id: number | null;
+  summary: LoadbalanceEventSummary;
   created_at: string;
 }
 
