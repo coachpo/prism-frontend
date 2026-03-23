@@ -34,13 +34,17 @@ import type {
 } from "../types";
 import { buildQuery, request } from "./core";
 
+function buildStatsQuery(params?: StatsRequestParams) {
+  return buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);
+}
+
 export const stats = {
   requests: (params?: StatsRequestParams) => {
-    const query = buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);
+    const query = buildStatsQuery(params);
     return request<RequestLogListResponse>(`/api/stats/requests${query ? `?${query}` : ""}`);
   },
   operationsRequests: (params?: StatsRequestParams) => {
-    const query = buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);
+    const query = buildStatsQuery(params);
     return request<StatisticsRequestLogListResponse>(
       `/api/stats/requests/operations${query ? `?${query}` : ""}`
     );

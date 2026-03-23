@@ -166,10 +166,13 @@ export interface StatsSummary {
   groups: StatGroup[];
 }
 
+export type RequestStatusFamily = "4xx" | "5xx";
+
 export interface StatsRequestParams {
   request_id?: number;
   model_id?: string;
   provider_type?: string;
+  status_family?: RequestStatusFamily;
   status_code?: number;
   success?: boolean;
   from_time?: string;

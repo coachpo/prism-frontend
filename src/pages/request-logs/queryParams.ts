@@ -7,6 +7,9 @@ export type OutcomeFilter = (typeof OUTCOME_OPTIONS)[number];
 export const STREAM_OPTIONS = ["all", "yes", "no"] as const;
 export type StreamFilter = (typeof STREAM_OPTIONS)[number];
 
+export const STATUS_FAMILY_OPTIONS = ["all", "4xx", "5xx"] as const;
+export type StatusFamilyFilter = (typeof STATUS_FAMILY_OPTIONS)[number];
+
 export const LATENCY_BUCKET_OPTIONS = ["all", "fast", "normal", "slow", "very_slow"] as const;
 export type LatencyBucket = (typeof LATENCY_BUCKET_OPTIONS)[number];
 
@@ -22,6 +25,7 @@ export const DEFAULTS = {
   limit: 50,
   offset: 0,
   time_range: "24h" as TimeRange,
+  status_family: "all" as StatusFamilyFilter,
   outcome_filter: "all" as OutcomeFilter,
   stream_filter: "all" as StreamFilter,
   latency_bucket: "all" as LatencyBucket,
@@ -39,6 +43,7 @@ export interface RequestLogPageState {
   connection_id: string;
   endpoint_id: string;
   time_range: TimeRange;
+  status_family: StatusFamilyFilter;
   // Client filters
   search: string;
   outcome_filter: OutcomeFilter;
@@ -78,6 +83,7 @@ export function parsePageState(params: URLSearchParams): RequestLogPageState {
     connection_id: params.get("connection_id") ?? "",
     endpoint_id: params.get("endpoint_id") ?? "",
     time_range: parseEnum(params.get("time_range"), TIME_RANGE_OPTIONS, DEFAULTS.time_range),
+    status_family: parseEnum(params.get("status_family"), STATUS_FAMILY_OPTIONS, DEFAULTS.status_family),
     search: params.get("search") ?? "",
     outcome_filter: parseEnum(params.get("outcome_filter"), OUTCOME_OPTIONS, DEFAULTS.outcome_filter),
     stream_filter: parseEnum(params.get("stream_filter"), STREAM_OPTIONS, DEFAULTS.stream_filter),
@@ -103,6 +109,7 @@ export function stateToParams(state: RequestLogPageState): URLSearchParams {
   if (state.connection_id) p.set("connection_id", state.connection_id);
   if (state.endpoint_id) p.set("endpoint_id", state.endpoint_id);
   if (state.time_range !== DEFAULTS.time_range) p.set("time_range", state.time_range);
+  if (state.status_family !== DEFAULTS.status_family) p.set("status_family", state.status_family);
   if (state.search) p.set("search", state.search);
   if (state.outcome_filter !== DEFAULTS.outcome_filter) p.set("outcome_filter", state.outcome_filter);
   if (state.stream_filter !== DEFAULTS.stream_filter) p.set("stream_filter", state.stream_filter);

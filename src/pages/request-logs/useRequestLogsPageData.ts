@@ -70,6 +70,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
   }, []);
 
   useEffect(() => {
+    void revision;
     const bootstrapId = setTimeout(() => {
       void bootstrapFilterOptions();
     }, 0);
@@ -92,6 +93,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
       : {
           model_id: state.model_id || undefined,
           provider_type: state.provider_type || undefined,
+          status_family: state.status_family === "all" ? undefined : state.status_family,
           connection_id: state.connection_id ? parseInt(state.connection_id, 10) : undefined,
           endpoint_id: state.endpoint_id ? parseInt(state.endpoint_id, 10) : undefined,
           from_time: fromTime,
@@ -120,6 +122,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     state.request_id,
     state.model_id,
     state.provider_type,
+    state.status_family,
     state.connection_id,
     state.endpoint_id,
     state.time_range,
@@ -128,6 +131,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
   ]);
 
   useEffect(() => {
+    void revision;
     if (debounceRef.current !== null) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(fetchData, 300);
     return () => {

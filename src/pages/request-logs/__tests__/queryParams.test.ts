@@ -14,6 +14,7 @@ function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPa
     connection_id: "",
     endpoint_id: "",
     time_range: DEFAULTS.time_range,
+    status_family: DEFAULTS.status_family,
     search: "",
     outcome_filter: DEFAULTS.outcome_filter,
     stream_filter: DEFAULTS.stream_filter,
@@ -41,6 +42,7 @@ describe("request log query params", () => {
       connection_id: "42",
       endpoint_id: "99",
       time_range: "7d",
+      status_family: "5xx",
       search: "timeout",
       outcome_filter: "error",
       stream_filter: "yes",
@@ -61,6 +63,7 @@ describe("request log query params", () => {
     const params = stateToParams(state);
 
     expect(params.get("special_token_filter")).toBe("reasoning");
+    expect(params.get("status_family")).toBe("5xx");
     expect(params.get("priced_only")).toBe("true");
     expect(params.get("billable_only")).toBe("true");
     expect(params.get("triage")).toBe("true");

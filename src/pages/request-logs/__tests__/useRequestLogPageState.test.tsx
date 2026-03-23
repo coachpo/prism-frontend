@@ -61,5 +61,41 @@ describe("useRequestLogPageState", () => {
     });
 
     expect(result.current.state.offset).toBe(0);
+
+    act(() => {
+      result.current.setOffset(75);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.offset).toBe(75);
+    });
+
+    act(() => {
+      result.current.setStatusFamily("4xx");
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.status_family).toBe("4xx");
+    });
+
+    expect(result.current.state.offset).toBe(0);
+  });
+
+  it("clears status-family filters while preserving exact-request mode state", async () => {
+    const { result } = renderHook(() => useRequestLogPageState(), {
+      wrapper: createWrapper("/request-logs?status_family=5xx&model_id=gpt-5.4&request_id=123&detail_tab=audit"),
+    });
+
+    act(() => {
+      result.current.clearFilters();
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.status_family).toBe("all");
+    });
+
+    expect(result.current.state.model_id).toBe("");
+    expect(result.current.state.request_id).toBe("123");
+    expect(result.current.state.detail_tab).toBe("audit");
   });
 });

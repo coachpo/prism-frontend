@@ -19,6 +19,7 @@ import type { RequestLogPageActions } from "./useRequestLogPageState";
 import {
   LATENCY_BUCKET_OPTIONS,
   OUTCOME_OPTIONS,
+  STATUS_FAMILY_OPTIONS,
   STREAM_OPTIONS,
   TIME_RANGE_OPTIONS,
   VIEW_OPTIONS,
@@ -49,6 +50,12 @@ const LATENCY_LABELS: Record<string, string> = {
   very_slow: "> 5s",
 };
 
+const STATUS_FAMILY_LABELS: Record<string, string> = {
+  all: "All statuses",
+  "4xx": "4xx only",
+  "5xx": "5xx only",
+};
+
 function ToolbarLabel({ children }: { children: React.ReactNode }) {
   return <Label className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{children}</Label>;
 }
@@ -60,7 +67,7 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded, onRefr
   return (
     <Card className="border-border/70 bg-card/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
       <CardContent className="space-y-4 p-4">
-        <div className="grid gap-3 xl:grid-cols-6">
+        <div className="grid gap-3 xl:grid-cols-8">
           <div className="xl:col-span-2">
             <ToolbarLabel>Search</ToolbarLabel>
             <div className="relative">
@@ -127,6 +134,22 @@ export function FiltersBar({ actions, filterOptions, filterOptionsLoaded, onRefr
                       {e.name || e.base_url}
                     </SelectItem>
                   ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <ToolbarLabel>Status</ToolbarLabel>
+            <Select value={state.status_family} onValueChange={(v) => actions.setStatusFamily(v as typeof state.status_family)}>
+              <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background/80 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FAMILY_OPTIONS.map((statusFamily) => (
+                  <SelectItem key={statusFamily} value={statusFamily}>
+                    {STATUS_FAMILY_LABELS[statusFamily]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

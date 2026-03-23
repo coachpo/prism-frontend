@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   DEFAULTS,
   parsePageState,
+  type StatusFamilyFilter,
   stateToParams,
   type DetailTab,
   type LatencyBucket,
@@ -37,6 +38,7 @@ export function useRequestLogPageState() {
   const setConnectionId = useCallback((v: string) => update({ connection_id: v }), [update]);
   const setEndpointId = useCallback((v: string) => update({ endpoint_id: v }), [update]);
   const setTimeRange = useCallback((v: TimeRange) => update({ time_range: v }), [update]);
+  const setStatusFamily = useCallback((v: StatusFamilyFilter) => update({ status_family: v }), [update]);
   const setSearch = useCallback((v: string) => update({ search: v }, false), [update]);
   const setOutcomeFilter = useCallback((v: OutcomeFilter) => update({ outcome_filter: v }, false), [update]);
   const setStreamFilter = useCallback((v: StreamFilter) => update({ stream_filter: v }, false), [update]);
@@ -93,6 +95,7 @@ export function useRequestLogPageState() {
     state.connection_id ||
     state.endpoint_id ||
     state.time_range !== DEFAULTS.time_range ||
+    state.status_family !== DEFAULTS.status_family ||
     state.search ||
     state.outcome_filter !== DEFAULTS.outcome_filter ||
     state.stream_filter !== DEFAULTS.stream_filter ||
@@ -114,6 +117,7 @@ export function useRequestLogPageState() {
     setConnectionId,
     setEndpointId,
     setTimeRange,
+    setStatusFamily,
     setSearch,
     setOutcomeFilter,
     setStreamFilter,
