@@ -63,13 +63,13 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
       <div className="flex justify-end">
         <Button
           variant="outline"
-          size="sm"
+          size="icon-sm"
           onClick={manualRefresh}
           disabled={isLoading}
           aria-label="Refresh throughput statistics"
           title="Refresh throughput statistics"
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
+          <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
 

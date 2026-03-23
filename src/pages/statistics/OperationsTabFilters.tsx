@@ -168,8 +168,8 @@ export function OperationsTabFilters({
           <Trash2 className="mr-2 h-4 w-4" />
           Clear Filters
         </Button>
-        <Button variant="outline" size="sm" onClick={refresh} aria-label="Refresh operations statistics" title="Refresh operations statistics">
-          <RefreshCw className="mr-2 h-4 w-4" />
+        <Button variant="outline" size="icon-sm" onClick={refresh} aria-label="Refresh operations statistics" title="Refresh operations statistics">
+          <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
     </div>

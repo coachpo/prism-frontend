@@ -129,4 +129,29 @@ describe("ThroughputTab", () => {
     expect(screen.getByText("3,600s total")).toBeInTheDocument();
     expect(screen.getByText("No data points available")).toBeInTheDocument();
   });
+
+  it("renders the refresh control as a square icon button", () => {
+    render(
+      <ThroughputTab
+        data={{
+          average_rpm: 0.5,
+          peak_rpm: 2,
+          current_rpm: 1,
+          total_requests: 30,
+          time_window_seconds: 3600,
+          buckets: [
+            {
+              timestamp: "2026-03-16T10:00:00+00:00",
+              request_count: 2,
+              rpm: 2,
+            },
+          ],
+        }}
+        isLoading={false}
+        manualRefresh={() => undefined}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Refresh throughput statistics" })).toHaveAttribute("data-size", "icon-sm");
+  });
 });
