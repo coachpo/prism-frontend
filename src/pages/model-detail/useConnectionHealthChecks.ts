@@ -6,10 +6,12 @@ import { applyConnectionHealthChecks } from "./useModelDetailDataSupport";
 
 interface UseConnectionHealthChecksInput {
   setConnections: Dispatch<SetStateAction<Connection[]>>;
+  onSuccessfulChecks?: (connectionIds: number[]) => void | Promise<void>;
 }
 
 export function useConnectionHealthChecks({
   setConnections,
+  onSuccessfulChecks,
 }: UseConnectionHealthChecksInput) {
   const [healthCheckingIds, setHealthCheckingIds] = useState<Set<number>>(new Set());
 
@@ -50,6 +52,10 @@ export function useConnectionHealthChecks({
         applyConnectionHealthChecks(prevConnections, successfulChecks)
       );
 
+      if (successfulChecks.size > 0) {
+        void onSuccessfulChecks?.(Array.from(successfulChecks.keys()));
+      }
+
       setHealthCheckingIds((prev) => {
         const next = new Set(prev);
         connectionIds.forEach((connectionId) => next.delete(connectionId));
@@ -58,7 +64,7 @@ export function useConnectionHealthChecks({
 
       return { successfulChecks, failedCount };
     },
-    [setConnections]
+    [onSuccessfulChecks, setConnections]
   );
 
   return {

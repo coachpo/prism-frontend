@@ -4,9 +4,11 @@ import {
   Loader2,
   MoreHorizontal,
   Pencil,
+  RotateCcw,
   Route,
   Trash2,
 } from "lucide-react";
+import { FailureKindBadge } from "@/components/loadbalance/LoadbalanceBadges";
 import { StatusBadge, ValueBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +26,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { Connection } from "@/lib/types";
+import type {
+  Connection,
+  LoadbalanceCurrentStateItem,
+  LoadbalanceCurrentStateValue,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   formatLatencyForDisplay,
@@ -217,6 +223,57 @@ export function ConnectionCardMetrics({
   );
 }
 
+export function ConnectionCardCooldownState({
+  currentState,
+  formatTime,
+  isResetting,
+  onResetCooldown,
+}: {
+  currentState: LoadbalanceCurrentStateItem | undefined;
+  formatTime: FormatTime;
+  isResetting: boolean;
+  onResetCooldown: (connectionId: number) => void;
+}) {
+  if (!currentState) {
+    return null;
+  }
+
+  const tone = getCurrentStateTone(currentState.state);
+  const failureCountLabel = `${currentState.consecutive_failures} failure${currentState.consecutive_failures === 1 ? "" : "s"}`;
+
+  return (
+    <div className={cn("rounded-lg border px-3 py-2 text-xs", tone.panelClassName)}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge label={tone.label} intent={tone.intent} />
+            <ValueBadge label={failureCountLabel} intent="default" />
+            <FailureKindBadge failureKind={currentState.last_failure_kind} />
+          </div>
+          <p className="leading-5 text-muted-foreground">
+            {buildCurrentStateCopy(currentState, formatTime)}
+          </p>
+        </div>
+
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={isResetting}
+          onClick={() => onResetCooldown(currentState.connection_id)}
+          className="self-start"
+        >
+          {isResetting ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <RotateCcw className="h-3 w-3" />
+          )}
+          Reset Cooldown
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ConnectionCardActions({
   connection,
   isChecking,
@@ -271,6 +328,99 @@ export function ConnectionCardActions({
       </DropdownMenu>
     </div>
   );
+}
+
+function buildCurrentStateCopy(
+  currentState: LoadbalanceCurrentStateItem,
+  formatTime: FormatTime,
+): string {
+  const cooldown = formatCooldownSeconds(currentState.last_cooldown_seconds);
+  const failureSummary = `${currentState.consecutive_failures} consecutive failure${currentState.consecutive_failures === 1 ? "" : "s"}`;
+  const failureKindLabel = getFailureKindLabel(currentState.last_failure_kind);
+  const blockedUntilLabel = currentState.blocked_until_at
+    ? formatTime(currentState.blocked_until_at, {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        hour12: true,
+      })
+    : null;
+
+  if (currentState.state === "blocked") {
+    return `${failureSummary} triggered a ${cooldown} cooldown after ${failureKindLabel}. Routing stays paused until ${blockedUntilLabel ?? "the cooldown expires"}.`;
+  }
+
+  if (currentState.state === "probe_eligible") {
+    return `The last ${cooldown} cooldown expired${blockedUntilLabel ? ` at ${blockedUntilLabel}` : ""}. This connection is now eligible for the next routed probe after ${failureKindLabel}.`;
+  }
+
+  return `Tracking ${failureSummary} after ${failureKindLabel}. No cooldown is currently open, but failover recovery is still counting these signals.`;
+}
+
+function formatCooldownSeconds(seconds: number): string {
+  const roundedSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(roundedSeconds / 60);
+  const remainingSeconds = roundedSeconds % 60;
+
+  if (minutes === 0) {
+    return `${roundedSeconds}s`;
+  }
+
+  if (remainingSeconds === 0) {
+    return `${minutes}m`;
+  }
+
+  return `${minutes}m ${remainingSeconds}s`;
+}
+
+function getFailureKindLabel(failureKind: LoadbalanceCurrentStateItem["last_failure_kind"]): string {
+  if (failureKind === "transient_http") {
+    return "a transient HTTP failure";
+  }
+
+  if (failureKind === "auth_like") {
+    return "an auth-like failure";
+  }
+
+  if (failureKind === "connect_error") {
+    return "a connection error";
+  }
+
+  if (failureKind === "timeout") {
+    return "a timeout";
+  }
+
+  return "an unknown failure";
+}
+
+function getCurrentStateTone(
+  state: LoadbalanceCurrentStateValue,
+): {
+  label: string;
+  intent: "warning" | "danger" | "info";
+  panelClassName: string;
+} {
+  if (state === "blocked") {
+    return {
+      label: "Cooling Down",
+      intent: "danger",
+      panelClassName: "border-red-500/20 bg-red-500/5",
+    };
+  }
+
+  if (state === "probe_eligible") {
+    return {
+      label: "Probe Eligible",
+      intent: "info",
+      panelClassName: "border-sky-500/20 bg-sky-500/5",
+    };
+  }
+
+  return {
+    label: "Failure Counting",
+    intent: "warning",
+    panelClassName: "border-amber-500/20 bg-amber-500/5",
+  };
 }
 
 function MetricTile({ label, value }: { label: string; value: string }) {

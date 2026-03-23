@@ -1,5 +1,9 @@
 import type { ButtonHTMLAttributes } from "react";
-import type { Connection, ModelConfig } from "@/lib/types";
+import type {
+  Connection,
+  LoadbalanceCurrentStateItem,
+  ModelConfig,
+} from "@/lib/types";
 import type { ConnectionDerivedMetrics } from "../modelDetailMetricsAndPaths";
 
 export type FormatTime = (
@@ -11,7 +15,9 @@ export interface ConnectionCardProps {
   connection: Connection;
   model: ModelConfig;
   metrics24h: ConnectionDerivedMetrics | undefined;
+  loadbalanceCurrentState: LoadbalanceCurrentStateItem | undefined;
   isChecking: boolean;
+  isResettingCooldown: boolean;
   isFocused: boolean;
   formatTime: FormatTime;
   reorderDisabled: boolean;
@@ -24,6 +30,7 @@ export interface ConnectionCardProps {
   onEdit: (connection: Connection) => void;
   onDelete: (id: number) => void;
   onHealthCheck: (id: number) => void;
+  onResetCooldown: (connectionId: number) => void;
   onToggleActive: (connection: Connection) => void;
 }
 

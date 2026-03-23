@@ -42,6 +42,8 @@ export function ModelDetailPage() {
     dialogTestingConnection,
     dialogTestResult,
     connectionMetrics24h,
+    currentStateByConnectionId,
+    resettingConnectionIds,
     focusedConnectionId,
     connectionCardRefs,
     globalEndpoints,
@@ -69,6 +71,7 @@ export function ModelDetailPage() {
     pricingTemplates,
     reorderInFlight,
     handleReorderConnections,
+    handleResetCooldown,
   } = useModelDetailData(id);
 
   if (loading) {
@@ -161,10 +164,13 @@ export function ModelDetailPage() {
             connectionMetricsEnabled={connectionMetricsEnabled}
             connectionMetricsLoading={connectionMetricsLoading}
             connectionMetrics24h={connectionMetrics24h}
+            currentStateByConnectionId={currentStateByConnectionId}
+            resettingConnectionIds={resettingConnectionIds}
             healthCheckingIds={healthCheckingIds}
             focusedConnectionId={focusedConnectionId}
             connectionCardRefs={connectionCardRefs}
             reorderInFlight={reorderInFlight}
+            handleResetCooldown={handleResetCooldown}
           />
         </TabsContent>
 

@@ -12,6 +12,7 @@ interface UseModelDetailConnectionFlowsInput {
   model: ModelConfig | null;
   setModel: Dispatch<SetStateAction<ModelConfig | null>>;
   editingConnection: Connection | null;
+  refreshCurrentState: () => void | Promise<void>;
   setDialogTestingConnection: (testing: boolean) => void;
   setDialogTestResult: (result: { status: string; detail: string } | null) => void;
 }
@@ -22,12 +23,14 @@ export function useModelDetailConnectionFlows({
   model,
   setModel,
   editingConnection,
+  refreshCurrentState,
   setDialogTestingConnection,
   setDialogTestResult,
 }: UseModelDetailConnectionFlowsInput) {
   const [reorderInFlight, setReorderInFlight] = useState(false);
   const { healthCheckingIds, runHealthChecks } = useConnectionHealthChecks({
     setConnections,
+    onSuccessfulChecks: refreshCurrentState,
   });
 
   const handleReorderConnections = useCallback(
@@ -111,12 +114,18 @@ export function useModelDetailConnectionFlows({
     try {
       const result = await api.connections.healthCheck(editingConnection.id);
       setDialogTestResult({ status: result.health_status, detail: result.detail });
+      void refreshCurrentState();
     } catch {
       setDialogTestResult({ status: "error", detail: "Connection test failed" });
     } finally {
       setDialogTestingConnection(false);
     }
-  }, [editingConnection, setDialogTestResult, setDialogTestingConnection]);
+  }, [
+    editingConnection,
+    refreshCurrentState,
+    setDialogTestResult,
+    setDialogTestingConnection,
+  ]);
 
   return {
     healthCheckingIds,

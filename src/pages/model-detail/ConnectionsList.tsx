@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/EmptyState";
 import { Activity, Loader2, Plus, Search, Shield } from "lucide-react";
 import { useTimezone } from "@/hooks/useTimezone";
+import type { LoadbalanceCurrentStateItem } from "@/lib/types";
 import { ConnectionCard } from "./connections-list/ConnectionCard";
 import { SortableConnectionCard } from "./connections-list/SortableConnectionCard";
 import {
@@ -46,10 +47,13 @@ interface ConnectionsListProps {
   connectionMetricsEnabled: boolean;
   connectionMetricsLoading: boolean;
   connectionMetrics24h: Map<number, ConnectionDerivedMetrics>;
+  currentStateByConnectionId: Map<number, LoadbalanceCurrentStateItem>;
+  resettingConnectionIds: Set<number>;
   healthCheckingIds: Set<number>;
   focusedConnectionId: number | null;
   connectionCardRefs: Map<number, HTMLDivElement>;
   reorderInFlight: boolean;
+  handleResetCooldown: (connectionId: number) => void;
 }
 
 export function ConnectionsList({
@@ -67,10 +71,13 @@ export function ConnectionsList({
   connectionMetricsEnabled,
   connectionMetricsLoading,
   connectionMetrics24h,
+  currentStateByConnectionId,
+  resettingConnectionIds,
   healthCheckingIds,
   focusedConnectionId,
   connectionCardRefs,
   reorderInFlight,
+  handleResetCooldown,
 }: ConnectionsListProps) {
   const { format: formatTime } = useTimezone();
   const [activeDragId, setActiveDragId] = useState<UniqueIdentifier | null>(null);
@@ -222,8 +229,10 @@ export function ConnectionsList({
             <div className="space-y-3">
               {filteredConnections.map((connection) => {
                 const metrics24h = connectionMetrics24h.get(connection.id);
+                const loadbalanceCurrentState = currentStateByConnectionId.get(connection.id);
                 const isChecking = healthCheckingIds.has(connection.id);
                 const isFocused = focusedConnectionId === connection.id;
+                const isResettingCooldown = resettingConnectionIds.has(connection.id);
 
                 return (
                   <SortableConnectionCard
@@ -231,7 +240,9 @@ export function ConnectionsList({
                     connection={connection}
                     model={model}
                     metrics24h={metrics24h}
+                    loadbalanceCurrentState={loadbalanceCurrentState}
                     isChecking={isChecking}
+                    isResettingCooldown={isResettingCooldown}
                     isFocused={isFocused}
                     formatTime={formatTime}
                     reorderDisabled={!canReorder}
@@ -245,6 +256,7 @@ export function ConnectionsList({
                     onEdit={openConnectionDialog}
                     onDelete={handleDeleteConnection}
                     onHealthCheck={handleHealthCheck}
+                    onResetCooldown={handleResetCooldown}
                     onToggleActive={handleToggleActive}
                   />
                 );
@@ -259,7 +271,9 @@ export function ConnectionsList({
                   connection={activeDragConnection}
                   model={model}
                   metrics24h={connectionMetrics24h.get(activeDragConnection.id)}
+                  loadbalanceCurrentState={currentStateByConnectionId.get(activeDragConnection.id)}
                   isChecking={healthCheckingIds.has(activeDragConnection.id)}
+                  isResettingCooldown={resettingConnectionIds.has(activeDragConnection.id)}
                   isFocused={false}
                   formatTime={formatTime}
                   reorderDisabled
@@ -267,6 +281,7 @@ export function ConnectionsList({
                   onEdit={openConnectionDialog}
                   onDelete={handleDeleteConnection}
                   onHealthCheck={handleHealthCheck}
+                  onResetCooldown={handleResetCooldown}
                   onToggleActive={handleToggleActive}
                 />
               </div>

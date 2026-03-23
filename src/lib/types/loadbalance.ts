@@ -11,6 +11,32 @@ export type LoadbalanceFailureKind =
   | "connect_error"
   | "timeout";
 
+export type LoadbalanceCurrentStateValue =
+  | "counting"
+  | "blocked"
+  | "probe_eligible";
+
+export interface LoadbalanceCurrentStateItem {
+  connection_id: number;
+  consecutive_failures: number;
+  last_failure_kind: LoadbalanceFailureKind | null;
+  last_cooldown_seconds: number;
+  blocked_until_at: string | null;
+  probe_eligible_logged: boolean;
+  state: LoadbalanceCurrentStateValue;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoadbalanceCurrentStateListResponse {
+  items: LoadbalanceCurrentStateItem[];
+}
+
+export interface LoadbalanceCurrentStateResetResponse {
+  connection_id: number;
+  cleared: boolean;
+}
+
 export interface LoadbalanceEventSummary {
   event: string;
   reason: string;

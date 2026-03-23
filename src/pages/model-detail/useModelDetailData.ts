@@ -18,11 +18,13 @@ import { useModelDetailConnectionMutations } from "./useModelDetailConnectionMut
 import { useModelDetailDialogState } from "./useModelDetailDialogState";
 import { useModelDetailMetrics24h } from "./useModelDetailMetrics24h";
 import { useModelDetailModelForm } from "./useModelDetailModelForm";
+import { useModelLoadbalanceCurrentState } from "./useModelLoadbalanceCurrentState";
 
 export function useModelDetailData(id: string | undefined) {
   const navigate = useNavigate();
   const { revision } = useProfileContext();
   const [searchParams, setSearchParams] = useSearchParams();
+  const modelConfigId = id ? Number.parseInt(id, 10) : undefined;
 
   const [model, setModel] = useState<ModelConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,6 +96,16 @@ export function useModelDetailData(id: string | undefined) {
   });
 
   const {
+    currentStateByConnectionId,
+    resettingConnectionIds,
+    refreshCurrentState,
+    resetCooldown,
+  } = useModelLoadbalanceCurrentState({
+    modelConfigId,
+    revision,
+  });
+
+  const {
     healthCheckingIds,
     reorderInFlight,
     handleReorderConnections,
@@ -106,6 +118,7 @@ export function useModelDetailData(id: string | undefined) {
     model,
     setModel,
     editingConnection,
+    refreshCurrentState,
     setDialogTestingConnection,
     setDialogTestResult,
   });
@@ -124,6 +137,7 @@ export function useModelDetailData(id: string | undefined) {
     headerRows,
     editingConnection,
     endpointSourceDefaultName,
+    refreshCurrentState,
     setIsConnectionDialogOpen,
     setAllModels,
     setConnections,
@@ -199,6 +213,8 @@ export function useModelDetailData(id: string | undefined) {
     dialogTestingConnection,
     dialogTestResult,
     connectionMetrics24h,
+    currentStateByConnectionId,
+    resettingConnectionIds,
     focusedConnectionId,
     connectionCardRefs,
     globalEndpoints,
@@ -226,5 +242,6 @@ export function useModelDetailData(id: string | undefined) {
     pricingTemplates,
     reorderInFlight,
     handleReorderConnections,
+    handleResetCooldown: resetCooldown,
   };
 }

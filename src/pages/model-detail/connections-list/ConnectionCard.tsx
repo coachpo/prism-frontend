@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { getConnectionName } from "../modelDetailMetricsAndPaths";
 import {
   ConnectionCardActions,
+  ConnectionCardCooldownState,
   ConnectionCardDetails,
   ConnectionCardHeader,
   ConnectionCardMetrics,
@@ -12,7 +13,9 @@ import type { ConnectionCardProps } from "./connectionCardTypes";
 export function ConnectionCard({
   connection,
   metrics24h,
+  loadbalanceCurrentState,
   isChecking,
+  isResettingCooldown,
   isFocused,
   formatTime,
   reorderDisabled,
@@ -25,6 +28,7 @@ export function ConnectionCard({
   onEdit,
   onDelete,
   onHealthCheck,
+  onResetCooldown,
   onToggleActive,
 }: ConnectionCardProps) {
   const connectionName = getConnectionName(connection);
@@ -71,6 +75,13 @@ export function ConnectionCard({
               connection={connection}
               formatTime={formatTime}
               isChecking={isChecking}
+            />
+
+            <ConnectionCardCooldownState
+              currentState={loadbalanceCurrentState}
+              formatTime={formatTime}
+              isResetting={isResettingCooldown}
+              onResetCooldown={onResetCooldown}
             />
 
             <ConnectionCardMetrics

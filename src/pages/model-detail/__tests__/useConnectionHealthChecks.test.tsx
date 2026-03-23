@@ -23,9 +23,11 @@ describe("useConnectionHealthChecks", () => {
 
   it("runs health checks only when requested", async () => {
     const setConnections = vi.fn();
+    const onSuccessfulChecks = vi.fn();
     const { result } = renderHook(() =>
       useConnectionHealthChecks({
         setConnections,
+        onSuccessfulChecks,
       })
     );
 
@@ -35,5 +37,6 @@ describe("useConnectionHealthChecks", () => {
 
     expect(api.connections.healthCheck).toHaveBeenCalledTimes(1);
     expect(setConnections).toHaveBeenCalled();
+    expect(onSuccessfulChecks).toHaveBeenCalledWith([1]);
   });
 });

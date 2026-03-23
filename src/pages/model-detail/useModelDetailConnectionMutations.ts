@@ -28,6 +28,7 @@ interface UseModelDetailConnectionMutationsInput {
   headerRows: HeaderRow[];
   editingConnection: Connection | null;
   endpointSourceDefaultName: string | null;
+  refreshCurrentState: () => void | Promise<void>;
   setIsConnectionDialogOpen: (open: boolean) => void;
   setAllModels: React.Dispatch<React.SetStateAction<ModelConfigListItem[]>>;
   setConnections: React.Dispatch<React.SetStateAction<Connection[]>>;
@@ -45,6 +46,7 @@ export function useModelDetailConnectionMutations({
   headerRows,
   editingConnection,
   endpointSourceDefaultName,
+  refreshCurrentState,
   setIsConnectionDialogOpen,
   setAllModels,
   setConnections,
@@ -106,6 +108,7 @@ export function useModelDetailConnectionMutations({
         setGlobalEndpoints((current) => upsertEndpointInList(current, savedConnection.endpoint));
         commitConnections((current) => upsertConnectionInList(current, savedConnection));
         setIsConnectionDialogOpen(false);
+        void refreshCurrentState();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to save connection");
       }
@@ -118,6 +121,7 @@ export function useModelDetailConnectionMutations({
       headerRows,
       id,
       newEndpointForm,
+      refreshCurrentState,
       revision,
       selectedEndpointId,
       commitConnections,
@@ -132,12 +136,13 @@ export function useModelDetailConnectionMutations({
         await api.connections.delete(connectionId);
         clearSharedReferenceData(undefined, revision);
         commitConnections((current) => removeConnectionFromList(current, connectionId));
+        void refreshCurrentState();
         toast.success("Connection deleted");
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to delete connection");
       }
     },
-    [commitConnections, revision],
+    [commitConnections, refreshCurrentState, revision],
   );
 
   const handleToggleActive = useCallback(
@@ -149,11 +154,12 @@ export function useModelDetailConnectionMutations({
         clearSharedReferenceData(undefined, revision);
         setGlobalEndpoints((current) => upsertEndpointInList(current, updatedConnection.endpoint));
         commitConnections((current) => upsertConnectionInList(current, updatedConnection));
+        void refreshCurrentState();
       } catch {
         toast.error("Failed to toggle connection");
       }
     },
-    [commitConnections, revision, setGlobalEndpoints],
+    [commitConnections, refreshCurrentState, revision, setGlobalEndpoints],
   );
 
   return {

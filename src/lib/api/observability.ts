@@ -1,11 +1,11 @@
 import type {
   AuditLogDeleteResponse,
   AuditLogDetail,
-    AuditLogListResponse,
-    AuditLogParams,
-    BatchDeleteResponse,
-    ConnectionMetricsBatchParams,
-    ConnectionMetricsBatchResponse,
+  AuditLogListResponse,
+  AuditLogParams,
+  BatchDeleteResponse,
+  ConnectionMetricsBatchParams,
+  ConnectionMetricsBatchResponse,
   ConfigExportResponse,
   ConfigImportRequest,
   ConfigImportResponse,
@@ -16,15 +16,17 @@ import type {
   HeaderBlocklistRule,
   HeaderBlocklistRuleCreate,
   HeaderBlocklistRuleUpdate,
+  LoadbalanceCurrentStateListResponse,
+  LoadbalanceCurrentStateResetResponse,
   LoadbalanceEventDeleteResponse,
   LoadbalanceEventDetail,
   LoadbalanceEventListResponse,
-    RequestLogListResponse,
-    SpendingReportParams,
-    SpendingReportResponse,
-    StatisticsRequestLogListResponse,
-    StatsRequestParams,
-    StatsSummary,
+  RequestLogListResponse,
+  SpendingReportParams,
+  SpendingReportResponse,
+  StatisticsRequestLogListResponse,
+  StatsRequestParams,
+  StatsSummary,
   ModelMetricsBatchParams,
   ModelMetricsBatchResponse,
   StatsSummaryParams,
@@ -149,6 +151,17 @@ export const audit = {
 };
 
 export const loadbalance = {
+  listCurrentState: (params: { model_config_id: number }) => {
+    const query = buildQuery(params);
+    return request<LoadbalanceCurrentStateListResponse>(
+      `/api/loadbalance/current-state${query ? `?${query}` : ""}`
+    );
+  },
+  resetCurrentState: (connectionId: number) =>
+    request<LoadbalanceCurrentStateResetResponse>(
+      `/api/loadbalance/current-state/${connectionId}/reset`,
+      { method: "POST" }
+    ),
   listEvents: (params: {
     model_id: string;
     limit?: number;
