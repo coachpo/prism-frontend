@@ -81,6 +81,7 @@ export interface ProxyApiKeyCreate {
 export interface ProxyApiKeyUpdate {
   name: string;
   notes: string | null;
+  is_active: boolean;
 }
 
 export interface ProxyApiKeyCreateResponse {

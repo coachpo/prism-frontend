@@ -1,15 +1,17 @@
-import type { FormEvent } from "react";
+import type { ComponentProps } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+type FormSubmitHandler = NonNullable<ComponentProps<"form">["onSubmit"]>;
+
 interface ProxyKeyCreateCardProps {
   authAvailable: boolean;
   createDisabled: boolean;
   creatingProxyKey: boolean;
-  handleCreateSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  handleCreateSubmit: FormSubmitHandler;
   latestGeneratedKey: string | null;
   proxyKeyLimit: number;
   proxyKeyName: string;

@@ -1,9 +1,11 @@
-import type { FormEvent } from "react";
+import type { ComponentProps } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { AuthSettings, ProxyApiKey } from "@/lib/types";
+import type { AuthSettings, ProxyApiKey, ProxyApiKeyUpdate } from "@/lib/types";
 import { getAuthStatusTone } from "./proxyKeyFormatting";
+
+type FormSubmitEvent = Parameters<NonNullable<ComponentProps<"form">["onSubmit"]>>[0];
 
 export function useProxyApiKeysPageData() {
   const [authSettings, setAuthSettings] = useState<AuthSettings | null>(null);
@@ -18,6 +20,7 @@ export function useProxyApiKeysPageData() {
   const [editingProxyKey, setEditingProxyKey] = useState<ProxyApiKey | null>(null);
   const [editingProxyKeyName, setEditingProxyKeyName] = useState("");
   const [editingProxyKeyNotes, setEditingProxyKeyNotes] = useState("");
+  const [editingProxyKeyActive, setEditingProxyKeyActive] = useState(false);
   const [savingEditedProxyKeyId, setSavingEditedProxyKeyId] = useState<number | null>(null);
   const [latestGeneratedKey, setLatestGeneratedKey] = useState<string | null>(null);
 
@@ -148,12 +151,14 @@ export function useProxyApiKeysPageData() {
     setEditingProxyKey(item);
     setEditingProxyKeyName(item.name);
     setEditingProxyKeyNotes(item.notes ?? "");
+    setEditingProxyKeyActive(item.is_active);
   };
 
   const resetEditProxyKeyDialog = () => {
     setEditingProxyKey(null);
     setEditingProxyKeyName("");
     setEditingProxyKeyNotes("");
+    setEditingProxyKeyActive(false);
   };
 
   async function handleSaveEditedProxyKey() {
@@ -169,10 +174,12 @@ export function useProxyApiKeysPageData() {
 
     setSavingEditedProxyKeyId(editingProxyKey.id);
     try {
-      const updated = await api.settings.auth.proxyKeys.update(editingProxyKey.id, {
+      const payload: ProxyApiKeyUpdate = {
         name: nextName,
         notes: editingProxyKeyNotes.trim() || null,
-      });
+        is_active: editingProxyKeyActive,
+      };
+      const updated = await api.settings.auth.proxyKeys.update(editingProxyKey.id, payload);
       setProxyKeys((current) =>
         current.map((key) => (key.id === updated.id ? updated : key))
       );
@@ -185,12 +192,12 @@ export function useProxyApiKeysPageData() {
     }
   }
 
-  const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateSubmit = (event: FormSubmitEvent) => {
     event.preventDefault();
     void handleCreateProxyKey();
   };
 
-  const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleEditSubmit = (event: FormSubmitEvent) => {
     event.preventDefault();
     void handleSaveEditedProxyKey();
   };
@@ -216,6 +223,7 @@ export function useProxyApiKeysPageData() {
     deleteConfirm,
     deletingProxyKeyId,
     editingProxyKey,
+    editingProxyKeyActive,
     editingProxyKeyName,
     editingProxyKeyNotes,
     displayedProxyKeys,
@@ -236,6 +244,7 @@ export function useProxyApiKeysPageData() {
     savingEditedProxyKeyId,
     setDeleteConfirm,
     setDeletingProxyKeyId,
+    setEditingProxyKeyActive,
     setEditingProxyKeyName,
     setEditingProxyKeyNotes,
     setProxyKeyName,

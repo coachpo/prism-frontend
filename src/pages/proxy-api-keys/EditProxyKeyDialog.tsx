@@ -1,4 +1,5 @@
-import type { FormEvent } from "react";
+import type { ComponentProps } from "react";
+import { SwitchController } from "@/components/SwitchController";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,24 +12,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+type FormSubmitHandler = NonNullable<ComponentProps<"form">["onSubmit"]>;
+
 type Props = {
   open: boolean;
+  proxyKeyActive: boolean;
   proxyKeyName: string;
   proxyKeyNotes: string;
   saving: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSubmit: FormSubmitHandler;
+  setProxyKeyActive: (value: boolean) => void;
   setProxyKeyName: (value: string) => void;
   setProxyKeyNotes: (value: string) => void;
 };
 
 export function EditProxyKeyDialog({
   open,
+  proxyKeyActive,
   proxyKeyName,
   proxyKeyNotes,
   saving,
   onOpenChange,
   onSubmit,
+  setProxyKeyActive,
   setProxyKeyName,
   setProxyKeyNotes,
 }: Props) {
@@ -38,8 +45,8 @@ export function EditProxyKeyDialog({
         <DialogHeader>
           <DialogTitle>Edit Proxy API Key</DialogTitle>
           <DialogDescription>
-            Update the stored name and note for this issued key. Rotating the secret is a
-            separate action.
+            Update the stored name, note, and active state for this issued key. Rotating the
+            secret is a separate action.
           </DialogDescription>
         </DialogHeader>
 
@@ -65,6 +72,14 @@ export function EditProxyKeyDialog({
               disabled={saving}
             />
           </div>
+
+          <SwitchController
+            label="Active"
+            checked={proxyKeyActive}
+            onCheckedChange={setProxyKeyActive}
+            disabled={saving}
+            className="border-border bg-muted/20"
+          />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>

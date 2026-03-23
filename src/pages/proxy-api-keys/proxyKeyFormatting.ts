@@ -10,12 +10,12 @@ export function getAuthStatusTone(authSettings: AuthSettings | null) {
     : "border-amber-300/60 bg-amber-100/70 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200";
 }
 
-export function getRuntimeStatusLabel(item: ProxyApiKey, authEnabled: boolean) {
+export function getRuntimeStatusLabel(item: ProxyApiKey) {
   if (!item.is_active) {
     return "Disabled";
   }
 
-  return authEnabled ? "Active" : "Prepared";
+  return "Active";
 }
 
 export function getRuntimeStatusTone(item: ProxyApiKey, authEnabled: boolean) {

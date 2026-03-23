@@ -59,11 +59,13 @@ export function ProxyApiKeysPage() {
 
       <EditProxyKeyDialog
         open={data.editingProxyKey !== null}
+        proxyKeyActive={data.editingProxyKeyActive}
         proxyKeyName={data.editingProxyKeyName}
         proxyKeyNotes={data.editingProxyKeyNotes}
         saving={data.savingEditedProxyKeyId !== null}
         onOpenChange={data.handleEditDialogOpenChange}
         onSubmit={data.handleEditSubmit}
+        setProxyKeyActive={data.setEditingProxyKeyActive}
         setProxyKeyName={data.setEditingProxyKeyName}
         setProxyKeyNotes={data.setEditingProxyKeyNotes}
       />
