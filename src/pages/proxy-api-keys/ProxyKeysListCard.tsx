@@ -7,6 +7,7 @@ interface ProxyKeysListCardProps {
   deletingProxyKeyId: number | null;
   displayedProxyKeys: ProxyApiKey[];
   onDelete: (item: ProxyApiKey) => void;
+  onEdit: (item: ProxyApiKey) => void;
   onRotate: (keyId: number) => void;
   rotatingProxyKeyId: number | null;
 }
@@ -16,6 +17,7 @@ export function ProxyKeysListCard({
   deletingProxyKeyId,
   displayedProxyKeys,
   onDelete,
+  onEdit,
   onRotate,
   rotatingProxyKeyId,
 }: ProxyKeysListCardProps) {
@@ -26,7 +28,7 @@ export function ProxyKeysListCard({
           <div className="space-y-1">
             <CardTitle className="text-base">Issued keys</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Rotate or delete keys directly from the list below.
+              Edit metadata, rotate, or delete keys directly from the list below.
             </p>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -40,7 +42,7 @@ export function ProxyKeysListCard({
             No proxy keys created yet.
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-2.5">
             {displayedProxyKeys.map((item) => {
               const rotating = rotatingProxyKeyId === item.id;
               const deleting = deletingProxyKeyId === item.id;
@@ -52,6 +54,7 @@ export function ProxyKeysListCard({
                   authEnabled={authEnabled}
                   rotating={rotating}
                   deleting={deleting}
+                  onEdit={() => onEdit(item)}
                   onRotate={() => onRotate(item.id)}
                   onDelete={() => onDelete(item)}
                 />

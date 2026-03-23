@@ -12,6 +12,7 @@ import type {
   ProxyApiKeyCreate,
   ProxyApiKeyCreateResponse,
   ProxyApiKeyRotateResponse,
+  ProxyApiKeyUpdate,
   SessionResponse,
 } from "../types";
 import { buildQuery, request } from "./core";
@@ -62,6 +63,11 @@ export const settings = {
       create: (data: ProxyApiKeyCreate) =>
         request<ProxyApiKeyCreateResponse>("/api/settings/auth/proxy-keys", {
           method: "POST",
+          body: JSON.stringify(data),
+        }),
+      update: (id: number, data: ProxyApiKeyUpdate) =>
+        request<ProxyApiKey>(`/api/settings/auth/proxy-keys/${id}`, {
+          method: "PATCH",
           body: JSON.stringify(data),
         }),
       rotate: (id: number) =>

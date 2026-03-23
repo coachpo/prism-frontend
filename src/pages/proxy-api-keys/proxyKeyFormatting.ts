@@ -47,18 +47,3 @@ export function formatDateTime(value: string | null, fallback = "Unknown") {
 export function formatLastUsed(value: string | null) {
   return formatDateTime(value, "Never");
 }
-
-export function formatRotation(createdAt: string, updatedAt: string) {
-  const created = new Date(createdAt).getTime();
-  const updated = new Date(updatedAt).getTime();
-
-  if (Number.isFinite(created) && Number.isFinite(updated) && updated <= created) {
-    return "Never rotated";
-  }
-
-  if (createdAt === updatedAt) {
-    return "Never rotated";
-  }
-
-  return formatDateTime(updatedAt);
-}

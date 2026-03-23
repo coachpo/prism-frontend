@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { DeleteProxyKeyDialog } from "./proxy-api-keys/DeleteProxyKeyDialog";
+import { EditProxyKeyDialog } from "./proxy-api-keys/EditProxyKeyDialog";
 import { ProxyApiKeysPageSkeleton } from "./proxy-api-keys/ProxyApiKeysPageSkeleton";
 import { ProxyKeyCreateCard } from "./proxy-api-keys/ProxyKeyCreateCard";
 import { ProxyKeysListCard } from "./proxy-api-keys/ProxyKeysListCard";
@@ -50,10 +51,22 @@ export function ProxyApiKeysPage() {
             onRotate={(keyId) => {
               void data.handleRotateProxyKey(keyId);
             }}
+            onEdit={data.startEditingProxyKey}
             onDelete={data.setDeleteConfirm}
           />
         </>
       )}
+
+      <EditProxyKeyDialog
+        open={data.editingProxyKey !== null}
+        proxyKeyName={data.editingProxyKeyName}
+        proxyKeyNotes={data.editingProxyKeyNotes}
+        saving={data.savingEditedProxyKeyId !== null}
+        onOpenChange={data.handleEditDialogOpenChange}
+        onSubmit={data.handleEditSubmit}
+        setProxyKeyName={data.setEditingProxyKeyName}
+        setProxyKeyNotes={data.setEditingProxyKeyNotes}
+      />
 
       <DeleteProxyKeyDialog
         deleteConfirm={data.deleteConfirm}

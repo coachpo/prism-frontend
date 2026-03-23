@@ -15,13 +15,17 @@ export function useProxyApiKeysPageData() {
   const [rotatingProxyKeyId, setRotatingProxyKeyId] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<ProxyApiKey | null>(null);
   const [deletingProxyKeyId, setDeletingProxyKeyId] = useState<number | null>(null);
+  const [editingProxyKey, setEditingProxyKey] = useState<ProxyApiKey | null>(null);
+  const [editingProxyKeyName, setEditingProxyKeyName] = useState("");
+  const [editingProxyKeyNotes, setEditingProxyKeyNotes] = useState("");
+  const [savingEditedProxyKeyId, setSavingEditedProxyKeyId] = useState<number | null>(null);
   const [latestGeneratedKey, setLatestGeneratedKey] = useState<string | null>(null);
 
   const displayedProxyKeys = useMemo(
     () => [...proxyKeys].sort((left, right) => right.id - left.id),
     [proxyKeys]
   );
-  const proxyKeyLimit = authSettings?.proxy_key_limit ?? 10;
+  const proxyKeyLimit = authSettings?.proxy_key_limit ?? 100;
   const remainingKeys = authSettings ? Math.max(proxyKeyLimit - proxyKeys.length, 0) : 0;
   const authStatusLabel = authSettings
     ? authSettings.auth_enabled
@@ -140,14 +144,66 @@ export function useProxyApiKeysPageData() {
     }
   }
 
+  const startEditingProxyKey = (item: ProxyApiKey) => {
+    setEditingProxyKey(item);
+    setEditingProxyKeyName(item.name);
+    setEditingProxyKeyNotes(item.notes ?? "");
+  };
+
+  const resetEditProxyKeyDialog = () => {
+    setEditingProxyKey(null);
+    setEditingProxyKeyName("");
+    setEditingProxyKeyNotes("");
+  };
+
+  async function handleSaveEditedProxyKey() {
+    if (!editingProxyKey) {
+      return;
+    }
+
+    const nextName = editingProxyKeyName.trim();
+    if (!nextName) {
+      toast.error("Key name is required");
+      return;
+    }
+
+    setSavingEditedProxyKeyId(editingProxyKey.id);
+    try {
+      const updated = await api.settings.auth.proxyKeys.update(editingProxyKey.id, {
+        name: nextName,
+        notes: editingProxyKeyNotes.trim() || null,
+      });
+      setProxyKeys((current) =>
+        current.map((key) => (key.id === updated.id ? updated : key))
+      );
+      resetEditProxyKeyDialog();
+      toast.success("Proxy API key updated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update proxy API key");
+    } finally {
+      setSavingEditedProxyKeyId(null);
+    }
+  }
+
   const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void handleCreateProxyKey();
   };
 
+  const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleSaveEditedProxyKey();
+  };
+
   const handleDeleteDialogOpenChange = (open: boolean) => {
     if (!open && deletingProxyKeyId === null) {
       setDeleteConfirm(null);
+    }
+  };
+
+  const handleEditDialogOpenChange = (open: boolean) => {
+    if (!open && savingEditedProxyKeyId === null) {
+      resetEditProxyKeyDialog();
     }
   };
 
@@ -159,10 +215,15 @@ export function useProxyApiKeysPageData() {
     creatingProxyKey,
     deleteConfirm,
     deletingProxyKeyId,
+    editingProxyKey,
+    editingProxyKeyName,
+    editingProxyKeyNotes,
     displayedProxyKeys,
     handleCreateSubmit,
     handleDeleteDialogOpenChange,
     handleDeleteProxyKey,
+    handleEditDialogOpenChange,
+    handleEditSubmit,
     handleRotateProxyKey,
     latestGeneratedKey,
     pageLoading,
@@ -172,9 +233,13 @@ export function useProxyApiKeysPageData() {
     proxyKeys,
     remainingKeys,
     rotatingProxyKeyId,
+    savingEditedProxyKeyId,
     setDeleteConfirm,
     setDeletingProxyKeyId,
+    setEditingProxyKeyName,
+    setEditingProxyKeyNotes,
     setProxyKeyName,
     setProxyKeyNotes,
+    startEditingProxyKey,
   };
 }

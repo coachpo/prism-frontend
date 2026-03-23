@@ -78,6 +78,11 @@ export interface ProxyApiKeyCreate {
   notes?: string | null;
 }
 
+export interface ProxyApiKeyUpdate {
+  name: string;
+  notes: string | null;
+}
+
 export interface ProxyApiKeyCreateResponse {
   key: string;
   item: ProxyApiKey;
