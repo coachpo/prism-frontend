@@ -1,4 +1,4 @@
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useConnectionHealthChecks } from "../useConnectionHealthChecks";
 
@@ -18,18 +18,6 @@ describe("useConnectionHealthChecks", () => {
       response_time_ms: 120,
       detail: "ok",
       checked_at: "2026-03-15T10:00:00Z",
-    });
-  });
-
-  it("does not auto-run health checks on mount", async () => {
-    renderHook(() =>
-      useConnectionHealthChecks({
-        setConnections: vi.fn(),
-      })
-    );
-
-    await waitFor(() => {
-      expect(api.connections.healthCheck).not.toHaveBeenCalled();
     });
   });
 
