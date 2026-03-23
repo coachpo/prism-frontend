@@ -38,24 +38,6 @@ export interface EndpointCardViewProps {
 
 type SortableEndpointCardProps = EndpointCardViewProps;
 
-function EndpointActionButton({
-  className,
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { className?: string }) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className={cn(
-        "h-8 w-8 shrink-0 rounded-full border border-transparent bg-background/70 text-muted-foreground transition-colors hover:border-border hover:bg-background hover:text-foreground",
-        className
-      )}
-      {...props}
-    />
-  );
-}
-
 export function EndpointCardView({
   endpoint,
   formatTime,
@@ -71,6 +53,8 @@ export function EndpointCardView({
   onDuplicate,
   onEdit,
 }: EndpointCardViewProps) {
+  const actionButtonClassName =
+    "h-8 w-8 shrink-0 rounded-full border border-transparent bg-background/70 text-muted-foreground transition-colors hover:border-border hover:bg-background hover:text-foreground";
   const maskedKey = getMaskedApiKey(endpoint);
   const createdAt = formatTime(endpoint.created_at, {
     year: "numeric",
@@ -177,8 +161,12 @@ export function EndpointCardView({
         {!isOverlay ? (
           <div className="flex shrink-0 items-center justify-end sm:ml-2">
             <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border/70 bg-muted/35 p-0.5">
-              <EndpointActionButton
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 aria-label={`Duplicate endpoint ${endpoint.name}`}
+                className={actionButtonClassName}
                 disabled={isDuplicating}
                 onClick={() => {
                   void onDuplicate?.(endpoint);
@@ -189,24 +177,34 @@ export function EndpointCardView({
                 ) : (
                   <Copy className="h-3.5 w-3.5" />
                 )}
-              </EndpointActionButton>
-              <EndpointActionButton
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 aria-label={`Edit endpoint ${endpoint.name}`}
+                className={actionButtonClassName}
                 onClick={() => {
                   void onEdit?.(endpoint);
                 }}
               >
                 <Pencil className="h-3.5 w-3.5" />
-              </EndpointActionButton>
-              <EndpointActionButton
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 aria-label={`Delete endpoint ${endpoint.name}`}
-                className="text-destructive hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+                className={cn(
+                  actionButtonClassName,
+                  "text-destructive hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+                )}
                 onClick={() => {
                   void onDelete?.(endpoint);
                 }}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-              </EndpointActionButton>
+              </Button>
             </div>
           </div>
         ) : null}

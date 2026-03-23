@@ -3,6 +3,45 @@ import { describe, expect, it, vi } from "vitest";
 import { DashboardHighlightsGrid } from "../DashboardHighlightsGrid";
 
 describe("DashboardHighlightsGrid", () => {
+  it("renders the performance snapshot tile labels, values, and highlight class inline", () => {
+    render(
+      <DashboardHighlightsGrid
+        highlighted={true}
+        onInspectSpending={vi.fn()}
+        onOpenStatistics={vi.fn()}
+        onReviewRequests={vi.fn()}
+        providerRows={[]}
+        snapshot={{
+          activeModels: 2,
+          averageRpm: 0,
+          averageRpmRequestTotal: 0,
+          avgLatency: 321,
+          errorRate: 5.4,
+          p95Latency: 881,
+          streamShare: 12.3,
+          successRate: 95,
+          totalCost: 123456,
+          totalModels: 3,
+          totalRequests: 2161,
+        }}
+      />
+    );
+
+    const avgLatencyLabel = screen.getByText("Avg Latency");
+    const p95LatencyLabel = screen.getByText("P95 Latency");
+    const errorRateLabel = screen.getByText("Error Rate");
+    const streamShareLabel = screen.getByText("Streaming Share");
+
+    expect(screen.getByText("321ms")).toBeInTheDocument();
+    expect(screen.getByText("881ms")).toBeInTheDocument();
+    expect(screen.getByText("5.4%")).toBeInTheDocument();
+    expect(screen.getByText("12.3%")).toBeInTheDocument();
+    expect(avgLatencyLabel.closest("div")).toHaveClass("ws-value-updated");
+    expect(p95LatencyLabel.closest("div")).toHaveClass("ws-value-updated");
+    expect(errorRateLabel.closest("div")).toHaveClass("ws-value-updated");
+    expect(streamShareLabel.closest("div")).toHaveClass("ws-value-updated");
+  });
+
   it("uses shared provider labels and icons for the provider mix card", () => {
     render(
       <DashboardHighlightsGrid

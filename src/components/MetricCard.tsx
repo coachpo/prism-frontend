@@ -25,9 +25,12 @@ export function MetricCard({ label, value, detail, icon, trend, className, onCli
       <CardContent className="p-[var(--density-metric-pad)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
+            <p data-slot="metric-label" className="text-sm font-medium text-muted-foreground">{label}</p>
             <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-              <span className="min-w-0 break-words text-2xl font-bold leading-tight tracking-tight">
+              <span
+                data-slot="metric-value"
+                className="min-w-0 break-words text-2xl font-bold leading-tight tracking-tight"
+              >
                 {value}
               </span>
               {trend && (
@@ -42,7 +45,9 @@ export function MetricCard({ label, value, detail, icon, trend, className, onCli
               )}
             </div>
             {detail && (
-              <p className="text-xs text-muted-foreground">{detail}</p>
+              <p data-slot="metric-detail" className="text-xs text-muted-foreground">
+                {detail}
+              </p>
             )}
           </div>
           {icon && (

@@ -1,4 +1,5 @@
 import { Boxes, Link2, Sparkles } from "lucide-react";
+import { MetricCard } from "@/components/MetricCard";
 
 interface EndpointsSummaryCardsProps {
   endpointsCount: number;
@@ -13,50 +14,43 @@ export function EndpointsSummaryCards({
   uniqueAttachedModels,
   endpointsInUse,
 }: EndpointsSummaryCardsProps) {
+  const metricCardClassName = [
+    "[&_[data-slot=metric-label]]:text-[11px]",
+    "[&_[data-slot=metric-label]]:font-semibold",
+    "[&_[data-slot=metric-label]]:uppercase",
+    "[&_[data-slot=metric-label]]:tracking-wide",
+    "[&_[data-slot=metric-value]]:font-semibold",
+    "[&_[data-slot=metric-value]]:tabular-nums",
+    "[&_[data-slot=icon]]:h-9",
+    "[&_[data-slot=icon]]:w-9",
+    "[&_[data-slot=icon]]:rounded-md",
+    "[&_[data-slot=icon]]:border",
+    "[&_[data-slot=icon]]:border-primary/25",
+    "[&_[data-slot=icon]]:bg-primary/10",
+    "[&_[data-slot=icon]]:text-primary",
+  ].join(" ");
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Configured Endpoints
-            </p>
-            <p className="mt-2 text-2xl font-semibold tabular-nums">{endpointsCount}</p>
-          </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary">
-            <Boxes className="h-4 w-4" />
-          </div>
-        </div>
-      </div>
-      <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Attached Models
-            </p>
-            <p className="mt-2 text-2xl font-semibold tabular-nums">{totalAttachedModels}</p>
-          </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary">
-            <Link2 className="h-4 w-4" />
-          </div>
-        </div>
-      </div>
-      <div className="rounded-xl border border-border bg-card p-4 sm:col-span-2 lg:col-span-1">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Unique Models In Use
-            </p>
-            <p className="mt-2 text-2xl font-semibold tabular-nums">{uniqueAttachedModels}</p>
-          </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-md border border-primary/25 bg-primary/10 text-primary">
-            <Sparkles className="h-4 w-4" />
-          </div>
-        </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          {endpointsInUse} of {endpointsCount} endpoints mapped
-        </p>
-      </div>
+      <MetricCard
+        label="Configured Endpoints"
+        value={endpointsCount}
+        icon={<Boxes className="h-4 w-4" />}
+        className={metricCardClassName}
+      />
+      <MetricCard
+        label="Attached Models"
+        value={totalAttachedModels}
+        icon={<Link2 className="h-4 w-4" />}
+        className={metricCardClassName}
+      />
+      <MetricCard
+        label="Unique Models In Use"
+        value={uniqueAttachedModels}
+        detail={`${endpointsInUse} of ${endpointsCount} endpoints mapped`}
+        icon={<Sparkles className="h-4 w-4" />}
+        className={`${metricCardClassName} sm:col-span-2 lg:col-span-1 [&_[data-slot=metric-detail]]:text-[11px]`}
+      />
     </div>
   );
 }

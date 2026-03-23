@@ -1,3 +1,4 @@
+import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ProxyApiKey } from "@/lib/types";
 import { ProxyKeyCard } from "./ProxyKeyCard";
@@ -38,9 +39,10 @@ export function ProxyKeysListCard({
       </CardHeader>
       <CardContent>
         {displayedProxyKeys.length === 0 ? (
-          <div className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
-            No proxy keys created yet.
-          </div>
+          <EmptyState
+            title="No proxy keys created yet."
+            className="rounded-md border border-dashed px-3 py-6 [&>div:first-child]:hidden"
+          />
         ) : (
           <div className="grid gap-2.5">
             {displayedProxyKeys.map((item) => {

@@ -24,6 +24,13 @@ export function DashboardHighlightsGrid({
   providerRows,
   snapshot,
 }: DashboardHighlightsGridProps) {
+  const performanceTiles = [
+    { label: "Avg Latency", value: `${snapshot.avgLatency.toFixed(0)}ms` },
+    { label: "P95 Latency", value: `${snapshot.p95Latency.toFixed(0)}ms` },
+    { label: "Error Rate", value: `${snapshot.errorRate.toFixed(1)}%` },
+    { label: "Streaming Share", value: `${snapshot.streamShare.toFixed(1)}%` },
+  ];
+
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <Card>
@@ -33,26 +40,18 @@ export function DashboardHighlightsGrid({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <DashboardMetricTile
-              label="Avg Latency"
-              value={`${snapshot.avgLatency.toFixed(0)}ms`}
-              highlighted={highlighted}
-            />
-            <DashboardMetricTile
-              label="P95 Latency"
-              value={`${snapshot.p95Latency.toFixed(0)}ms`}
-              highlighted={highlighted}
-            />
-            <DashboardMetricTile
-              label="Error Rate"
-              value={`${snapshot.errorRate.toFixed(1)}%`}
-              highlighted={highlighted}
-            />
-            <DashboardMetricTile
-              label="Streaming Share"
-              value={`${snapshot.streamShare.toFixed(1)}%`}
-              highlighted={highlighted}
-            />
+            {performanceTiles.map((tile) => (
+              <div
+                key={tile.label}
+                className={cn(
+                  "rounded-md border bg-muted/30 p-3 transition-colors duration-300",
+                  highlighted && "ws-value-updated"
+                )}
+              >
+                <p className="text-xs text-muted-foreground">{tile.label}</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums">{tile.value}</p>
+              </div>
+            ))}
           </div>
           <Button variant="outline" className="w-full" onClick={onOpenStatistics}>
             Open Statistics
@@ -124,28 +123,6 @@ export function DashboardHighlightsGrid({
           </Button>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function DashboardMetricTile({
-  label,
-  value,
-  highlighted,
-}: {
-  label: string;
-  value: string;
-  highlighted: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-md border bg-muted/30 p-3 transition-colors duration-300",
-        highlighted && "ws-value-updated"
-      )}
-    >
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
     </div>
   );
 }
