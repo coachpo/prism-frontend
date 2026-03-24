@@ -30,16 +30,13 @@ type Props = {
   visibleColumns: Record<ModelColumnKey, boolean>;
 };
 
-const COLUMN_LABELS: Array<{ key: ModelColumnKey; label: string }> = [
-  { key: "provider", label: "Provider" },
-  { key: "type", label: "Type" },
+const DETAIL_LABELS: Array<{ key: ModelColumnKey; label: string }> = [
   { key: "strategy", label: "Strategy" },
-  { key: "endpoints", label: "Endpoints" },
+  { key: "endpoints", label: "Connections" },
   { key: "success", label: "Success (24h)" },
   { key: "p95", label: "P95 (24h)" },
   { key: "requests", label: "Requests (24h)" },
   { key: "spend", label: "Spend (30d)" },
-  { key: "status", label: "Status" },
 ];
 
 export function ModelsToolbar({
@@ -99,13 +96,13 @@ export function ModelsToolbar({
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-9 gap-2">
               <Columns3 className="h-4 w-4" />
-              Columns
+              Details
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Visible Columns</DropdownMenuLabel>
+            <DropdownMenuLabel>Visible Details</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {COLUMN_LABELS.map(({ key, label }) => (
+            {DETAIL_LABELS.map(({ key, label }) => (
               <DropdownMenuCheckboxItem
                 key={key}
                 checked={visibleColumns[key]}
