@@ -1,15 +1,13 @@
 import { z } from "zod";
 
-const EndpointImportSchema = z.object({
-  endpoint_id: z.number().int().nullable().optional(),
+const EndpointImportSchema = z.strictObject({
   name: z.string(),
   base_url: z.string(),
   api_key: z.string(),
   position: z.number().int().min(0).nullable().optional(),
 });
 
-const PricingTemplateImportSchema = z.object({
-  pricing_template_id: z.number().int().nullable().optional(),
+const PricingTemplateImportSchema = z.strictObject({
   name: z.string(),
   description: z.string().nullable(),
   pricing_unit: z.literal("PER_1M"),
@@ -23,11 +21,14 @@ const PricingTemplateImportSchema = z.object({
   version: z.number().int().min(1),
 });
 
-const ConnectionImportSchema = z.object({
-  connection_id: z.number().int().nullable().optional(),
-  endpoint_id: z.number().int().nullable().optional(),
-  endpoint_name: z.string().nullable().optional(),
-  pricing_template_id: z.number().int().nullable().optional(),
+const LoadbalanceStrategyImportSchema = z.strictObject({
+  name: z.string(),
+  strategy_type: z.enum(["single", "failover"]),
+  failover_recovery_enabled: z.boolean(),
+});
+
+const ConnectionImportSchema = z.strictObject({
+  endpoint_name: z.string(),
   pricing_template_name: z.string().nullable().optional(),
   is_active: z.boolean(),
   priority: z.number().int().min(0),
@@ -36,34 +37,31 @@ const ConnectionImportSchema = z.object({
   custom_headers: z.record(z.string(), z.string()).nullable(),
 });
 
-const ModelImportSchema = z.object({
+const ModelImportSchema = z.strictObject({
   provider_type: z.string(),
   model_id: z.string(),
   display_name: z.string().nullable(),
   model_type: z.enum(["native", "proxy"]),
   redirect_to: z.string().nullable(),
-  lb_strategy: z.enum(["single", "failover"]),
+  loadbalance_strategy_name: z.string().nullable(),
   is_enabled: z.boolean(),
-  failover_recovery_enabled: z.boolean(),
-  failover_recovery_cooldown_seconds: z.number().int(),
   connections: z.array(ConnectionImportSchema),
 });
 
-const HeaderBlocklistRuleExportSchema = z.object({
+const HeaderBlocklistRuleExportSchema = z.strictObject({
   name: z.string(),
   match_type: z.enum(["exact", "prefix"]),
   pattern: z.string(),
   enabled: z.boolean(),
 });
 
-const EndpointFxRateImportSchema = z.object({
+const EndpointFxRateImportSchema = z.strictObject({
   model_id: z.string(),
-  endpoint_id: z.number().int().nullable().optional(),
-  endpoint_name: z.string().nullable().optional(),
+  endpoint_name: z.string(),
   fx_rate: z.string(),
 });
 
-const UserSettingsImportSchema = z.object({
+const UserSettingsImportSchema = z.strictObject({
   report_currency_code: z.string().optional(),
   report_currency_symbol: z.string().optional(),
   endpoint_fx_mappings: z.array(EndpointFxRateImportSchema),
@@ -79,24 +77,21 @@ const normalizeReferenceName = (value: string | null | undefined): string | null
 };
 
 export const ConfigImportSchema = z
-  .object({
-    version: z.literal(2),
+  .strictObject({
+    version: z.literal(3),
     exported_at: z.string().optional(),
     endpoints: z.array(EndpointImportSchema),
     pricing_templates: z.array(PricingTemplateImportSchema),
+    loadbalance_strategies: z.array(LoadbalanceStrategyImportSchema),
     models: z.array(ModelImportSchema),
     user_settings: UserSettingsImportSchema.optional(),
     header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),
   })
   .superRefine((data, ctx) => {
     const endpointNames = new Set<string>();
-    const endpointIdToName = new Map<number, string>();
     data.endpoints.forEach((endpoint, index) => {
       const normalizedName = endpoint.name.trim();
       endpointNames.add(normalizedName);
-      if (typeof endpoint.endpoint_id === "number") {
-        endpointIdToName.set(endpoint.endpoint_id, normalizedName);
-      }
       if (!normalizedName) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -107,13 +102,9 @@ export const ConfigImportSchema = z
     });
 
     const templateNames = new Set<string>();
-    const templateIdToName = new Map<number, string>();
     data.pricing_templates.forEach((template, index) => {
       const normalizedName = template.name.trim();
       templateNames.add(normalizedName);
-      if (typeof template.pricing_template_id === "number") {
-        templateIdToName.set(template.pricing_template_id, normalizedName);
-      }
       if (!normalizedName) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -123,107 +114,111 @@ export const ConfigImportSchema = z
       }
     });
 
+    const strategyNames = new Set<string>();
+    data.loadbalance_strategies.forEach((strategy, index) => {
+      const normalizedName = strategy.name.trim();
+      if (!normalizedName) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["loadbalance_strategies", index, "name"],
+          message: "Loadbalance strategy name must not be empty",
+        });
+        return;
+      }
+      if (strategyNames.has(normalizedName)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["loadbalance_strategies", index, "name"],
+          message: `Duplicate loadbalance strategy name '${normalizedName}'`,
+        });
+      }
+      if (strategy.strategy_type === "single" && strategy.failover_recovery_enabled) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["loadbalance_strategies", index, "failover_recovery_enabled"],
+          message: "Single strategies must not enable failover recovery",
+        });
+      }
+      strategyNames.add(normalizedName);
+    });
+
     const resolveEndpointName = (
-      endpointId: number | null | undefined,
       endpointName: string | null | undefined,
       path: (string | number)[]
     ): string | null => {
       const normalizedEndpointName = normalizeReferenceName(endpointName);
-      if (typeof endpointId !== "number" && normalizedEndpointName === null) {
+      if (normalizedEndpointName === null) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path,
-          message: "Must include endpoint_name or endpoint_id",
+          message: "Must include endpoint_name",
         });
         return null;
       }
 
-      let resolvedEndpointName = normalizedEndpointName;
-      if (typeof endpointId === "number") {
-        const mappedEndpointName = endpointIdToName.get(endpointId);
-        if (!mappedEndpointName) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path,
-            message: `Unknown endpoint_id '${endpointId}' in import payload`,
-          });
-          return null;
-        }
-        if (resolvedEndpointName === null) {
-          resolvedEndpointName = mappedEndpointName;
-        } else if (resolvedEndpointName !== mappedEndpointName) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path,
-            message: `endpoint_name '${resolvedEndpointName}' does not match endpoint_id '${endpointId}'`,
-          });
-          return null;
-        }
-      }
-
-      if (resolvedEndpointName === null || !endpointNames.has(resolvedEndpointName)) {
+      if (!endpointNames.has(normalizedEndpointName)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path,
-          message: `Unknown endpoint_name '${resolvedEndpointName ?? ""}' in import payload`,
+          message: `Unknown endpoint_name '${normalizedEndpointName}' in import payload`,
         });
         return null;
       }
 
-      return resolvedEndpointName;
+      return normalizedEndpointName;
     };
 
     const resolveTemplateName = (
-      pricingTemplateId: number | null | undefined,
       pricingTemplateName: string | null | undefined,
       path: (string | number)[]
     ): string | null => {
       const normalizedTemplateName = normalizeReferenceName(pricingTemplateName);
-      if (typeof pricingTemplateId !== "number" && normalizedTemplateName === null) {
+      if (normalizedTemplateName === null) {
         return null;
       }
 
-      let resolvedTemplateName = normalizedTemplateName;
-      if (typeof pricingTemplateId === "number") {
-        const mappedTemplateName = templateIdToName.get(pricingTemplateId);
-        if (!mappedTemplateName) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path,
-            message: `Unknown pricing_template_id '${pricingTemplateId}' in import payload`,
-          });
-          return null;
-        }
-        if (resolvedTemplateName === null) {
-          resolvedTemplateName = mappedTemplateName;
-        } else if (resolvedTemplateName !== mappedTemplateName) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path,
-            message: `pricing_template_name '${resolvedTemplateName}' does not match pricing_template_id '${pricingTemplateId}'`,
-          });
-          return null;
-        }
-      }
-
-      if (resolvedTemplateName !== null && !templateNames.has(resolvedTemplateName)) {
+      if (!templateNames.has(normalizedTemplateName)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path,
-          message: `Unknown pricing_template_name '${resolvedTemplateName}' in import payload`,
+          message: `Unknown pricing_template_name '${normalizedTemplateName}' in import payload`,
         });
         return null;
       }
 
-      return resolvedTemplateName;
+      return normalizedTemplateName;
     };
 
     const connectionPairs = new Set<string>();
     data.models.forEach((model, modelIndex) => {
+      const normalizedStrategyName = normalizeReferenceName(model.loadbalance_strategy_name);
+      if (model.model_type === "native") {
+        if (normalizedStrategyName === null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["models", modelIndex, "loadbalance_strategy_name"],
+            message: `Native model '${model.model_id}' must include loadbalance_strategy_name`,
+          });
+        } else if (!strategyNames.has(normalizedStrategyName)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["models", modelIndex, "loadbalance_strategy_name"],
+            message: `Unknown loadbalance strategy '${normalizedStrategyName}' in import payload`,
+          });
+        }
+      }
+
+      if (model.model_type === "proxy" && normalizedStrategyName !== null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["models", modelIndex, "loadbalance_strategy_name"],
+          message: `Proxy model '${model.model_id}' must not include loadbalance_strategy_name`,
+        });
+      }
+
       model.connections.forEach((connection, connectionIndex) => {
         const referencePath = ["models", modelIndex, "connections", connectionIndex];
         const endpointName = resolveEndpointName(
-          connection.endpoint_id,
           connection.endpoint_name,
           referencePath
         );
@@ -232,7 +227,6 @@ export const ConfigImportSchema = z
         }
 
         resolveTemplateName(
-          connection.pricing_template_id,
           connection.pricing_template_name,
           [...referencePath, "pricing_template_name"]
         );
@@ -243,7 +237,6 @@ export const ConfigImportSchema = z
     data.user_settings?.endpoint_fx_mappings.forEach((mapping, mappingIndex) => {
       const referencePath = ["user_settings", "endpoint_fx_mappings", mappingIndex];
       const endpointName = resolveEndpointName(
-        mapping.endpoint_id,
         mapping.endpoint_name,
         referencePath
       );

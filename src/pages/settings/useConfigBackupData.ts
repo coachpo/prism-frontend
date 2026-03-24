@@ -27,12 +27,14 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
 
   const importSummary = useMemo(() => {
     const endpointsCount = parsedConfig?.endpoints?.length ?? 0;
+    const strategiesCount = parsedConfig?.loadbalance_strategies?.length ?? 0;
     const modelsCount = parsedConfig?.models?.length ?? 0;
     const connectionsCount =
       parsedConfig?.models?.reduce((total, model) => total + (model.connections?.length ?? 0), 0) ?? 0;
 
     return {
       endpointsCount,
+      strategiesCount,
       modelsCount,
       connectionsCount,
     };
@@ -101,7 +103,7 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
     try {
       const result = await api.config.import(parsedConfig);
       toast.success(
-        `Imported ${result.endpoints_imported} endpoints, ${result.models_imported} models, ${result.connections_imported} connections`
+        `Imported ${result.endpoints_imported} endpoints, ${result.strategies_imported} strategies, ${result.models_imported} models, ${result.connections_imported} connections`
       );
       resetSelectedFile();
       bumpRevision();

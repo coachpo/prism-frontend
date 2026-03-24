@@ -17,6 +17,7 @@ interface BackupSectionProps {
   parsedConfig: ConfigImportRequest | null;
   importSummary: {
     endpointsCount: number;
+    strategiesCount: number;
     modelsCount: number;
     connectionsCount: number;
   };
@@ -96,7 +97,7 @@ export function BackupSection({
               Import
             </CardTitle>
             <CardDescription className="text-xs">
-              Upload a version 2 JSON backup file and restore this profile's
+              Upload a version 3 JSON backup file and restore this profile's
               configuration.
             </CardDescription>
           </CardHeader>
@@ -111,7 +112,8 @@ export function BackupSection({
             {selectedFile && parsedConfig && (
               <p className="text-sm text-muted-foreground">
                 Loaded {selectedFile.name}: {importSummary.endpointsCount} endpoints,{" "}
-                {importSummary.modelsCount} models, {importSummary.connectionsCount} connections.
+                {importSummary.strategiesCount} strategies, {importSummary.modelsCount} models,{" "}
+                {importSummary.connectionsCount} connections.
               </p>
             )}
 
