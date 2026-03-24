@@ -17,6 +17,9 @@ const api = vi.hoisted(() => ({
   endpoints: {
     list: vi.fn(),
   },
+  loadbalanceStrategies: {
+    list: vi.fn(),
+  },
   models: {
     get: vi.fn(),
     list: vi.fn(),
@@ -36,11 +39,32 @@ vi.mock("sonner", () => ({
   },
 }));
 
+function buildLoadbalanceStrategySummary(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 100,
+    name: "single-primary",
+    strategy_type: "single",
+    failover_recovery_enabled: false,
+    ...overrides,
+  };
+}
+
+function buildLoadbalanceStrategy(overrides: Record<string, unknown> = {}) {
+  return {
+    ...buildLoadbalanceStrategySummary(overrides),
+    profile_id: 1,
+    attached_model_count: 1,
+    created_at: "",
+    updated_at: "",
+  };
+}
+
 describe("useModelDetailBootstrap", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearSharedReferenceData();
     api.endpoints.list.mockResolvedValue([]);
+    api.loadbalanceStrategies.list.mockResolvedValue([buildLoadbalanceStrategy()]);
     api.models.list.mockResolvedValue([]);
     api.pricingTemplates.list.mockResolvedValue([]);
   });
@@ -65,10 +89,9 @@ describe("useModelDetailBootstrap", () => {
         display_name: "GPT-5.4",
         model_type: "native",
         redirect_to: null,
-        lb_strategy: "single",
+        loadbalance_strategy_id: 100,
+        loadbalance_strategy: buildLoadbalanceStrategySummary(),
         is_enabled: true,
-        failover_recovery_enabled: true,
-        failover_recovery_cooldown_seconds: 60,
         connections: [],
         created_at: "",
         updated_at: "",
@@ -81,10 +104,12 @@ describe("useModelDetailBootstrap", () => {
         display_name: "Claude Sonnet 4.6",
         model_type: "native",
         redirect_to: null,
-        lb_strategy: "single",
+        loadbalance_strategy_id: 101,
+        loadbalance_strategy: buildLoadbalanceStrategySummary({
+          id: 101,
+          name: "single-secondary",
+        }),
         is_enabled: true,
-        failover_recovery_enabled: true,
-        failover_recovery_cooldown_seconds: 60,
         connections: [],
         created_at: "",
         updated_at: "",
@@ -129,6 +154,7 @@ describe("useModelDetailBootstrap", () => {
           setModel: vi.fn(),
           setConnections: vi.fn(),
           setGlobalEndpoints: vi.fn(),
+          setLoadbalanceStrategies: vi.fn(),
           setAllModels: vi.fn(),
           setPricingTemplates: vi.fn(),
           setLoading: vi.fn(),
@@ -222,10 +248,9 @@ describe("useModelDetailBootstrap", () => {
       display_name: "GPT-5.4",
       model_type: "native",
       redirect_to: null,
-      lb_strategy: "single",
+      loadbalance_strategy_id: 100,
+      loadbalance_strategy: buildLoadbalanceStrategySummary(),
       is_enabled: true,
-      failover_recovery_enabled: true,
-      failover_recovery_cooldown_seconds: 60,
       connections: [],
       created_at: "",
       updated_at: "",
@@ -261,12 +286,13 @@ describe("useModelDetailBootstrap", () => {
           id,
           revision,
           navigate: vi.fn(),
-          setModel: vi.fn(),
-          setConnections: vi.fn(),
-          setGlobalEndpoints: vi.fn(),
-          setAllModels: vi.fn(),
-          setPricingTemplates: vi.fn(),
-          setLoading: vi.fn(),
+           setModel: vi.fn(),
+           setConnections: vi.fn(),
+           setGlobalEndpoints: vi.fn(),
+           setLoadbalanceStrategies: vi.fn(),
+           setAllModels: vi.fn(),
+           setPricingTemplates: vi.fn(),
+           setLoading: vi.fn(),
           setSpending: vi.fn(),
           setSpendingLoading: vi.fn(),
           setSpendingCurrencySymbol: vi.fn(),
@@ -300,10 +326,9 @@ describe("useModelDetailBootstrap", () => {
       display_name: "GPT-5.4",
       model_type: "native",
       redirect_to: null,
-      lb_strategy: "single",
+      loadbalance_strategy_id: 100,
+      loadbalance_strategy: buildLoadbalanceStrategySummary(),
       is_enabled: true,
-      failover_recovery_enabled: true,
-      failover_recovery_cooldown_seconds: 60,
       connections: [],
       created_at: "",
       updated_at: "",
@@ -343,6 +368,7 @@ describe("useModelDetailBootstrap", () => {
         setModel: vi.fn(),
         setConnections: vi.fn(),
         setGlobalEndpoints: vi.fn(),
+        setLoadbalanceStrategies: vi.fn(),
         setAllModels: vi.fn(),
         setPricingTemplates: vi.fn(),
         setLoading: vi.fn(),

@@ -53,29 +53,38 @@ export function OverviewCards({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">
-                  {model.model_type === "proxy" ? "Redirects To" : "Load Balancing"}
+                  {model.model_type === "proxy" ? "Redirects To" : "Loadbalance Strategy"}
                 </p>
-                <span className="text-sm font-medium">
+                <div className="text-sm font-medium">
                   {model.model_type === "proxy" ? (
                     <span className="flex items-center gap-1">
                       <ChevronRight className="h-3 w-3 text-muted-foreground" />
                       <span className="font-mono text-xs">{model.redirect_to}</span>
                     </span>
+                  ) : model.loadbalance_strategy ? (
+                    <div className="space-y-0.5">
+                      <div>{model.loadbalance_strategy.name}</div>
+                      <div className="text-xs font-normal text-muted-foreground">
+                        {formatLabel(model.loadbalance_strategy.strategy_type)}
+                      </div>
+                    </div>
                   ) : (
-                    formatLabel(model.lb_strategy)
+                    <span className="text-muted-foreground">Unassigned</span>
                   )}
-                </span>
+                </div>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Recovery Policy</p>
+                <p className="text-xs text-muted-foreground mb-1">Strategy Recovery</p>
                 <span className="text-sm font-medium">
-                  {model.model_type === "native" && model.lb_strategy === "failover" ? (
-                    model.failover_recovery_enabled ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">
-                        Enabled (Base cooldown {model.failover_recovery_cooldown_seconds}s + adaptive backoff/jitter)
-                      </span>
+                  {model.model_type === "native" && model.loadbalance_strategy ? (
+                    model.loadbalance_strategy.strategy_type === "failover" ? (
+                      model.loadbalance_strategy.failover_recovery_enabled ? (
+                        <span className="text-emerald-600 dark:text-emerald-400">Enabled</span>
+                      ) : (
+                        <span className="text-muted-foreground">Disabled</span>
+                      )
                     ) : (
-                      <span className="text-muted-foreground">Disabled</span>
+                      <span className="text-muted-foreground">Not applicable for single strategies</span>
                     )
                   ) : (
                     <span className="text-muted-foreground">N/A</span>

@@ -9,11 +9,13 @@ import {
 } from "./useModelDetailDataSupport";
 
 interface UseModelDetailModelFormInput {
+  editLoadbalanceStrategyId: string;
   model: ModelConfig | null;
   allModels: ModelConfigListItem[];
   isEditModelDialogOpen: boolean;
   revision: number;
   editRedirectTo: string;
+  setEditLoadbalanceStrategyId: (value: string) => void;
   setEditRedirectTo: (value: string) => void;
   setIsEditModelDialogOpen: (open: boolean) => void;
   setAllModels: React.Dispatch<React.SetStateAction<ModelConfigListItem[]>>;
@@ -21,23 +23,35 @@ interface UseModelDetailModelFormInput {
 }
 
 export function useModelDetailModelForm({
+  editLoadbalanceStrategyId,
   model,
   allModels,
   isEditModelDialogOpen,
   revision,
   editRedirectTo,
+  setEditLoadbalanceStrategyId,
   setEditRedirectTo,
   setIsEditModelDialogOpen,
   setAllModels,
   setModel,
 }: UseModelDetailModelFormInput) {
   useEffect(() => {
-    if (!isEditModelDialogOpen || !model || model.model_type !== "proxy") {
+    if (!isEditModelDialogOpen || !model) {
       return;
     }
 
-    setEditRedirectTo(model.redirect_to || "");
-  }, [isEditModelDialogOpen, model, setEditRedirectTo]);
+    if (model.model_type === "proxy") {
+      setEditRedirectTo(model.redirect_to || "");
+      return;
+    }
+
+    setEditLoadbalanceStrategyId(model.loadbalance_strategy_id ? String(model.loadbalance_strategy_id) : "");
+  }, [
+    isEditModelDialogOpen,
+    model,
+    setEditLoadbalanceStrategyId,
+    setEditRedirectTo,
+  ]);
 
   const redirectTargetOptions = useMemo(
     () => buildRedirectTargetOptions(model, allModels),
@@ -51,11 +65,20 @@ export function useModelDetailModelForm({
         return;
       }
 
+      if (model.model_type === "native" && !editLoadbalanceStrategyId) {
+        toast.error("Please select a loadbalance strategy for this native model");
+        return;
+      }
+
       const formData = new FormData(event.currentTarget);
       const updateData: ModelConfigUpdate = {
         display_name: (formData.get("display_name") as string) || null,
         model_id: formData.get("model_id") as string,
         redirect_to: model.model_type === "proxy" ? editRedirectTo || null : null,
+        loadbalance_strategy_id:
+          model.model_type === "native"
+            ? Number.parseInt(editLoadbalanceStrategyId, 10) || null
+            : null,
       };
 
       try {
@@ -63,6 +86,7 @@ export function useModelDetailModelForm({
         clearSharedReferenceData(undefined, revision);
         setModel(updatedModel);
         setAllModels((currentModels) => patchModelListItemFromDetail(currentModels, updatedModel));
+        setEditLoadbalanceStrategyId(updatedModel.loadbalance_strategy_id ? String(updatedModel.loadbalance_strategy_id) : "");
         setEditRedirectTo(updatedModel.redirect_to || "");
         toast.success("Model updated");
         setIsEditModelDialogOpen(false);
@@ -70,7 +94,17 @@ export function useModelDetailModelForm({
         toast.error(error instanceof Error ? error.message : "Failed to update model");
       }
     },
-    [editRedirectTo, model, revision, setAllModels, setEditRedirectTo, setIsEditModelDialogOpen, setModel],
+    [
+      editLoadbalanceStrategyId,
+      editRedirectTo,
+      model,
+      revision,
+      setAllModels,
+      setEditLoadbalanceStrategyId,
+      setEditRedirectTo,
+      setIsEditModelDialogOpen,
+      setModel,
+    ],
   );
 
   return {

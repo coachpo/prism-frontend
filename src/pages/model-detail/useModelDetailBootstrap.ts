@@ -4,12 +4,14 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import {
   getSharedEndpoints,
+  getSharedLoadbalanceStrategies,
   getSharedModels,
   getSharedPricingTemplates,
 } from "@/lib/referenceData";
 import type {
   Connection,
   Endpoint,
+  LoadbalanceStrategy,
   ModelConfig,
   ModelConfigListItem,
   PricingTemplate,
@@ -24,6 +26,7 @@ interface UseModelDetailBootstrapInput {
   setModel: Dispatch<SetStateAction<ModelConfig | null>>;
   setConnections: Dispatch<SetStateAction<Connection[]>>;
   setGlobalEndpoints: Dispatch<SetStateAction<Endpoint[]>>;
+  setLoadbalanceStrategies: Dispatch<SetStateAction<LoadbalanceStrategy[]>>;
   setAllModels: Dispatch<SetStateAction<ModelConfigListItem[]>>;
   setPricingTemplates: Dispatch<SetStateAction<PricingTemplate[]>>;
   setLoading: Dispatch<SetStateAction<boolean>>;
@@ -43,6 +46,7 @@ export function useModelDetailBootstrap({
   setModel,
   setConnections,
   setGlobalEndpoints,
+  setLoadbalanceStrategies,
   setAllModels,
   setPricingTemplates,
   setLoading,
@@ -103,9 +107,10 @@ export function useModelDetailBootstrap({
     }
 
     try {
-      const [data, endpointsList, modelsList, pricingTemplatesList] = await Promise.all([
+      const [data, endpointsList, loadbalanceStrategiesList, modelsList, pricingTemplatesList] = await Promise.all([
         api.models.get(Number.parseInt(id, 10)),
         getSharedEndpoints(revision),
+        getSharedLoadbalanceStrategies(revision),
         getSharedModels(revision),
         getSharedPricingTemplates(revision),
       ]);
@@ -117,6 +122,7 @@ export function useModelDetailBootstrap({
       setModel(data);
       setConnections(data.connections || []);
       setGlobalEndpoints(endpointsList);
+      setLoadbalanceStrategies(loadbalanceStrategiesList);
       setAllModels(modelsList);
       setPricingTemplates(pricingTemplatesList);
 
@@ -144,6 +150,7 @@ export function useModelDetailBootstrap({
     setAllModels,
     setConnections,
     setGlobalEndpoints,
+    setLoadbalanceStrategies,
     setLoading,
     setModel,
     setSpending,
@@ -152,7 +159,7 @@ export function useModelDetailBootstrap({
 
   useEffect(() => {
     void fetchModel();
-  }, [fetchModel, revision]);
+  }, [fetchModel]);
 
   return { fetchModel };
 }

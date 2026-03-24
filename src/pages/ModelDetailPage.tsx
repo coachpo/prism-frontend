@@ -20,8 +20,11 @@ export function ModelDetailPage() {
   const {
     model,
     loading,
+    loadbalanceStrategies,
     isEditModelDialogOpen,
     setIsEditModelDialogOpen,
+    editLoadbalanceStrategyId,
+    setEditLoadbalanceStrategyId,
     editRedirectTo,
     setEditRedirectTo,
     spending,
@@ -203,10 +206,13 @@ export function ModelDetailPage() {
       />
 
       <ModelSettingsDialog
+        editLoadbalanceStrategyId={editLoadbalanceStrategyId}
         isOpen={isEditModelDialogOpen}
+        loadbalanceStrategies={loadbalanceStrategies}
         onOpenChange={setIsEditModelDialogOpen}
         model={model}
         editRedirectTo={editRedirectTo}
+        setEditLoadbalanceStrategyId={setEditLoadbalanceStrategyId}
         setEditRedirectTo={setEditRedirectTo}
         handleEditModelSubmit={handleEditModelSubmit}
         redirectTargetOptions={redirectTargetOptions}

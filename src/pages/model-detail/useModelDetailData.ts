@@ -6,6 +6,7 @@ import type {
   ModelConfigListItem,
   Connection,
   Endpoint,
+  LoadbalanceStrategy,
   SpendingSummary,
   StatsSummary,
   PricingTemplate,
@@ -29,6 +30,7 @@ export function useModelDetailData(id: string | undefined) {
   const [model, setModel] = useState<ModelConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [allModels, setAllModels] = useState<ModelConfigListItem[]>([]);
+  const [loadbalanceStrategies, setLoadbalanceStrategies] = useState<LoadbalanceStrategy[]>([]);
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
   const [spending, setSpending] = useState<SpendingSummary | null>(null);
   const [spendingLoading, setSpendingLoading] = useState(false);
@@ -39,6 +41,7 @@ export function useModelDetailData(id: string | undefined) {
   const [metrics24hLoading, setMetrics24hLoading] = useState(false);
   const [connectionMetricsEnabled, setConnectionMetricsEnabled] = useState(false);
   const [connectionMetricsLoading, setConnectionMetricsLoading] = useState(false);
+  const [editLoadbalanceStrategyId, setEditLoadbalanceStrategyId] = useState("");
 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [connectionSearch, setConnectionSearch] = useState("");
@@ -83,6 +86,7 @@ export function useModelDetailData(id: string | undefined) {
     setModel,
     setConnections,
     setGlobalEndpoints,
+    setLoadbalanceStrategies,
     setAllModels,
     setPricingTemplates,
     setLoading,
@@ -146,11 +150,13 @@ export function useModelDetailData(id: string | undefined) {
   });
 
   const { redirectTargetOptions, handleEditModelSubmit } = useModelDetailModelForm({
+    editLoadbalanceStrategyId,
     model,
     allModels,
     isEditModelDialogOpen,
     revision,
     editRedirectTo,
+    setEditLoadbalanceStrategyId,
     setEditRedirectTo,
     setIsEditModelDialogOpen,
     setAllModels,
@@ -189,8 +195,11 @@ export function useModelDetailData(id: string | undefined) {
   return {
     model,
     loading,
+    loadbalanceStrategies,
     isEditModelDialogOpen,
     setIsEditModelDialogOpen,
+    editLoadbalanceStrategyId,
+    setEditLoadbalanceStrategyId,
     editRedirectTo,
     setEditRedirectTo,
     spending,
