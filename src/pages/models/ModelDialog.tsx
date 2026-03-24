@@ -12,19 +12,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { LoadBalancingStrategy, ModelConfigCreate, ModelConfigListItem, Provider } from "@/lib/types";
+import type {
+  LoadbalanceStrategy,
+  ModelConfigCreate,
+  ModelConfigListItem,
+  Provider,
+} from "@/lib/types";
 import type { SubmitEventLike } from "./modelFormState";
 
 type Props = {
   editingModel: ModelConfigListItem | null;
   formData: ModelConfigCreate;
   isDialogOpen: boolean;
+  loadbalanceStrategies: LoadbalanceStrategy[];
   nativeModelsForProvider: ModelConfigListItem[];
   providers: Provider[];
   selectedProvider?: Provider;
   setFormData: (value: ModelConfigCreate | ((prev: ModelConfigCreate) => ModelConfigCreate)) => void;
   setIsDialogOpen: (open: boolean) => void;
-  setLoadBalancingStrategy: (value: LoadBalancingStrategy) => void;
+  setLoadbalanceStrategyId: (value: number | null) => void;
   setModelType: (value: "native" | "proxy") => void;
   onSubmit: (event: SubmitEventLike) => void;
 };
@@ -33,12 +39,13 @@ export function ModelDialog({
   editingModel,
   formData,
   isDialogOpen,
+  loadbalanceStrategies,
   nativeModelsForProvider,
   providers,
   selectedProvider,
   setFormData,
   setIsDialogOpen,
-  setLoadBalancingStrategy,
+  setLoadbalanceStrategyId,
   setModelType,
   onSubmit,
 }: Props) {
@@ -48,7 +55,7 @@ export function ModelDialog({
         <DialogHeader>
           <DialogTitle>{editingModel ? "Edit Model" : "New Model"}</DialogTitle>
           <DialogDescription>
-            Configure provider, routing type, and failover policy for this model.
+            Configure provider, routing type, and strategy attachment for this model.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
@@ -140,49 +147,27 @@ export function ModelDialog({
 
           {formData.model_type === "native" && (
             <div className="space-y-2">
-              <Label>Load Balancing</Label>
-              <Select value={formData.lb_strategy} onValueChange={(v) => setLoadBalancingStrategy(v as LoadBalancingStrategy)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="single">Single</SelectItem>
-                  <SelectItem value="failover">Failover</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {formData.model_type === "native" && formData.lb_strategy === "failover" && (
-            <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
-              <div className="space-y-2">
-                <Label className="text-base font-medium">Recovery Policy</Label>
+              <Label>Loadbalance Strategy</Label>
+              {loadbalanceStrategies.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Set a base cooldown for retries; Prism applies automatic backoff and jitter after repeated failures.
+                  No loadbalance strategies are available for this profile. Create one on the Loadbalance Strategies page first.
                 </p>
-              </div>
-
-              <SwitchController
-                label="Auto-Recovery"
-                description="Automatically retry failed endpoints using base cooldown with adaptive backoff and jitter"
-                checked={formData.failover_recovery_enabled ?? true}
-                onCheckedChange={(checked) => setFormData({ ...formData, failover_recovery_enabled: checked })}
-              />
-
-              {formData.failover_recovery_enabled && (
-                <div className="space-y-2">
-                  <Label>Base Cooldown (seconds)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={3600}
-                    value={formData.failover_recovery_cooldown_seconds}
-                    onChange={(e) => setFormData({ ...formData, failover_recovery_cooldown_seconds: parseInt(e.target.value) || 60 })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Initial retry delay before probing a failed endpoint; repeated failures increase delay with automatic backoff and jitter (1-3600s).
-                  </p>
-                </div>
+              ) : (
+                <Select
+                  value={formData.loadbalance_strategy_id === null ? undefined : String(formData.loadbalance_strategy_id)}
+                  onValueChange={(value) => setLoadbalanceStrategyId(Number.parseInt(value, 10))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select strategy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadbalanceStrategies.map((strategy) => (
+                      <SelectItem key={strategy.id} value={String(strategy.id)}>
+                        {strategy.name} ({strategy.strategy_type})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
           )}

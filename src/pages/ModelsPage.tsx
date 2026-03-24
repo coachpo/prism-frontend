@@ -83,12 +83,13 @@ export function ModelsPage() {
         editingModel={data.editingModel}
         formData={data.formData}
         isDialogOpen={data.isDialogOpen}
+        loadbalanceStrategies={data.loadbalanceStrategies}
         nativeModelsForProvider={data.nativeModelsForProvider}
         providers={data.providers}
         selectedProvider={data.selectedProvider}
         setFormData={data.setFormData}
         setIsDialogOpen={data.setIsDialogOpen}
-        setLoadBalancingStrategy={data.setLoadBalancingStrategy}
+        setLoadbalanceStrategyId={data.setLoadbalanceStrategyId}
         setModelType={data.setModelType}
         onSubmit={data.handleSubmit}
       />

@@ -1,7 +1,7 @@
 # FRONTEND MODELS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/models/` owns model list filters, dialog state, native-vs-proxy form logic, and separate 24-hour metric hydration behind `../ModelsPage.tsx`.
+`pages/models/` owns model list filters, dialog state, native-vs-proxy form logic, native strategy attachment during create or edit, and separate 24-hour metric hydration behind `../ModelsPage.tsx`.
 
 ## STRUCTURE
 ```
@@ -20,7 +20,7 @@ models/
 ## WHERE TO LOOK
 
 - Shared model/provider bootstrap and mutation patching: `useModelsPageData.ts`
-- Proxy/native form behavior and payload transforms: `modelFormState.ts`
+- Proxy/native form behavior, strategy attachment rules, and payload transforms: `modelFormState.ts`
 - 24h metrics and spend overlays: `useModelMetrics24h.ts`
 - Filter and column controls: `ModelsToolbar.tsx`, `modelTableContracts.ts`, `modelTableDefaults.ts`
 - Table rendering and row actions: `ModelsTable.tsx`
@@ -28,11 +28,11 @@ models/
 ## CONVENTIONS
 
 - Bootstrap models and providers from `@/lib/referenceData`, then patch the local list with `setSharedModels()` after mutations.
-- Keep proxy/native validation and provider-target selection rules in `modelFormState.ts` instead of scattering them across dialog components.
+- Keep proxy/native validation, strategy attachment rules, and provider-target selection in `modelFormState.ts` instead of scattering them across dialog components.
 - Hydrate 24h metrics separately from the base model list so CRUD flows do not own observability queries.
 
 ## ANTI-PATTERNS
 
-- Do not rebuild proxy/native form rules outside `modelFormState.ts`.
+- Do not rebuild proxy/native strategy or form rules outside `modelFormState.ts`.
 - Do not let table components own API calls; `useModelsPageData.ts` already centralizes list mutations.
 - Do not fold metrics queries into the base list bootstrap when `useModelMetrics24h.ts` already isolates that concern.

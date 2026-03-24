@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import {
+  getSharedLoadbalanceStrategies,
   getSharedModels,
   getSharedProviders,
   setSharedModels,
 } from "@/lib/referenceData";
 import type {
-  LoadBalancingStrategy,
+  LoadbalanceStrategy,
   ModelConfigCreate,
   ModelConfigListItem,
   Provider,
@@ -19,7 +20,7 @@ import {
   createNewModelFormData,
   DEFAULT_MODEL_FORM_DATA,
   getNativeModelsForProvider,
-  setLoadBalancingStrategyOnForm,
+  setLoadbalanceStrategyIdOnForm,
   setModelTypeOnForm,
   toModelCreatePayload,
   toModelListItem,
@@ -29,6 +30,7 @@ import {
 import { useModelMetrics24h } from "./useModelMetrics24h";
 
 export function useModelsPageData(revision: number) {
+  const [loadbalanceStrategies, setLoadbalanceStrategies] = useState<LoadbalanceStrategy[]>([]);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,22 +45,29 @@ export function useModelsPageData(revision: number) {
   const [formData, setFormData] = useState<ModelConfigCreate>(DEFAULT_MODEL_FORM_DATA);
   const { metricsLoading, modelMetrics24h, modelSpend30dMicros } = useModelMetrics24h(models);
 
-  const applyBootstrapData = (data: { modelsData: ModelConfigListItem[]; providersData: Provider[] }) => {
+  const applyBootstrapData = useCallback((data: {
+    loadbalanceStrategiesData: LoadbalanceStrategy[];
+    modelsData: ModelConfigListItem[];
+    providersData: Provider[];
+  }) => {
+    setLoadbalanceStrategies(data.loadbalanceStrategiesData);
     setModels(data.modelsData);
     setProviders(data.providersData);
-  };
+  }, []);
 
-  const fetchData = async (currentRevision: number) => {
+  const fetchData = useCallback(async (currentRevision: number) => {
     return Promise.all([
+      getSharedLoadbalanceStrategies(currentRevision),
       getSharedModels(currentRevision),
       getSharedProviders(currentRevision),
     ]).then(
-      ([modelsData, providersData]) => ({
+      ([loadbalanceStrategiesData, modelsData, providersData]) => ({
+        loadbalanceStrategiesData,
         modelsData,
         providersData,
       })
     );
-  };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +93,7 @@ export function useModelsPageData(revision: number) {
     return () => {
       cancelled = true;
     };
-  }, [revision]);
+  }, [applyBootstrapData, fetchData, revision]);
 
   const commitModels = (updater: (current: ModelConfigListItem[]) => ModelConfigListItem[]) => {
     setModels((current) => {
@@ -113,6 +122,10 @@ export function useModelsPageData(revision: number) {
     }
     if (formData.model_type === "proxy" && !formData.redirect_to) {
       toast.error("Please select a native target model for proxy type");
+      return;
+    }
+    if (formData.model_type === "native" && formData.loadbalance_strategy_id === null) {
+      toast.error("Please select a loadbalance strategy for native models");
       return;
     }
     try {
@@ -193,8 +206,8 @@ export function useModelsPageData(revision: number) {
     setFormData((current) => setModelTypeOnForm(current, value));
   };
 
-  const setLoadBalancingStrategy = (value: LoadBalancingStrategy) => {
-    setFormData((current) => setLoadBalancingStrategyOnForm(current, value));
+  const setLoadbalanceStrategyId = (value: number | null) => {
+    setFormData((current) => setLoadbalanceStrategyIdOnForm(current, value));
   };
 
   return {
@@ -208,6 +221,7 @@ export function useModelsPageData(revision: number) {
     handleSubmit,
     hasActiveFilters,
     isDialogOpen,
+    loadbalanceStrategies,
     loading,
     metricsLoading,
     modelMetrics24h,
@@ -222,7 +236,7 @@ export function useModelsPageData(revision: number) {
     setDeleteTarget,
     setFormData,
     setIsDialogOpen,
-    setLoadBalancingStrategy,
+    setLoadbalanceStrategyId,
     setModelType,
     setProviderFilter,
     setSearch,

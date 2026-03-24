@@ -1,5 +1,4 @@
 import type {
-  LoadBalancingStrategy,
   ModelConfig,
   ModelConfigCreate,
   ModelConfigListItem,
@@ -15,22 +14,15 @@ export const DEFAULT_MODEL_FORM_DATA: ModelConfigCreate = {
   display_name: "",
   model_type: "native",
   redirect_to: null,
-  lb_strategy: "single",
+  loadbalance_strategy_id: null,
   is_enabled: true,
-  failover_recovery_enabled: true,
-  failover_recovery_cooldown_seconds: 60,
 };
 
 function getNormalizedRoutingState(formData: ModelConfigCreate) {
-  const isFailoverNative = formData.model_type === "native" && formData.lb_strategy === "failover";
-
   return {
     redirect_to: formData.model_type === "proxy" ? formData.redirect_to : null,
-    lb_strategy: formData.model_type === "native" ? formData.lb_strategy : "single",
-    failover_recovery_enabled: isFailoverNative ? formData.failover_recovery_enabled : true,
-    failover_recovery_cooldown_seconds: isFailoverNative
-      ? formData.failover_recovery_cooldown_seconds
-      : 60,
+    loadbalance_strategy_id:
+      formData.model_type === "native" ? formData.loadbalance_strategy_id ?? null : null,
   };
 }
 
@@ -41,10 +33,8 @@ export function createEditModelFormData(model: ModelConfigListItem): ModelConfig
     display_name: model.display_name || "",
     model_type: model.model_type,
     redirect_to: model.redirect_to,
-    lb_strategy: model.lb_strategy,
+    loadbalance_strategy_id: model.loadbalance_strategy_id,
     is_enabled: model.is_enabled,
-    failover_recovery_enabled: model.failover_recovery_enabled,
-    failover_recovery_cooldown_seconds: model.failover_recovery_cooldown_seconds,
   };
 }
 
@@ -72,7 +62,10 @@ export function toModelUpdatePayload(formData: ModelConfigCreate): ModelConfigUp
   };
 }
 
-export function setModelTypeOnForm(formData: ModelConfigCreate, modelType: "native" | "proxy"): ModelConfigCreate {
+export function setModelTypeOnForm(
+  formData: ModelConfigCreate,
+  modelType: "native" | "proxy",
+): ModelConfigCreate {
   return {
     ...formData,
     model_type: modelType,
@@ -80,11 +73,11 @@ export function setModelTypeOnForm(formData: ModelConfigCreate, modelType: "nati
   };
 }
 
-export function setLoadBalancingStrategyOnForm(
+export function setLoadbalanceStrategyIdOnForm(
   formData: ModelConfigCreate,
-  strategy: LoadBalancingStrategy,
+  strategyId: number | null,
 ): ModelConfigCreate {
-  return { ...formData, lb_strategy: strategy };
+  return { ...formData, loadbalance_strategy_id: strategyId };
 }
 
 export function getNativeModelsForProvider(
@@ -100,7 +93,10 @@ export function getNativeModelsForProvider(
   );
 }
 
-export function toModelListItem(model: ModelConfig, existing?: ModelConfigListItem): ModelConfigListItem {
+export function toModelListItem(
+  model: ModelConfig,
+  existing?: ModelConfigListItem,
+): ModelConfigListItem {
   return {
     id: model.id,
     provider_id: model.provider_id,
@@ -109,10 +105,9 @@ export function toModelListItem(model: ModelConfig, existing?: ModelConfigListIt
     display_name: model.display_name,
     model_type: model.model_type,
     redirect_to: model.redirect_to,
-    lb_strategy: model.lb_strategy,
+    loadbalance_strategy_id: model.loadbalance_strategy_id,
+    loadbalance_strategy: model.loadbalance_strategy,
     is_enabled: model.is_enabled,
-    failover_recovery_enabled: model.failover_recovery_enabled,
-    failover_recovery_cooldown_seconds: model.failover_recovery_cooldown_seconds,
     connection_count: model.connections.length,
     active_connection_count: model.connections.filter((connection) => connection.is_active).length,
     health_success_rate: existing?.health_success_rate ?? null,

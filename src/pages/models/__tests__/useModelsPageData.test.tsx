@@ -13,6 +13,9 @@ function createDeferred<T>() {
 }
 
 const api = vi.hoisted(() => ({
+  loadbalanceStrategies: {
+    list: vi.fn(),
+  },
   models: {
     create: vi.fn(),
     delete: vi.fn(),
@@ -50,6 +53,26 @@ function buildProvider(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function buildLoadbalanceStrategySummary(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 100,
+    name: "single-primary",
+    strategy_type: "single",
+    failover_recovery_enabled: false,
+    ...overrides,
+  };
+}
+
+function buildLoadbalanceStrategy(overrides: Record<string, unknown> = {}) {
+  return {
+    ...buildLoadbalanceStrategySummary(overrides),
+    profile_id: 1,
+    attached_model_count: 1,
+    created_at: "",
+    updated_at: "",
+  };
+}
+
 function buildModelListItem(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
@@ -59,10 +82,9 @@ function buildModelListItem(overrides: Record<string, unknown> = {}) {
     display_name: "GPT-5.4",
     model_type: "native",
     redirect_to: null,
-    lb_strategy: "single",
+    loadbalance_strategy_id: 100,
+    loadbalance_strategy: buildLoadbalanceStrategySummary(),
     is_enabled: true,
-    failover_recovery_enabled: true,
-    failover_recovery_cooldown_seconds: 60,
     connection_count: 1,
     active_connection_count: 1,
     health_success_rate: 100,
@@ -82,10 +104,9 @@ function buildModelConfig(overrides: Record<string, unknown> = {}) {
     display_name: "GPT-5.4",
     model_type: "native",
     redirect_to: null,
-    lb_strategy: "single",
+    loadbalance_strategy_id: 100,
+    loadbalance_strategy: buildLoadbalanceStrategySummary(),
     is_enabled: true,
-    failover_recovery_enabled: true,
-    failover_recovery_cooldown_seconds: 60,
     connections: [
       {
         id: 200,
@@ -122,6 +143,7 @@ describe("useModelsPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearSharedReferenceData();
+    api.loadbalanceStrategies.list.mockResolvedValue([buildLoadbalanceStrategy()]);
     api.models.list.mockResolvedValue([buildModelListItem()]);
     api.providers.list.mockResolvedValue([buildProvider()]);
     api.stats.modelMetrics.mockResolvedValue({
@@ -228,7 +250,8 @@ describe("useModelsPageData", () => {
         display_name: "Friendly Proxy",
         model_type: "proxy",
         redirect_to: "gpt-5.4",
-        lb_strategy: "single",
+        loadbalance_strategy_id: null,
+        loadbalance_strategy: null,
       })
     );
 
@@ -247,9 +270,7 @@ describe("useModelsPageData", () => {
         display_name: "Friendly Proxy",
         model_type: "proxy",
         redirect_to: "gpt-5.4",
-        lb_strategy: "failover",
-        failover_recovery_enabled: false,
-        failover_recovery_cooldown_seconds: 300,
+        loadbalance_strategy_id: 100,
       }));
     });
 
@@ -265,10 +286,8 @@ describe("useModelsPageData", () => {
       display_name: "Friendly Proxy",
       model_type: "proxy",
       redirect_to: "gpt-5.4",
-      lb_strategy: "single",
+      loadbalance_strategy_id: null,
       is_enabled: true,
-      failover_recovery_enabled: true,
-      failover_recovery_cooldown_seconds: 60,
     });
     expect(result.current.models.some((model) => model.id === 3)).toBe(true);
   });
@@ -277,7 +296,8 @@ describe("useModelsPageData", () => {
     api.models.update.mockResolvedValue(
       buildModelConfig({
         display_name: null,
-        lb_strategy: "single",
+        loadbalance_strategy_id: 100,
+        loadbalance_strategy: buildLoadbalanceStrategySummary(),
       })
     );
     api.models.delete.mockResolvedValue(undefined);
@@ -294,9 +314,7 @@ describe("useModelsPageData", () => {
         ...current,
         display_name: "",
         model_type: "native",
-        lb_strategy: "single",
-        failover_recovery_enabled: false,
-        failover_recovery_cooldown_seconds: 999,
+        loadbalance_strategy_id: 100,
       }));
     });
 
@@ -309,10 +327,8 @@ describe("useModelsPageData", () => {
       display_name: null,
       model_type: "native",
       redirect_to: null,
-      lb_strategy: "single",
+      loadbalance_strategy_id: 100,
       is_enabled: true,
-      failover_recovery_enabled: true,
-      failover_recovery_cooldown_seconds: 60,
     });
 
     act(() => {
