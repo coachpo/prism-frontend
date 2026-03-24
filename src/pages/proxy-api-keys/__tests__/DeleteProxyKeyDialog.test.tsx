@@ -22,7 +22,7 @@ function buildProxyKey(overrides: Partial<ProxyApiKey> = {}): ProxyApiKey {
 }
 
 describe("DeleteProxyKeyDialog", () => {
-  it("shows the selected key preview in the confirmation dialog", () => {
+  it("shows the selected key name and prefix in the confirmation dialog", () => {
     render(
       <DeleteProxyKeyDialog
         deleteConfirm={buildProxyKey()}
@@ -34,7 +34,7 @@ describe("DeleteProxyKeyDialog", () => {
     );
 
     expect(screen.getByText("Delete Proxy API Key")).toBeInTheDocument();
-    expect(screen.getByText("Preview")).toBeInTheDocument();
-    expect(screen.getByText("prism_****************")).toBeInTheDocument();
+    expect(screen.getByText(/Primary runtime key/)).toBeInTheDocument();
+    expect(screen.getByText("prism")).toBeInTheDocument();
   });
 });
