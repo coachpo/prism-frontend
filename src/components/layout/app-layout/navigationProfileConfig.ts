@@ -30,8 +30,8 @@ export const PROFILE_SCOPED_PREFIXES = [
 
 export const MAX_PROFILES = 10;
 
-const APP_VERSION_PREFIX = "v1";
+const APP_VERSION_PREFIX = "2.0";
 const GIT_RUN_NUMBER = String(import.meta.env.VITE_GIT_RUN_NUMBER ?? "local").trim() || "local";
 const GIT_REVISION = String(import.meta.env.VITE_GIT_REVISION ?? "unknown").trim() || "unknown";
 
-export const VERSION_LABEL = `${APP_VERSION_PREFIX}.${GIT_RUN_NUMBER}-${GIT_REVISION}`;
+export const VERSION_LABEL = `${APP_VERSION_PREFIX}.${GIT_RUN_NUMBER} - ${GIT_REVISION}`;

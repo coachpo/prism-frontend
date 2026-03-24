@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AppSidebar } from "../AppSidebar";
+import { VERSION_LABEL } from "../navigationProfileConfig";
 
 type SidebarProps = React.ComponentProps<typeof AppSidebar>;
 
@@ -53,5 +54,12 @@ describe("AppSidebar", () => {
 
     expect(props.closeProfileSwitcher).toHaveBeenCalledTimes(1);
     expect(props.setSidebarOpen).toHaveBeenCalledWith(false);
+  });
+
+  it("renders the version label in the 2.0 build format", () => {
+    renderSidebar();
+
+    expect(VERSION_LABEL).toMatch(/^2\.0\.[^-]+ - .+$/);
+    expect(screen.getByText(VERSION_LABEL)).toBeInTheDocument();
   });
 });
