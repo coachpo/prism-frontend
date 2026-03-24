@@ -6,14 +6,14 @@
 ## ROUTE SURFACE
 
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
-- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/statistics`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
+- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
 - Root redirect: `/` -> `/dashboard`
 
 ## DOMAINS
 
 - Auth entry and recovery: `LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`
 - Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestLogsPage.tsx`
-- Configuration and routing: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `EndpointsPage.tsx`, `PricingTemplatesPage.tsx`
+- Configuration and routing: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `EndpointsPage.tsx`, `LoadbalanceStrategiesPage.tsx`, `PricingTemplatesPage.tsx`
 - Access control and runtime credentials: `ProxyApiKeysPage.tsx`
 - Settings shell: `SettingsPage.tsx` with local `settings/sections/`, `settings/costing/`, and `settings/dialogs/`
 
@@ -26,6 +26,7 @@
 - Settings tab shell, section navigation, save-state helpers, dialogs, and child-doc delegation: `SettingsPage.tsx`, `settings/AGENTS.md`
 - Models table, dialogs, and metrics hydration: `ModelsPage.tsx`, `models/AGENTS.md`
 - Endpoint CRUD and reorder helpers: `EndpointsPage.tsx`, `endpoints/AGENTS.md`
+- Loadbalance strategy CRUD page and dialog flows: `LoadbalanceStrategiesPage.tsx`, `loadbalance-strategies/AGENTS.md`
 - Pricing template normalization, usage lookup, and conflict handling: `PricingTemplatesPage.tsx`, `pricing-templates/AGENTS.md`
 - Proxy API key issuance, reveal-once flow, rotation, delete flow, and edit coverage: `ProxyApiKeysPage.tsx`, `proxy-api-keys/AGENTS.md`
 - Request-log filters, query state, and parent-covered request detail flow: `RequestLogsPage.tsx`, `request-logs/AGENTS.md`
@@ -34,6 +35,7 @@
 
 - `dashboard/AGENTS.md`: dashboard bootstrap, realtime updates, and the local routing-diagram cluster.
 - `endpoints/AGENTS.md`: endpoint CRUD dialogs, cards, bootstrap, and reorder helpers.
+- `loadbalance-strategies/AGENTS.md`: strategy CRUD table, dialog, form normalization, and page bootstrap.
 - `model-detail/AGENTS.md`: model bootstrap, current-state and connection flows, health checks, loadbalance events, and the local `connections-list/` cluster.
 - `models/AGENTS.md`: models toolbar, table, dialogs, and 24-hour metrics hydration.
 - `pricing-templates/AGENTS.md`: pricing template CRUD dialogs, usage lookup, and conflict handling.

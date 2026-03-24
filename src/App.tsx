@@ -26,6 +26,9 @@ const SettingsPage = lazy(() =>
 const PricingTemplatesPage = lazy(() =>
   import("@/pages/PricingTemplatesPage").then((module) => ({ default: module.PricingTemplatesPage }))
 );
+const LoadbalanceStrategiesPage = lazy(() =>
+  import("@/pages/LoadbalanceStrategiesPage").then((module) => ({ default: module.LoadbalanceStrategiesPage }))
+);
 const ProxyApiKeysPage = lazy(() =>
   import("@/pages/ProxyApiKeysPage").then((module) => ({ default: module.ProxyApiKeysPage }))
 );
@@ -106,6 +109,7 @@ function App() {
             <Route path="/models" element={withRouteSuspense(<ModelsPage />)} />
             <Route path="/models/:id" element={withRouteSuspense(<ModelDetailPage />)} />
             <Route path="/endpoints" element={withRouteSuspense(<EndpointsPage />)} />
+            <Route path="/loadbalance-strategies" element={withRouteSuspense(<LoadbalanceStrategiesPage />)} />
             <Route path="/statistics" element={withRouteSuspense(<StatisticsPage />)} />
             <Route path="/settings" element={withRouteSuspense(<SettingsPage />)} />
             <Route path="/proxy-api-keys" element={withRouteSuspense(<ProxyApiKeysPage />)} />

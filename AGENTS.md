@@ -18,13 +18,13 @@ frontend/
 ## ROUTE MAP
 
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
-- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/statistics`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
+- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
 - `/` redirects to `/dashboard`
 
 ## HIERARCHY
 
 - `src/pages/AGENTS.md` is the parent for all mounted page domains and the first stop for route-level work.
-- Page leaf docs currently live at `src/pages/dashboard/AGENTS.md`, `src/pages/endpoints/AGENTS.md`, `src/pages/model-detail/AGENTS.md`, `src/pages/models/AGENTS.md`, `src/pages/pricing-templates/AGENTS.md`, `src/pages/proxy-api-keys/AGENTS.md`, `src/pages/request-logs/AGENTS.md`, `src/pages/settings/AGENTS.md`, and `src/pages/statistics/AGENTS.md`.
+- Page leaf docs currently live at `src/pages/dashboard/AGENTS.md`, `src/pages/endpoints/AGENTS.md`, `src/pages/loadbalance-strategies/AGENTS.md`, `src/pages/model-detail/AGENTS.md`, `src/pages/models/AGENTS.md`, `src/pages/pricing-templates/AGENTS.md`, `src/pages/proxy-api-keys/AGENTS.md`, `src/pages/request-logs/AGENTS.md`, `src/pages/settings/AGENTS.md`, and `src/pages/statistics/AGENTS.md`.
 - Local page clusters stay parent-covered when they support a single route domain, including `dashboard/routing-diagram/`, `model-detail/connections-list/`, `statistics/operations/`, `statistics/spending/`, and `request-logs/detail` behavior inside the request-logs parent coverage.
 - Settings has one more layer: `src/pages/settings/AGENTS.md` delegates section-level details to `src/pages/settings/sections/AGENTS.md` and costing-specific flows to `src/pages/settings/costing/AGENTS.md`.
 

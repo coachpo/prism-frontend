@@ -62,4 +62,10 @@ describe("AppSidebar", () => {
     expect(VERSION_LABEL).toMatch(/^2\.0\.[^-]+ - .+$/);
     expect(screen.getByText(VERSION_LABEL)).toBeInTheDocument();
   });
+
+  it("includes the loadbalance strategies navigation entry", () => {
+    renderSidebar();
+
+    expect(screen.getByRole("link", { name: "Loadbalance Strategies" })).toBeInTheDocument();
+  });
 });
