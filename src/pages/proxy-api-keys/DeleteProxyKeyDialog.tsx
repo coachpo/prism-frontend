@@ -31,7 +31,9 @@ export function DeleteProxyKeyDialog({
           <DialogTitle>Delete Proxy API Key</DialogTitle>
           <DialogDescription>
             Delete the key &quot;{deleteConfirm?.name}&quot;? Requests using this secret will
-            stop working immediately.
+            stop working immediately. Confirm the prefix{" "}
+            <span className="font-mono text-foreground">{deleteConfirm?.key_prefix}</span>{" "}
+            before continuing.
           </DialogDescription>
         </DialogHeader>
 
