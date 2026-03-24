@@ -40,13 +40,6 @@ export function DeleteProxyKeyDialog({
             <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
               <p className="text-sm text-destructive">This action cannot be undone.</p>
             </div>
-
-            <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Preview
-              </p>
-              <p className="mt-2 font-mono text-sm">{deleteConfirm.key_preview}</p>
-            </div>
           </div>
         ) : null}
 
