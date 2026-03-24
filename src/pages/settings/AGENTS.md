@@ -1,53 +1,61 @@
 # FRONTEND SETTINGS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/settings/` is the route-domain shell behind `../SettingsPage.tsx`. It owns section navigation, stable section IDs, hash-driven focus, shared save-state rendering, and delegation into the local `sections/`, `costing/`, and `dialogs/` clusters.
+`pages/settings/` is the route-domain shell behind `../SettingsPage.tsx`. It owns the Profile and Global tab split, stable section and tab helpers, hash-driven section focus, shared save-state rendering, and the dialog handoff that supports settings mutations. Keep section detail in `sections/AGENTS.md` and costing-specific flows in `costing/AGENTS.md`.
 
 ## STRUCTURE
 ```
 settings/
-├── sections/                      # Rendered settings sections and local section clusters
+├── sections/                      # Rendered settings sections and nested local clusters
 ├── costing/                       # Costing bootstrap, derived state, FX mapping CRUD, save flows
-├── dialogs/                       # Destructive and rule-edit dialogs
-├── SettingsSectionsNav.tsx        # Sticky section navigation UI
-├── useSettingsPageData.ts         # Top-level page composition
-├── useSettingsSectionNavigation.ts
+├── dialogs/                       # Delete confirmation and audit-rule dialogs
+├── SettingsSectionsNav.tsx        # Sticky section navigation for profile-tab sections
+├── useSettingsPageData.ts         # Top-level page composition across backup, auth, costing, audit, retention
+├── useSettingsSectionNavigation.ts # Active tab, hash, scroll focus, and section jumps
 ├── useAuthenticationSettingsData.ts
 ├── useCostingSettingsData.ts
 ├── useAuditConfigurationData.ts
 ├── useConfigBackupData.ts
 ├── useRetentionDeletionData.ts
-├── sectionSaveState.tsx
-├── settingsPageHelpers.ts
+├── sectionSaveState.tsx           # Shared dirty, saving, and recently-saved rendering
+├── settingsPageHelpers.ts         # Tab ids, section ids, default costing form, shared validation helpers
 └── settingsSaveTypes.ts
 ```
 
+## SHELL CONTRACT
+
+- `SettingsPage.tsx` renders two tabs: `Profile` and `Global`.
+- The Profile tab owns section navigation and mounts backup, billing and currency, timezone, audit and privacy, and retention and deletion.
+- The Global tab currently mounts authentication settings only.
+- `settingsPageHelpers.ts` is the source of truth for tab ids, profile section ids, instance-only section handling, delete keywords, and shared costing and auth validation helpers.
+
 ## WHERE TO LOOK
 
-- Thin route shell and section ordering: `../SettingsPage.tsx`, `useSettingsPageData.ts`
-- Stable section IDs, labels, tab split, and default costing helpers: `settingsPageHelpers.ts`
-- Hash and scroll-driven active-section behavior: `useSettingsSectionNavigation.ts`, `SettingsSectionsNav.tsx`
+- Thin route shell, tab split, section order, and dialog mounts: `../SettingsPage.tsx`
+- Cross-section composition, selected-profile labeling, and shared save-state handoff: `useSettingsPageData.ts`
+- Active tab state, hash updates, scroll-driven focus, and section jump behavior: `useSettingsSectionNavigation.ts`, `SettingsSectionsNav.tsx`
+- Stable helper constants and form-normalization utilities: `settingsPageHelpers.ts`
 - Shared save-state badges and render helpers: `sectionSaveState.tsx`, `settingsSaveTypes.ts`
 - Section implementation boundary: `sections/AGENTS.md`
 - Costing bootstrap, derived state, FX mapping CRUD, and save boundary: `costing/AGENTS.md`
-- Destructive confirmation dialogs and audit rule dialogs: `dialogs/`, `useAuditConfigurationData.ts`, `useRetentionDeletionData.ts`, `useConfigBackupData.ts`
+- Local dialogs for destructive actions and audit rule editing: `dialogs/`, `useAuditConfigurationData.ts`, `useRetentionDeletionData.ts`, `useConfigBackupData.ts`
 
 ## CHILD DOCS
 
-- `sections/AGENTS.md`: auth setup, audit and privacy, billing and currency UI, backup, retention, timezone, and the nested `authentication/` and `billing-currency/` clusters.
-- `costing/AGENTS.md`: costing bootstrap, dirty-state derivation, FX mapping CRUD, save flows, and the boundary between costing hooks and billing-currency UI.
+- `sections/AGENTS.md`: authentication-adjacent section UI, audit and privacy, billing and currency, backup, retention, timezone, and the nested `authentication/` and `billing-currency/` clusters.
+- `costing/AGENTS.md`: costing bootstrap, dirty-state derivation, FX mapping CRUD, save flows, and the split between costing hooks and billing-currency section UI.
 
 ## CONVENTIONS
 
-- Keep new settings work sectionized. Extend `sections/` and helper registries instead of inflating `SettingsPage.tsx`.
-- Hash navigation is part of the UX contract. New sections need stable IDs and must participate in scroll and active-section logic.
-- Save-state feedback belongs in the shared helpers, not ad hoc local spinners.
-- Auth settings are instance-level concerns. Most other settings stay profile-scoped. Keep that distinction clear in copy and save behavior.
-- Billing, reporting currency, FX mappings, and timezone preferences span both `sections/` and `costing/`. Let the page shell delegate instead of duplicating that boundary here.
-- Backup and import/export copy should stay aligned with profile-targeted `version: 2` replace-style config import/export.
+- Keep new settings work sectionized. Extend helper registries, shared hooks, or local dialogs instead of inflating `SettingsPage.tsx`.
+- Hash navigation is part of the settings UX contract. New profile-tab sections need stable ids and must participate in jump and active-section logic.
+- Save-state feedback belongs in `sectionSaveState.tsx` and related helper types, not in ad hoc spinners or toast-only status.
+- Keep the scope split clear in copy and behavior: authentication is global, while backup, billing and currency, timezone, audit and privacy, and retention stay profile-scoped.
+- Billing, reporting currency, timezone preference, and FX mappings cross the `sections/` and `costing/` boundary. Let this parent doc describe the split, then send readers down instead of repeating local details.
+- Keep dialogs local to `pages/settings/dialogs/` when they support audit-rule edits or destructive confirmation flows.
 
 ## ANTI-PATTERNS
 
-- Do not add inline modal-state branches to `SettingsPage.tsx` when a local dialog or helper file fits.
-- Do not bypass section save-state helpers with ad hoc spinners or toast-only feedback.
-- Do not duplicate auth setup or FX mapping details here when `sections/AGENTS.md` and `costing/AGENTS.md` already own those local boundaries.
+- Do not add inline modal branches to `SettingsPage.tsx` when a local dialog file already fits the flow.
+- Do not bypass shared save-state helpers with one-off loading badges or toast-only feedback.
+- Do not duplicate auth, FX mapping, or billing-currency implementation detail here when the child docs already own it.

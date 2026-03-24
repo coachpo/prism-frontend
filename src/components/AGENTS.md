@@ -7,7 +7,7 @@
 ```
 components/
 ├── AGENTS.md                            # This file: shared UI boundaries
-├── layout/                              # AppLayout shell plus app-layout/ profile UX package
+├── layout/                              # AppLayout shell plus app-layout/ shell-state helpers
 ├── loadbalance/                         # Shared loadbalance badges, table, and detail sheet
 ├── statistics/                          # Statistics-only summary cards and token displays
 ├── ui/                                  # shadcn/ui primitives and local wrappers
@@ -21,8 +21,10 @@ components/
 
 ## WHERE TO LOOK
 
-- App shell and profile-switcher package: `layout/AppLayout.tsx`, `layout/app-layout/`
+- App shell handoff: `layout/AppLayout.tsx`
+- App-layout shell state and profile UX package: `layout/app-layout/useAppLayoutState.ts`, `layout/app-layout/AppHeader.tsx`, `layout/app-layout/AppSidebar.tsx`, `layout/app-layout/ProfileSwitcherPopover.tsx`, `layout/app-layout/ProfileDialogs.tsx`
 - Sidebar links, profile-scoped prefixes, profile cap, and version label: `layout/app-layout/navigationProfileConfig.ts`
+- Profile switcher search, focus, and dialog state helpers: `layout/app-layout/useProfileSwitcherState.ts`, `layout/app-layout/useProfileDialogState.ts`, `layout/app-layout/profileConflictMessageParser.ts`
 - Shared loadbalance rendering: `loadbalance/LoadbalanceBadges.tsx`, `loadbalance/LoadbalanceEventsTable.tsx`, `loadbalance/LoadbalanceEventDetailSheet.tsx`
 - Statistics cards and token displays: `statistics/TopSpendingCard.tsx`, `statistics/SpecialTokenSummaryCard.tsx`, `statistics/SpecialTokenCoverageStrip.tsx`, `statistics/TokenMetricCell.tsx`
 - Design-system boundary and wrappers: `ui/`, especially `ui/chart.tsx`, `ui/topography.tsx`, `ui/sonner.tsx`
@@ -31,7 +33,7 @@ components/
 ## CONVENTIONS
 
 - Keep shared components presentation-focused. Data fetching, query-param state, and transport concerns stay in page folders, hooks, and `src/lib/`.
-- Let `layout/app-layout/` own shell state and shell copy. `navigationProfileConfig.ts` is the source of truth for nav links, profile-scoped route prefixes, `MAX_PROFILES`, and the version label.
+- Let `layout/app-layout/` own shell state and shell copy. `useAppLayoutState.ts` composes auth, selected-profile, and shell-open state, while `navigationProfileConfig.ts` stays the source of truth for nav links, profile-scoped route prefixes, `MAX_PROFILES`, and the version label.
 - Reuse `ui/` primitives before adding one-off dialog, table, badge, or card markup.
 - Keep loadbalance and statistics components fed by shaped props from hooks or route helpers. They should not open their own API or realtime layers.
 - Put provider branding, clipboard, empty-state, and realtime status widgets here only when multiple routes reuse them.
