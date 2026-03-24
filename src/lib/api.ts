@@ -11,6 +11,7 @@ import {
 import {
   connections,
   endpoints,
+  loadbalanceStrategies,
   models,
   pricingTemplates,
   profiles,
@@ -26,6 +27,7 @@ export const api = {
   connections,
   endpoints,
   loadbalance,
+  loadbalanceStrategies,
   models,
   pricingTemplates,
   profiles,

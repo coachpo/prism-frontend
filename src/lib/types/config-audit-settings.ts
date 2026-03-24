@@ -7,9 +7,7 @@ export interface ConfigEndpointExport {
   position?: number | null;
 }
 
-export interface ConfigEndpointImport extends ConfigEndpointExport {
-  endpoint_id?: number | null;
-}
+export interface ConfigEndpointImport extends ConfigEndpointExport {}
 
 export interface ConfigPricingTemplateExport {
   name: string;
@@ -25,9 +23,15 @@ export interface ConfigPricingTemplateExport {
   version: number;
 }
 
-export interface ConfigPricingTemplateImport extends ConfigPricingTemplateExport {
-  pricing_template_id?: number | null;
+export interface ConfigPricingTemplateImport extends ConfigPricingTemplateExport {}
+
+export interface ConfigLoadbalanceStrategyExport {
+  name: string;
+  strategy_type: LoadBalancingStrategy;
+  failover_recovery_enabled: boolean;
 }
+
+export interface ConfigLoadbalanceStrategyImport extends ConfigLoadbalanceStrategyExport {}
 
 export interface ConfigConnectionExport {
   endpoint_name: string;
@@ -40,10 +44,7 @@ export interface ConfigConnectionExport {
 }
 
 export interface ConfigConnectionImport {
-  connection_id?: number | null;
-  endpoint_id?: number | null;
-  endpoint_name?: string | null;
-  pricing_template_id?: number | null;
+  endpoint_name: string;
   pricing_template_name?: string | null;
   is_active: boolean;
   priority: number;
@@ -58,10 +59,8 @@ export interface ConfigModelExport {
   display_name: string | null;
   model_type: ModelType;
   redirect_to: string | null;
-  lb_strategy: LoadBalancingStrategy;
+  loadbalance_strategy_name: string | null;
   is_enabled: boolean;
-  failover_recovery_enabled: boolean;
-  failover_recovery_cooldown_seconds: number;
   connections: ConfigConnectionExport[];
 }
 
@@ -71,10 +70,8 @@ export interface ConfigModelImport {
   display_name: string | null;
   model_type: ModelType;
   redirect_to: string | null;
-  lb_strategy: LoadBalancingStrategy;
+  loadbalance_strategy_name: string | null;
   is_enabled: boolean;
-  failover_recovery_enabled: boolean;
-  failover_recovery_cooldown_seconds: number;
   connections: ConfigConnectionImport[];
 }
 
@@ -86,8 +83,7 @@ export interface ConfigEndpointFxRateExport {
 
 export interface ConfigEndpointFxRateImport {
   model_id: string;
-  endpoint_id?: number | null;
-  endpoint_name?: string | null;
+  endpoint_name: string;
   fx_rate: string;
 }
 
@@ -106,20 +102,22 @@ export interface ConfigUserSettingsImport {
 }
 
 export interface ConfigExportResponse {
-  version: 2;
+  version: 3;
   exported_at: string;
   endpoints: ConfigEndpointExport[];
   pricing_templates: ConfigPricingTemplateExport[];
+  loadbalance_strategies: ConfigLoadbalanceStrategyExport[];
   models: ConfigModelExport[];
   user_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules: HeaderBlocklistRuleExport[];
 }
 
 export interface ConfigImportRequest {
-  version: 2;
+  version: 3;
   exported_at?: string;
   endpoints: ConfigEndpointImport[];
   pricing_templates: ConfigPricingTemplateImport[];
+  loadbalance_strategies: ConfigLoadbalanceStrategyImport[];
   models: ConfigModelImport[];
   user_settings?: ConfigUserSettingsImport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
@@ -128,6 +126,7 @@ export interface ConfigImportRequest {
 export interface ConfigImportResponse {
   endpoints_imported: number;
   pricing_templates_imported: number;
+  strategies_imported: number;
   models_imported: number;
   connections_imported: number;
 }

@@ -1,6 +1,9 @@
 import type {
   Connection,
   ConnectionCreate,
+  LoadbalanceStrategy,
+  LoadbalanceStrategyCreate,
+  LoadbalanceStrategyUpdate,
   ModelConnectionsBatchParams,
   ModelConnectionsBatchResponse,
   ConnectionDropdownResponse,
@@ -82,6 +85,25 @@ export const models = {
       body: JSON.stringify(data),
     }),
   delete: (id: number) => request<void>(`/api/models/${id}`, { method: "DELETE" }),
+};
+
+export const loadbalanceStrategies = {
+  list: () => request<LoadbalanceStrategy[]>("/api/loadbalance/strategies"),
+  get: (id: number) => request<LoadbalanceStrategy>(`/api/loadbalance/strategies/${id}`),
+  create: (data: LoadbalanceStrategyCreate) =>
+    request<LoadbalanceStrategy>("/api/loadbalance/strategies", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (id: number, data: LoadbalanceStrategyUpdate) =>
+    request<LoadbalanceStrategy>(`/api/loadbalance/strategies/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  delete: (id: number) =>
+    request<{ deleted: boolean }>(`/api/loadbalance/strategies/${id}`, {
+      method: "DELETE",
+    }),
 };
 
 export const endpoints = {

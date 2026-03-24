@@ -2,6 +2,7 @@ import { api } from "@/lib/api";
 import type {
   ConnectionDropdownItem,
   Endpoint,
+  LoadbalanceStrategy,
   ModelConfigListItem,
   PricingTemplate,
   Provider,
@@ -10,6 +11,7 @@ import type {
 type ReferenceDataKind =
   | "connections"
   | "endpoints"
+  | "loadbalanceStrategies"
   | "models"
   | "pricingTemplates"
   | "providers";
@@ -163,4 +165,17 @@ export function getSharedPricingTemplates(revision: number, forceRefresh = false
 
 export function setSharedPricingTemplates(revision: number, data: PricingTemplate[]) {
   setReferenceData("pricingTemplates", revision, data);
+}
+
+export function getSharedLoadbalanceStrategies(revision: number, forceRefresh = false) {
+  return loadReferenceData(
+    "loadbalanceStrategies",
+    revision,
+    () => api.loadbalanceStrategies.list(),
+    forceRefresh,
+  );
+}
+
+export function setSharedLoadbalanceStrategies(revision: number, data: LoadbalanceStrategy[]) {
+  setReferenceData("loadbalanceStrategies", revision, data);
 }

@@ -4,6 +4,36 @@ import type { Connection } from "./routing";
 export type ModelType = "native" | "proxy";
 export type LoadBalancingStrategy = "single" | "failover";
 
+export interface LoadbalanceStrategySummary {
+  id: number;
+  name: string;
+  strategy_type: LoadBalancingStrategy;
+  failover_recovery_enabled: boolean;
+}
+
+export interface LoadbalanceStrategy {
+  id: number;
+  profile_id: number;
+  name: string;
+  strategy_type: LoadBalancingStrategy;
+  failover_recovery_enabled: boolean;
+  attached_model_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoadbalanceStrategyCreate {
+  name: string;
+  strategy_type?: LoadBalancingStrategy;
+  failover_recovery_enabled?: boolean;
+}
+
+export interface LoadbalanceStrategyUpdate {
+  name?: string;
+  strategy_type?: LoadBalancingStrategy;
+  failover_recovery_enabled?: boolean;
+}
+
 export interface ModelConfig {
   id: number;
   provider_id: number;
@@ -12,10 +42,9 @@ export interface ModelConfig {
   display_name: string | null;
   model_type: ModelType;
   redirect_to: string | null;
-  lb_strategy: LoadBalancingStrategy;
+  loadbalance_strategy_id: number | null;
+  loadbalance_strategy: LoadbalanceStrategySummary | null;
   is_enabled: boolean;
-  failover_recovery_enabled: boolean;
-  failover_recovery_cooldown_seconds: number;
   connections: Connection[];
   created_at: string;
   updated_at: string;
@@ -29,10 +58,9 @@ export interface ModelConfigListItem {
   display_name: string | null;
   model_type: ModelType;
   redirect_to: string | null;
-  lb_strategy: LoadBalancingStrategy;
+  loadbalance_strategy_id: number | null;
+  loadbalance_strategy: LoadbalanceStrategySummary | null;
   is_enabled: boolean;
-  failover_recovery_enabled: boolean;
-  failover_recovery_cooldown_seconds: number;
   connection_count: number;
   active_connection_count: number;
   health_success_rate: number | null;
@@ -47,10 +75,8 @@ export interface ModelConfigCreate {
   display_name?: string | null;
   model_type?: ModelType;
   redirect_to?: string | null;
-  lb_strategy?: LoadBalancingStrategy;
+  loadbalance_strategy_id?: number | null;
   is_enabled?: boolean;
-  failover_recovery_enabled?: boolean;
-  failover_recovery_cooldown_seconds?: number;
 }
 
 export interface ModelConfigUpdate {
@@ -59,10 +85,8 @@ export interface ModelConfigUpdate {
   display_name?: string | null;
   model_type?: ModelType;
   redirect_to?: string | null;
-  lb_strategy?: LoadBalancingStrategy;
+  loadbalance_strategy_id?: number | null;
   is_enabled?: boolean;
-  failover_recovery_enabled?: boolean;
-  failover_recovery_cooldown_seconds?: number;
 }
 
 export interface RequestLogEntry {
