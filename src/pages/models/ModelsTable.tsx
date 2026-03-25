@@ -17,7 +17,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Separator } from "@/components/ui/separator";
 import { formatMoneyMicros } from "@/lib/costing";
 import type { ModelConfigListItem } from "@/lib/types";
 import { cn, formatLabel, formatProviderType } from "@/lib/utils";
@@ -121,6 +120,14 @@ function CompactMetaBadge({ children }: { children: string }) {
   );
 }
 
+function InlineMetaDivider() {
+  return (
+    <span aria-hidden="true" className="text-muted-foreground/45">
+      |
+    </span>
+  );
+}
+
 function ModelRow({
   metricsLoading,
   model,
@@ -178,8 +185,8 @@ function ModelRow({
           />
         </div>
 
-        <div className="flex min-w-0 items-stretch gap-3">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             {model.model_type === "proxy" && model.redirect_to ? (
               <CompactMetaBadge>{`Target ${model.redirect_to}`}</CompactMetaBadge>
             ) : null}
@@ -189,24 +196,25 @@ function ModelRow({
             <StatusBadge label={statusLabel} intent={statusIntent} />
           </div>
 
-          <Separator orientation="vertical" className="self-stretch bg-border/70" />
-
-          <div className="flex shrink-0 items-center gap-x-3 text-[11px] text-muted-foreground">
-            <span className="tabular-nums text-foreground/90">
-              {model.active_connection_count}/{model.connection_count} active
-            </span>
-            <span
-              className={cn(
-                "tabular-nums",
-                metricsLoading && !metrics24h ? "text-muted-foreground" : getSuccessRateClass(successRate)
-              )}
-            >
-              {successRateText}
-            </span>
-            <span className="tabular-nums">{p95LatencyText}</span>
-            <span className="tabular-nums">{requestCountText}</span>
-            <span className="tabular-nums text-foreground/90">{spend30dText}</span>
-          </div>
+          <InlineMetaDivider />
+          <span className="tabular-nums text-xs text-foreground/90">
+            {model.active_connection_count}/{model.connection_count} active
+          </span>
+          <InlineMetaDivider />
+          <span
+            className={cn(
+              "tabular-nums text-xs",
+              metricsLoading && !metrics24h ? "text-muted-foreground" : getSuccessRateClass(successRate)
+            )}
+          >
+            {successRateText}
+          </span>
+          <InlineMetaDivider />
+          <span className="tabular-nums text-xs text-muted-foreground">{p95LatencyText}</span>
+          <InlineMetaDivider />
+          <span className="tabular-nums text-xs text-muted-foreground">{requestCountText}</span>
+          <InlineMetaDivider />
+          <span className="tabular-nums text-xs text-foreground/90">{spend30dText}</span>
         </div>
       </div>
 

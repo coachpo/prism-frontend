@@ -1,3 +1,4 @@
+import { CircleHelp } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { SwitchController } from "@/components/SwitchController";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { LoadbalanceStrategy } from "@/lib/types";
 import type { LoadbalanceStrategyFormState } from "./loadbalanceStrategyFormState";
+
+function FailoverFieldLabel({
+  htmlFor,
+  label,
+  description,
+}: {
+  htmlFor: string;
+  label: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Explain ${label}`}
+            className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <CircleHelp className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          {description}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
+}
 
 interface LoadbalanceStrategyDialogProps {
   editingLoadbalanceStrategy: LoadbalanceStrategy | null;
@@ -144,7 +176,11 @@ export function LoadbalanceStrategyDialog({
 
               <div className="grid gap-4 rounded-md border bg-muted/20 p-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="failover-cooldown-seconds">Base Cooldown (seconds)</Label>
+                  <FailoverFieldLabel
+                    htmlFor="failover-cooldown-seconds"
+                    label="Base Cooldown (seconds)"
+                    description="Starting cooldown applied after transient failures once the threshold is reached."
+                  />
                   <Input
                     id="failover-cooldown-seconds"
                     type="number"
@@ -163,7 +199,11 @@ export function LoadbalanceStrategyDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="failover-failure-threshold">Failure Threshold</Label>
+                  <FailoverFieldLabel
+                    htmlFor="failover-failure-threshold"
+                    label="Failure Threshold"
+                    description="Number of consecutive failures required before the cooldown window opens."
+                  />
                   <Input
                     id="failover-failure-threshold"
                     type="number"
@@ -183,7 +223,11 @@ export function LoadbalanceStrategyDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="failover-backoff-multiplier">Backoff Multiplier</Label>
+                  <FailoverFieldLabel
+                    htmlFor="failover-backoff-multiplier"
+                    label="Backoff Multiplier"
+                    description="Multiplier applied to the cooldown after each failure beyond the threshold."
+                  />
                   <Input
                     id="failover-backoff-multiplier"
                     type="number"
@@ -203,7 +247,11 @@ export function LoadbalanceStrategyDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="failover-max-cooldown-seconds">Max Cooldown (seconds)</Label>
+                  <FailoverFieldLabel
+                    htmlFor="failover-max-cooldown-seconds"
+                    label="Max Cooldown (seconds)"
+                    description="Upper limit for the computed cooldown, even after repeated failures."
+                  />
                   <Input
                     id="failover-max-cooldown-seconds"
                     type="number"
@@ -223,7 +271,11 @@ export function LoadbalanceStrategyDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="failover-jitter-ratio">Jitter Ratio</Label>
+                  <FailoverFieldLabel
+                    htmlFor="failover-jitter-ratio"
+                    label="Jitter Ratio"
+                    description="Random spread applied to the cooldown so retries do not all happen at the same instant."
+                  />
                   <Input
                     id="failover-jitter-ratio"
                     type="number"
@@ -243,9 +295,11 @@ export function LoadbalanceStrategyDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="failover-auth-error-cooldown-seconds">
-                    Auth Error Cooldown (seconds)
-                  </Label>
+                  <FailoverFieldLabel
+                    htmlFor="failover-auth-error-cooldown-seconds"
+                    label="Auth Error Cooldown"
+                    description="Cooldown used for auth-like failures such as invalid keys or permission errors."
+                  />
                   <Input
                     id="failover-auth-error-cooldown-seconds"
                     type="number"

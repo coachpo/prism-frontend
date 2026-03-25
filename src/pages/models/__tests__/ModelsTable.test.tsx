@@ -297,4 +297,14 @@ describe("ModelsTable", () => {
     expect(screen.getByText("GPT-4o Mini")).toBeInTheDocument();
     expect(screen.getByText("GPT-4.1 Mini")).toBeInTheDocument();
   });
+
+  it("renders the compact metrics inline with metadata separators", () => {
+    renderTable();
+
+    const metricsCluster = screen.getByText("1/1 active").parentElement;
+
+    expect(metricsCluster).not.toBeNull();
+    expect(metricsCluster).toContainElement(screen.getByText("single-primary · Single"));
+    expect(screen.getAllByText("|")).toHaveLength(5);
+  });
 });
