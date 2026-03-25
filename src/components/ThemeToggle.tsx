@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useLocale } from "@/i18n/useLocale";
 import { cn } from "@/lib/utils";
 
 type ThemeToggleProps = {
@@ -15,18 +16,18 @@ type ThemeToggleProps = {
   menuClassName?: string;
 };
 
-const themeOptions = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Laptop },
-] as const;
-
 export function ThemeToggle({
   align = "end",
   buttonClassName,
   menuClassName,
 }: ThemeToggleProps) {
+  const { messages } = useLocale();
   const { theme = "system", setTheme } = useTheme();
+  const themeOptions = [
+    { value: "light", label: messages.theme.light, icon: Sun },
+    { value: "dark", label: messages.theme.dark, icon: Moon },
+    { value: "system", label: messages.theme.system, icon: Laptop },
+  ] as const;
   const activeTheme = themeOptions.find((option) => option.value === theme) ?? themeOptions[2];
   const ActiveIcon = activeTheme.icon;
 
@@ -42,7 +43,7 @@ export function ThemeToggle({
           )}
         >
           <ActiveIcon className="h-4 w-4" />
-          <span className="sr-only">Change theme</span>
+          <span className="sr-only">{messages.theme.changeTheme}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className={cn("w-36", menuClassName)}>

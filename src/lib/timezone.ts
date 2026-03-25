@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { formatTimestampForLocale, getCurrentLocale, type Locale } from "@/i18n/format";
 
 const timezonePreferenceCache = new Map<string, string | null>();
 const timezonePreferenceRequestCache = new Map<string, Promise<string | null>>();
@@ -49,24 +50,8 @@ export function clearUserTimezonePreference(cacheKey?: string) {
 export function formatTimestamp(
   isoString: string,
   timezone: string,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
+  locale: Locale = getCurrentLocale(),
 ): string {
-  if (!isoString) return "-";
-  try {
-    const date = new Date(isoString);
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      second: "numeric",
-      hour12: true,
-      ...options,
-    }).format(date);
-  } catch (error) {
-    console.error("Error formatting timestamp:", error);
-    return isoString;
-  }
+  return formatTimestampForLocale(locale, timezone, isoString, options);
 }

@@ -71,8 +71,15 @@ export interface Messages {
     routing24hTotalRequests: string;
     routingActionOpenModelDetail: string;
     routingActiveConnections: string;
+    routingChartActionHint: string;
+    routingChartHint: string;
     routingEndpoint: string;
     routingEndpointNodeType: string;
+    routingLegendDegraded: string;
+    routingLegendFailing: string;
+    routingLegendHealthy: string;
+    routingLegendNoData: string;
+    routingLegendNoRecentRequests: string;
     routingLink: string;
     routingLinkAria: (endpoint: string, model: string) => string;
     routingModel: string;
@@ -115,6 +122,22 @@ export interface Messages {
     requestLogs: string;
     settings: string;
     statistics: string;
+  };
+  settingsPage: {
+    auditPrivacy: string;
+    backup: string;
+    billingCurrency: string;
+    globalSettings: string;
+    globalSettingsDescription: string;
+    globalTab: string;
+    profileScopedDescription: (profileLabel: string) => string;
+    profileScopedSettings: string;
+    profileTab: string;
+    retentionDeletion: string;
+    sectionsTitle: string;
+    settingsDescription: string;
+    settingsTitle: string;
+    timezone: string;
   };
   profiles: {
     activate: string;
@@ -489,8 +512,15 @@ export const enMessages: Messages = {
     routing24hTotalRequests: "24h total requests",
     routingActionOpenModelDetail: "Open model detail",
     routingActiveConnections: "Active connections",
+    routingChartActionHint: "Click model nodes to open details",
+    routingChartHint: "Link width reflects active connection count. Color reflects 24h route success rate.",
     routingEndpoint: "Endpoint",
     routingEndpointNodeType: "Endpoint",
+    routingLegendDegraded: "Degraded",
+    routingLegendFailing: "Failing",
+    routingLegendHealthy: "Healthy",
+    routingLegendNoData: "No data",
+    routingLegendNoRecentRequests: "No recent requests",
     routingLink: "Routing link",
     routingLinkAria: (endpoint, model) => `Route from ${endpoint} to ${model}`,
     routingModel: "Model",
@@ -539,6 +569,22 @@ export const enMessages: Messages = {
     requestLogs: "Request Logs",
     settings: "Settings",
     statistics: "Statistics",
+  },
+  settingsPage: {
+    auditPrivacy: "Audit & Privacy",
+    backup: "Backup",
+    billingCurrency: "Billing & Currency",
+    globalSettings: "Global settings",
+    globalSettingsDescription: "Changes here apply to all profiles and the entire Prism instance.",
+    globalTab: "Global",
+    profileScopedDescription: (profileLabel) => `Changes here affect ${profileLabel} and its runtime traffic.`,
+    profileScopedSettings: "Profile-scoped settings",
+    profileTab: "Profile",
+    retentionDeletion: "Retention & Deletion",
+    sectionsTitle: "Settings Sections",
+    settingsDescription: "Manage instance-wide authentication and profile-scoped configuration",
+    settingsTitle: "Settings",
+    timezone: "Timezone",
   },
   profiles: {
     activate: "Activate",

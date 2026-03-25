@@ -1,3 +1,5 @@
+import { formatNumber, getCurrentLocale, type Locale } from "@/i18n/format";
+
 const MICRO_FACTOR = 1_000_000;
 
 const PRICING_UNIT_LABELS: Record<string, string> = {
@@ -44,24 +46,28 @@ export function formatMoneyMicros(
   symbol: string,
   code?: string,
   minimumFractionDigits = 2,
-  maximumFractionDigits = 6
+  maximumFractionDigits = 6,
+  locale: Locale = getCurrentLocale(),
 ): string {
   if (micros === null || micros === undefined) {
     return "-";
   }
   const value = microsToDecimal(micros);
-  const formatted = value.toLocaleString(undefined, {
+  const formatted = formatNumber(value, locale, {
     minimumFractionDigits,
     maximumFractionDigits,
   });
   return `${symbol}${formatted}${code ? ` ${code}` : ""}`;
 }
 
-export function formatTokenCount(value: number | null | undefined): string {
+export function formatTokenCount(
+  value: number | null | undefined,
+  locale: Locale = getCurrentLocale(),
+): string {
   if (value === null || value === undefined) {
     return "-";
   }
-  return value.toLocaleString();
+  return formatNumber(value, locale);
 }
 
 export function isValidCurrencyCode(value: string): boolean {

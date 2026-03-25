@@ -1,4 +1,5 @@
 import { formatProviderType } from "@/lib/utils";
+import { useLocale } from "@/i18n/useLocale";
 import type { Provider } from "@/lib/types";
 import {
   Select,
@@ -28,21 +29,25 @@ export function ProviderSelect({
   onValueChange,
   valueType = "provider_type",
   showAll = true,
-  allLabel = "All Providers",
+  allLabel,
   providers,
   className,
-  placeholder = "Provider",
+  placeholder,
 }: ProviderSelectProps) {
+  const { messages } = useLocale();
   const itemValue = (p: Provider) =>
     valueType === "provider_id" ? String(p.id) : p.provider_type;
+
+  const resolvedAllLabel = allLabel ?? messages.requestLogs.allProviders;
+  const resolvedPlaceholder = placeholder ?? messages.requestLogs.provider;
 
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={resolvedPlaceholder} />
       </SelectTrigger>
       <SelectContent>
-        {showAll && <SelectItem value="all">{allLabel}</SelectItem>}
+        {showAll && <SelectItem value="all">{resolvedAllLabel}</SelectItem>}
         {providers.map((p) => (
           <SelectItem key={p.id} value={itemValue(p)}>
             <span className="flex items-center gap-2">

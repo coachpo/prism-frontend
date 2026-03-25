@@ -17,9 +17,16 @@ const profileState = vi.hoisted(() => ({
   selectedProfileId: 7,
 }));
 
+const localeState = vi.hoisted(() => ({
+  locale: "en" as "en" | "zh-CN",
+}));
+
 vi.mock("@/lib/api", () => ({ api }));
 vi.mock("@/context/ProfileContext", () => ({
   useProfileContext: () => profileState,
+}));
+vi.mock("@/i18n/useLocale", () => ({
+  useLocale: () => localeState,
 }));
 
 function StrictWrapper({ children }: { children: ReactNode }) {
@@ -31,6 +38,7 @@ describe("useTimezone", () => {
     vi.clearAllMocks();
     profileState.revision = 1;
     profileState.selectedProfileId = 7;
+    localeState.locale = "en";
     clearUserTimezonePreference();
     api.settings.timezone.get.mockResolvedValue({ timezone_preference: "Europe/Helsinki" });
   });
@@ -69,5 +77,21 @@ describe("useTimezone", () => {
 
     expect(api.settings.timezone.get).toHaveBeenCalledTimes(2);
     expect(result.current.timezone).toBe("UTC");
+  });
+
+  it("formats timestamps with the active locale", async () => {
+    const { result, rerender } = renderHook(() => useTimezone(), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    const enFormatted = result.current.format("2026-03-13T12:00:00Z");
+
+    localeState.locale = "zh-CN";
+    rerender();
+
+    const zhFormatted = result.current.format("2026-03-13T12:00:00Z");
+    expect(zhFormatted).not.toBe(enFormatted);
   });
 });
