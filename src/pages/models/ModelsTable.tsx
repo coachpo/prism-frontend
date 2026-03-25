@@ -1,19 +1,23 @@
-import type { KeyboardEvent, ReactNode } from "react";
-import { useState } from "react";
-import { ChevronRight, MoreHorizontal, Pencil, Plus, Server, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { ChevronDown, Eye, Plus, Server, Trash2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { CopyButton } from "@/components/CopyButton";
 import { EmptyState } from "@/components/EmptyState";
+import {
+  IconActionButton,
+  IconActionGroup,
+} from "@/components/IconActionGroup";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
 import { formatMoneyMicros } from "@/lib/costing";
 import type { ModelConfigListItem } from "@/lib/types";
 import { cn, formatLabel, formatProviderType } from "@/lib/utils";
@@ -33,31 +37,44 @@ const STATUS_ORDER = [
   },
 ] as const;
 
-type GroupedProvider = {
-  providerType: string;
-  models: ModelConfigListItem[];
+type Props = {
+  filtered: ModelConfigListItem[];
+  handleOpenDialog: (model?: ModelConfigListItem) => void;
+  metricsLoading: boolean;
+  modelMetrics24h: Record<number, ModelDerivedMetric>;
+  modelSpend30dMicros: Record<number, number>;
+  search: string;
+  setDeleteTarget: (model: ModelConfigListItem) => void;
 };
 
 type SharedRenderProps = Pick<
   Props,
-  "activeColumns" | "handleOpenDialog" | "metricsLoading" | "modelMetrics24h" | "modelSpend30dMicros" | "setDeleteTarget"
+  | "metricsLoading"
+  | "modelMetrics24h"
+  | "modelSpend30dMicros"
+  | "setDeleteTarget"
 > & {
   onNavigate: (modelId: number) => void;
 };
 
-const cardActionButtonClassName =
-  "h-8 w-8 shrink-0 rounded-full border border-transparent bg-background/80 text-muted-foreground transition-colors hover:border-border hover:bg-background hover:text-foreground";
-
-function pluralizeModels(count: number) {
-  return `${count} model${count === 1 ? "" : "s"}`;
-}
+type ProviderGroup = {
+  models: ModelConfigListItem[];
+  providerLabel: string;
+  providerType: string;
+};
 
 function getProviderSortIndex(providerType: string) {
   const index = PROVIDER_ORDER.indexOf(providerType as (typeof PROVIDER_ORDER)[number]);
   return index === -1 ? PROVIDER_ORDER.length : index;
 }
 
-function groupModels(filtered: ModelConfigListItem[]): GroupedProvider[] {
+function orderProviderModels(models: ModelConfigListItem[]) {
+  return TYPE_ORDER.flatMap((modelType) =>
+    STATUS_ORDER.flatMap(({ matches }) => models.filter((model) => model.model_type === modelType && matches(model)))
+  );
+}
+
+function groupModels(filtered: ModelConfigListItem[]): ProviderGroup[] {
   const providerTypes = [...new Set(filtered.map((model) => model.provider.provider_type))].sort((left, right) => {
     const leftIndex = getProviderSortIndex(left);
     const rightIndex = getProviderSortIndex(right);
@@ -69,21 +86,16 @@ function groupModels(filtered: ModelConfigListItem[]): GroupedProvider[] {
     return left.localeCompare(right);
   });
 
-  return providerTypes
-    .map((providerType) => {
-      const providerModels = filtered.filter((model) => model.provider.provider_type === providerType);
-      const orderedModels = TYPE_ORDER.flatMap((modelType) =>
-        STATUS_ORDER.flatMap(({ matches }) =>
-          providerModels.filter((model) => model.model_type === modelType && matches(model))
-        )
-      );
+  return providerTypes.map((providerType) => {
+    const providerModels = filtered.filter((model) => model.provider.provider_type === providerType);
+    const providerLabel = providerModels[0]?.provider.name?.trim() || formatProviderType(providerType);
 
-      return {
-        providerType,
-        models: orderedModels,
-      };
-    })
-    .filter((providerGroup) => providerGroup.models.length > 0);
+    return {
+      models: orderProviderModels(providerModels),
+      providerLabel,
+      providerType,
+    };
+  });
 }
 
 function getSuccessRateClass(successRate: number | null) {
@@ -98,26 +110,18 @@ function getSuccessRateClass(successRate: number | null) {
   );
 }
 
-function DetailTile({
-  label,
-  value,
-  valueClassName,
-}: {
-  label: string;
-  value: ReactNode;
-  valueClassName?: string;
-}) {
+function CompactMetaBadge({ children }: { children: string }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-background/80 p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <div className={cn("mt-1 text-sm font-medium text-foreground", valueClassName)}>{value}</div>
-    </div>
+    <Badge
+      variant="outline"
+      className="h-5 max-w-full rounded-full border-border/70 bg-muted/30 px-2 text-[10px] font-medium text-muted-foreground"
+    >
+      <span className="block max-w-full truncate">{children}</span>
+    </Badge>
   );
 }
 
-function ModelCard({
-  activeColumns,
-  handleOpenDialog,
+function ModelRow({
   metricsLoading,
   model,
   modelMetrics24h,
@@ -130,207 +134,166 @@ function ModelCard({
   const requestCount = metrics24h?.request_count_24h ?? 0;
   const p95LatencyMs = metrics24h?.p95_latency_ms ?? null;
   const spend30dMicros = modelSpend30dMicros[model.id] ?? 0;
-  const detailTiles: Array<{ label: string; value: ReactNode; valueClassName?: string }> = [];
-  const showInlineMetadata = activeColumns.type || activeColumns.status;
+  const title = model.display_name || model.model_id;
   const typeLabel = model.model_type === "proxy" ? "Proxy" : "Native";
   const typeIntent = model.model_type === "proxy" ? "accent" : "info";
   const statusLabel = model.is_enabled ? "Enabled" : "Disabled";
   const statusIntent = model.is_enabled ? "success" : "muted";
-
-  if (model.model_type === "proxy" && model.redirect_to) {
-    detailTiles.push({
-      label: "Target",
-      value: <span className="font-mono text-[13px]">{model.redirect_to}</span>,
-    });
-  }
-
-  if (activeColumns.strategy && model.model_type === "native" && model.loadbalance_strategy) {
-    detailTiles.push({
-      label: "Strategy",
-      value: (
-        <div className="space-y-0.5">
-          <p>{model.loadbalance_strategy.name}</p>
-          <p className="text-xs font-normal text-muted-foreground">
-            {formatLabel(model.loadbalance_strategy.strategy_type)}
-          </p>
-        </div>
-      ),
-    });
-  }
-
-  if (activeColumns.endpoints) {
-    detailTiles.push({
-      label: "Connections",
-      value: (
-        <span className="tabular-nums">
-          {model.active_connection_count}/{model.connection_count}
-        </span>
-      ),
-    });
-  }
-
-  if (activeColumns.success) {
-    detailTiles.push({
-      label: "Success · 24h",
-      value: metricsLoading && !metrics24h ? "..." : successRate === null ? "-" : `${successRate.toFixed(1)}%`,
-      valueClassName: metricsLoading && !metrics24h ? "text-muted-foreground" : getSuccessRateClass(successRate),
-    });
-  }
-
-  if (activeColumns.p95) {
-    detailTiles.push({
-      label: "P95 · 24h",
-      value: metricsLoading ? "..." : formatLatencyForDisplay(p95LatencyMs),
-      valueClassName: "tabular-nums text-muted-foreground",
-    });
-  }
-
-  if (activeColumns.requests) {
-    detailTiles.push({
-      label: "Requests · 24h",
-      value: metricsLoading && !metrics24h ? "..." : requestCount > 0 ? requestCount.toLocaleString() : "-",
-      valueClassName: "tabular-nums text-muted-foreground",
-    });
-  }
-
-  if (activeColumns.spend) {
-    detailTiles.push({
-      label: "Spend · 30d",
-      value: metricsLoading ? "..." : formatMoneyMicros(spend30dMicros, "$", undefined, 2, 6),
-      valueClassName: "tabular-nums",
-    });
-  }
-
-  const title = model.display_name || model.model_id;
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.target !== event.currentTarget) {
-      return;
-    }
-
-    if (event.key !== "Enter" && event.key !== " ") {
-      return;
-    }
-
-    event.preventDefault();
-    onNavigate(model.id);
-  };
+  const showModelId = Boolean(model.display_name && model.display_name !== model.model_id);
+  const strategySummary = model.loadbalance_strategy
+    ? `${model.loadbalance_strategy.name} · ${formatLabel(model.loadbalance_strategy.strategy_type)}`
+    : "Strategy not configured";
+  const successRateText = metricsLoading && !metrics24h ? "… success" : successRate === null ? "— success" : `${successRate.toFixed(1)}% success`;
+  const p95LatencyText = metricsLoading ? "… p95" : `${formatLatencyForDisplay(p95LatencyMs)} p95`;
+  const requestCountText =
+    metricsLoading && !metrics24h ? "… req" : requestCount > 0 ? `${requestCount.toLocaleString()} req` : "— req";
+  const spend30dText =
+    metricsLoading ? "… spend" : `${formatMoneyMicros(spend30dMicros, "$", undefined, 2, 6)} spend`;
 
   return (
-    <Card
-      role="link"
-      tabIndex={0}
-      className="relative gap-0 overflow-hidden border-border/70 bg-gradient-to-br from-card via-card to-muted/20 shadow-none transition-[border-color,box-shadow,transform] hover:border-primary/20 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-      onClick={() => onNavigate(model.id)}
-      onKeyDown={handleKeyDown}
-    >
-      <div className="absolute right-3 top-3 z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(event) => event.stopPropagation()}>
-            <Button
-              aria-label={`Open actions for ${title}`}
-              variant="ghost"
-              size="icon"
-              className={cardActionButtonClassName}
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
-            <DropdownMenuItem onClick={() => handleOpenDialog(model)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setDeleteTarget(model)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      <div className="flex flex-col gap-4 p-4 pr-14">
-        <div className="min-w-0 space-y-1.5">
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-foreground" title={title}>
-              {title}
-            </h3>
-            <p className="truncate font-mono text-[11px] text-muted-foreground" title={model.model_id}>
+    <div className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/25">
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <Link
+            to={`/models/${model.id}`}
+            className="min-w-0 max-w-full truncate rounded-md text-base font-semibold text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50"
+            title={title}
+          >
+            {title}
+          </Link>
+          {showModelId ? (
+            <span className="truncate font-mono text-xs text-muted-foreground" title={model.model_id}>
               {model.model_id}
-            </p>
-          </div>
-
-          {showInlineMetadata ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {activeColumns.type ? <TypeBadge label={typeLabel} intent={typeIntent} /> : null}
-              {activeColumns.status ? <StatusBadge label={statusLabel} intent={statusIntent} /> : null}
-            </div>
+            </span>
           ) : null}
+          <CopyButton
+            aria-label={`Copy model ID ${model.model_id}`}
+            className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground"
+            errorMessage="Failed to copy model id"
+            label=""
+            size="icon-sm"
+            successMessage="Model ID copied to clipboard"
+            targetLabel="Model ID"
+            value={model.model_id}
+          />
         </div>
 
-        {detailTiles.length > 0 ? (
-          <div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
-            {detailTiles.map((tile) => (
-              <DetailTile
-                key={tile.label}
-                label={tile.label}
-                value={tile.value}
-                valueClassName={tile.valueClassName}
-              />
-            ))}
+        <div className="flex min-w-0 items-stretch gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            {model.model_type === "proxy" && model.redirect_to ? (
+              <CompactMetaBadge>{`Target ${model.redirect_to}`}</CompactMetaBadge>
+            ) : null}
+
+            {model.model_type === "native" ? <CompactMetaBadge>{strategySummary}</CompactMetaBadge> : null}
+            <TypeBadge label={typeLabel} intent={typeIntent} />
+            <StatusBadge label={statusLabel} intent={statusIntent} />
           </div>
-        ) : null}
+
+          <Separator orientation="vertical" className="self-stretch bg-border/70" />
+
+          <div className="flex shrink-0 items-center gap-x-3 text-[11px] text-muted-foreground">
+            <span className="tabular-nums text-foreground/90">
+              {model.active_connection_count}/{model.connection_count} active
+            </span>
+            <span
+              className={cn(
+                "tabular-nums",
+                metricsLoading && !metrics24h ? "text-muted-foreground" : getSuccessRateClass(successRate)
+              )}
+            >
+              {successRateText}
+            </span>
+            <span className="tabular-nums">{p95LatencyText}</span>
+            <span className="tabular-nums">{requestCountText}</span>
+            <span className="tabular-nums text-foreground/90">{spend30dText}</span>
+          </div>
+        </div>
       </div>
-    </Card>
+
+      <div className="flex shrink-0 items-center justify-end gap-2 pt-0.5">
+        <IconActionGroup>
+          <IconActionButton
+            aria-label={`View model details for ${title}`}
+            size="icon-sm"
+            onClick={() => onNavigate(model.id)}
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </IconActionButton>
+          <IconActionButton
+            aria-label={`Delete model ${title}`}
+            size="icon-sm"
+            destructive
+            onClick={() => setDeleteTarget(model)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </IconActionButton>
+        </IconActionGroup>
+      </div>
+    </div>
   );
 }
 
 function ProviderSection({
-  activeColumns,
   group,
-  handleOpenDialog,
+  isExpanded,
   metricsLoading,
   modelMetrics24h,
   modelSpend30dMicros,
   onNavigate,
+  onOpenChange,
+  search,
   setDeleteTarget,
-}: SharedRenderProps & { group: GroupedProvider }) {
-  const [open, setOpen] = useState(true);
-  const enabledCount = group.models.filter((model) => model.is_enabled).length;
-  const proxyCount = group.models.filter((model) => model.model_type === "proxy").length;
+}: SharedRenderProps & {
+  group: ProviderGroup;
+  isExpanded: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  search: string;
+}) {
+  const modelCountLabel = `${group.models.length} ${group.models.length === 1 ? "model" : "models"}`;
+  const isSearchActive = search.trim().length > 0;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <section>
-        <CollapsibleTrigger className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/20">
-          <div className="flex min-w-0 items-center gap-3">
-            <ChevronRight className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} />
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/35 text-foreground">
-              <ProviderIcon providerType={group.providerType} size={18} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold">{formatProviderType(group.providerType)}</span>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  {pluralizeModels(group.models.length)}
-                </span>
+    <Collapsible open={isExpanded} onOpenChange={onOpenChange}>
+      <Card className="gap-0 overflow-hidden border-border/70 bg-card py-0 shadow-none">
+        <CollapsibleTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={isSearchActive}
+            className="h-auto w-full justify-between gap-3 rounded-none px-4 py-3 hover:bg-muted/30 disabled:cursor-default disabled:opacity-100 disabled:hover:bg-transparent"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/35 text-foreground">
+                <ProviderIcon providerType={group.providerType} size={16} />
               </div>
-              <p className="text-xs text-muted-foreground">
-                {enabledCount} enabled • {proxyCount} proxy
-              </p>
+
+              <div className="min-w-0 text-left">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-foreground">{group.providerLabel}</span>
+                  <Badge
+                    variant="outline"
+                    className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"
+                  >
+                    {modelCountLabel}
+                  </Badge>
+                </div>
+              </div>
             </div>
-          </div>
+
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                isExpanded && "rotate-180"
+              )}
+            />
+          </Button>
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="border-t bg-muted/10">
-          <div className="grid gap-3 px-5 py-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <CollapsibleContent className="border-t border-border/60">
+          <div className="divide-y divide-border/60">
             {group.models.map((model) => (
-              <ModelCard
+              <ModelRow
                 key={model.id}
-                activeColumns={activeColumns}
-                handleOpenDialog={handleOpenDialog}
                 metricsLoading={metricsLoading}
                 model={model}
                 modelMetrics24h={modelMetrics24h}
@@ -341,38 +304,14 @@ function ProviderSection({
             ))}
           </div>
         </CollapsibleContent>
-      </section>
+      </Card>
     </Collapsible>
   );
 }
 
-type Props = {
-  activeColumns: {
-    provider: boolean;
-    type: boolean;
-    strategy: boolean;
-    endpoints: boolean;
-    success: boolean;
-    p95: boolean;
-    requests: boolean;
-    spend: boolean;
-    status: boolean;
-  };
-  filtered: ModelConfigListItem[];
-  handleOpenDialog: (model?: ModelConfigListItem) => void;
-  hasActiveFilters: boolean;
-  metricsLoading: boolean;
-  modelMetrics24h: Record<number, ModelDerivedMetric>;
-  modelSpend30dMicros: Record<number, number>;
-  search: string;
-  setDeleteTarget: (model: ModelConfigListItem) => void;
-};
-
 export function ModelsTable({
-  activeColumns,
   filtered,
   handleOpenDialog,
-  hasActiveFilters,
   metricsLoading,
   modelMetrics24h,
   modelSpend30dMicros,
@@ -380,14 +319,15 @@ export function ModelsTable({
   setDeleteTarget,
 }: Props) {
   const navigate = useNavigate();
-  const groups = groupModels(filtered);
+  const providerGroups = useMemo(() => groupModels(filtered), [filtered]);
+  const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
 
   if (filtered.length === 0) {
     return (
       <EmptyState
         icon={<Server className="h-6 w-6" />}
-        title={hasActiveFilters ? "No models match filters" : "No models configured"}
-        description={search ? "Try adjusting your search or filters" : "Create your first model to get started"}
+        title={search ? "No models match search" : "No models configured"}
+        description={search ? "Try a different model name or ID" : "Create your first model to get started"}
         action={
           !search ? (
             <Button size="sm" onClick={() => handleOpenDialog()}>
@@ -401,17 +341,23 @@ export function ModelsTable({
   }
 
   return (
-    <div className="divide-y">
-      {groups.map((group) => (
+    <div className="grid gap-3 p-4">
+      {providerGroups.map((group) => (
         <ProviderSection
           key={group.providerType}
-          activeColumns={activeColumns}
           group={group}
-          handleOpenDialog={handleOpenDialog}
+          isExpanded={search.trim().length > 0 || (expandedProviders[group.providerType] ?? true)}
           metricsLoading={metricsLoading}
           modelMetrics24h={modelMetrics24h}
           modelSpend30dMicros={modelSpend30dMicros}
           onNavigate={(modelId) => navigate(`/models/${modelId}`)}
+          onOpenChange={(isOpen) =>
+            setExpandedProviders((currentState) => ({
+              ...currentState,
+              [group.providerType]: isOpen,
+            }))
+          }
+          search={search}
           setDeleteTarget={setDeleteTarget}
         />
       ))}

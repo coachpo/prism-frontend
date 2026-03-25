@@ -1,6 +1,6 @@
 import { Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { IconActionButton, IconActionGroup } from "@/components/IconActionGroup";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ProxyApiKey } from "@/lib/types";
 import {
@@ -62,8 +62,6 @@ export function ProxyKeyCard({
   onRotate,
   onDelete,
 }: Props) {
-  const actionButtonClassName =
-    "h-8 w-8 shrink-0 rounded-full border border-transparent bg-background/70 text-muted-foreground transition-colors hover:border-border hover:bg-background hover:text-foreground";
   const showStatusBadge = !item.is_active || authEnabled;
   const statusLabel = getRuntimeStatusLabel(item);
   const statusTone = getRuntimeStatusTone(item, authEnabled);
@@ -94,44 +92,36 @@ export function ProxyKeyCard({
             </div>
 
             <div className="flex shrink-0 items-center justify-end">
-              <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-border/70 bg-muted/35 p-0.5">
-                <Button
+              <IconActionGroup>
+                <IconActionButton
                   type="button"
-                  variant="ghost"
                   size="icon-sm"
                   aria-label={`Edit proxy key ${item.name}`}
-                  className={actionButtonClassName}
                   disabled={rotating || deleting}
                   onClick={onEdit}
                 >
                   <Pencil className="h-3.5 w-3.5" />
-                </Button>
-                <Button
+                </IconActionButton>
+                <IconActionButton
                   type="button"
-                  variant="ghost"
                   size="icon-sm"
                   aria-label={`Rotate proxy key ${item.name}`}
-                  className={actionButtonClassName}
                   disabled={rotating || deleting}
                   onClick={onRotate}
                 >
                   <RotateCcw className={cn("h-3.5 w-3.5", rotating ? "animate-spin" : undefined)} />
-                </Button>
-                <Button
+                </IconActionButton>
+                <IconActionButton
                   type="button"
-                  variant="ghost"
                   size="icon-sm"
                   aria-label={`Delete proxy key ${item.name}`}
-                  className={cn(
-                    actionButtonClassName,
-                    "text-destructive hover:border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
-                  )}
+                  destructive
                   disabled={rotating || deleting}
                   onClick={onDelete}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+                </IconActionButton>
+              </IconActionGroup>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { Loader2, Pencil, Plus, Scale, Trash2 } from "lucide-react";
+import { IconActionButton, IconActionGroup } from "@/components/IconActionGroup";
 import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,31 +107,30 @@ export function LoadbalanceStrategiesTable({
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={isPreparingEdit}
-                            onClick={() => {
-                              void onEdit(strategy);
-                            }}
-                          >
-                            {isPreparingEdit ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Pencil className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">Edit</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => onDelete(strategy)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
+                          <IconActionGroup>
+                            <IconActionButton
+                              size="icon"
+                              disabled={isPreparingEdit}
+                              onClick={() => {
+                                void onEdit(strategy);
+                              }}
+                            >
+                              {isPreparingEdit ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Pencil className="h-4 w-4" />
+                              )}
+                              <span className="sr-only">Edit</span>
+                            </IconActionButton>
+                            <IconActionButton
+                              size="icon"
+                              destructive
+                              onClick={() => onDelete(strategy)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </IconActionButton>
+                          </IconActionGroup>
                         </div>
                       </TableCell>
                     </TableRow>
