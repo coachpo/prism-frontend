@@ -9,18 +9,27 @@ import {
   FileText,
   Scale,
 } from "lucide-react";
+import type { Messages } from "@/i18n/messages/en";
 
-export const NAV_LINKS = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/models", icon: Server, label: "Models" },
-  { to: "/endpoints", icon: Plug, label: "Endpoints" },
-  { to: "/loadbalance-strategies", icon: Scale, label: "Loadbalance Strategies" },
-  { to: "/pricing-templates", icon: Coins, label: "Pricing Templates" },
-  { to: "/statistics", icon: BarChart3, label: "Statistics" },
-  { to: "/request-logs", icon: FileText, label: "Request Logs" },
-  { to: "/proxy-api-keys", icon: KeyRound, label: "API Keys" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+interface NavLinkConfig {
+  icon: typeof LayoutDashboard;
+  labelKey: keyof Messages["nav"];
+  to: string;
+}
+
+export const NAV_LINKS: NavLinkConfig[] = [
+  { to: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
+  { to: "/models", icon: Server, labelKey: "models" },
+  { to: "/endpoints", icon: Plug, labelKey: "endpoints" },
+  { to: "/loadbalance-strategies", icon: Scale, labelKey: "loadbalanceStrategies" },
+  { to: "/pricing-templates", icon: Coins, labelKey: "pricingTemplates" },
+  { to: "/statistics", icon: BarChart3, labelKey: "statistics" },
+  { to: "/request-logs", icon: FileText, labelKey: "requestLogs" },
+  { to: "/proxy-api-keys", icon: KeyRound, labelKey: "apiKeys" },
+  { to: "/settings", icon: Settings, labelKey: "settings" },
 ];
+
+export type NavLabelKey = keyof Messages["nav"];
 
 export const PROFILE_SCOPED_PREFIXES = [
   "/models",

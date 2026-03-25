@@ -1,4 +1,6 @@
 import { Outlet } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { useLocale } from "@/i18n/useLocale";
 import { ProfileDialogs } from "./app-layout/ProfileDialogs";
 import { AppHeader } from "./app-layout/AppHeader";
 import { AppSidebar } from "./app-layout/AppSidebar";
@@ -6,12 +8,15 @@ import { useAppLayoutState } from "./app-layout/useAppLayoutState";
 
 export function AppLayout() {
   const state = useAppLayoutState();
+  const { messages } = useLocale();
 
   return (
     <>
       <div className="flex h-screen w-full bg-background text-foreground">
         {state.sidebarOpen ? (
-          <div
+          <button
+            type="button"
+            aria-label={messages.shell.closeSidebar}
             className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
             onClick={() => state.setSidebarOpen(false)}
           />
@@ -20,13 +25,20 @@ export function AppLayout() {
         <AppSidebar
           activeProfileName={state.activeProfileName}
           closeProfileSwitcher={state.closeProfileSwitcher}
+          desktopSidebarCollapsed={state.desktopSidebarCollapsed}
           hasMismatch={state.hasMismatch}
           selectedProfileName={state.selectedProfileName}
           setSidebarOpen={state.setSidebarOpen}
           sidebarOpen={state.sidebarOpen}
+          toggleDesktopSidebar={state.toggleDesktopSidebar}
         />
 
-        <div className="flex flex-1 flex-col lg:ml-[320px]">
+        <div
+          className={cn(
+            "flex flex-1 flex-col transition-[margin] duration-200 ease-in-out",
+            state.desktopSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[320px]"
+          )}
+        >
           <AppHeader
             activeProfileName={state.activeProfileName}
             authEnabled={state.authEnabled}

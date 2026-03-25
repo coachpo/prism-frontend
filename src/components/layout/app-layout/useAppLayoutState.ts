@@ -24,6 +24,7 @@ export function useAppLayoutState() {
   } = useProfileContext();
 
   const [sidebarOpen, setSidebarOpenState] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
 
   const canCreateProfile = profiles.length < MAX_PROFILES;
   const selectedIsActive =
@@ -82,6 +83,10 @@ export function useAppLayoutState() {
     setSidebarOpenState(open);
   };
 
+  const toggleDesktopSidebar = () => {
+    setDesktopSidebarCollapsed((current) => !current);
+  };
+
   const handleManageProfiles = () => {
     switcherState.closeProfileSwitcher();
     navigate("/settings");
@@ -100,6 +105,7 @@ export function useAppLayoutState() {
     activeProfileName,
     authEnabled,
     canCreateProfile,
+    desktopSidebarCollapsed,
     deleteDisabledReason,
     editDisabledReason,
     handleLogout,
@@ -112,6 +118,7 @@ export function useAppLayoutState() {
     selectedProfileName,
     setSidebarOpen,
     sidebarOpen,
+    toggleDesktopSidebar,
     username,
     ...switcherState,
     ...dialogState,
