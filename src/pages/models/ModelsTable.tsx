@@ -175,7 +175,7 @@ function ModelRow({
           ) : null}
           <CopyButton
             aria-label={`Copy model ID ${model.model_id}`}
-            className="h-5 w-5 rounded-md text-muted-foreground hover:text-foreground"
+            className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground"
             errorMessage="Failed to copy model id"
             label=""
             size="icon-xs"
