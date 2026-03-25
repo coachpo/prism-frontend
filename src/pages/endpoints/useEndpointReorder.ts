@@ -13,6 +13,7 @@ import {
 import { arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { getCurrentLocale } from "@/i18n/format";
 import { setSharedEndpoints } from "@/lib/referenceData";
 import type { Endpoint } from "@/lib/types";
 
@@ -88,7 +89,13 @@ export function useEndpointReorder({ endpoints, revision, setEndpoints }: UseEnd
     } catch (error) {
       setEndpoints(previousEndpoints);
       setSharedEndpoints(revision, previousEndpoints);
-      toast.error(error instanceof Error ? error.message : "Failed to reorder endpoints");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : getCurrentLocale() === "zh-CN"
+            ? "重新排序端点失败"
+            : "Failed to reorder endpoints",
+      );
     } finally {
       setReorderInFlight(false);
     }

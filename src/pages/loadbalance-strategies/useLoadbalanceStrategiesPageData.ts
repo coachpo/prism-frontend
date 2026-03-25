@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
+import { getCurrentLocale } from "@/i18n/format";
 import {
   getSharedLoadbalanceStrategies,
   setSharedLoadbalanceStrategies,
@@ -42,12 +43,13 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
   );
 
   const fetchLoadbalanceStrategies = useCallback(async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     setLoadbalanceStrategiesLoading(true);
     try {
       const data = await getSharedLoadbalanceStrategies(revision);
       setLoadbalanceStrategies(sortLoadbalanceStrategies(data));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load loadbalance strategies");
+      toast.error(error instanceof Error ? error.message : isChinese ? "加载负载均衡策略失败" : "Failed to load loadbalance strategies");
     } finally {
       setLoadbalanceStrategiesLoading(false);
     }
@@ -72,6 +74,7 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
   };
 
   const handleEditLoadbalanceStrategy = async (strategySummary: LoadbalanceStrategy) => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     setLoadbalanceStrategyPreparingEditId(strategySummary.id);
     try {
       const strategy = await api.loadbalanceStrategies.get(strategySummary.id);
@@ -79,13 +82,14 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
       setLoadbalanceStrategyForm(loadbalanceStrategyFormStateFromStrategy(strategy));
       setLoadbalanceStrategyDialogOpen(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load loadbalance strategy");
+      toast.error(error instanceof Error ? error.message : isChinese ? "加载负载均衡策略失败" : "Failed to load loadbalance strategy");
     } finally {
       setLoadbalanceStrategyPreparingEditId(null);
     }
   };
 
   const handleSaveLoadbalanceStrategy = async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     const validationError = getLoadbalanceStrategyFormValidationError(loadbalanceStrategyForm);
     if (validationError) {
       toast.error(validationError);
@@ -104,17 +108,17 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
             strategy.id === editingLoadbalanceStrategy.id ? updated : strategy,
           ),
         );
-        toast.success("Loadbalance strategy updated");
+        toast.success(isChinese ? "负载均衡策略已更新" : "Loadbalance strategy updated");
       } else {
         const createPayload: LoadbalanceStrategyCreate = payload;
         const created = await api.loadbalanceStrategies.create(createPayload);
         commitLoadbalanceStrategies((current) => [created, ...current]);
-        toast.success("Loadbalance strategy created");
+        toast.success(isChinese ? "负载均衡策略已创建" : "Loadbalance strategy created");
       }
 
       closeLoadbalanceStrategyDialog();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save loadbalance strategy");
+      toast.error(error instanceof Error ? error.message : isChinese ? "保存负载均衡策略失败" : "Failed to save loadbalance strategy");
     } finally {
       setLoadbalanceStrategySaving(false);
     }
@@ -125,6 +129,7 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
   };
 
   const handleDeleteLoadbalanceStrategy = async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     if (!deleteLoadbalanceStrategyConfirm) {
       return;
     }
@@ -135,7 +140,7 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
       commitLoadbalanceStrategies((current) =>
         current.filter((strategy) => strategy.id !== deleteLoadbalanceStrategyConfirm.id),
       );
-      toast.success("Loadbalance strategy deleted");
+      toast.success(isChinese ? "负载均衡策略已删除" : "Loadbalance strategy deleted");
       setDeleteLoadbalanceStrategyConfirm(null);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
@@ -151,7 +156,7 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
           );
         }
       }
-      toast.error(error instanceof Error ? error.message : "Failed to delete loadbalance strategy");
+      toast.error(error instanceof Error ? error.message : isChinese ? "删除负载均衡策略失败" : "Failed to delete loadbalance strategy");
     } finally {
       setLoadbalanceStrategyDeleting(false);
     }

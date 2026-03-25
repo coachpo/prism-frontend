@@ -1,4 +1,5 @@
 import { Boxes, Link2, Sparkles } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { MetricCard } from "@/components/MetricCard";
 
 interface EndpointsSummaryCardsProps {
@@ -14,6 +15,7 @@ export function EndpointsSummaryCards({
   uniqueAttachedModels,
   endpointsInUse,
 }: EndpointsSummaryCardsProps) {
+  const { locale } = useLocale();
   const metricCardClassName = [
     "[&_[data-slot=metric-label]]:text-[11px]",
     "[&_[data-slot=metric-label]]:font-semibold",
@@ -33,21 +35,25 @@ export function EndpointsSummaryCards({
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <MetricCard
-        label="Configured Endpoints"
+        label={locale === "zh-CN" ? "已配置端点" : "Configured Endpoints"}
         value={endpointsCount}
         icon={<Boxes className="h-4 w-4" />}
         className={metricCardClassName}
       />
       <MetricCard
-        label="Attached Models"
+        label={locale === "zh-CN" ? "已绑定模型" : "Attached Models"}
         value={totalAttachedModels}
         icon={<Link2 className="h-4 w-4" />}
         className={metricCardClassName}
       />
       <MetricCard
-        label="Unique Models In Use"
+        label={locale === "zh-CN" ? "使用中的唯一模型" : "Unique Models In Use"}
         value={uniqueAttachedModels}
-        detail={`${endpointsInUse} of ${endpointsCount} endpoints mapped`}
+        detail={
+          locale === "zh-CN"
+            ? `${endpointsCount} 个端点中有 ${endpointsInUse} 个已映射`
+            : `${endpointsInUse} of ${endpointsCount} endpoints mapped`
+        }
         icon={<Sparkles className="h-4 w-4" />}
         className={`${metricCardClassName} sm:col-span-2 lg:col-span-1 [&_[data-slot=metric-detail]]:text-[11px]`}
       />

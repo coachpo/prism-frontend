@@ -1,5 +1,6 @@
 import { CircleHelp } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
+import { useLocale } from "@/i18n/useLocale";
 import { SwitchController } from "@/components/SwitchController";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,6 +75,7 @@ export function LoadbalanceStrategyDialog({
   open,
   setLoadbalanceStrategyForm,
 }: LoadbalanceStrategyDialogProps) {
+  const { locale } = useLocale();
   const setNumericField = (
     field:
       | "failover_cooldown_seconds"
@@ -117,7 +119,13 @@ export function LoadbalanceStrategyDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {editingLoadbalanceStrategy ? "Edit Loadbalance Strategy" : "Add Loadbalance Strategy"}
+            {editingLoadbalanceStrategy
+              ? locale === "zh-CN"
+                ? "编辑负载均衡策略"
+                : "Edit Loadbalance Strategy"
+              : locale === "zh-CN"
+                ? "新增负载均衡策略"
+                : "Add Loadbalance Strategy"}
           </DialogTitle>
           <DialogDescription>
             Configure reusable routing behavior for native models in this profile.
@@ -329,10 +337,16 @@ export function LoadbalanceStrategyDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {locale === "zh-CN" ? "取消" : "Cancel"}
           </Button>
           <Button onClick={() => void onSave()} disabled={loadbalanceStrategySaving}>
-            {loadbalanceStrategySaving ? "Saving..." : "Save Strategy"}
+            {loadbalanceStrategySaving
+              ? locale === "zh-CN"
+                ? "保存中..."
+                : "Saving..."
+              : locale === "zh-CN"
+                ? "保存策略"
+                : "Save Strategy"}
           </Button>
         </DialogFooter>
       </DialogContent>

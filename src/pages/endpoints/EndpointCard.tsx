@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { IconActionButton, IconActionGroup } from "@/components/IconActionGroup";
+import { useLocale } from "@/i18n/useLocale";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { Endpoint, ModelConfigListItem } from "@/lib/types";
@@ -53,6 +54,7 @@ export function EndpointCardView({
   onDuplicate,
   onEdit,
 }: EndpointCardViewProps) {
+  const { locale } = useLocale();
   const maskedKey = getMaskedApiKey(endpoint);
   const createdAt = formatTime(endpoint.created_at, {
     year: "numeric",
@@ -80,7 +82,7 @@ export function EndpointCardView({
               (reorderDisabled || isOverlay) && "cursor-default opacity-60",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             )}
-            aria-label={`Drag to reorder endpoint ${endpoint.name}`}
+            aria-label={locale === "zh-CN" ? `拖动以重新排序端点 ${endpoint.name}` : `Drag to reorder endpoint ${endpoint.name}`}
             {...(dragHandleAttributes ?? {})}
             {...(dragHandleListeners ?? {})}
           >
@@ -91,7 +93,9 @@ export function EndpointCardView({
             <h3 className="truncate text-sm font-semibold text-foreground" title={endpoint.name}>
               {endpoint.name}
             </h3>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Created {createdAt}</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {locale === "zh-CN" ? `创建于 ${createdAt}` : `Created ${createdAt}`}
+            </p>
           </div>
         </div>
 
@@ -114,7 +118,7 @@ export function EndpointCardView({
           <div className="flex min-w-0 shrink-0 items-center gap-2 sm:w-[160px] lg:w-[220px]">
             <div className="flex shrink-0 items-center gap-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Models
+                {locale === "zh-CN" ? "模型" : "Models"}
               </span>
               <Badge
                 variant="outline"
@@ -150,7 +154,9 @@ export function EndpointCardView({
                   ) : null}
                 </>
               ) : (
-                <span className="text-[10px] italic text-muted-foreground">None</span>
+                <span className="text-[10px] italic text-muted-foreground">
+                  {locale === "zh-CN" ? "无" : "None"}
+                </span>
               )}
             </div>
           </div>
@@ -159,11 +165,11 @@ export function EndpointCardView({
         {!isOverlay ? (
           <div className="flex shrink-0 items-center justify-end sm:ml-2">
             <IconActionGroup>
-              <IconActionButton
-                type="button"
-                size="icon"
-                aria-label={`Duplicate endpoint ${endpoint.name}`}
-                disabled={isDuplicating}
+                <IconActionButton
+                  type="button"
+                  size="icon"
+                  aria-label={locale === "zh-CN" ? `复制端点 ${endpoint.name}` : `Duplicate endpoint ${endpoint.name}`}
+                  disabled={isDuplicating}
                 onClick={() => {
                   void onDuplicate?.(endpoint);
                 }}
@@ -174,21 +180,21 @@ export function EndpointCardView({
                   <Copy className="h-3.5 w-3.5" />
                 )}
               </IconActionButton>
-              <IconActionButton
-                type="button"
-                size="icon"
-                aria-label={`Edit endpoint ${endpoint.name}`}
-                onClick={() => {
+                <IconActionButton
+                  type="button"
+                  size="icon"
+                  aria-label={locale === "zh-CN" ? `编辑端点 ${endpoint.name}` : `Edit endpoint ${endpoint.name}`}
+                  onClick={() => {
                   void onEdit?.(endpoint);
                 }}
               >
                 <Pencil className="h-3.5 w-3.5" />
               </IconActionButton>
-              <IconActionButton
-                type="button"
-                size="icon"
-                aria-label={`Delete endpoint ${endpoint.name}`}
-                destructive
+                <IconActionButton
+                  type="button"
+                  size="icon"
+                  aria-label={locale === "zh-CN" ? `删除端点 ${endpoint.name}` : `Delete endpoint ${endpoint.name}`}
+                  destructive
                 onClick={() => {
                   void onDelete?.(endpoint);
                 }}

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ export function DeletePricingTemplateDialog({
   pricingTemplateUsageLoading,
   pricingTemplateUsageRows,
 }: DeletePricingTemplateDialogProps) {
+  const { locale } = useLocale();
   return (
     <Dialog
       open={deletePricingTemplateConfirm !== null}
@@ -47,9 +49,11 @@ export function DeletePricingTemplateDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Pricing Template</DialogTitle>
+          <DialogTitle>{locale === "zh-CN" ? "删除价格模板" : "Delete Pricing Template"}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete the template &quot;{deletePricingTemplateConfirm?.name}&quot;?
+            {locale === "zh-CN"
+              ? `确定要删除模板“${deletePricingTemplateConfirm?.name}”吗？`
+              : `Are you sure you want to delete the template "${deletePricingTemplateConfirm?.name}"?`}
           </DialogDescription>
         </DialogHeader>
 
@@ -60,14 +64,16 @@ export function DeletePricingTemplateDialog({
         ) : deletePricingTemplateConflict ? (
           <div className="space-y-4 py-4">
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Cannot delete this template because it is currently used by {deletePricingTemplateConflict.length} connection(s).
+              {locale === "zh-CN"
+                ? `无法删除此模板，因为它当前正被 ${deletePricingTemplateConflict.length} 个连接使用。`
+                : `Cannot delete this template because it is currently used by ${deletePricingTemplateConflict.length} connection(s).`}
             </div>
             <div className="max-h-[200px] overflow-y-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Model</TableHead>
-                    <TableHead>Endpoint</TableHead>
+                    <TableHead>{locale === "zh-CN" ? "模型" : "Model"}</TableHead>
+                    <TableHead>{locale === "zh-CN" ? "端点" : "Endpoint"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -84,18 +90,20 @@ export function DeletePricingTemplateDialog({
         ) : pricingTemplateUsageRows.length > 0 ? (
           <div className="space-y-4 py-4">
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Cannot delete this template because it is currently used by {pricingTemplateUsageRows.length} connection(s).
+              {locale === "zh-CN"
+                ? `无法删除此模板，因为它当前正被 ${pricingTemplateUsageRows.length} 个连接使用。`
+                : `Cannot delete this template because it is currently used by ${pricingTemplateUsageRows.length} connection(s).`}
             </div>
           </div>
         ) : (
           <div className="py-4">
-            <p className="text-sm">This action cannot be undone.</p>
+            <p className="text-sm">{locale === "zh-CN" ? "此操作无法撤销。" : "This action cannot be undone."}</p>
           </div>
         )}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {locale === "zh-CN" ? "取消" : "Cancel"}
           </Button>
           <Button
             variant="destructive"
@@ -107,7 +115,13 @@ export function DeletePricingTemplateDialog({
               pricingTemplateUsageRows.length > 0
             }
           >
-            {pricingTemplateDeleting ? "Deleting..." : "Delete"}
+            {pricingTemplateDeleting
+              ? locale === "zh-CN"
+                ? "删除中..."
+                : "Deleting..."
+              : locale === "zh-CN"
+                ? "删除"
+                : "Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>

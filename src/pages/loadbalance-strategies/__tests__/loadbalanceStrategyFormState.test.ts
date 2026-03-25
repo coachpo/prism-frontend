@@ -150,4 +150,16 @@ describe("loadbalanceStrategyFormState", () => {
       }),
     ).toBe("Auth error cooldown must be a whole number of seconds");
   });
+
+  it("returns localized validation errors when the active locale is Chinese", () => {
+    document.documentElement.lang = "zh-CN";
+
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+        name: "",
+        strategy_type: "single",
+      }),
+    ).toBe("名称为必填项");
+  });
 });

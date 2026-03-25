@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ export function PricingTemplateDialog({
   pricingTemplateSaving,
   setPricingTemplateForm,
 }: PricingTemplateDialogProps) {
+  const { locale } = useLocale();
   return (
     <Dialog
       open={open}
@@ -55,9 +57,17 @@ export function PricingTemplateDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {editingPricingTemplate ? "Edit Pricing Template" : "Add Pricing Template"}
+            {editingPricingTemplate
+              ? locale === "zh-CN"
+                ? "编辑价格模板"
+                : "Edit Pricing Template"
+              : locale === "zh-CN"
+                ? "新增价格模板"
+                : "Add Pricing Template"}
           </DialogTitle>
-          <DialogDescription>Configure pricing rates per 1M tokens.</DialogDescription>
+          <DialogDescription>
+            {locale === "zh-CN" ? "配置每 100 万令牌的价格。" : "Configure pricing rates per 1M tokens."}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
@@ -197,10 +207,16 @@ export function PricingTemplateDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {locale === "zh-CN" ? "取消" : "Cancel"}
           </Button>
           <Button onClick={() => void onSave()} disabled={pricingTemplateSaving}>
-            {pricingTemplateSaving ? "Saving..." : "Save Template"}
+            {pricingTemplateSaving
+              ? locale === "zh-CN"
+                ? "保存中..."
+                : "Saving..."
+              : locale === "zh-CN"
+                ? "保存模板"
+                : "Save Template"}
           </Button>
         </DialogFooter>
       </DialogContent>

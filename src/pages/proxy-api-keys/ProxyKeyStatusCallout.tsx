@@ -1,10 +1,12 @@
 import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 
 interface ProxyKeyStatusCalloutProps {
   authEnabled: boolean;
 }
 
 export function ProxyKeyStatusCallout({ authEnabled }: ProxyKeyStatusCalloutProps) {
+  const { locale } = useLocale();
   return (
     <div
       className={
@@ -22,13 +24,21 @@ export function ProxyKeyStatusCallout({ authEnabled }: ProxyKeyStatusCalloutProp
         <div className="space-y-1">
           <p className="text-sm font-medium">
             {authEnabled
-              ? "Keys are active for protected proxy traffic."
-              : "Keys are prepared but not enforced until authentication is enabled."}
+              ? locale === "zh-CN"
+                ? "这些密钥已用于受保护的代理流量。"
+                : "Keys are active for protected proxy traffic."
+              : locale === "zh-CN"
+                ? "这些密钥已准备就绪，但在启用身份验证前不会生效。"
+                : "Keys are prepared but not enforced until authentication is enabled."}
           </p>
           <p className="text-sm text-muted-foreground">
             {authEnabled
-              ? "Requests to `/v1/*` and `/v1beta/*` must present a valid key."
-              : "Enable authentication in Settings when you are ready to enforce these keys."}
+              ? locale === "zh-CN"
+                ? "发送到 `/v1/*` 和 `/v1beta/*` 的请求必须携带有效密钥。"
+                : "Requests to `/v1/*` and `/v1beta/*` must present a valid key."
+              : locale === "zh-CN"
+                ? "当你准备好强制使用这些密钥时，请在设置中启用身份验证。"
+                : "Enable authentication in Settings when you are ready to enforce these keys."}
           </p>
         </div>
       </div>

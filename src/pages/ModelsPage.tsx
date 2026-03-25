@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { useProfileContext } from "@/context/ProfileContext";
+import { useLocale } from "@/i18n/useLocale";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { useModelsPageData } from "./models/useModelsPageData";
 
 export function ModelsPage() {
   const { revision } = useProfileContext();
+  const { locale } = useLocale();
   const data = useModelsPageData(revision);
 
   if (data.loading) {
@@ -32,10 +34,17 @@ export function ModelsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Models" description={`${data.models.length} model configurations`}>
+      <PageHeader
+        title={locale === "zh-CN" ? "模型" : "Models"}
+        description={
+          locale === "zh-CN"
+            ? `${data.models.length} 个模型配置`
+            : `${data.models.length} model configurations`
+        }
+      >
         <Button size="sm" onClick={() => data.handleOpenDialog()}>
           <Plus className="mr-1.5 h-4 w-4" />
-          New Model
+          {locale === "zh-CN" ? "新建模型" : "New Model"}
         </Button>
       </PageHeader>
 

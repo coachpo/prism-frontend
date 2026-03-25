@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { LoadbalanceStrategy } from "@/lib/types";
 import { LoadbalanceStrategiesTable } from "../LoadbalanceStrategiesTable";
 
@@ -30,14 +31,16 @@ describe("LoadbalanceStrategiesTable", () => {
     const onDelete = vi.fn();
 
     render(
-      <LoadbalanceStrategiesTable
-        loadbalanceStrategies={[strategy]}
-        loadbalanceStrategiesLoading={false}
-        loadbalanceStrategyPreparingEditId={null}
-        onCreate={vi.fn()}
-        onDelete={onDelete}
-        onEdit={onEdit}
-      />
+      <LocaleProvider>
+        <LoadbalanceStrategiesTable
+          loadbalanceStrategies={[strategy]}
+          loadbalanceStrategiesLoading={false}
+          loadbalanceStrategyPreparingEditId={null}
+          onCreate={vi.fn()}
+          onDelete={onDelete}
+          onEdit={onEdit}
+        />
+      </LocaleProvider>
     );
 
     const editButton = screen.getByRole("button", { name: "Edit" });
@@ -59,14 +62,16 @@ describe("LoadbalanceStrategiesTable", () => {
     const strategy = buildStrategy();
 
     render(
-      <LoadbalanceStrategiesTable
-        loadbalanceStrategies={[strategy]}
-        loadbalanceStrategiesLoading={false}
-        loadbalanceStrategyPreparingEditId={strategy.id}
-        onCreate={vi.fn()}
-        onDelete={vi.fn()}
-        onEdit={vi.fn().mockResolvedValue(undefined)}
-      />
+      <LocaleProvider>
+        <LoadbalanceStrategiesTable
+          loadbalanceStrategies={[strategy]}
+          loadbalanceStrategiesLoading={false}
+          loadbalanceStrategyPreparingEditId={strategy.id}
+          onCreate={vi.fn()}
+          onDelete={vi.fn()}
+          onEdit={vi.fn().mockResolvedValue(undefined)}
+        />
+      </LocaleProvider>
     );
 
     const editButton = screen.getByRole("button", { name: "Edit" });
@@ -83,17 +88,67 @@ describe("LoadbalanceStrategiesTable", () => {
     const strategy = buildStrategy();
 
     render(
-      <LoadbalanceStrategiesTable
-        loadbalanceStrategies={[strategy]}
-        loadbalanceStrategiesLoading={false}
-        loadbalanceStrategyPreparingEditId={null}
-        onCreate={vi.fn()}
-        onDelete={vi.fn()}
-        onEdit={vi.fn().mockResolvedValue(undefined)}
-      />
+      <LocaleProvider>
+        <LoadbalanceStrategiesTable
+          loadbalanceStrategies={[strategy]}
+          loadbalanceStrategiesLoading={false}
+          loadbalanceStrategyPreparingEditId={null}
+          onCreate={vi.fn()}
+          onDelete={vi.fn()}
+          onEdit={vi.fn().mockResolvedValue(undefined)}
+        />
+      </LocaleProvider>
     );
 
     expect(screen.getByText("Threshold 4 • Base 45s • Max 720s")).toBeInTheDocument();
     expect(screen.getByText("Backoff ×3.5 • Jitter 0.35 • Auth 2400s")).toBeInTheDocument();
+  });
+
+  it("renders localized table copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    render(
+      <LocaleProvider>
+        <LoadbalanceStrategiesTable
+          loadbalanceStrategies={[]}
+          loadbalanceStrategiesLoading={false}
+          loadbalanceStrategyPreparingEditId={null}
+          onCreate={vi.fn()}
+          onDelete={vi.fn()}
+          onEdit={vi.fn().mockResolvedValue(undefined)}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByText("负载均衡策略")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "新增策略" })).toBeInTheDocument();
+    expect(screen.getByText("当前没有配置负载均衡策略。")) .toBeInTheDocument();
+  });
+
+  it("renders localized row headings and status copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+    const strategy = buildStrategy();
+
+    render(
+      <LocaleProvider>
+        <LoadbalanceStrategiesTable
+          loadbalanceStrategies={[strategy]}
+          loadbalanceStrategiesLoading={false}
+          loadbalanceStrategyPreparingEditId={null}
+          onCreate={vi.fn()}
+          onDelete={vi.fn()}
+          onEdit={vi.fn().mockResolvedValue(undefined)}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByText("名称")).toBeInTheDocument();
+    expect(screen.getByText("类型")).toBeInTheDocument();
+    expect(screen.getByText("恢复")).toBeInTheDocument();
+    expect(screen.getByText("已绑定模型")).toBeInTheDocument();
+    expect(screen.getByText("优先顺序，可选恢复")).toBeInTheDocument();
+    expect(screen.getByText("已启用")).toBeInTheDocument();
+    expect(screen.getByText(/阈值 4/)).toBeInTheDocument();
+    expect(screen.getByText(/退避 ×3.5/)).toBeInTheDocument();
   });
 });

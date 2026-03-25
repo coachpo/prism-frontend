@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useLocale } from "@/i18n/useLocale";
 import type { Endpoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +48,7 @@ export function EndpointDialog({
   title,
   submitLabel,
 }: EndpointDialogProps) {
+  const { locale } = useLocale();
   const form = useForm<EndpointFormValues>({
     resolver: zodResolver(endpointSchema),
     defaultValues: {
@@ -74,7 +76,7 @@ export function EndpointDialog({
 
   const handleSubmit = async (values: EndpointFormValues) => {
     if (!initialValues && !values.api_key.trim()) {
-      form.setError("api_key", { message: "API Key is required" });
+      form.setError("api_key", { message: locale === "zh-CN" ? "API 密钥为必填项" : "API Key is required" });
       return;
     }
     await onSubmit(values);
@@ -86,7 +88,7 @@ export function EndpointDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Configure the endpoint details.
+            {locale === "zh-CN" ? "配置端点详情。" : "Configure the endpoint details."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -96,9 +98,9 @@ export function EndpointDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>{locale === "zh-CN" ? "名称" : "Name"}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. OpenAI Production" {...field} />
+                    <Input placeholder={locale === "zh-CN" ? "例如：OpenAI 生产环境" : "e.g. OpenAI Production"} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -109,7 +111,7 @@ export function EndpointDialog({
               name="base_url"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Base URL</FormLabel>
+                  <FormLabel>{locale === "zh-CN" ? "基础 URL" : "Base URL"}</FormLabel>
                   <FormControl>
                     <Input placeholder="https://api.openai.com/v1" {...field} />
                   </FormControl>
@@ -122,7 +124,7 @@ export function EndpointDialog({
               name="api_key"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>API Key</FormLabel>
+                  <FormLabel>{locale === "zh-CN" ? "API 密钥" : "API Key"}</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
@@ -132,7 +134,7 @@ export function EndpointDialog({
                   </FormControl>
                   {initialValues ? (
                     <p className="text-xs text-muted-foreground">
-                      Leave blank to keep the existing stored key.
+                      {locale === "zh-CN" ? "留空可保留当前已存储的密钥。" : "Leave blank to keep the existing stored key."}
                     </p>
                   ) : null}
                   <FormMessage />

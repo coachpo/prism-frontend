@@ -1,16 +1,19 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { EndpointsSummaryCards } from "../EndpointsSummaryCards";
 
 describe("EndpointsSummaryCards", () => {
   it("renders the shared metric card content with the expected endpoint summary copy", () => {
     render(
-      <EndpointsSummaryCards
-        endpointsCount={4}
-        totalAttachedModels={9}
-        uniqueAttachedModels={3}
-        endpointsInUse={2}
-      />
+      <LocaleProvider>
+        <EndpointsSummaryCards
+          endpointsCount={4}
+          totalAttachedModels={9}
+          uniqueAttachedModels={3}
+          endpointsInUse={2}
+        />
+      </LocaleProvider>
     );
 
     expect(screen.getByText("Configured Endpoints")).toBeInTheDocument();

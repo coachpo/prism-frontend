@@ -3,6 +3,7 @@ import { ChevronDown, Eye, Plus, Server, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { CopyButton } from "@/components/CopyButton";
 import { EmptyState } from "@/components/EmptyState";
+import { useLocale } from "@/i18n/useLocale";
 import {
   IconActionButton,
   IconActionGroup,
@@ -136,26 +137,55 @@ function ModelRow({
   onNavigate,
   setDeleteTarget,
 }: SharedRenderProps & { model: ModelConfigListItem }) {
+  const { locale } = useLocale();
   const metrics24h = modelMetrics24h[model.id];
   const successRate = metrics24h?.success_rate ?? null;
   const requestCount = metrics24h?.request_count_24h ?? 0;
   const p95LatencyMs = metrics24h?.p95_latency_ms ?? null;
   const spend30dMicros = modelSpend30dMicros[model.id] ?? 0;
   const title = model.display_name || model.model_id;
-  const typeLabel = model.model_type === "proxy" ? "Proxy" : "Native";
+  const typeLabel = model.model_type === "proxy" ? (locale === "zh-CN" ? "代理" : "Proxy") : locale === "zh-CN" ? "原生" : "Native";
   const typeIntent = model.model_type === "proxy" ? "accent" : "info";
-  const statusLabel = model.is_enabled ? "Enabled" : "Disabled";
+  const statusLabel = model.is_enabled ? (locale === "zh-CN" ? "已启用" : "Enabled") : locale === "zh-CN" ? "已禁用" : "Disabled";
   const statusIntent = model.is_enabled ? "success" : "muted";
   const showModelId = Boolean(model.display_name && model.display_name !== model.model_id);
   const strategySummary = model.loadbalance_strategy
-    ? `${model.loadbalance_strategy.name} · ${formatLabel(model.loadbalance_strategy.strategy_type)}`
-    : "Strategy not configured";
-  const successRateText = metricsLoading && !metrics24h ? "… success" : successRate === null ? "— success" : `${successRate.toFixed(1)}% success`;
-  const p95LatencyText = metricsLoading ? "… p95" : `${formatLatencyForDisplay(p95LatencyMs)} p95`;
+    ? `${model.loadbalance_strategy.name} · ${locale === "zh-CN" && model.loadbalance_strategy.strategy_type === "failover" ? "故障转移" : formatLabel(model.loadbalance_strategy.strategy_type)}`
+    : locale === "zh-CN"
+      ? "未配置策略"
+      : "Strategy not configured";
+  const successRateText =
+    metricsLoading && !metrics24h
+      ? locale === "zh-CN"
+        ? "… 成功率"
+        : "… success"
+      : successRate === null
+        ? locale === "zh-CN"
+          ? "— 成功率"
+          : "— success"
+        : `${successRate.toFixed(1)}% ${locale === "zh-CN" ? "成功率" : "success"}`;
+  const p95LatencyText =
+    metricsLoading
+      ? locale === "zh-CN"
+        ? "… P95"
+        : "… p95"
+      : `${formatLatencyForDisplay(p95LatencyMs)} ${locale === "zh-CN" ? "P95" : "p95"}`;
   const requestCountText =
-    metricsLoading && !metrics24h ? "… req" : requestCount > 0 ? `${requestCount.toLocaleString()} req` : "— req";
+    metricsLoading && !metrics24h
+      ? locale === "zh-CN"
+        ? "… 请求"
+        : "… req"
+      : requestCount > 0
+        ? `${requestCount.toLocaleString()} ${locale === "zh-CN" ? "请求" : "req"}`
+        : locale === "zh-CN"
+          ? "— 请求"
+          : "— req";
   const spend30dText =
-    metricsLoading ? "… spend" : `${formatMoneyMicros(spend30dMicros, "$", undefined, 2, 6)} spend`;
+    metricsLoading
+      ? locale === "zh-CN"
+        ? "… 支出"
+        : "… spend"
+      : `${formatMoneyMicros(spend30dMicros, "$", undefined, 2, 6, locale as "en" | "zh-CN")} ${locale === "zh-CN" ? "支出" : "spend"}`;
 
   return (
     <div className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/25">
@@ -175,7 +205,7 @@ function ModelRow({
           ) : null}
           <CopyButton
             aria-label={`Copy model ID ${model.model_id}`}
-            className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground"
+            className="h-5 w-5 rounded-md text-muted-foreground hover:text-foreground"
             errorMessage="Failed to copy model id"
             label=""
             size="icon-xs"
@@ -187,8 +217,8 @@ function ModelRow({
 
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {model.model_type === "proxy" && model.redirect_to ? (
-              <CompactMetaBadge>{`Target ${model.redirect_to}`}</CompactMetaBadge>
+          {model.model_type === "proxy" && model.redirect_to ? (
+              <CompactMetaBadge>{locale === "zh-CN" ? `目标 ${model.redirect_to}` : `Target ${model.redirect_to}`}</CompactMetaBadge>
             ) : null}
 
             {model.model_type === "native" ? <CompactMetaBadge>{strategySummary}</CompactMetaBadge> : null}
@@ -198,7 +228,7 @@ function ModelRow({
 
           <InlineMetaDivider />
           <span className="tabular-nums text-xs text-foreground/90">
-            {model.active_connection_count}/{model.connection_count} active
+            {model.active_connection_count}/{model.connection_count} {locale === "zh-CN" ? "活跃" : "active"}
           </span>
           <InlineMetaDivider />
           <span
@@ -257,7 +287,11 @@ function ProviderSection({
   onOpenChange: (isOpen: boolean) => void;
   search: string;
 }) {
-  const modelCountLabel = `${group.models.length} ${group.models.length === 1 ? "model" : "models"}`;
+  const { locale } = useLocale();
+  const modelCountLabel =
+    locale === "zh-CN"
+      ? `${group.models.length} ${group.models.length === 1 ? "个模型" : "个模型"}`
+      : `${group.models.length} ${group.models.length === 1 ? "model" : "models"}`;
   const isSearchActive = search.trim().length > 0;
 
   return (
@@ -326,6 +360,7 @@ export function ModelsTable({
   search,
   setDeleteTarget,
 }: Props) {
+  const { locale } = useLocale();
   const navigate = useNavigate();
   const providerGroups = useMemo(() => groupModels(filtered), [filtered]);
   const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
@@ -334,13 +369,29 @@ export function ModelsTable({
     return (
       <EmptyState
         icon={<Server className="h-6 w-6" />}
-        title={search ? "No models match search" : "No models configured"}
-        description={search ? "Try a different model name or ID" : "Create your first model to get started"}
+        title={
+          locale === "zh-CN"
+            ? search
+              ? "没有匹配的模型"
+              : "还没有配置模型"
+            : search
+              ? "No models match search"
+              : "No models configured"
+        }
+        description={
+          locale === "zh-CN"
+            ? search
+              ? "请尝试不同的模型名称或模型 ID"
+              : "创建你的第一个模型以开始使用"
+            : search
+              ? "Try a different model name or ID"
+              : "Create your first model to get started"
+        }
         action={
           !search ? (
             <Button size="sm" onClick={() => handleOpenDialog()}>
               <Plus className="mr-1.5 h-4 w-4" />
-              New Model
+              {locale === "zh-CN" ? "新建模型" : "New Model"}
             </Button>
           ) : undefined
         }

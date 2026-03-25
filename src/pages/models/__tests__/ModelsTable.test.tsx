@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { ModelConfigListItem, Provider } from "@/lib/types";
 import { ModelsTable } from "../ModelsTable";
 
@@ -63,25 +64,27 @@ function renderTable({
   setDeleteTarget?: (model: ModelConfigListItem) => void;
 } = {}) {
   return render(
-    <MemoryRouter initialEntries={["/models"]}>
-      <Routes>
-        <Route
-          path="/models"
-          element={
-            <ModelsTable
-              filtered={filtered}
-              handleOpenDialog={handleOpenDialog}
-              metricsLoading={false}
-              modelMetrics24h={{}}
-              modelSpend30dMicros={{}}
-              search={search}
-              setDeleteTarget={setDeleteTarget}
-            />
-          }
-        />
-        <Route path="/models/:id" element={<div>Model detail route</div>} />
-      </Routes>
-    </MemoryRouter>
+    <LocaleProvider>
+      <MemoryRouter initialEntries={["/models"]}>
+        <Routes>
+          <Route
+            path="/models"
+            element={
+              <ModelsTable
+                filtered={filtered}
+                handleOpenDialog={handleOpenDialog}
+                metricsLoading={false}
+                modelMetrics24h={{}}
+                modelSpend30dMicros={{}}
+                search={search}
+                setDeleteTarget={setDeleteTarget}
+              />
+            }
+          />
+          <Route path="/models/:id" element={<div>Model detail route</div>} />
+        </Routes>
+      </MemoryRouter>
+    </LocaleProvider>
   );
 }
 
@@ -273,25 +276,27 @@ describe("ModelsTable", () => {
     expect(screen.queryByText("GPT-4o Mini")).not.toBeInTheDocument();
 
     rerender(
-      <MemoryRouter initialEntries={["/models"]}>
-        <Routes>
-          <Route
-            path="/models"
-            element={
-              <ModelsTable
-                filtered={allModels.filter((model) => model.provider.provider_type === "openai")}
-                handleOpenDialog={vi.fn()}
-                metricsLoading={false}
-                modelMetrics24h={{}}
-                modelSpend30dMicros={{}}
-                search="gpt"
-                setDeleteTarget={vi.fn()}
-              />
-            }
-          />
-          <Route path="/models/:id" element={<div>Model detail route</div>} />
-        </Routes>
-      </MemoryRouter>
+      <LocaleProvider>
+        <MemoryRouter initialEntries={["/models"]}>
+          <Routes>
+            <Route
+              path="/models"
+              element={
+                <ModelsTable
+                  filtered={allModels.filter((model) => model.provider.provider_type === "openai")}
+                  handleOpenDialog={vi.fn()}
+                  metricsLoading={false}
+                  modelMetrics24h={{}}
+                  modelSpend30dMicros={{}}
+                  search="gpt"
+                  setDeleteTarget={vi.fn()}
+                />
+              }
+            />
+            <Route path="/models/:id" element={<div>Model detail route</div>} />
+          </Routes>
+        </MemoryRouter>
+      </LocaleProvider>
     );
 
     expect(screen.getByText("GPT-4o Mini")).toBeInTheDocument();
@@ -315,5 +320,26 @@ describe("ModelsTable", () => {
 
     expect(copyButton).toHaveAttribute("data-size", "icon-xs");
     expect(copyButton).toHaveClass("h-5", "w-5");
+  });
+
+  it("renders localized empty-state copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    renderTable({ filtered: [], search: "" });
+
+    expect(screen.getByText("还没有配置模型")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "新建模型" })).toBeInTheDocument();
+  });
+
+  it("renders localized model row status and metric copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    renderTable();
+
+    expect(screen.getAllByText("原生").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("已启用").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/活跃/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/成功率/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/支出/).length).toBeGreaterThan(0);
   });
 });

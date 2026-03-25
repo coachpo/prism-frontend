@@ -88,6 +88,7 @@ describe("useEndpointsPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearSharedReferenceData();
+    document.documentElement.lang = "en";
     revisionState.value = 1;
     api.endpoints.list.mockResolvedValue([buildEndpoint()]);
     api.models.byEndpoints.mockResolvedValue({
@@ -313,6 +314,25 @@ describe("useEndpointsPageData", () => {
     expect(toast.error).toHaveBeenCalledWith(
       "Cannot delete endpoint that is referenced by connections"
     );
+  });
+
+  it("emits localized duplication success when the locale is Chinese", async () => {
+    document.documentElement.lang = "zh-CN";
+    api.endpoints.duplicate.mockResolvedValue(
+      buildEndpoint({ id: 11, name: "Primary Copy", position: 1 })
+    );
+
+    const { result } = renderHook(() => useEndpointsPageData(), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.handleDuplicateEndpoint(result.current.endpoints[0]);
+    });
+
+    expect(toast.success).toHaveBeenCalledWith("端点已复制为 Primary Copy");
   });
 
   it("reorders endpoints and rolls back when movePosition fails", async () => {

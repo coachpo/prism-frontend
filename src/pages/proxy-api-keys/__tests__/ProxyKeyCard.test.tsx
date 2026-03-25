@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { ProxyApiKey } from "@/lib/types";
 import { ProxyKeyCard } from "../ProxyKeyCard";
 
@@ -28,15 +29,17 @@ describe("ProxyKeyCard", () => {
     const onDelete = vi.fn();
 
     render(
-      <ProxyKeyCard
-        item={buildProxyKey()}
-        authEnabled={true}
-        rotating={false}
-        deleting={false}
-        onEdit={onEdit}
-        onRotate={onRotate}
-        onDelete={onDelete}
-      />
+      <LocaleProvider>
+        <ProxyKeyCard
+          item={buildProxyKey()}
+          authEnabled={true}
+          rotating={false}
+          deleting={false}
+          onEdit={onEdit}
+          onRotate={onRotate}
+          onDelete={onDelete}
+        />
+      </LocaleProvider>
     );
 
     const editButton = screen.getByRole("button", { name: "Edit proxy key Primary runtime key" });
@@ -61,15 +64,17 @@ describe("ProxyKeyCard", () => {
 
   it("disables all actions and spins the rotate icon while rotation is in progress", () => {
     render(
-      <ProxyKeyCard
-        item={buildProxyKey()}
-        authEnabled={true}
-        rotating={true}
-        deleting={false}
-        onEdit={vi.fn()}
-        onRotate={vi.fn()}
-        onDelete={vi.fn()}
-      />
+      <LocaleProvider>
+        <ProxyKeyCard
+          item={buildProxyKey()}
+          authEnabled={true}
+          rotating={true}
+          deleting={false}
+          onEdit={vi.fn()}
+          onRotate={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </LocaleProvider>
     );
 
     const editButton = screen.getByRole("button", { name: "Edit proxy key Primary runtime key" });
@@ -86,5 +91,27 @@ describe("ProxyKeyCard", () => {
     expect(deleteButton).toBeDisabled();
     expect(rotateIcon).not.toBeNull();
     expect(rotateIcon).toHaveClass("animate-spin");
+  });
+
+  it("renders localized proxy-key row copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    render(
+      <LocaleProvider>
+        <ProxyKeyCard
+          item={buildProxyKey()}
+          authEnabled={true}
+          rotating={false}
+          deleting={false}
+          onEdit={vi.fn()}
+          onRotate={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByRole("button", { name: "编辑代理密钥 Primary runtime key" })).toBeInTheDocument();
+    expect(screen.getByText("预览")).toBeInTheDocument();
+    expect(screen.getByText("最后使用")) .toBeInTheDocument();
   });
 });

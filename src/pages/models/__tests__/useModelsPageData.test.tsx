@@ -143,6 +143,7 @@ describe("useModelsPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearSharedReferenceData();
+    document.documentElement.lang = "en";
     api.loadbalanceStrategies.list.mockResolvedValue([buildLoadbalanceStrategy()]);
     api.models.list.mockResolvedValue([buildModelListItem()]);
     api.providers.list.mockResolvedValue([buildProvider()]);
@@ -371,5 +372,27 @@ describe("useModelsPageData", () => {
 
     expect(api.models.delete).toHaveBeenCalledWith(1);
     expect(result.current.models).toHaveLength(0);
+  });
+
+  it("emits localized validation and success toasts when the locale is Chinese", async () => {
+    document.documentElement.lang = "zh-CN";
+    api.models.create.mockResolvedValue(buildModelConfig({ id: 3, model_id: "new-model" }));
+
+    const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      result.current.handleOpenDialog();
+      result.current.setFormData((current) => ({ ...current, provider_id: 0 }));
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(createSubmitEvent());
+    });
+
+    expect((await import("sonner")).toast.error).toHaveBeenCalledWith("请选择提供商");
   });
 });

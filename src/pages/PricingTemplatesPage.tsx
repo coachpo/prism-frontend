@@ -1,4 +1,5 @@
 import { useProfileContext } from "@/context/ProfileContext";
+import { useLocale } from "@/i18n/useLocale";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { DeletePricingTemplateDialog } from "./pricing-templates/DeletePricingTemplateDialog";
@@ -8,6 +9,7 @@ import { PricingTemplateUsageDialog } from "./pricing-templates/PricingTemplateU
 import { usePricingTemplatesPageData } from "./pricing-templates/usePricingTemplatesPageData";
 
 export function PricingTemplatesPage() {
+  const { locale } = useLocale();
   const { selectedProfile, revision } = useProfileContext();
   const selectedProfileLabel = selectedProfile
     ? `${selectedProfile.name} (#${selectedProfile.id})`
@@ -17,8 +19,12 @@ export function PricingTemplatesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Pricing Templates"
-        description="Manage reusable pricing templates for models and endpoints"
+        title={locale === "zh-CN" ? "价格模板" : "Pricing Templates"}
+        description={
+          locale === "zh-CN"
+            ? "管理可在模型和端点间复用的价格模板"
+            : "Manage reusable pricing templates for models and endpoints"
+        }
       />
 
       <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-4">
@@ -27,10 +33,12 @@ export function PricingTemplatesPage() {
             variant="outline"
             className="w-fit border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300"
           >
-            Profile-scoped settings
+            {locale === "zh-CN" ? "配置档案作用域设置" : "Profile-scoped settings"}
           </Badge>
           <p className="text-sm text-amber-800 dark:text-amber-300">
-            Changes here affect {selectedProfileLabel} and its runtime traffic.
+            {locale === "zh-CN"
+              ? `此处的更改会影响 ${selectedProfileLabel} 及其运行时流量。`
+              : `Changes here affect ${selectedProfileLabel} and its runtime traffic.`}
           </p>
         </div>
       </div>

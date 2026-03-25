@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LoadbalanceStrategyDialog } from "../LoadbalanceStrategyDialog";
 
@@ -15,28 +16,30 @@ describe("LoadbalanceStrategyDialog", () => {
     );
 
     render(
-      <TooltipProvider>
-        <LoadbalanceStrategyDialog
-          editingLoadbalanceStrategy={null}
-          loadbalanceStrategyForm={{
-            name: "failover-primary",
-            strategy_type: "failover",
-            failover_recovery_enabled: true,
-            failover_cooldown_seconds: 60,
-            failover_failure_threshold: 2,
-            failover_backoff_multiplier: 2,
-            failover_max_cooldown_seconds: 900,
-            failover_jitter_ratio: 0.2,
-            failover_auth_error_cooldown_seconds: 1800,
-          }}
-          loadbalanceStrategySaving={false}
-          onClose={vi.fn()}
-          onOpenChange={vi.fn()}
-          onSave={vi.fn().mockResolvedValue(undefined)}
-          open
-          setLoadbalanceStrategyForm={vi.fn()}
-        />
-      </TooltipProvider>,
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={{
+              name: "failover-primary",
+              strategy_type: "failover",
+              failover_recovery_enabled: true,
+              failover_cooldown_seconds: 60,
+              failover_failure_threshold: 2,
+              failover_backoff_multiplier: 2,
+              failover_max_cooldown_seconds: 900,
+              failover_jitter_ratio: 0.2,
+              failover_auth_error_cooldown_seconds: 1800,
+            }}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={vi.fn()}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
     );
 
     const helpButtons = [
@@ -74,5 +77,39 @@ describe("LoadbalanceStrategyDialog", () => {
     }
 
     vi.unstubAllGlobals();
+  });
+
+  it("renders localized dialog copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    render(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={{
+              name: "single-primary",
+              strategy_type: "single",
+              failover_recovery_enabled: false,
+              failover_cooldown_seconds: 60,
+              failover_failure_threshold: 2,
+              failover_backoff_multiplier: 2,
+              failover_max_cooldown_seconds: 900,
+              failover_jitter_ratio: 0.2,
+              failover_auth_error_cooldown_seconds: 1800,
+            }}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={vi.fn()}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("新增负载均衡策略")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "保存策略" })).toBeInTheDocument();
   });
 });

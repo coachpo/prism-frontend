@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { ProxyApiKey } from "@/lib/types";
 import { DeleteProxyKeyDialog } from "../DeleteProxyKeyDialog";
 
@@ -24,13 +25,15 @@ function buildProxyKey(overrides: Partial<ProxyApiKey> = {}): ProxyApiKey {
 describe("DeleteProxyKeyDialog", () => {
   it("shows the selected key name and prefix in the confirmation dialog", () => {
     render(
-      <DeleteProxyKeyDialog
-        deleteConfirm={buildProxyKey()}
-        deletingProxyKeyId={null}
-        onClose={vi.fn()}
-        onDelete={vi.fn()}
-        onOpenChange={vi.fn()}
-      />
+      <LocaleProvider>
+        <DeleteProxyKeyDialog
+          deleteConfirm={buildProxyKey()}
+          deletingProxyKeyId={null}
+          onClose={vi.fn()}
+          onDelete={vi.fn()}
+          onOpenChange={vi.fn()}
+        />
+      </LocaleProvider>
     );
 
     expect(screen.getByText("Delete Proxy API Key")).toBeInTheDocument();

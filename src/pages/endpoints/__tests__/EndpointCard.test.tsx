@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { Endpoint, ModelConfigListItem, Provider } from "@/lib/types";
 import { EndpointCardView } from "../EndpointCard";
 
@@ -73,14 +74,16 @@ describe("EndpointCardView", () => {
     const onDelete = vi.fn();
 
     render(
-      <EndpointCardView
-        endpoint={endpoint}
-        formatTime={() => "Mar 20, 2026"}
-        models={[buildModel()]}
-        onDuplicate={onDuplicate}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
+      <LocaleProvider>
+        <EndpointCardView
+          endpoint={endpoint}
+          formatTime={() => "Mar 20, 2026"}
+          models={[buildModel()]}
+          onDuplicate={onDuplicate}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      </LocaleProvider>
     );
 
     const duplicateButton = screen.getByRole("button", {
@@ -107,12 +110,14 @@ describe("EndpointCardView", () => {
     const endpoint = buildEndpoint();
 
     render(
-      <EndpointCardView
-        endpoint={endpoint}
-        formatTime={() => "Mar 20, 2026"}
-        models={[]}
-        isDuplicating={true}
-      />
+      <LocaleProvider>
+        <EndpointCardView
+          endpoint={endpoint}
+          formatTime={() => "Mar 20, 2026"}
+          models={[]}
+          isDuplicating={true}
+        />
+      </LocaleProvider>
     );
 
     const duplicateButton = screen.getByRole("button", {
@@ -129,5 +134,44 @@ describe("EndpointCardView", () => {
     expect(deleteButton).toBeEnabled();
     expect(duplicateIcon).not.toBeNull();
     expect(duplicateIcon).toHaveClass("animate-spin");
+  });
+
+  it("renders localized endpoint action labels when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+    const endpoint = buildEndpoint();
+
+    render(
+      <LocaleProvider>
+        <EndpointCardView
+          endpoint={endpoint}
+          formatTime={() => "2026-03-20"}
+          models={[]}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByRole("button", { name: "复制端点 Primary OpenAI" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "编辑端点 Primary OpenAI" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除端点 Primary OpenAI" })).toBeInTheDocument();
+  });
+
+  it("renders localized endpoint card metadata when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+    const endpoint = buildEndpoint();
+
+    render(
+      <LocaleProvider>
+        <EndpointCardView
+          endpoint={endpoint}
+          formatTime={() => "2026-03-20"}
+          models={[]}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByRole("button", { name: "拖动以重新排序端点 Primary OpenAI" })).toBeInTheDocument();
+    expect(screen.getByText("创建于 2026-03-20")).toBeInTheDocument();
+    expect(screen.getByText("模型")).toBeInTheDocument();
+    expect(screen.getByText("无")) .toBeInTheDocument();
   });
 });

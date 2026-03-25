@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { ProxyApiKey } from "@/lib/types";
 import { ProxyKeysListCard } from "../ProxyKeysListCard";
 
@@ -24,15 +25,17 @@ function buildProxyKey(overrides: Partial<ProxyApiKey> = {}): ProxyApiKey {
 describe("ProxyKeysListCard", () => {
   it("renders the shared empty-state copy when no proxy keys exist", () => {
     render(
-      <ProxyKeysListCard
-        authEnabled={true}
-        deletingProxyKeyId={null}
-        displayedProxyKeys={[]}
-        onDelete={vi.fn()}
-        onEdit={vi.fn()}
-        onRotate={vi.fn()}
-        rotatingProxyKeyId={null}
-      />
+      <LocaleProvider>
+        <ProxyKeysListCard
+          authEnabled={true}
+          deletingProxyKeyId={null}
+          displayedProxyKeys={[]}
+          onDelete={vi.fn()}
+          onEdit={vi.fn()}
+          onRotate={vi.fn()}
+          rotatingProxyKeyId={null}
+        />
+      </LocaleProvider>
     );
 
     expect(screen.getByText("Issued keys")).toBeInTheDocument();
@@ -42,23 +45,25 @@ describe("ProxyKeysListCard", () => {
 
   it("keeps rendering proxy key rows when keys are present", () => {
     render(
-      <ProxyKeysListCard
-        authEnabled={true}
-        deletingProxyKeyId={null}
-        displayedProxyKeys={[
-          buildProxyKey(),
-          buildProxyKey({
-            id: 2,
-            name: "Secondary runtime key",
-            key_preview: "prism_alt_************",
-            notes: "Fallback ingress credential.",
-          }),
-        ]}
-        onDelete={vi.fn()}
-        onEdit={vi.fn()}
-        onRotate={vi.fn()}
-        rotatingProxyKeyId={null}
-      />
+      <LocaleProvider>
+        <ProxyKeysListCard
+          authEnabled={true}
+          deletingProxyKeyId={null}
+          displayedProxyKeys={[
+            buildProxyKey(),
+            buildProxyKey({
+              id: 2,
+              name: "Secondary runtime key",
+              key_preview: "prism_alt_************",
+              notes: "Fallback ingress credential.",
+            }),
+          ]}
+          onDelete={vi.fn()}
+          onEdit={vi.fn()}
+          onRotate={vi.fn()}
+          rotatingProxyKeyId={null}
+        />
+      </LocaleProvider>
     );
 
     expect(screen.getByText("Primary runtime key")).toBeInTheDocument();
@@ -66,5 +71,27 @@ describe("ProxyKeysListCard", () => {
     expect(screen.getByText("prism_****************")).toBeInTheDocument();
     expect(screen.getByText("prism_alt_************")).toBeInTheDocument();
     expect(screen.queryByText("No proxy keys created yet.")).not.toBeInTheDocument();
+  });
+
+  it("renders localized proxy-key list copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    render(
+      <LocaleProvider>
+        <ProxyKeysListCard
+          authEnabled={true}
+          deletingProxyKeyId={null}
+          displayedProxyKeys={[]}
+          onDelete={vi.fn()}
+          onEdit={vi.fn()}
+          onRotate={vi.fn()}
+          rotatingProxyKeyId={null}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByText("已发放密钥")).toBeInTheDocument();
+    expect(screen.getByText("还没有创建代理密钥。")) .toBeInTheDocument();
+    expect(screen.getByText("0 个密钥")).toBeInTheDocument();
   });
 });

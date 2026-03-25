@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { getCurrentLocale } from "@/i18n/format";
 import {
   getSharedLoadbalanceStrategies,
   getSharedModels,
@@ -74,7 +75,7 @@ export function useModelsPageData(revision: number) {
         applyBootstrapData(data);
       } catch (error) {
         if (!cancelled) {
-          toast.error("Failed to fetch data");
+          toast.error(getCurrentLocale() === "zh-CN" ? "获取数据失败" : "Failed to fetch data");
           console.error(error);
         }
       } finally {
@@ -109,17 +110,26 @@ export function useModelsPageData(revision: number) {
   };
 
   const handleSubmit = async (event: SubmitEventLike) => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     event.preventDefault();
     if (!formData.provider_id) {
-      toast.error("Please select a provider");
+      toast.error(isChinese ? "请选择提供商" : "Please select a provider");
       return;
     }
     if (formData.model_type === "proxy" && !formData.redirect_to) {
-      toast.error("Please select a native target model for proxy type");
+      toast.error(
+        isChinese
+          ? "请选择代理类型的原生目标模型"
+          : "Please select a native target model for proxy type",
+      );
       return;
     }
     if (formData.model_type === "native" && formData.loadbalance_strategy_id === null) {
-      toast.error("Please select a loadbalance strategy for native models");
+      toast.error(
+        isChinese
+          ? "请为原生模型选择负载均衡策略"
+          : "Please select a loadbalance strategy for native models",
+      );
       return;
     }
     try {
@@ -130,27 +140,28 @@ export function useModelsPageData(revision: number) {
             model.id === editingModel.id ? toModelListItem(updated, model) : model
           )
         );
-        toast.success("Model updated");
+        toast.success(isChinese ? "模型已更新" : "Model updated");
       } else {
         const created = await api.models.create(toModelCreatePayload(formData));
         commitModels((current) => [...current, toModelListItem(created)]);
-        toast.success("Model created");
+        toast.success(isChinese ? "模型已创建" : "Model created");
       }
       setIsDialogOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save model");
+      toast.error(error instanceof Error ? error.message : isChinese ? "保存模型失败" : "Failed to save model");
     }
   };
 
   const handleDelete = async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     if (!deleteTarget) return;
     try {
       await api.models.delete(deleteTarget.id);
       commitModels((current) => current.filter((model) => model.id !== deleteTarget.id));
-      toast.success("Model deleted");
+      toast.success(isChinese ? "模型已删除" : "Model deleted");
       setDeleteTarget(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete model");
+      toast.error(error instanceof Error ? error.message : isChinese ? "删除模型失败" : "Failed to delete model");
     }
   };
 

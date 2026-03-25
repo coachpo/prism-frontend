@@ -1,5 +1,6 @@
 import type { Endpoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Dialog,
   DialogContent,
@@ -22,18 +23,21 @@ export function DeleteEndpointDialog({
   onConfirm,
   onOpenChange,
 }: DeleteEndpointDialogProps) {
+  const { locale } = useLocale();
   return (
     <Dialog open={Boolean(deleteTarget)} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Delete Endpoint</DialogTitle>
+          <DialogTitle>{locale === "zh-CN" ? "删除端点" : "Delete Endpoint"}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete "{deleteTarget?.name}"? This action cannot be undone.
+            {locale === "zh-CN"
+              ? `确定要删除“${deleteTarget?.name}”吗？此操作无法撤销。`
+              : `Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" disabled={isDeletingEndpoint} onClick={() => onOpenChange(false)}>
-            Cancel
+            {locale === "zh-CN" ? "取消" : "Cancel"}
           </Button>
           <Button
             variant="destructive"
@@ -45,7 +49,13 @@ export function DeleteEndpointDialog({
               void onConfirm(deleteTarget.id);
             }}
           >
-            {isDeletingEndpoint ? "Deleting..." : "Delete"}
+            {isDeletingEndpoint
+              ? locale === "zh-CN"
+                ? "删除中..."
+                : "Deleting..."
+              : locale === "zh-CN"
+                ? "删除"
+                : "Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>

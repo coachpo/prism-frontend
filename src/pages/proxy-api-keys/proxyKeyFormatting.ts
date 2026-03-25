@@ -1,4 +1,5 @@
 import type { AuthSettings, ProxyApiKey } from "@/lib/types";
+import { getCurrentLocale } from "@/i18n/format";
 
 export function getAuthStatusTone(authSettings: AuthSettings | null) {
   if (!authSettings) {
@@ -11,11 +12,12 @@ export function getAuthStatusTone(authSettings: AuthSettings | null) {
 }
 
 export function getRuntimeStatusLabel(item: ProxyApiKey) {
+  const locale = getCurrentLocale();
   if (!item.is_active) {
-    return "Disabled";
+    return locale === "zh-CN" ? "已禁用" : "Disabled";
   }
 
-  return "Active";
+  return locale === "zh-CN" ? "活跃" : "Active";
 }
 
 export function getRuntimeStatusTone(item: ProxyApiKey, authEnabled: boolean) {
@@ -38,12 +40,12 @@ export function formatDateTime(value: string | null, fallback = "Unknown") {
     return value;
   }
 
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(getCurrentLocale(), {
     dateStyle: "medium",
     timeStyle: "short",
   });
 }
 
 export function formatLastUsed(value: string | null) {
-  return formatDateTime(value, "Never");
+  return formatDateTime(value, getCurrentLocale() === "zh-CN" ? "从未" : "Never");
 }

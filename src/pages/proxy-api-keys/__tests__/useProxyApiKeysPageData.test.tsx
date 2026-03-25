@@ -67,6 +67,7 @@ function createSubmitEvent() {
 describe("useProxyApiKeysPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    document.documentElement.lang = "en";
     api.settings.auth.get.mockResolvedValue(buildAuthSettings());
     api.settings.auth.proxyKeys.list.mockResolvedValue([buildProxyKey()]);
   });
@@ -137,5 +138,23 @@ describe("useProxyApiKeysPageData", () => {
     });
 
     expect(toast.success).toHaveBeenCalledWith("Proxy API key updated");
+  });
+
+  it("emits localized validation errors when the locale is Chinese", async () => {
+    document.documentElement.lang = "zh-CN";
+
+    const { result } = renderHook(() => useProxyApiKeysPageData());
+
+    await waitFor(() => {
+      expect(result.current.pageLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.handleCreateSubmit(
+        createSubmitEvent() as unknown as Parameters<typeof result.current.handleCreateSubmit>[0],
+      );
+    });
+
+    expect(toast.error).toHaveBeenCalledWith("密钥名称为必填项");
   });
 });

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { PricingTemplate } from "@/lib/types";
 import { PricingTemplatesTable } from "../PricingTemplatesTable";
 
@@ -32,15 +33,17 @@ describe("PricingTemplatesTable", () => {
     const onDelete = vi.fn().mockResolvedValue(undefined);
 
     render(
-      <PricingTemplatesTable
-        onCreate={vi.fn()}
-        onDelete={onDelete}
-        onEdit={onEdit}
-        onViewUsage={onViewUsage}
-        pricingTemplatePreparingEditId={null}
-        pricingTemplates={[template]}
-        pricingTemplatesLoading={false}
-      />
+      <LocaleProvider>
+        <PricingTemplatesTable
+          onCreate={vi.fn()}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          onViewUsage={onViewUsage}
+          pricingTemplatePreparingEditId={null}
+          pricingTemplates={[template]}
+          pricingTemplatesLoading={false}
+        />
+      </LocaleProvider>
     );
 
     const viewUsageButton = screen.getByRole("button", { name: `View usage for pricing template ${template.name}` });
@@ -65,15 +68,17 @@ describe("PricingTemplatesTable", () => {
     const template = buildTemplate();
 
     render(
-      <PricingTemplatesTable
-        onCreate={vi.fn()}
-        onDelete={vi.fn().mockResolvedValue(undefined)}
-        onEdit={vi.fn().mockResolvedValue(undefined)}
-        onViewUsage={vi.fn().mockResolvedValue(undefined)}
-        pricingTemplatePreparingEditId={template.id}
-        pricingTemplates={[template]}
-        pricingTemplatesLoading={false}
-      />
+      <LocaleProvider>
+        <PricingTemplatesTable
+          onCreate={vi.fn()}
+          onDelete={vi.fn().mockResolvedValue(undefined)}
+          onEdit={vi.fn().mockResolvedValue(undefined)}
+          onViewUsage={vi.fn().mockResolvedValue(undefined)}
+          pricingTemplatePreparingEditId={template.id}
+          pricingTemplates={[template]}
+          pricingTemplatesLoading={false}
+        />
+      </LocaleProvider>
     );
 
     const editButton = screen.getByRole("button", { name: "Edit" });
@@ -84,5 +89,52 @@ describe("PricingTemplatesTable", () => {
     expect(deleteButton).toBeEnabled();
     expect(editIcon).not.toBeNull();
     expect(editIcon).toHaveClass("animate-spin");
+  });
+
+  it("renders localized pricing-template table copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    render(
+      <LocaleProvider>
+        <PricingTemplatesTable
+          onCreate={vi.fn()}
+          onDelete={vi.fn().mockResolvedValue(undefined)}
+          onEdit={vi.fn().mockResolvedValue(undefined)}
+          onViewUsage={vi.fn().mockResolvedValue(undefined)}
+          pricingTemplatePreparingEditId={null}
+          pricingTemplates={[]}
+          pricingTemplatesLoading={false}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByText("价格模板")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "新增模板" })).toBeInTheDocument();
+    expect(screen.getByText("当前没有配置价格模板。")) .toBeInTheDocument();
+  });
+
+  it("renders localized table headings and action labels when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+    const template = buildTemplate();
+
+    render(
+      <LocaleProvider>
+        <PricingTemplatesTable
+          onCreate={vi.fn()}
+          onDelete={vi.fn().mockResolvedValue(undefined)}
+          onEdit={vi.fn().mockResolvedValue(undefined)}
+          onViewUsage={vi.fn().mockResolvedValue(undefined)}
+          pricingTemplatePreparingEditId={null}
+          pricingTemplates={[template]}
+          pricingTemplatesLoading={false}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByText("名称")).toBeInTheDocument();
+    expect(screen.getByText("货币")).toBeInTheDocument();
+    expect(screen.getByText("输入")).toBeInTheDocument();
+    expect(screen.getByText("输出")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `查看模板 ${template.name} 的使用情况` })).toBeInTheDocument();
   });
 });

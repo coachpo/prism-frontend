@@ -1,4 +1,5 @@
 import type { LoadbalanceStrategy } from "@/lib/types";
+import { getCurrentLocale } from "@/i18n/format";
 
 export type LoadbalanceStrategyFormState = {
   name: string;
@@ -64,25 +65,26 @@ export function toLoadbalanceStrategyPayload(
 export function getLoadbalanceStrategyFormValidationError(
   formState: LoadbalanceStrategyFormState,
 ): string | null {
+  const isChinese = getCurrentLocale() === "zh-CN";
   if (!formState.name.trim()) {
-    return "Name is required";
+    return isChinese ? "名称为必填项" : "Name is required";
   }
 
   if (!Number.isInteger(formState.failover_cooldown_seconds)) {
-    return "Base cooldown must be a whole number of seconds";
+    return isChinese ? "基础冷却时间必须为整数秒" : "Base cooldown must be a whole number of seconds";
   }
   if (formState.failover_cooldown_seconds < 0) {
-    return "Base cooldown must be at least 0 seconds";
+    return isChinese ? "基础冷却时间至少为 0 秒" : "Base cooldown must be at least 0 seconds";
   }
 
   if (!Number.isInteger(formState.failover_failure_threshold)) {
-    return "Failure threshold must be a whole number";
+    return isChinese ? "失败阈值必须为整数" : "Failure threshold must be a whole number";
   }
   if (
     formState.failover_failure_threshold < 1 ||
     formState.failover_failure_threshold > 10
   ) {
-    return "Failure threshold must be between 1 and 10";
+    return isChinese ? "失败阈值必须在 1 到 10 之间" : "Failure threshold must be between 1 and 10";
   }
 
   if (
@@ -90,17 +92,17 @@ export function getLoadbalanceStrategyFormValidationError(
     formState.failover_backoff_multiplier < 1 ||
     formState.failover_backoff_multiplier > 10
   ) {
-    return "Backoff multiplier must be between 1 and 10";
+    return isChinese ? "退避倍数必须在 1 到 10 之间" : "Backoff multiplier must be between 1 and 10";
   }
 
   if (!Number.isInteger(formState.failover_max_cooldown_seconds)) {
-    return "Max cooldown must be a whole number of seconds";
+    return isChinese ? "最大冷却时间必须为整数秒" : "Max cooldown must be a whole number of seconds";
   }
   if (
     formState.failover_max_cooldown_seconds < 1 ||
     formState.failover_max_cooldown_seconds > 86_400
   ) {
-    return "Max cooldown must be between 1 and 86400 seconds";
+    return isChinese ? "最大冷却时间必须在 1 到 86400 秒之间" : "Max cooldown must be between 1 and 86400 seconds";
   }
 
   if (
@@ -108,17 +110,17 @@ export function getLoadbalanceStrategyFormValidationError(
     formState.failover_jitter_ratio < 0 ||
     formState.failover_jitter_ratio > 1
   ) {
-    return "Jitter ratio must be between 0 and 1";
+    return isChinese ? "抖动比率必须在 0 到 1 之间" : "Jitter ratio must be between 0 and 1";
   }
 
   if (!Number.isInteger(formState.failover_auth_error_cooldown_seconds)) {
-    return "Auth error cooldown must be a whole number of seconds";
+    return isChinese ? "认证错误冷却时间必须为整数秒" : "Auth error cooldown must be a whole number of seconds";
   }
   if (
     formState.failover_auth_error_cooldown_seconds < 1 ||
     formState.failover_auth_error_cooldown_seconds > 86_400
   ) {
-    return "Auth error cooldown must be between 1 and 86400 seconds";
+    return isChinese ? "认证错误冷却时间必须在 1 到 86400 秒之间" : "Auth error cooldown must be between 1 and 86400 seconds";
   }
 
   return null;

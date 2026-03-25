@@ -1,5 +1,6 @@
 import { Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { IconActionButton, IconActionGroup } from "@/components/IconActionGroup";
+import { useLocale } from "@/i18n/useLocale";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { ProxyApiKey } from "@/lib/types";
@@ -62,10 +63,11 @@ export function ProxyKeyCard({
   onRotate,
   onDelete,
 }: Props) {
+  const { locale } = useLocale();
   const showStatusBadge = !item.is_active || authEnabled;
   const statusLabel = getRuntimeStatusLabel(item);
   const statusTone = getRuntimeStatusTone(item, authEnabled);
-  const note = item.notes?.trim() || "No internal note.";
+  const note = item.notes?.trim() || (locale === "zh-CN" ? "没有内部备注。" : "No internal note.");
 
   return (
       <div
@@ -96,7 +98,7 @@ export function ProxyKeyCard({
                 <IconActionButton
                   type="button"
                   size="icon-sm"
-                  aria-label={`Edit proxy key ${item.name}`}
+                  aria-label={locale === "zh-CN" ? `编辑代理密钥 ${item.name}` : `Edit proxy key ${item.name}`}
                   disabled={rotating || deleting}
                   onClick={onEdit}
                 >
@@ -105,7 +107,7 @@ export function ProxyKeyCard({
                 <IconActionButton
                   type="button"
                   size="icon-sm"
-                  aria-label={`Rotate proxy key ${item.name}`}
+                  aria-label={locale === "zh-CN" ? `轮换代理密钥 ${item.name}` : `Rotate proxy key ${item.name}`}
                   disabled={rotating || deleting}
                   onClick={onRotate}
                 >
@@ -114,7 +116,7 @@ export function ProxyKeyCard({
                 <IconActionButton
                   type="button"
                   size="icon-sm"
-                  aria-label={`Delete proxy key ${item.name}`}
+                  aria-label={locale === "zh-CN" ? `删除代理密钥 ${item.name}` : `Delete proxy key ${item.name}`}
                   destructive
                   disabled={rotating || deleting}
                   onClick={onDelete}
@@ -128,29 +130,29 @@ export function ProxyKeyCard({
 
         <div className="flex flex-wrap gap-2">
           <MetaChip
-            label="Preview"
+            label={locale === "zh-CN" ? "预览" : "Preview"}
             value={item.key_preview}
             mono
             className="min-w-[12rem] flex-1"
           />
           <MetaChip
-            label="Created"
+            label={locale === "zh-CN" ? "创建时间" : "Created"}
             value={formatDateTime(item.created_at)}
             className="sm:min-w-[11rem]"
           />
           <MetaChip
-            label="Updated"
+            label={locale === "zh-CN" ? "更新时间" : "Updated"}
             value={formatDateTime(item.updated_at)}
             className="sm:min-w-[11rem]"
           />
           <MetaChip
-            label="Last used"
+            label={locale === "zh-CN" ? "最后使用" : "Last used"}
             value={formatLastUsed(item.last_used_at)}
             className="sm:min-w-[11rem]"
           />
           {item.last_used_ip ? (
             <MetaChip
-              label="Last IP"
+              label={locale === "zh-CN" ? "最后 IP" : "Last IP"}
               value={item.last_used_ip}
               mono
               className="sm:min-w-[10rem]"

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { getCurrentLocale } from "@/i18n/format";
 import { useTimezone } from "@/hooks/useTimezone";
 import { api } from "@/lib/api";
 import type { Endpoint } from "@/lib/types";
@@ -21,20 +22,22 @@ export function useEndpointsPageData() {
   const reorder = useEndpointReorder({ endpoints, revision, setEndpoints });
 
   const handleCreate = async (values: EndpointFormValues) => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     try {
       const created = await api.endpoints.create(values);
-      toast.success("Endpoint created");
+      toast.success(isChinese ? "端点已创建" : "Endpoint created");
       setIsCreateOpen(false);
       commitEndpoints(
         (current) => [...current, created].sort((left, right) => left.position - right.position),
         (current) => ({ ...current, [created.id]: [] }),
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create endpoint");
+      toast.error(error instanceof Error ? error.message : isChinese ? "创建端点失败" : "Failed to create endpoint");
     }
   };
 
   const handleUpdate = async (values: EndpointFormValues) => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     if (!editingEndpoint) {
       return;
     }
@@ -45,21 +48,22 @@ export function useEndpointsPageData() {
         base_url: values.base_url,
         ...(values.api_key.trim() ? { api_key: values.api_key } : {}),
       });
-      toast.success("Endpoint updated");
+      toast.success(isChinese ? "端点已更新" : "Endpoint updated");
       setEditingEndpoint(null);
       commitEndpoints((current) =>
         current.map((endpoint) => (endpoint.id === updated.id ? updated : endpoint)),
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update endpoint");
+      toast.error(error instanceof Error ? error.message : isChinese ? "更新端点失败" : "Failed to update endpoint");
     }
   };
 
   const handleDelete = async (id: number) => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     setIsDeletingEndpoint(true);
     try {
       await api.endpoints.delete(id);
-      toast.success("Endpoint deleted");
+      toast.success(isChinese ? "端点已删除" : "Endpoint deleted");
       setDeleteTarget(null);
       commitEndpoints(
         (current) => current.filter((endpoint) => endpoint.id !== id),
@@ -83,23 +87,26 @@ export function useEndpointsPageData() {
           return;
         }
       }
-      toast.error(error instanceof Error ? error.message : "Failed to delete endpoint");
+      toast.error(error instanceof Error ? error.message : isChinese ? "删除端点失败" : "Failed to delete endpoint");
     } finally {
       setIsDeletingEndpoint(false);
     }
   };
 
   const handleDuplicateEndpoint = async (endpoint: Endpoint) => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     setDuplicatingEndpointId(endpoint.id);
     try {
       const duplicate = await api.endpoints.duplicate(endpoint.id);
-      toast.success(`Endpoint duplicated as ${duplicate.name}`);
+      toast.success(
+        isChinese ? `端点已复制为 ${duplicate.name}` : `Endpoint duplicated as ${duplicate.name}`,
+      );
       commitEndpoints(
         (current) => [...current, duplicate].sort((left, right) => left.position - right.position),
         (current) => ({ ...current, [duplicate.id]: [] }),
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to duplicate endpoint");
+      toast.error(error instanceof Error ? error.message : isChinese ? "复制端点失败" : "Failed to duplicate endpoint");
     } finally {
       setDuplicatingEndpointId(null);
     }
