@@ -1,5 +1,8 @@
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
+import { getCurrentLocale } from "@/i18n/format";
+import { enMessages } from "@/i18n/messages/en";
+import { zhCNMessages } from "@/i18n/messages/zh-CN";
 import { formatMoneyMicros } from "@/lib/costing";
 import { cn, formatProviderType } from "@/lib/utils";
 import type { RequestLogEntry } from "@/lib/types";
@@ -9,7 +12,7 @@ export const ROW_HEIGHT = 45;
 
 function formatCost(micros: number | null, symbol: string | null): string {
   if (micros === null || micros === 0) return "—";
-  return formatMoneyMicros(micros, symbol ?? "$", undefined, 2, 6);
+  return formatMoneyMicros(micros, symbol ?? "$", undefined, 2, 6, getCurrentLocale());
 }
 
 function formatTokens(tokens: number | null): string {
@@ -44,11 +47,16 @@ export interface ColumnDef {
   ) => React.ReactNode;
 }
 
+function getRequestLogMessages() {
+  return getCurrentLocale() === "zh-CN" ? zhCNMessages.requestLogs : enMessages.requestLogs;
+}
+
 export function getColumns(view: "all" | "compact"): ColumnDef[] {
+  const messages = getRequestLogMessages();
   const base: ColumnDef[] = [
     {
       key: "created_at",
-      label: "Time",
+      label: messages.time,
       width: view === "all" ? 180 : 160,
       grow: 1,
       render: (row, fmt) => (
@@ -61,7 +69,7 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
     },
     {
       key: "model_id",
-      label: "Model",
+      label: messages.model,
       width: view === "all" ? 210 : 180,
       grow: 2,
       render: (row, _formatTimestamp, resolveModelLabel) => (
@@ -70,7 +78,7 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
     },
     {
       key: "provider_type",
-      label: "Provider",
+      label: messages.provider,
       width: 150,
       grow: 1,
       render: (row) => (
@@ -82,26 +90,26 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
     },
     {
       key: "status_code",
-      label: "Status",
+      label: messages.status,
       width: 88,
       align: "center",
       render: (row) => <ValueBadge label={String(row.status_code)} intent={statusIntent(row.status_code)} className="px-1.5 py-0 font-mono" />,
     },
     {
       key: "response_time_ms",
-      label: "Latency",
+      label: messages.latency,
       width: 120,
       grow: 1,
       align: "right",
       render: (row) => (
-        <span className={cn("text-xs font-mono", latencyColor(row.response_time_ms))}>
-          {row.response_time_ms.toLocaleString()}ms
-        </span>
-      ),
+          <span className={cn("text-xs font-mono", latencyColor(row.response_time_ms))}>
+            {new Intl.NumberFormat(getCurrentLocale()).format(row.response_time_ms)}ms
+          </span>
+        ),
     },
     {
       key: "total_tokens",
-      label: "Tokens",
+      label: messages.tokens,
       width: 110,
       grow: 1,
       align: "right",
@@ -113,7 +121,7 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
     },
     {
       key: "total_cost",
-      label: "Cost",
+      label: messages.spend,
       width: 110,
       grow: 1,
       align: "right",
@@ -128,13 +136,13 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
   if (view === "all") {
       base.push({
         key: "is_stream",
-        label: "Stream",
+        label: messages.stream,
         width: 116,
         grow: 1,
         align: "center",
         render: (row) =>
           row.is_stream ? (
-          <TypeBadge label="Streaming" intent="blue" className="px-2 py-0.5" />
+          <TypeBadge label={messages.streaming} intent="blue" className="px-2 py-0.5" />
         ) : (
           <span className="text-[10px] text-muted-foreground">—</span>
         ),

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, FileSearch } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -35,6 +36,16 @@ interface ResolvedColumn extends ColumnDef {
 }
 
 const OVERSCAN = 10;
+const SKELETON_ROW_KEYS = [
+  "request-log-skeleton-1",
+  "request-log-skeleton-2",
+  "request-log-skeleton-3",
+  "request-log-skeleton-4",
+  "request-log-skeleton-5",
+  "request-log-skeleton-6",
+  "request-log-skeleton-7",
+  "request-log-skeleton-8",
+];
 
 function getRowTone(row: RequestLogEntry, isSelected: boolean) {
   if (isSelected) {
@@ -89,6 +100,7 @@ export function RequestLogsTable({
   formatTimestamp,
   resolveModelLabel,
 }: RequestLogsTableProps) {
+  const { formatNumber, messages } = useLocale();
   const columns = useMemo(() => getColumns(view), [view]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -159,8 +171,8 @@ export function RequestLogsTable({
 
           {loading && items.length === 0 ? (
             <div className="space-y-0">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="flex border-b border-border/40 bg-card/70" style={{ height: ROW_HEIGHT }}>
+              {SKELETON_ROW_KEYS.map((key) => (
+                <div key={key} className="flex border-b border-border/40 bg-card/70" style={{ height: ROW_HEIGHT }}>
                   {resolvedColumns.map((col) => (
                     <div key={col.key} className="shrink-0 px-3 py-3" style={{ width: col.resolvedWidth }}>
                       <Skeleton className="h-4 w-full" />
@@ -175,9 +187,9 @@ export function RequestLogsTable({
                 <FileSearch className="h-5 w-5 text-muted-foreground" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium">No request logs match this slice</p>
+                <p className="text-sm font-medium">{messages.requestLogs.noRequestLogsMatchSlice}</p>
                 <p className="text-xs text-muted-foreground">
-                  Relax the scope or clear local refinements to widen the investigation surface.
+                  {messages.requestLogs.relaxScope}
                 </p>
               </div>
             </div>
@@ -188,10 +200,11 @@ export function RequestLogsTable({
                 const tone = getRowTone(row, isSelected);
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={row.id}
                     className={cn(
-                      "absolute left-0 right-0 flex cursor-pointer items-center border-b border-l-2 transition-colors",
+                      "absolute left-0 right-0 flex cursor-pointer items-center border-b border-l-2 text-left transition-colors",
                       tone.row,
                       isSelected ? "border-l-primary" : "border-l-transparent"
                     )}
@@ -214,7 +227,7 @@ export function RequestLogsTable({
                         {col.render(row, formatTimestamp, resolveModelLabel)}
                       </div>
                     ))}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -224,7 +237,15 @@ export function RequestLogsTable({
 
       <div className="flex flex-col gap-3 border-t border-border/70 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span>{total > 0 ? `${pageStart}-${pageEnd} of ${total.toLocaleString()}` : "0 results"}</span>
+          <span>
+            {total > 0
+              ? messages.requestLogs.resultsRange(
+                  formatNumber(pageStart),
+                  formatNumber(pageEnd),
+                  formatNumber(total),
+                )
+              : messages.requestLogs.zeroResults}
+          </span>
           <Select value={String(limit)} onValueChange={(v) => onSetLimit(Number(v))}>
             <SelectTrigger className="h-8 w-[84px] rounded-full border-border/70 bg-background text-xs">
               <SelectValue />
@@ -237,7 +258,7 @@ export function RequestLogsTable({
               ))}
             </SelectContent>
           </Select>
-          <span>rows per page</span>
+          <span>{messages.requestLogs.rowsPerPage}</span>
         </div>
 
         <div className="flex items-center gap-1">
