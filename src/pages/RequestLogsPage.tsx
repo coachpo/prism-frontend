@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useTimezone } from "@/hooks/useTimezone";
+import { useLocale } from "@/i18n/useLocale";
 import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
 import { useRequestLogPageState } from "./request-logs/useRequestLogPageState";
 import { useRequestLogsPageData } from "./request-logs/useRequestLogsPageData";
@@ -18,6 +19,7 @@ import type { DetailTab } from "./request-logs/queryParams";
 export function RequestLogsPage() {
   const { revision } = useProfileContext();
   const { format } = useTimezone();
+  const { messages } = useLocale();
   const { navigateToConnection } = useConnectionNavigation();
   const [tableSelectedRequestId, setTableSelectedRequestId] = useState<number | null>(null);
   const [tableSelectedTab, setTableSelectedTab] = useState<DetailTab>("overview");
@@ -94,8 +96,8 @@ export function RequestLogsPage() {
     <TooltipProvider>
       <div className="space-y-6 pb-8">
         <PageHeader
-          title="Request Logs"
-          description="Browse and investigate proxied request history"
+          title={messages.requestLogs.requestLogsTitle}
+          description={messages.requestLogs.requestLogsDescription}
         />
 
         {isExactMode && (
@@ -127,16 +129,16 @@ export function RequestLogsPage() {
             <div className="rounded-full bg-muted p-4 mb-2">
               <SearchX className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium">Request Not Found</h3>
+            <h3 className="text-lg font-medium">{messages.requestLogs.requestNotFound}</h3>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Request #{state.request_id} could not be found. It may have been deleted or you might not have access to it.
+              {messages.requestLogs.requestNotFoundDescription(state.request_id)}
             </p>
             <Button
               variant="outline"
               className="mt-4"
               onClick={actions.clearRequest}
             >
-              Return to request list
+              {messages.requestLogs.returnToRequestList}
             </Button>
           </div>
         ) : (
