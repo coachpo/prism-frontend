@@ -1,7 +1,7 @@
 # FRONTEND REQUEST LOGS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/request-logs/` owns the investigation flow for proxy traffic: filtering, searching, exact-request focus mode, and detailed payload inspection. This parent also covers the local `detail/` cluster.
+`pages/request-logs/` owns the investigation flow for proxy traffic: filtering, searching, exact-request focus mode, and detailed payload inspection. This parent also covers the local `detail/` cluster, while request URL-state and exact-request behavior stay local here.
 
 ## STRUCTURE
 ```
@@ -20,7 +20,7 @@ request-logs/
 ```
 
 ## WHERE TO LOOK
-- Investigation flow and state: `useRequestLogsPageData.ts`, `useRequestLogPageState.ts`
+- Investigation flow and state, including URL-state and exact-request mode: `useRequestLogsPageData.ts`, `useRequestLogPageState.ts`
 - Filter contract and defaults: `queryParams.ts`
 - Client-side refinement and triage: `clientFilters.ts`
 - Payload inspection and lazy audit fetch: `RequestLogDetailSheet.tsx`, `useAuditDetail.ts`
@@ -30,7 +30,7 @@ request-logs/
 - Treat URL as the source of truth for all filters to support deep-linking.
 - Use client-side filters for rapid refinement over the current fetched page.
 - Keep audit payload fetching lazy and isolated from the main request-list fetch lifecycle.
-- Use exact-request mode (`request_id`) to switch from paginated browsing to a single-request investigation workflow.
+- Use exact-request mode (`request_id`) to switch from paginated browsing to a single-request investigation workflow, and keep that mode local to the request-logs page.
 - Keep `detail/` parent-covered here. Those helpers support the request-log sheet only and should not get a separate AGENTS file.
 
 ## ANTI-PATTERNS

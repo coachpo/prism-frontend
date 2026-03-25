@@ -1,19 +1,19 @@
 # FRONTEND KNOWLEDGE BASE
 
 ## OVERVIEW
-`frontend/` is Prism's management dashboard. This parent doc covers the mounted route surface, the app shell boundary, selected-profile scoping, the typed API entrypoint, and the shared realtime path. Push page-level behavior into `src/pages/AGENTS.md` and feature-local docs instead of duplicating it here.
+`frontend/` is Prism's management dashboard. Keep this doc as the router for the frontend submodule, not a deep implementation guide. The important shared boundaries are the app shell, selected-profile management scope, typed API entrypoint, realtime channel ownership, and locale formatting.
 
 ## STRUCTURE
 ```
 frontend/
 └── src/
-    ├── App.tsx                                     # BrowserRouter, auth/public split, protected shell mounts
-    ├── components/AGENTS.md                        # App layout, shared widgets, navigation config, ui wrappers
-    ├── context/AGENTS.md                           # Auth bootstrap, selected-profile state, revision flow
-    ├── hooks/AGENTS.md                             # Realtime hook, polling helpers, timezone formatting
-    ├── i18n/AGENTS.md                              # Frontend-only locale state, catalogs, and shared formatting
-    ├── lib/AGENTS.md                               # Typed API boundary, websocket client, WebAuthn, shared types
-    └── pages/AGENTS.md                             # Route-domain map and page child-doc delegation
+    ├── App.tsx              # Mounted routes, auth/public split, protected shell
+    ├── components/AGENTS.md # Shell chrome, shared widgets, navigation config
+    ├── context/AGENTS.md    # Auth bootstrap, selected-profile state, revision flow
+    ├── hooks/AGENTS.md      # Realtime hook, polling, timezone helpers
+    ├── i18n/AGENTS.md       # Frontend-only locale state, catalogs, formatting
+    ├── lib/AGENTS.md        # API core, websocket client, reference data, WebAuthn
+    └── pages/AGENTS.md      # Route-domain map and page handoff
 ```
 
 ## ROUTE MAP
@@ -24,33 +24,32 @@ frontend/
 
 ## HIERARCHY
 
-- `src/pages/AGENTS.md` is the parent for all mounted page domains and the first stop for route-level work.
-- Page leaf docs currently live at `src/pages/dashboard/AGENTS.md`, `src/pages/endpoints/AGENTS.md`, `src/pages/loadbalance-strategies/AGENTS.md`, `src/pages/model-detail/AGENTS.md`, `src/pages/models/AGENTS.md`, `src/pages/pricing-templates/AGENTS.md`, `src/pages/proxy-api-keys/AGENTS.md`, `src/pages/request-logs/AGENTS.md`, `src/pages/settings/AGENTS.md`, and `src/pages/statistics/AGENTS.md`.
-- Local page clusters stay parent-covered when they support a single route domain, including `dashboard/routing-diagram/`, `model-detail/connections-list/`, `statistics/operations/`, `statistics/spending/`, and `request-logs/detail` behavior inside the request-logs parent coverage.
-- Settings has one more layer: `src/pages/settings/AGENTS.md` delegates section-level details to `src/pages/settings/sections/AGENTS.md` and costing-specific flows to `src/pages/settings/costing/AGENTS.md`.
+- `src/App.tsx` owns the mounted route surface and auth-shell split.
+- `src/pages/AGENTS.md` owns route-domain handoff for mounted pages and their local leaf docs.
+- `src/components/AGENTS.md`, `src/context/AGENTS.md`, `src/hooks/AGENTS.md`, `src/i18n/AGENTS.md`, and `src/lib/AGENTS.md` own shared shell, state, realtime, locale, and transport boundaries.
 
 ## WHERE TO LOOK
 
-- Route mounts, `AuthProvider` bootstrap mode split, and `ProtectedAppShell`: `src/App.tsx`
-- Sidebar entries, app layout behavior, profile-prefixed navigation helpers, and visible version label: `src/components/layout/AppLayout.tsx`, `src/components/layout/app-layout/navigationProfileConfig.ts`
-- Selected-profile state, revision bumps, and `X-Profile-Id` management-route scoping: `src/context/ProfileContext.tsx`, `src/context/AGENTS.md`, `src/lib/api/core.ts`
-- Shared typed frontend-to-backend boundary: `src/lib/api.ts`, `src/lib/AGENTS.md`
-- Frontend locale state, catalogs, and shared formatting: `src/i18n/AGENTS.md`, `src/i18n/LocaleProvider.tsx`, `src/i18n/format.ts`
-- Shared realtime websocket path and route consumers: `src/lib/websocket.ts`, `src/hooks/useRealtimeData.ts`, `src/hooks/AGENTS.md`, `src/pages/dashboard/AGENTS.md`
+- Mounted routes, auth/public split, protected shell mounts: `src/App.tsx`
+- Shell chrome, sidebar entries, profile-prefixed navigation, visible version label: `src/components/layout/AppLayout.tsx`, `src/components/layout/app-layout/navigationProfileConfig.ts`
+- Selected-profile state, revision bumps, and `X-Profile-Id` management scoping: `src/context/ProfileContext.tsx`, `src/lib/api/core.ts`
+- Typed API boundary and shared request plumbing: `src/lib/api.ts`, `src/lib/api/core.ts`
+- Realtime websocket ownership and consumers: `src/lib/websocket.ts`, `src/hooks/useRealtimeData.ts`
+- Shared reference data and profile-revision keyed cache invalidation: `src/lib/referenceData.ts`
+- Frontend locale state and shared formatting: `src/i18n/LocaleProvider.tsx`, `src/i18n/format.ts`
 - Page hierarchy and route-domain handoff: `src/pages/AGENTS.md`
 
 ## CONVENTIONS
 
-- Treat `src/App.tsx` as the source of truth for mounted routes and auth-shell boundaries.
-- Keep Prism backend access on the typed `src/lib/api.ts` boundary and the modules it re-exports.
-- Keep locale state and shared formatting in `src/i18n/`; route and shell surfaces should consume that boundary rather than scattering inline locale logic.
-- Keep selected profile, active profile, and profile revision behavior in `ProfileContext`. Page docs can rely on that contract, but they should not redefine it.
-- Keep navigation facts at the shell level. Use page docs for route-domain behavior and leaf docs for dense local clusters.
-- Mention realtime at this level only where it changes route behavior, mainly dashboard refresh and shared websocket ownership.
+- Treat `src/App.tsx` as the source of truth for routes and shell boundaries.
+- Keep selected profile separate from active runtime routing. `selectedProfile` scopes management APIs, it does not switch proxy traffic.
+- Keep backend access on the typed `src/lib/api.ts` boundary and the modules it re-exports.
+- Keep realtime ownership in `src/lib/websocket.ts` and consume it through hooks instead of creating ad hoc clients.
+- Keep locale state and shared formatting in `src/i18n/`, not in shell or page code.
 
 ## ANTI-PATTERNS
 
-- Do not add generic React, Vite, or test-runner boilerplate to this parent doc.
-- Do not invent shell entries, auth routes, or protected routes beyond the list in `src/App.tsx`.
+- Do not add generic React, Vite, or test-runner boilerplate here.
+- Do not invent routes, shell entries, or page hierarchies beyond `src/App.tsx` and `src/pages/AGENTS.md`.
 - Do not blur selected-profile management scope with active runtime routing.
-- Do not document page-local request-log detail, model-detail connection-list, or settings section behavior here when the page parents already own those boundaries.
+- Do not duplicate websocket, reference-data, or navigation-config ownership in page docs.

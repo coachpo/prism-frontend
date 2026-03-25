@@ -1,7 +1,7 @@
 # FRONTEND SETTINGS COSTING KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/settings/costing/` owns the settings-side costing hooks that support billing, currency, FX mapping, and timezone behavior. This folder handles bootstrap, normalized derived state, FX mapping CRUD state, and save flows, while `../sections/billing-currency/` stays focused on rendering the billing and currency UI.
+`pages/settings/costing/` owns the settings-side costing hooks that support billing, currency, FX mapping, and timezone behavior. This folder handles bootstrap, normalized derived state, FX mapping CRUD state, and save flows, while `../sections/BillingCurrencySection.tsx` and `../sections/billing-currency/` stay focused on rendering.
 
 ## STRUCTURE
 ```

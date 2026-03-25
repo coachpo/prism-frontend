@@ -1,7 +1,7 @@
 # FRONTEND ENDPOINTS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/endpoints/` owns endpoint CRUD, duplication, reorder behavior, summary cards, and card-level presentation behind `../EndpointsPage.tsx`.
+`pages/endpoints/` owns endpoint CRUD, duplication, reorder behavior, summary cards, and card-level presentation behind `../EndpointsPage.tsx`. This page stays profile-scoped because endpoints are reusable credentials attached to the selected profile.
 
 ## STRUCTURE
 ```

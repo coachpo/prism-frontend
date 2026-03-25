@@ -1,7 +1,7 @@
 # FRONTEND DASHBOARD DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/dashboard/` owns the main landing page data flow under `../DashboardPage.tsx`: initial bootstrap, realtime reconciliation, KPI cards, recent activity, top-spend summaries, and routing visualization.
+`pages/dashboard/` owns the main landing page data flow under `../DashboardPage.tsx`: initial bootstrap, realtime reconciliation, KPI cards, recent activity, top-spend summaries, and the parent-covered routing visualization cluster.
 
 ## STRUCTURE
 ```
@@ -24,7 +24,7 @@ dashboard/
 - High-level dashboard composition: `useDashboardPageData.ts`
 - Initial bootstrap fan-out and routing payload shaping: `useDashboardBootstrapData.ts`
 - Realtime payload flow: `useDashboardRealtime.ts`, which reconciles the backend `dashboard.update` payload
-- Routing visualization barrel and local cluster: `routingDiagram.ts`, `RoutingDiagramCard.tsx`, `routing-diagram/`
+- Routing visualization barrel and parent-covered local cluster: `routingDiagram.ts`, `RoutingDiagramCard.tsx`, `routing-diagram/`
 - KPI, highlight, recent-activity, and spend presentation: `DashboardMetricsGrid.tsx`, `DashboardHighlightsGrid.tsx`, `RecentActivityCard.tsx`, `TopSpendingModelsCard.tsx`
 
 ## CONVENTIONS

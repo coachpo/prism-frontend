@@ -1,7 +1,7 @@
 # FRONTEND STATISTICS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/statistics/` owns the analytics route behind `../StatisticsPage.tsx`: operations, throughput, and spending views, all driven by shared URL-state and page-level polling and report orchestration.
+`pages/statistics/` owns the analytics route behind `../StatisticsPage.tsx`: operations, throughput, and spending views, all driven by shared URL-state and page-level polling and report orchestration. Keep null-vs-zero semantics explicit here, especially for usage and cost triage.
 
 ## STRUCTURE
 ```
@@ -40,6 +40,7 @@ statistics/
 - Preserve the split between operations telemetry filters, throughput views, and spending aggregation even when labels overlap.
 - Statistics polling belongs in `useStatisticsPageData.ts`. Tabs consume refreshed state, they do not own their own polling loops.
 - The dense `operations/` and `spending/` subfolders stay parent-covered. Do not add extra AGENTS files for them.
+- Keep null-vs-zero rendering differences visible in helpers and copy, so missing data stays distinct from a true zero value.
 
 ## ANTI-PATTERNS
 

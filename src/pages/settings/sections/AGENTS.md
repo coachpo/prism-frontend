@@ -1,7 +1,7 @@
 # FRONTEND SETTINGS SECTIONS KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/settings/sections/` owns the rendered settings sections used by `../SettingsPage.tsx`. This folder covers the section-level UI for auth setup, audit and privacy, billing and currency, backup, retention and deletion, and timezone preferences, plus the nested `authentication/` and `billing-currency/` UI clusters.
+`pages/settings/sections/` owns the rendered settings sections used by `../SettingsPage.tsx`. This folder covers the section-level UI for auth setup, audit and privacy, billing and currency, backup, retention and deletion, and timezone preferences, plus the nested `authentication/` and `billing-currency/` UI clusters. Keep it focused on section rendering, not the shell or costing orchestration.
 
 ## STRUCTURE
 ```
@@ -24,7 +24,7 @@ sections/
 
 - Auth setup, verified-email prerequisites, and passkey UX: `AuthenticationSection.tsx`, `authentication/`
 - Audit and privacy toggles, rule actions, and rule table rendering: `AuditConfigurationSection.tsx`, `AuditConfigurationProviderToggles.tsx`, `AuditConfigurationRuleActions.tsx`, `AuditConfigurationRuleSection.tsx`, `AuditConfigurationRuleTable.tsx`
-- Billing and currency section shell that renders reporting currency and FX mapping UI: `BillingCurrencySection.tsx`, `billing-currency/`
+- Billing and currency section shell that renders reporting currency and FX mapping UI, while staying separate from costing state: `BillingCurrencySection.tsx`, `billing-currency/`
 - Backup and config import or export section: `BackupSection.tsx`
 - Retention and deletion section: `RetentionDeletionSection.tsx`
 - Timezone preference section: `TimezoneSection.tsx`
@@ -43,6 +43,7 @@ sections/
 - Let `billing-currency/` own the reporting-currency card and FX mapping presentation widgets.
 - Pull bootstrap, dirty-state derivation, and save orchestration from the parent settings hooks instead of rebuilding that logic inside section components.
 - Keep section IDs and save-state wiring aligned with the parent settings helpers.
+- Let `BillingCurrencySection.tsx` stay a rendering boundary. The hooks that own costing changes live in `../costing/`.
 
 ## ANTI-PATTERNS
 

@@ -15,7 +15,7 @@
 - Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestLogsPage.tsx`
 - Configuration and routing: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `EndpointsPage.tsx`, `LoadbalanceStrategiesPage.tsx`, `PricingTemplatesPage.tsx`
 - Access control and runtime credentials: `ProxyApiKeysPage.tsx`
-- Settings shell: `SettingsPage.tsx` with local `settings/sections/`, `settings/costing/`, and `settings/dialogs/`
+- Settings shell: `SettingsPage.tsx` with local `settings/sections/` and `settings/costing/`
 
 ## WHERE TO LOOK
 
@@ -23,7 +23,7 @@
 - Dashboard bootstrap, realtime refresh, and parent-covered `dashboard/routing-diagram/` cluster: `DashboardPage.tsx`, `dashboard/AGENTS.md`
 - Model detail bootstrap, current-state helpers, connection flows, and parent-covered `model-detail/connections-list/` cluster: `ModelDetailPage.tsx`, `model-detail/AGENTS.md`
 - Statistics tab shell, shared URL state, polling, and parent-covered `statistics/operations/` and `statistics/spending/` clusters: `StatisticsPage.tsx`, `statistics/AGENTS.md`
-- Settings tab shell, section navigation, save-state helpers, dialogs, and child-doc delegation: `SettingsPage.tsx`, `settings/AGENTS.md`
+- Settings tab shell, section navigation, save-state helpers, and child-doc delegation: `SettingsPage.tsx`, `settings/AGENTS.md`
 - Models table, dialogs, and metrics hydration: `ModelsPage.tsx`, `models/AGENTS.md`
 - Endpoint CRUD and reorder helpers: `EndpointsPage.tsx`, `endpoints/AGENTS.md`
 - Loadbalance strategy CRUD page and dialog flows: `LoadbalanceStrategiesPage.tsx`, `loadbalance-strategies/AGENTS.md`
@@ -41,7 +41,7 @@
 - `pricing-templates/AGENTS.md`: pricing template CRUD dialogs, usage lookup, and conflict handling.
 - `proxy-api-keys/AGENTS.md`: proxy-key creation, edit and rotation flows, delete confirmation, and auth-status UX.
 - `request-logs/AGENTS.md`: request-log investigation flow, query params, filters, and parent-owned detail behavior.
-- `settings/AGENTS.md`: settings page shell, profile/global tab split, section navigation, save-state helpers, dialogs, and delegation to `sections/AGENTS.md` and `costing/AGENTS.md`.
+- `settings/AGENTS.md`: settings page shell, profile/global tab split, section navigation, save-state helpers, and delegation to `sections/AGENTS.md` and `costing/AGENTS.md`.
 - `statistics/AGENTS.md`: operations, throughput, and spending tabs with shared URL state and local subfolder coverage.
 
 ## CONVENTIONS
@@ -50,6 +50,7 @@
 - Let route files own bookmarkable query or hash state, route-entry redirects, and the first handoff into local hooks.
 - Refresh profile-scoped page data from `ProfileContext.revision` instead of bolting on unrelated cache invalidation paths.
 - Parent-cover local route clusters that do not need their own AGENTS file, including `dashboard/routing-diagram/`, `model-detail/connections-list/`, `statistics/operations/`, `statistics/spending/`, and request-log detail behavior under `request-logs/`.
+- Keep the settings parent focused on shell behavior. Section-level and costing-level details belong in the child docs.
 - Keep auth pages outside the protected shell and outside `ProfileProvider` assumptions.
 
 ## ANTI-PATTERNS

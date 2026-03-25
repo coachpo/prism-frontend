@@ -1,7 +1,7 @@
 # FRONTEND PROXY API KEYS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/proxy-api-keys/` owns global proxy-key issuance, edit, rotation, deletion, auth-status messaging, and one-time secret display behind `../ProxyApiKeysPage.tsx`.
+`pages/proxy-api-keys/` owns global proxy-key issuance, edit, rotation, deletion, auth-status messaging, and one-time secret display behind `../ProxyApiKeysPage.tsx`. These are instance credentials, so the page stays global rather than selected-profile scoped.
 
 ## STRUCTURE
 ```

@@ -1,7 +1,7 @@
 # FRONTEND MODEL DETAIL DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/model-detail/` owns the heavy route logic behind `../ModelDetailPage.tsx`: bootstrap and redirect handling, model data shaping, strategy summary display, connection mutation flows, manual health checks, 24-hour KPIs, model-scoped loadbalance events, current cooldown state, and the local connection-list UI cluster.
+`pages/model-detail/` owns the heavy route logic behind `../ModelDetailPage.tsx`: bootstrap and redirect handling, model data shaping, strategy summary display, connection mutation flows, manual health checks, 24-hour KPIs, model-scoped loadbalance events, current cooldown state, and the parent-covered `connections-list/` UI cluster.
 
 ## STRUCTURE
 ```
