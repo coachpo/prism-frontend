@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { AuditLogDetail, RequestLogEntry } from "@/lib/types";
 import { RequestLogDetailSheet } from "../RequestLogDetailSheet";
 import { useAuditDetail } from "../useAuditDetail";
@@ -90,17 +91,19 @@ function renderSheet(
   const request = overrides?.request ?? baseRequest;
 
   render(
-    <RequestLogDetailSheet
-      request={request}
-      open
-      activeTab="overview"
-      onTabChange={onTabChange}
-      onClose={onClose}
-      onNavigateToConnection={onNavigateToConnection}
-      formatTimestamp={(iso) => `formatted:${iso}`}
-      resolveModelLabel={() => "GPT 5.4"}
-      {...overrides}
-    />
+    <LocaleProvider>
+      <RequestLogDetailSheet
+        request={request}
+        open
+        activeTab="overview"
+        onTabChange={onTabChange}
+        onClose={onClose}
+        onNavigateToConnection={onNavigateToConnection}
+        formatTimestamp={(iso) => `formatted:${iso}`}
+        resolveModelLabel={() => "GPT 5.4"}
+        {...overrides}
+      />
+    </LocaleProvider>
   );
 
   return { onClose, onNavigateToConnection, onTabChange };
@@ -142,16 +145,18 @@ describe("RequestLogDetailSheet", () => {
     });
 
     render(
-      <RequestLogDetailSheet
-        request={baseRequest}
-        open
-        activeTab="audit"
-        onTabChange={vi.fn()}
-        onClose={vi.fn()}
-        onNavigateToConnection={vi.fn()}
-        formatTimestamp={(iso) => `formatted:${iso}`}
-        resolveModelLabel={() => "GPT 5.4"}
-      />
+      <LocaleProvider>
+        <RequestLogDetailSheet
+          request={baseRequest}
+          open
+          activeTab="audit"
+          onTabChange={vi.fn()}
+          onClose={vi.fn()}
+          onNavigateToConnection={vi.fn()}
+          formatTimestamp={(iso) => `formatted:${iso}`}
+          resolveModelLabel={() => "GPT 5.4"}
+        />
+      </LocaleProvider>
     );
 
     expect(document.body.querySelectorAll('[data-slot="skeleton"]').length).toBe(3);
@@ -310,5 +315,28 @@ describe("RequestLogDetailSheet", () => {
 
     expect(requestLine.tagName).toBe("PRE");
     expect(requestLine).toHaveClass("font-mono", "whitespace-pre-wrap", "break-words");
+  });
+
+  it("renders localized detail-sheet copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    render(
+      <LocaleProvider>
+        <RequestLogDetailSheet
+          request={baseRequest}
+          open
+          activeTab="overview"
+          onTabChange={vi.fn()}
+          onClose={vi.fn()}
+          onNavigateToConnection={vi.fn()}
+          formatTimestamp={(iso) => `格式化:${iso}`}
+          resolveModelLabel={() => "GPT 5.4"}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("技术排查")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /概览/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /审计/i })).toBeInTheDocument();
   });
 });

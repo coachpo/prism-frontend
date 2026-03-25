@@ -1,4 +1,5 @@
 import { AlertTriangle, Coins, Copy, ExternalLink, FileText, Gauge, Route } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ export function RequestLogOverviewTab({
   formatTimestamp,
   resolveModelLabel,
 }: RequestLogOverviewTabProps) {
+  const { formatNumber, messages } = useLocale();
   const tone = getStatusTone(request.status_code);
   const connectionId = request.connection_id;
   const modelLabel = resolveModelLabel(request.model_id);
@@ -54,7 +56,7 @@ export function RequestLogOverviewTab({
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <ValueBadge label={String(request.status_code)} intent={getStatusIntent(request.status_code)} className="px-1.5 py-0 font-mono" />
-              {request.is_stream && <TypeBadge label="Streaming" intent="blue" className="px-2 py-0.5" />}
+              {request.is_stream && <TypeBadge label={messages.requestLogs.streaming} intent="blue" className="px-2 py-0.5" />}
               <ProviderPill providerType={request.provider_type} />
             </div>
 
@@ -72,10 +74,10 @@ export function RequestLogOverviewTab({
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <SummaryStat label="Latency" value={<span className="font-mono">{request.response_time_ms.toLocaleString()}ms</span>} />
-            <SummaryStat label="Total tokens" value={<span className="font-mono">{formatTokens(request.total_tokens)}</span>} />
-            <SummaryStat label="Total cost" value={<span className="font-mono">{formatCost(request.total_cost_user_currency_micros, request.report_currency_symbol)}</span>} />
-            <SummaryStat label="Timestamp" value={<span className="font-mono text-xs">{formatTimestamp(request.created_at)}</span>} />
+            <SummaryStat label={messages.requestLogs.latency} value={<span className="font-mono">{formatNumber(request.response_time_ms)}ms</span>} />
+            <SummaryStat label={messages.requestLogs.totalTokens} value={<span className="font-mono">{formatTokens(request.total_tokens)}</span>} />
+            <SummaryStat label={messages.requestLogs.totalCost} value={<span className="font-mono">{formatCost(request.total_cost_user_currency_micros, request.report_currency_symbol)}</span>} />
+            <SummaryStat label={messages.requestLogs.timestamp} value={<span className="font-mono text-xs">{formatTimestamp(request.created_at)}</span>} />
           </div>
         </CardContent>
       </Card>
@@ -87,24 +89,24 @@ export function RequestLogOverviewTab({
             <div className="min-w-0 flex-1 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-700 dark:text-red-300">Error detail</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-700 dark:text-red-300">{messages.requestLogs.errorDetail}</p>
                   <p className="text-xs text-red-700/85 dark:text-red-300/85">
                     {hasFormattedErrorDetail
-                      ? "Captured upstream failure detail, formatted for readability."
-                      : "Captured upstream failure detail."}
+                      ? messages.requestLogs.formattedForReadability
+                      : messages.requestLogs.capturedFailureDetail}
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 rounded-full border-red-500/20 px-2.5 text-[11px] text-red-700 hover:border-red-500/40 hover:bg-red-500/10 dark:text-red-200"
-                  onClick={() => {
-                    void copyRequestLogText(formattedErrorDetail, "error detail");
-                  }}
-                >
-                  <Copy className="h-3 w-3" />
-                  Copy
-                </Button>
+                    className="h-7 rounded-full border-red-500/20 px-2.5 text-[11px] text-red-700 hover:border-red-500/40 hover:bg-red-500/10 dark:text-red-200"
+                    onClick={() => {
+                      void copyRequestLogText(formattedErrorDetail, "error detail");
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                    {messages.requestLogs.copy}
+                  </Button>
               </div>
 
               <ScrollArea className="max-h-64 rounded-lg border border-red-500/15 bg-background/85 shadow-inner">
@@ -118,10 +120,10 @@ export function RequestLogOverviewTab({
       )}
 
       <div className="space-y-4">
-        <SectionCard icon={FileText} title="Request details">
+        <SectionCard icon={FileText} title={messages.requestLogs.requestDetails}>
           <DetailRow label="Request ID"><span className="font-mono">#{request.id}</span></DetailRow>
-          <DetailRow label="Time"><span className="font-mono text-xs">{formatTimestamp(request.created_at)}</span></DetailRow>
-          <DetailRow label="Model">
+          <DetailRow label={messages.requestLogs.time}><span className="font-mono text-xs">{formatTimestamp(request.created_at)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.model}>
             <div className="space-y-1">
               <p>{modelLabel}</p>
                {modelLabel !== request.model_id && (
@@ -131,23 +133,23 @@ export function RequestLogOverviewTab({
                )}
              </div>
            </DetailRow>
-          <DetailRow label="Provider">
+           <DetailRow label={messages.requestLogs.provider}>
             <span className="flex items-center gap-2">
               <ProviderIcon providerType={request.provider_type} size={16} />
               {formatProviderType(request.provider_type)}
             </span>
           </DetailRow>
-          <DetailRow label="Path">
+           <DetailRow label={messages.requestLogs.path}>
             <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
               {request.request_path}
             </span>
           </DetailRow>
-          <DetailRow label="Stream">{request.is_stream ? <TypeBadge label="Streaming" intent="blue" /> : "No"}</DetailRow>
+           <DetailRow label={messages.requestLogs.stream}>{request.is_stream ? <TypeBadge label={messages.requestLogs.streaming} intent="blue" /> : messages.requestLogs.no}</DetailRow>
         </SectionCard>
 
-        <SectionCard icon={Route} title="Routing context">
+        <SectionCard icon={Route} title={messages.requestLogs.routingContext}>
           {request.endpoint_id !== null && (
-            <DetailRow label="Endpoint">
+            <DetailRow label={messages.requestLogs.endpoint}>
               <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                 #{request.endpoint_id}
                 {request.endpoint_description ? ` - ${request.endpoint_description}` : ""}
@@ -155,7 +157,7 @@ export function RequestLogOverviewTab({
             </DetailRow>
           )}
           {connectionId !== null && (
-            <DetailRow label="Connection">
+            <DetailRow label={messages.requestLogs.connection}>
               <Button
                 variant="link"
                 size="sm"
@@ -168,7 +170,7 @@ export function RequestLogOverviewTab({
             </DetailRow>
           )}
           {request.endpoint_base_url && (
-            <DetailRow label="Base URL">
+            <DetailRow label={messages.requestLogs.baseUrl}>
               <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                 {request.endpoint_base_url}
               </span>
@@ -176,28 +178,28 @@ export function RequestLogOverviewTab({
           )}
         </SectionCard>
 
-        <SectionCard icon={Gauge} title="Token usage">
-          <DetailRow label="Input"><span className="font-mono">{formatTokens(request.input_tokens)}</span></DetailRow>
-          <DetailRow label="Output"><span className="font-mono">{formatTokens(request.output_tokens)}</span></DetailRow>
-          <DetailRow label="Total"><span className="font-mono">{formatTokens(request.total_tokens)}</span></DetailRow>
+        <SectionCard icon={Gauge} title={messages.requestLogs.tokenUsage}>
+          <DetailRow label={messages.requestLogs.input}><span className="font-mono">{formatTokens(request.input_tokens)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.output}><span className="font-mono">{formatTokens(request.output_tokens)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.total}><span className="font-mono">{formatTokens(request.total_tokens)}</span></DetailRow>
           {(request.cache_read_input_tokens ?? 0) > 0 && (
-            <DetailRow label="Cache read"><span className="font-mono">{formatTokens(request.cache_read_input_tokens)}</span></DetailRow>
+            <DetailRow label={messages.requestLogs.cacheRead}><span className="font-mono">{formatTokens(request.cache_read_input_tokens)}</span></DetailRow>
           )}
           {(request.cache_creation_input_tokens ?? 0) > 0 && (
-            <DetailRow label="Cache create"><span className="font-mono">{formatTokens(request.cache_creation_input_tokens)}</span></DetailRow>
+            <DetailRow label={messages.requestLogs.cacheCreation}><span className="font-mono">{formatTokens(request.cache_creation_input_tokens)}</span></DetailRow>
           )}
           {(request.reasoning_tokens ?? 0) > 0 && (
-            <DetailRow label="Reasoning"><span className="font-mono">{formatTokens(request.reasoning_tokens)}</span></DetailRow>
+            <DetailRow label={messages.requestLogs.reasoning}><span className="font-mono">{formatTokens(request.reasoning_tokens)}</span></DetailRow>
           )}
         </SectionCard>
 
-        <SectionCard icon={Coins} title="Cost breakdown">
-          <DetailRow label="Input"><span className="font-mono">{formatCost(request.input_cost_micros, request.report_currency_symbol)}</span></DetailRow>
-          <DetailRow label="Output"><span className="font-mono">{formatCost(request.output_cost_micros, request.report_currency_symbol)}</span></DetailRow>
-          <DetailRow label="Total"><span className="font-mono">{formatCost(request.total_cost_user_currency_micros, request.report_currency_symbol)}</span></DetailRow>
-          <DetailRow label="Priced">{request.priced_flag ? "Yes" : "No"}</DetailRow>
-          <DetailRow label="Billable">{request.billable_flag ? "Yes" : "No"}</DetailRow>
-          {request.unpriced_reason && <DetailRow label="Why unpriced">{request.unpriced_reason}</DetailRow>}
+        <SectionCard icon={Coins} title={messages.requestLogs.costBreakdown}>
+          <DetailRow label={messages.requestLogs.input}><span className="font-mono">{formatCost(request.input_cost_micros, request.report_currency_symbol)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.output}><span className="font-mono">{formatCost(request.output_cost_micros, request.report_currency_symbol)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.total}><span className="font-mono">{formatCost(request.total_cost_user_currency_micros, request.report_currency_symbol)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.priced}>{request.priced_flag ? messages.requestLogs.yes : messages.requestLogs.no}</DetailRow>
+          <DetailRow label={messages.requestLogs.billable}>{request.billable_flag ? messages.requestLogs.yes : messages.requestLogs.no}</DetailRow>
+          {request.unpriced_reason && <DetailRow label={messages.requestLogs.whyUnpriced}>{request.unpriced_reason}</DetailRow>}
         </SectionCard>
       </div>
     </div>

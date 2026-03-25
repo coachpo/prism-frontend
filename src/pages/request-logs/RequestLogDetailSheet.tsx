@@ -1,4 +1,5 @@
 import { FileText, Terminal } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Sheet,
   SheetContent,
@@ -34,6 +35,7 @@ export function RequestLogDetailSheet({
   formatTimestamp,
   resolveModelLabel,
 }: RequestLogDetailSheetProps) {
+  const { messages } = useLocale();
   const { audits, loading: auditLoading, error: auditError } = useAuditDetail({
     requestLogId: request?.id ?? null,
     enabled: open && activeTab === "audit",
@@ -46,11 +48,13 @@ export function RequestLogDetailSheet({
           <SheetHeader className="space-y-2 pr-8 text-left">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Terminal className="h-3.5 w-3.5" />
-              <span>Technical inspection</span>
+              <span>{messages.requestLogs.technicalInspection}</span>
             </div>
-            <SheetTitle className="text-xl font-semibold tracking-tight">Request #{request?.id ?? ""}</SheetTitle>
+            <SheetTitle className="text-xl font-semibold tracking-tight">
+              {messages.requestLogs.requestTitle(request?.id ?? "")}
+            </SheetTitle>
             <SheetDescription className="text-sm text-muted-foreground">
-              Review request metadata, routing, tokens, costs, and captured upstream payloads.
+              {messages.requestLogs.detailDescription}
             </SheetDescription>
           </SheetHeader>
 
@@ -59,11 +63,11 @@ export function RequestLogDetailSheet({
               <TabsList className="grid h-11 w-full grid-cols-2 rounded-xl bg-muted/70 p-1">
                 <TabsTrigger value="overview" className="gap-2 rounded-lg text-sm font-medium">
                   <FileText className="h-4 w-4" />
-                  Overview
+                  {messages.requestLogs.overview}
                 </TabsTrigger>
                 <TabsTrigger value="audit" className="gap-2 rounded-lg text-sm font-medium">
                   <Terminal className="h-4 w-4" />
-                  Audit
+                  {messages.requestLogs.audit}
                 </TabsTrigger>
               </TabsList>
 

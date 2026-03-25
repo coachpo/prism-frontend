@@ -1,4 +1,5 @@
 import { Copy } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { copyRequestLogText } from "./requestLogDetailUtils";
@@ -9,6 +10,7 @@ interface RequestLogPayloadBlockProps {
 }
 
 export function RequestLogPayloadBlock({ title, content }: RequestLogPayloadBlockProps) {
+  const { messages } = useLocale();
   const hasContent = content.length > 0;
 
   return (
@@ -27,12 +29,12 @@ export function RequestLogPayloadBlock({ title, content }: RequestLogPayloadBloc
           }}
         >
           <Copy className="h-3 w-3" />
-          Copy
+          {messages.requestLogs.copy}
         </Button>
       </div>
       <ScrollArea className="h-56 rounded-xl border border-zinc-800 bg-zinc-950 shadow-inner">
         <pre className="min-h-full whitespace-pre-wrap break-all p-3 text-[11px] leading-5 text-zinc-50">
-          {hasContent ? content : `No ${title.toLowerCase()} captured.`}
+          {hasContent ? content : messages.requestLogs.noCaptured(title.toLowerCase())}
         </pre>
       </ScrollArea>
     </div>

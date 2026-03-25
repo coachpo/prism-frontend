@@ -1,4 +1,5 @@
 import { AlertTriangle, Clock3 } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,6 +18,8 @@ interface RequestLogAuditTabProps {
 }
 
 export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: RequestLogAuditTabProps) {
+  const { formatNumber, messages } = useLocale();
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -32,7 +35,7 @@ export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: 
       <div className="flex flex-col items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-10 text-center">
         <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
         <div className="max-w-full space-y-2">
-          <p className="text-sm font-medium">Audit capture unavailable</p>
+          <p className="text-sm font-medium">{messages.requestLogs.auditCaptureUnavailable}</p>
           <p className="font-mono text-xs text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
             {error}
           </p>
@@ -44,7 +47,7 @@ export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: 
   if (audits.length === 0) {
     return (
       <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">
-        No audit records found for this request.
+        {messages.requestLogs.noAuditRecords}
       </div>
     );
   }
@@ -58,7 +61,7 @@ export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: 
               <div className="flex flex-wrap items-center gap-2">
                 <ValueBadge label={String(audit.response_status)} intent={getStatusIntent(audit.response_status)} className="px-1.5 py-0 font-mono" />
                 <Badge variant="outline" className="border-border/70 bg-background/80 text-[10px] font-medium">
-                  Audit capture
+                  {messages.requestLogs.auditCapture}
                 </Badge>
               </div>
               <ScrollArea className="max-h-24 rounded-lg border border-border/60 bg-background/70 shadow-inner">
@@ -72,7 +75,7 @@ export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: 
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="outline" className="gap-1 border-border/70 bg-background/80 px-2.5 py-1 text-[11px] font-medium">
                 <Clock3 className="h-3 w-3" />
-                {audit.duration_ms.toLocaleString()}ms
+                {formatNumber(audit.duration_ms)}ms
               </Badge>
               <Badge variant="outline" className="border-border/70 bg-background/80 font-mono text-[11px]">
                 #{audit.id}
@@ -81,11 +84,11 @@ export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: 
           </div>
 
           <CardContent className="space-y-4 p-4">
-            <RequestLogPayloadBlock title="Request headers" content={audit.request_headers || ""} />
+            <RequestLogPayloadBlock title={messages.requestLogs.requestHeaders} content={audit.request_headers || ""} />
             <Separator />
-            <RequestLogPayloadBlock title="Request" content={audit.request_body ?? ""} />
+            <RequestLogPayloadBlock title={messages.requestLogs.requestBody} content={audit.request_body ?? ""} />
             <Separator />
-            <RequestLogPayloadBlock title={`Response (${audit.response_status})`} content={audit.response_body ?? ""} />
+            <RequestLogPayloadBlock title={messages.requestLogs.response(audit.response_status)} content={audit.response_body ?? ""} />
           </CardContent>
         </Card>
       ))}
