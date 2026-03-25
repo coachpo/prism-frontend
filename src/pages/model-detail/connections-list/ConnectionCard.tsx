@@ -39,6 +39,7 @@ export function ConnectionCard({
       tabIndex={cardRef ? -1 : undefined}
       className={cn(
         "group rounded-xl border bg-card p-4 transition-[border-color,box-shadow,opacity,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        !connection.is_active && "border-border/60 bg-muted/20",
         isFocused && "border-primary/30 bg-muted/20 ring-2 ring-primary/40",
         !isFocused && !isDragging && "hover:border-border",
         isDragging && "border-dashed border-primary/40 bg-muted/30 opacity-30",
@@ -64,7 +65,7 @@ export function ConnectionCard({
             <GripVertical className="h-5 w-5" />
           </button>
 
-          <div className="min-w-0 flex-1 space-y-1.5">
+          <div className={cn("min-w-0 flex-1 space-y-1.5", !connection.is_active && "opacity-75")}>
             <ConnectionCardHeader
               connection={connection}
               connectionName={connectionName}

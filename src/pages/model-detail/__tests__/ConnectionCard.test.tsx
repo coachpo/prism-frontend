@@ -200,4 +200,34 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.queryByRole("button", { name: "Reset Cooldown" })).not.toBeInTheDocument();
     expect(screen.queryByText("Cooling Down")).not.toBeInTheDocument();
   });
+
+  it("applies muted shell styling to inactive cards while keeping actions available", () => {
+    const { container } = render(
+      <ConnectionCard
+        connection={{ ...buildConnection(), is_active: false }}
+        model={buildModel()}
+        metrics24h={undefined}
+        loadbalanceCurrentState={undefined}
+        isChecking={false}
+        isResettingCooldown={false}
+        isFocused={false}
+        formatTime={(value) => `formatted:${value}`}
+        reorderDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onHealthCheck={vi.fn()}
+        onResetCooldown={vi.fn()}
+        onToggleActive={vi.fn()}
+      />
+    );
+
+    const card = container.firstElementChild;
+    const detailsRow = screen.getByText("Primary endpoint").closest("div");
+    const contentColumn = detailsRow?.parentElement;
+
+    expect(card).toHaveClass("border-border/60", "bg-muted/20");
+    expect(contentColumn).toHaveClass("opacity-75");
+    expect(screen.getByRole("switch")).toBeEnabled();
+  });
+
 });
