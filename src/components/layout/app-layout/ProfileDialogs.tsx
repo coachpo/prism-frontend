@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useLocale } from "@/i18n/useLocale";
 
 interface ProfileDialogsProps {
   activateOpen: boolean;
@@ -75,31 +76,30 @@ export function ProfileDialogs({
   onDelete,
   clearDeleteError,
 }: ProfileDialogsProps) {
+  const { messages } = useLocale();
+
   return (
     <>
       <Dialog open={activateOpen} onOpenChange={setActivateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Activate &quot;{selectedProfileName}&quot; for runtime traffic?</DialogTitle>
-            <DialogDescription>
-              This will switch the active runtime profile. Existing traffic will route using the newly
-              active profile.
-            </DialogDescription>
+            <DialogTitle>{messages.profiles.activateTitle(selectedProfileName)}</DialogTitle>
+            <DialogDescription>{messages.profiles.activateDescription}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
             <p>
-              Current active: <strong>{activeProfileName}</strong>
+              {messages.profiles.currentActive} <strong>{activeProfileName}</strong>
             </p>
             <p>
-              New active: <strong>{selectedProfileName}</strong>
+              {messages.profiles.newActive} <strong>{selectedProfileName}</strong>
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setActivateOpen(false)}>
-              Cancel
+              {messages.profiles.cancel}
             </Button>
             <Button onClick={onActivate} disabled={isActivating || !hasMismatch}>
-              {isActivating ? "Activating..." : "Activate"}
+              {isActivating ? messages.profiles.activating : messages.profiles.activate}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -108,37 +108,35 @@ export function ProfileDialogs({
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Profile</DialogTitle>
-            <DialogDescription>
-              Create a new management scope profile. Runtime traffic is unaffected until activation.
-            </DialogDescription>
+            <DialogTitle>{messages.profiles.createTitle}</DialogTitle>
+            <DialogDescription>{messages.profiles.createDescription}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="profile-create-name">Name</Label>
+              <Label htmlFor="profile-create-name">{messages.profiles.name}</Label>
               <Input
                 id="profile-create-name"
                 value={nameInput}
                 onChange={(event) => setNameInput(event.target.value)}
-                placeholder="Profile name"
+                placeholder={messages.profiles.profileNamePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile-create-description">Description (Optional)</Label>
+              <Label htmlFor="profile-create-description">{messages.profiles.descriptionOptional}</Label>
               <Input
                 id="profile-create-description"
                 value={descriptionInput}
                 onChange={(event) => setDescriptionInput(event.target.value)}
-                placeholder="Optional"
+                placeholder={messages.profiles.optionalPlaceholder}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {messages.profiles.cancel}
             </Button>
             <Button onClick={onCreate} disabled={isSaving || !canCreateProfile}>
-              {isSaving ? "Creating..." : "Create"}
+              {isSaving ? messages.profiles.creating : messages.profiles.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -147,37 +145,35 @@ export function ProfileDialogs({
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
-            <DialogDescription>
-              Update selected profile metadata. This does not activate runtime traffic.
-            </DialogDescription>
+            <DialogTitle>{messages.profiles.editTitle}</DialogTitle>
+            <DialogDescription>{messages.profiles.editDescription}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="profile-edit-name">Name</Label>
+              <Label htmlFor="profile-edit-name">{messages.profiles.name}</Label>
               <Input
                 id="profile-edit-name"
                 value={nameInput}
                 onChange={(event) => setNameInput(event.target.value)}
-                placeholder="Profile name"
+                placeholder={messages.profiles.profileNamePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profile-edit-description">Description (Optional)</Label>
+              <Label htmlFor="profile-edit-description">{messages.profiles.descriptionOptional}</Label>
               <Input
                 id="profile-edit-description"
                 value={descriptionInput}
                 onChange={(event) => setDescriptionInput(event.target.value)}
-                placeholder="Optional"
+                placeholder={messages.profiles.optionalPlaceholder}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>
-              Cancel
+              {messages.profiles.cancel}
             </Button>
             <Button onClick={onEdit} disabled={isSaving || !hasSelectedProfile}>
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving ? messages.profiles.saving : messages.profiles.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -186,11 +182,8 @@ export function ProfileDialogs({
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Profile</DialogTitle>
-            <DialogDescription>
-              Delete selected profile <strong>{selectedProfileName}</strong>. This action is
-              irreversible.
-            </DialogDescription>
+            <DialogTitle>{messages.profiles.deleteTitle}</DialogTitle>
+            <DialogDescription>{messages.profiles.deleteDescription(selectedProfileName)}</DialogDescription>
           </DialogHeader>
           {deleteError ? (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -199,7 +192,7 @@ export function ProfileDialogs({
           ) : null}
           <div className="space-y-2">
             <Label htmlFor="profile-delete-confirm">
-              Type <code>{deleteConfirmTarget}</code> to confirm
+              {messages.profiles.typeToConfirm(deleteConfirmTarget)}
             </Label>
             <Input
               id="profile-delete-confirm"
@@ -212,14 +205,14 @@ export function ProfileDialogs({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
+              {messages.profiles.cancel}
             </Button>
             <Button
               variant="destructive"
               onClick={onDelete}
               disabled={isDeleting || !hasSelectedProfile || !isDeleteConfirmMatch}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? messages.profiles.deleting : messages.profiles.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

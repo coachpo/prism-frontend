@@ -4,6 +4,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { useAuth } from "@/context/useAuth";
 import { ProfileProvider } from "@/context/ProfileContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useLocale } from "@/i18n/useLocale";
 
 const DashboardPage = lazy(() =>
   import("@/pages/DashboardPage").then((module) => ({ default: module.DashboardPage }))
@@ -45,14 +46,20 @@ const RequestLogsPage = lazy(() =>
   import("@/pages/RequestLogsPage").then((module) => ({ default: module.RequestLogsPage }))
 );
 
-const routeFallback = (
-  <div className="py-10 text-center text-sm text-muted-foreground">Loading...</div>
-);
-
 const PUBLIC_AUTH_PATHS = new Set(["/login", "/forgot-password", "/reset-password"]);
 
+function RouteFallback() {
+  const { messages } = useLocale();
+
+  return (
+    <div className="py-10 text-center text-sm text-muted-foreground">
+      {messages.common.loadingApplication}
+    </div>
+  );
+}
+
 function withRouteSuspense(element: ReactElement) {
-  return <Suspense fallback={routeFallback}>{element}</Suspense>;
+  return <Suspense fallback={<RouteFallback />}>{element}</Suspense>;
 }
 
 function ProtectedAppShell() {
@@ -60,7 +67,7 @@ function ProtectedAppShell() {
   const { authEnabled, authenticated, loading } = useAuth();
 
   if (loading) {
-    return routeFallback;
+    return <RouteFallback />;
   }
 
   if (authEnabled && !authenticated) {
@@ -78,7 +85,7 @@ function PublicOnlyRoute({ children }: { children: ReactElement }) {
   const { authEnabled, authenticated, loading } = useAuth();
 
   if (loading) {
-    return routeFallback;
+    return <RouteFallback />;
   }
 
   if (!authEnabled || authenticated) {

@@ -4,7 +4,7 @@ import { Fingerprint } from "lucide-react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { GlobalPreferencesControls } from "@/components/GlobalPreferencesControls";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TopographyBackground } from "@/components/ui/topography";
 import { useAuth } from "@/context/useAuth";
+import { useLocale } from "@/i18n/useLocale";
 import type { LoginSessionDuration } from "@/lib/types";
 import { authenticateWithPasskey, isWebAuthnSupported } from "@/lib/webauthn";
 
@@ -20,6 +21,7 @@ export function LoginPage() {
   const location = useLocation();
   const { resolvedTheme } = useTheme();
   const { authEnabled, authenticated, loading, login } = useAuth();
+  const { locale, messages } = useLocale();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [sessionDuration, setSessionDuration] = useState<LoginSessionDuration>("session");
@@ -54,7 +56,7 @@ export function LoginPage() {
       await login(username.trim(), password, sessionDuration);
       navigate(nextPath || "/dashboard", { replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Login failed");
+      toast.error(error instanceof Error ? error.message : messages.auth.loginFailed);
     } finally {
       setSubmitting(false);
     }
@@ -62,9 +64,7 @@ export function LoginPage() {
 
   const handlePasskeyLogin = async () => {
     if (!isWebAuthnSupported()) {
-      toast.error(
-        "Your browser does not support Passkeys. Please use a modern browser or try another login method."
-      );
+      toast.error(messages.auth.browserNoPasskeys);
       return;
     }
 
@@ -81,10 +81,12 @@ export function LoginPage() {
       if (result.success && result.authenticated) {
         window.location.assign(nextPath || "/dashboard");
       } else {
-        toast.error("Passkey authentication failed");
+        toast.error(messages.auth.passkeyAuthenticationFailed);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Passkey authentication failed");
+      toast.error(
+        error instanceof Error ? error.message : messages.auth.passkeyAuthenticationFailed
+      );
     } finally {
       setPasskeyLoading(false);
     }
@@ -115,25 +117,26 @@ export function LoginPage() {
           <div className="flex items-center justify-between px-4 pt-4 sm:px-6 sm:pt-6 lg:px-8">
             <div />
 
-            <ThemeToggle
-              buttonClassName="h-9 w-9 rounded-full border border-border/70 bg-background/70 text-foreground shadow-sm backdrop-blur-xl hover:bg-background/90"
-              menuClassName="border-border/70 bg-popover/95 backdrop-blur-xl"
+            <GlobalPreferencesControls
+              languageSwitcherClassName="border-border/70 bg-background/70 shadow-sm backdrop-blur-xl"
+              themeToggleButtonClassName="h-9 w-9 rounded-full border border-border/70 bg-background/70 text-foreground shadow-sm backdrop-blur-xl hover:bg-background/90"
+              themeToggleMenuClassName="border-border/70 bg-popover/95 backdrop-blur-xl"
             />
           </div>
 
           <div className="mx-auto flex w-full max-w-6xl flex-1 items-center justify-center px-4 pb-8 pt-6 sm:px-6 sm:pb-10 lg:px-8">
             <Card className="w-full max-w-[420px] border-border/70 bg-background/78 shadow-2xl shadow-primary/10 backdrop-blur-2xl">
               <CardHeader className="pb-6">
-                <CardTitle className="text-2xl tracking-tight">Sign in</CardTitle>
+                <CardTitle className="text-2xl tracking-tight">{messages.auth.signIn}</CardTitle>
                 <CardDescription className="sr-only">
-                  Sign in to manage Prism settings, profiles, and routing.
+                  {messages.auth.signInDescription}
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-6">
                 <form className="space-y-5" onSubmit={handleSubmit}>
                   <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
+                    <Label htmlFor="username">{messages.auth.username}</Label>
                     <Input
                       id="username"
                       value={username}
@@ -143,7 +146,7 @@ export function LoginPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">{messages.auth.password}</Label>
                     <Input
                       id="password"
                       type="password"
@@ -154,8 +157,9 @@ export function LoginPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="session-duration">Keep me signed in for</Label>
+                    <Label htmlFor="session-duration">{messages.auth.keepSignedInFor}</Label>
                     <Select
+                      key={locale}
                       value={sessionDuration}
                       onValueChange={(value: LoginSessionDuration) => setSessionDuration(value)}
                     >
@@ -163,9 +167,9 @@ export function LoginPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="session">Current browser session</SelectItem>
-                        <SelectItem value="7_days">7 days</SelectItem>
-                        <SelectItem value="30_days">30 days</SelectItem>
+                        <SelectItem value="session">{messages.auth.sessionCurrent}</SelectItem>
+                        <SelectItem value="7_days">{messages.auth.session7Days}</SelectItem>
+                        <SelectItem value="30_days">{messages.auth.session30Days}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -177,14 +181,14 @@ export function LoginPage() {
                       className="justify-start px-0 text-muted-foreground"
                       onClick={() => navigate("/forgot-password")}
                     >
-                      Forgot password?
+                      {messages.auth.forgotPasswordQuestion}
                     </Button>
                     <Button
                       type="submit"
                       className="min-w-28"
                       disabled={submitting || loading || passkeyLoading}
                     >
-                      {submitting ? "Signing in..." : "Sign in"}
+                      {submitting ? messages.auth.signingIn : messages.auth.signIn}
                     </Button>
                   </div>
                 </form>
@@ -195,7 +199,7 @@ export function LoginPage() {
                   </div>
                   <div className="relative flex justify-center text-xs uppercase tracking-[0.24em]">
                     <span className="bg-card/90 px-3 text-muted-foreground backdrop-blur-sm">
-                      Or continue with
+                      {messages.auth.orContinueWith}
                     </span>
                   </div>
                 </div>
@@ -208,7 +212,7 @@ export function LoginPage() {
                   disabled={submitting || loading || passkeyLoading}
                 >
                   <Fingerprint className="h-4 w-4" />
-                  {passkeyLoading ? "Authenticating..." : "Sign in with Passkey"}
+                  {passkeyLoading ? messages.auth.authenticating : messages.auth.signInWithPasskey}
                 </Button>
               </CardContent>
             </Card>

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useLocale } from "@/i18n/useLocale";
 
 interface ProfileSwitcherPopoverProps {
   open: boolean;
@@ -56,25 +57,27 @@ export function ProfileSwitcherPopover({
   onOpenCreateDialog,
   onManageProfiles,
 }: ProfileSwitcherPopoverProps) {
+  const { messages } = useLocale();
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="h-9 w-[min(76vw,320px)] justify-between gap-2 px-2.5 sm:w-[320px]"
+          className="h-9 w-full justify-between gap-2 px-2.5 sm:w-[320px]"
           disabled={isActivating}
           role="combobox"
           aria-expanded={open}
-          title={`Selected profile: ${selectedProfileName}. Active runtime: ${activeProfileName}.`}
+          title={messages.profiles.profileTriggerTitle(selectedProfileName, activeProfileName)}
         >
           <span className="flex min-w-0 items-center gap-2 truncate text-sm">
             {hasNoProfiles ? <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500/80" /> : null}
-            <span className="text-muted-foreground">Profile:</span>
+            <span className="text-muted-foreground">{messages.shell.profile}</span>
             <span className="truncate font-medium">{selectedProfileName}</span>
           </span>
 
           <span className="flex items-center gap-1.5">
-            {selectedIsActive ? <Badge className="h-5 px-1.5 text-[10px]">Active</Badge> : null}
+            {selectedIsActive ? <Badge className="h-5 px-1.5 text-[10px]">{messages.profiles.active}</Badge> : null}
             <ChevronsUpDown className="h-4 w-4 opacity-60" />
           </span>
         </Button>
@@ -87,42 +90,42 @@ export function ProfileSwitcherPopover({
         className="z-[60] flex h-[min(82vh,34rem)] w-[var(--radix-popover-trigger-width)] max-w-[94vw] flex-col overflow-hidden p-0"
       >
         <div className="shrink-0 border-b px-3 py-3">
-          <p className="text-sm font-semibold">Select profile</p>
+          <p className="text-sm font-semibold">{messages.profiles.selectProfile}</p>
           <Input
             ref={profileSearchInputRef}
             className="mt-2"
             value={profileQuery}
             onChange={(event) => setProfileQuery(event.target.value)}
-            placeholder="Search profiles..."
+            placeholder={messages.profiles.searchPlaceholder}
           />
-          <p className="mt-1 truncate text-[11px] text-muted-foreground">Active: {activeProfileName}</p>
+          <p className="mt-1 truncate text-[11px] text-muted-foreground">{messages.profiles.activeShort(activeProfileName)}</p>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
           {hasNoProfiles ? (
             <div className="flex h-full items-center justify-center p-1">
-              <div className="w-full rounded-lg border border-dashed bg-muted/30 px-4 py-6 text-center">
-                <p className="text-sm font-medium">No profiles yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Create a profile to start routing traffic or running tests.
-                </p>
-                <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
-                  <Button size="sm" className="h-8" onClick={onOpenCreateDialog} disabled={!canCreateProfile}>
-                    Create new profile
-                  </Button>
-                  <Button size="sm" variant="link" className="h-8 px-2 text-xs" onClick={onManageProfiles}>
-                    Learn more
-                  </Button>
+                <div className="w-full rounded-lg border border-dashed bg-muted/30 px-4 py-6 text-center">
+                  <p className="text-sm font-medium">{messages.profiles.noProfilesTitle}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {messages.profiles.noProfilesDescription}
+                  </p>
+                  <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
+                    <Button size="sm" className="h-8" onClick={onOpenCreateDialog} disabled={!canCreateProfile}>
+                      {messages.profiles.createNewProfile}
+                    </Button>
+                    <Button size="sm" variant="link" className="h-8 px-2 text-xs" onClick={onManageProfiles}>
+                      {messages.profiles.learnMore}
+                    </Button>
+                  </div>
                 </div>
-              </div>
             </div>
           ) : hasNoMatches ? (
             <div className="flex h-full items-center justify-center p-1">
               <div className="w-full rounded-lg border border-dashed bg-muted/30 px-4 py-6 text-center">
-                <p className="text-sm font-medium">No matches</p>
-                <p className="mt-1 text-xs text-muted-foreground">Try a different search term.</p>
+                <p className="text-sm font-medium">{messages.profiles.noMatches}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{messages.profiles.tryDifferentSearchTerm}</p>
                 <Button size="sm" variant="outline" className="mt-3 h-8" onClick={() => setProfileQuery("")}>
-                  Clear search
+                  {messages.profiles.clearSearch}
                 </Button>
               </div>
             </div>
@@ -152,7 +155,7 @@ export function ProfileSwitcherPopover({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{profile.name}</p>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {profile.description?.trim() || "No description"}
+                        {profile.description?.trim() || messages.profiles.noDescription}
                       </p>
                     </div>
                     <div className="ml-2 flex min-w-[132px] shrink-0 items-center justify-end gap-2">
@@ -161,7 +164,7 @@ export function ProfileSwitcherPopover({
                           variant="outline"
                           className="h-5 shrink-0 border-emerald-500/40 bg-emerald-500/15 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-200"
                         >
-                          Active
+                          {messages.profiles.active}
                         </Badge>
                       ) : null}
                       {profile.is_default ? (
@@ -169,7 +172,7 @@ export function ProfileSwitcherPopover({
                           variant="outline"
                           className="h-5 shrink-0 border-sky-500/40 bg-sky-500/10 px-1.5 text-[10px] text-sky-700 dark:text-sky-200"
                         >
-                          Default
+                          {messages.profiles.default}
                         </Badge>
                       ) : null}
                       {!profile.is_editable ? (
@@ -177,7 +180,7 @@ export function ProfileSwitcherPopover({
                           variant="outline"
                           className="h-5 shrink-0 border-amber-500/40 bg-amber-500/10 px-1.5 text-[10px] text-amber-700 dark:text-amber-200"
                         >
-                          Locked
+                          {messages.profiles.locked}
                         </Badge>
                       ) : null}
                       <Check
@@ -206,7 +209,7 @@ export function ProfileSwitcherPopover({
                   title={editDisabledReason ?? undefined}
                 >
                   <Pencil className="mr-2 h-3.5 w-3.5" />
-                  Edit selected
+                  {messages.profiles.editSelected}
                 </Button>
                 <Button
                   variant="ghost"
@@ -216,14 +219,14 @@ export function ProfileSwitcherPopover({
                   title={deleteDisabledReason ?? undefined}
                 >
                   <Trash2 className="mr-2 h-3.5 w-3.5" />
-                  Delete selected
+                  {messages.profiles.deleteSelected}
                 </Button>
                 <div className="my-1 border-t" />
               </>
             ) : null}
 
             <Button variant="ghost" className="h-8 w-full justify-start" onClick={onManageProfiles}>
-              Manage profiles
+              {messages.profiles.manageProfiles}
             </Button>
             <Button
               variant="ghost"
@@ -231,12 +234,12 @@ export function ProfileSwitcherPopover({
               onClick={onOpenCreateDialog}
               disabled={!canCreateProfile}
             >
-              Create new profile
+              {messages.profiles.createNewProfile}
             </Button>
 
             {!canCreateProfile ? (
               <p className="px-1 text-xs text-amber-700 dark:text-amber-200">
-                You&apos;ve reached the limit (10). Delete an inactive profile to create a new one.
+                {messages.profiles.limitReached}
               </p>
             ) : null}
           </div>

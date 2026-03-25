@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useLocale } from "@/i18n/useLocale";
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const { messages } = useLocale();
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -18,10 +20,10 @@ export function ForgotPasswordPage() {
     setSubmitting(true);
     try {
       await api.auth.requestPasswordReset({ username_or_email: usernameOrEmail.trim() });
-      toast.success("If the account matches, a reset code has been sent.");
+      toast.success(messages.auth.accountResetCodeSent);
       navigate("/reset-password", { replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to request password reset");
+      toast.error(error instanceof Error ? error.message : messages.auth.forgotPasswordError);
     } finally {
       setSubmitting(false);
     }
@@ -31,13 +33,13 @@ export function ForgotPasswordPage() {
     <div className="mx-auto flex min-h-screen max-w-md items-center justify-center px-4">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Reset password</CardTitle>
-          <CardDescription>Enter the bound username or email to receive a reset code.</CardDescription>
+          <CardTitle>{messages.auth.resetPasswordTitle}</CardTitle>
+          <CardDescription>{messages.auth.forgotPasswordDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="username-or-email">Username or email</Label>
+              <Label htmlFor="username-or-email">{messages.auth.usernameOrEmail}</Label>
               <Input
                 id="username-or-email"
                 value={usernameOrEmail}
@@ -45,9 +47,9 @@ export function ForgotPasswordPage() {
               />
             </div>
             <div className="flex items-center justify-between gap-3">
-              <Button type="button" variant="link" className="px-0" onClick={() => navigate("/login")}>Back to login</Button>
+              <Button type="button" variant="link" className="px-0" onClick={() => navigate("/login")}>{messages.auth.backToLogin}</Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? "Sending..." : "Send code"}
+                {submitting ? messages.auth.sending : messages.auth.sendCode}
               </Button>
             </div>
           </form>

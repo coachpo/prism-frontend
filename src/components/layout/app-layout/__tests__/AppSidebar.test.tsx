@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { AppSidebar } from "../AppSidebar";
 import { VERSION_LABEL } from "../navigationProfileConfig";
 
@@ -18,9 +19,11 @@ function renderSidebar(overrides: Partial<SidebarProps> = {}) {
   };
 
   const view = render(
-    <MemoryRouter initialEntries={["/dashboard"]}>
-      <AppSidebar {...props} />
-    </MemoryRouter>
+    <LocaleProvider>
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <AppSidebar {...props} />
+      </MemoryRouter>
+    </LocaleProvider>
   );
 
   return {

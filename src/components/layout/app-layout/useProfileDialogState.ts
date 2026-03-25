@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLocale } from "@/i18n/useLocale";
 import type { Profile } from "@/lib/types";
 import { parseConflictMessage } from "./profileConflictMessageParser";
 
@@ -30,6 +31,7 @@ export function useProfileDialogState({
   selectedProfile,
   updateProfile,
 }: UseProfileDialogStateInput) {
+  const { messages } = useLocale();
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -94,11 +96,11 @@ export function useProfileDialogState({
   const handleCreateProfile = async () => {
     const name = nameInput.trim();
     if (!name) {
-      toast.error("Profile name is required");
+      toast.error(messages.profiles.nameRequired);
       return;
     }
     if (!canCreateProfile) {
-      toast.error("Maximum 10 profiles reached. Delete a profile to create a new one.");
+      toast.error(messages.profiles.limitReached);
       return;
     }
 
@@ -109,15 +111,15 @@ export function useProfileDialogState({
         description: descriptionInput.trim() || null,
       });
       selectProfile(created.id);
-      toast.success(`Created profile ${created.name}`);
+      toast.success(messages.profiles.createdProfile(created.name));
       setCreateOpen(false);
       resetFormFields();
     } catch (error) {
-      const conflictMessage = parseConflictMessage(error);
+      const conflictMessage = parseConflictMessage(error, messages.profiles.limitReached);
       if (conflictMessage) {
         toast.error(conflictMessage);
       } else {
-        toast.error(error instanceof Error ? error.message : "Failed to create profile");
+        toast.error(error instanceof Error ? error.message : messages.profiles.createFailed);
       }
     } finally {
       setIsSaving(false);
@@ -129,7 +131,7 @@ export function useProfileDialogState({
 
     const name = nameInput.trim();
     if (!name) {
-      toast.error("Profile name is required");
+      toast.error(messages.profiles.nameRequired);
       return;
     }
 
@@ -139,11 +141,11 @@ export function useProfileDialogState({
         name,
         description: descriptionInput.trim() || null,
       });
-      toast.success("Profile updated");
+      toast.success(messages.profiles.updatedProfile);
       setEditOpen(false);
       resetFormFields();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update profile");
+      toast.error(error instanceof Error ? error.message : messages.profiles.updateFailed);
     } finally {
       setIsSaving(false);
     }
@@ -155,14 +157,12 @@ export function useProfileDialogState({
     setIsActivating(true);
     try {
       await activateProfile(selectedProfile.id);
-      toast.success(`Activated ${selectedProfile.name} for runtime traffic`);
+      toast.success(messages.profiles.activatedProfile(selectedProfile.name));
       setActivateOpen(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to activate profile";
+      const message = error instanceof Error ? error.message : messages.profiles.activateFailed;
       if (message.includes("409") || message.toLowerCase().includes("conflict")) {
-        toast.error(
-          "Activation conflict detected. Active profile changed elsewhere, profile state was refreshed."
-        );
+        toast.error(messages.profiles.activateConflict);
       } else {
         toast.error(message);
       }
@@ -178,12 +178,12 @@ export function useProfileDialogState({
     setIsDeleting(true);
     try {
       await deleteProfile(selectedProfile.id);
-      toast.success(`Deleted profile ${selectedProfile.name}`);
+      toast.success(messages.profiles.deletedProfile(selectedProfile.name));
       setDeleteOpen(false);
       setDeleteConfirmInput("");
       setDeleteError(null);
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : "Failed to delete profile");
+      setDeleteError(error instanceof Error ? error.message : messages.profiles.deleteFailed);
     } finally {
       setIsDeleting(false);
     }
