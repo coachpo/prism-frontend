@@ -307,4 +307,13 @@ describe("ModelsTable", () => {
     expect(metricsCluster).toContainElement(screen.getByText("single-primary · Single"));
     expect(screen.getAllByText("|")).toHaveLength(5);
   });
+
+  it("renders a smaller copy button next to the model id", () => {
+    renderTable();
+
+    const copyButton = screen.getByRole("button", { name: "Copy model ID gpt-4o-mini" });
+
+    expect(copyButton).toHaveAttribute("data-size", "icon-xs");
+    expect(copyButton).toHaveClass("h-5", "w-5");
+  });
 });
