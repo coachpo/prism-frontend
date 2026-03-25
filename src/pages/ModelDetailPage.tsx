@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { useModelDetailData } from "./model-detail/useModelDetailData";
+import { useModelDetailPageShell } from "./model-detail/useModelDetailPageShell";
 import { LoadbalanceEventsTab } from "./model-detail/LoadbalanceEventsTab";
 import { OverviewCards } from "./model-detail/OverviewCards";
 import { ConnectionsList } from "./model-detail/ConnectionsList";
@@ -16,7 +16,8 @@ import { ModelSettingsDialog } from "./model-detail/ModelSettingsDialog";
 export function ModelDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"connections" | "events">("connections");
+  const { activeTab, navigateBackToModels, navigateToRequestLogs, setActiveTab } =
+    useModelDetailPageShell(navigate);
 
   const {
     model,
@@ -97,7 +98,7 @@ export function ModelDetailPage() {
     <div className="space-y-[var(--density-page-gap)] pb-2">
       <div className="rounded-2xl border bg-card p-4 sm:p-5">
         <div className="relative flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-md" onClick={() => navigate("/models")}>
+          <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-md" onClick={navigateBackToModels}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-0 flex-1">
@@ -163,7 +164,7 @@ export function ModelDetailPage() {
         spendingCurrencyCode={spendingCurrencyCode}
         metrics24hLoading={metrics24hLoading}
         modelKpis={modelKpis}
-        onViewRequestLogs={() => navigate(`/request-logs?model_id=${encodeURIComponent(model.model_id)}`)}
+        onViewRequestLogs={() => navigateToRequestLogs(model.model_id)}
       />
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "connections" | "events")} className="space-y-4">

@@ -7,6 +7,9 @@ import type {
   Provider,
 } from "@/lib/types";
 import { ConnectionCard } from "../connections-list/ConnectionCard";
+import { ConnectionCardActions } from "../connections-list/ConnectionCardActions";
+import { ConnectionCardHeader } from "../connections-list/ConnectionCardHeader";
+import { ConnectionCardMetrics } from "../connections-list/ConnectionCardMetrics";
 
 function buildProvider(): Provider {
   return {
@@ -201,6 +204,19 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.queryByText("Cooling Down")).not.toBeInTheDocument();
   });
 
+  it("renders header pricing and inactive badges from the extracted header component", () => {
+    render(
+      <ConnectionCardHeader
+        connection={{ ...buildConnection(), is_active: false }}
+        connectionName="Primary"
+        isChecking={false}
+      />,
+    );
+
+    expect(screen.getByText("Pricing Off")).toBeInTheDocument();
+    expect(screen.getByText("Inactive")).toBeInTheDocument();
+  });
+
   it("applies muted shell styling to inactive cards while keeping actions available", () => {
     const { container } = render(
       <ConnectionCard
@@ -218,7 +234,7 @@ describe("ConnectionCard cooldown state", () => {
         onHealthCheck={vi.fn()}
         onResetCooldown={vi.fn()}
         onToggleActive={vi.fn()}
-      />
+      />,
     );
 
     const card = container.firstElementChild;
@@ -230,4 +246,48 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByRole("switch")).toBeEnabled();
   });
 
+  it("renders metrics text from the extracted metrics component", () => {
+    render(
+      <ConnectionCardMetrics
+        formatTime={(value) => `formatted:${value}`}
+        metrics24h={{
+          request_count_24h: 24,
+          success_rate_24h: 98.5,
+          p95_latency_ms: 450,
+          five_xx_rate: 1.2,
+          heuristic_failover_events: 2,
+          last_failover_like_at: "2026-03-23T10:05:00Z",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Success rate (24h)")).toBeInTheDocument();
+    expect(screen.getByText("98.5%")).toBeInTheDocument();
+  });
+
+  it("wires action callbacks through the extracted actions component", () => {
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+    const onHealthCheck = vi.fn();
+    const onToggleActive = vi.fn();
+
+    render(
+      <ConnectionCardActions
+        connection={buildConnection()}
+        isChecking={false}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onHealthCheck={onHealthCheck}
+        onToggleActive={onToggleActive}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("switch"));
+
+    expect(screen.getByRole("button", { name: "Connection actions" })).toBeInTheDocument();
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(onHealthCheck).not.toHaveBeenCalled();
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(onToggleActive).toHaveBeenCalledWith(expect.objectContaining({ id: 11 }));
+  });
 });
