@@ -1,4 +1,5 @@
 import { Activity, CheckCircle2, XCircle } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { AnimatedListItem } from "@/components/AnimatedListItem";
 import { EmptyState } from "@/components/EmptyState";
 import { ValueBadge } from "@/components/StatusBadge";
@@ -22,18 +23,20 @@ export function RecentActivityCard({
   recentNewIds,
   recentRequests,
 }: RecentActivityCardProps) {
+  const { formatNumber, locale, messages } = useLocale();
+
   return (
     <Card className="col-span-4">
       <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
-        <CardDescription>Latest requests processed by the gateway</CardDescription>
+        <CardTitle>{messages.dashboard.recentActivity}</CardTitle>
+        <CardDescription>{messages.dashboard.recentActivityDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         {recentRequests.length === 0 ? (
           <EmptyState
             icon={<ActivityEmptyIcon />}
-            title="No recent activity"
-            description="Requests will appear here once processed."
+            title={messages.dashboard.noRecentActivity}
+            description={messages.dashboard.noRecentActivityDescription}
           />
         ) : (
           <div className="space-y-4">
@@ -74,15 +77,17 @@ export function RecentActivityCard({
                         second: "numeric",
                         hour12: true,
                       })}{" "}
-                      - {request.response_time_ms}ms
+                      - {formatNumber(request.response_time_ms)}ms
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-right">
                   <div className="hidden sm:block">
-                    <p className="text-sm font-medium">{request.total_tokens || 0} tokens</p>
+                    <p className="text-sm font-medium">
+                      {messages.requestLogs.totalTokens}: {formatNumber(request.total_tokens || 0)}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatMoneyMicros(request.total_cost_original_micros, "$")}
+                      {formatMoneyMicros(request.total_cost_original_micros, "$", undefined, 2, 6, locale)}
                     </p>
                   </div>
                   <ValueBadge

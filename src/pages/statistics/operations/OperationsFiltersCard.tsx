@@ -1,4 +1,5 @@
 import { Filter } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProviderSelect } from "@/components/ProviderSelect";
@@ -60,12 +61,14 @@ export function OperationsFiltersCard({
   operationsAggregationLabel,
   operationsLastUpdated,
 }: OperationsFiltersCardProps) {
+  const { messages } = useLocale();
+
   return (
     <Card className="sticky top-4 z-10 border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <CardContent className="space-y-3 p-4">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <Filter className="h-3.5 w-3.5" />
-          <span>Filters update all health, performance, usage, and debug sections.</span>
+          <span>{messages.statistics.operationsDescription}</span>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -78,25 +81,25 @@ export function OperationsFiltersCard({
                 className={cn("h-7 px-3 text-xs", timeRange === range && "shadow-sm")}
                 onClick={() => setTimeRange(range)}
               >
-                {range === "all" ? "All" : range}
+                {range === "all" ? messages.statistics.all : range}
               </Button>
             ))}
           </div>
 
           <div className="text-xs text-muted-foreground">
-            Aggregation: <span className="font-medium text-foreground">{operationsAggregationLabel}</span>
+            {messages.statistics.aggregation}: <span className="font-medium text-foreground">{operationsAggregationLabel}</span>
             <span className="mx-2">•</span>
-            Updated: <span className="font-medium text-foreground">{operationsLastUpdated}</span>
+            {messages.statistics.updated}: <span className="font-medium text-foreground">{operationsLastUpdated}</span>
           </div>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
           <Select value={modelId} onValueChange={setModelId}>
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Model" />
+              <SelectValue placeholder={messages.requestLogs.model} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All Models</SelectItem>
+              <SelectItem value="__all__">{messages.statistics.allModels}</SelectItem>
               {models.map((model) => (
                 <SelectItem key={model.model_id} value={model.model_id}>
                   {model.display_name || model.model_id}
@@ -114,10 +117,10 @@ export function OperationsFiltersCard({
 
           <Select value={connectionId} onValueChange={setConnectionId}>
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Connection" />
+              <SelectValue placeholder={messages.statistics.connection} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All Connections</SelectItem>
+              <SelectItem value="__all__">{messages.statistics.allConnections}</SelectItem>
               {connections.map((connection) => (
                 <SelectItem key={connection.id} value={String(connection.id)}>
                   {getConnectionLabel(connection)}
@@ -131,10 +134,10 @@ export function OperationsFiltersCard({
             onValueChange={(value) => setSpecialTokenFilter(value as SpecialTokenFilter)}
           >
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Special tokens" />
+              <SelectValue placeholder={messages.statistics.specialTokens} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All rows</SelectItem>
+              <SelectItem value="all">{messages.statistics.allRows}</SelectItem>
               <SelectItem value="has_cached">Has cached</SelectItem>
               <SelectItem value="has_reasoning">Has reasoning</SelectItem>
               <SelectItem value="has_any_special">Has any special</SelectItem>
@@ -147,14 +150,14 @@ export function OperationsFiltersCard({
             onValueChange={(value) => setOperationsStatusFilter(value as OperationsStatusFilter)}
           >
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={messages.requestLogs.status} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="success">Success only</SelectItem>
+              <SelectItem value="all">{messages.requestLogs.allStatuses}</SelectItem>
+              <SelectItem value="success">{messages.statistics.successOnly}</SelectItem>
               <SelectItem value="4xx">4xx only</SelectItem>
               <SelectItem value="5xx">5xx only</SelectItem>
-              <SelectItem value="error">Any error</SelectItem>
+              <SelectItem value="error">{messages.statistics.anyError}</SelectItem>
             </SelectContent>
           </Select>
         </div>

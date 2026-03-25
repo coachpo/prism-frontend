@@ -1,4 +1,5 @@
 import type { RoutingDiagramNode } from "../routingDiagram";
+import { useLocale } from "@/i18n/useLocale";
 import { truncateLabel } from "./routingDiagramChartUtils";
 import type { RoutingNodeShapeProps } from "./routingDiagramChartTypes";
 
@@ -10,9 +11,9 @@ interface RoutingDiagramNodeShapeProps {
 
 export function RoutingDiagramNodeShape({
   compact,
-  onActivate,
   props,
 }: RoutingDiagramNodeShapeProps) {
+  const { formatNumber, messages } = useLocale();
   const { x = 0, y = 0, width = 0, height = 0, payload } = props;
 
   if (!payload) {
@@ -22,28 +23,13 @@ export function RoutingDiagramNodeShape({
   const rectFill = payload.kind === "endpoint" ? "var(--chart-2)" : "var(--chart-1)";
   const labelText = truncateLabel(payload.label, compact ? 12 : 22);
   const secondaryText =
-    payload.kind === "endpoint" ? `${payload.activeConnectionCount} active` : payload.sublabel;
+    payload.kind === "endpoint" ? `${formatNumber(payload.activeConnectionCount)} ${messages.profiles.active}` : payload.sublabel;
   const textAnchor = payload.kind === "endpoint" ? "end" : "start";
   const textX = payload.kind === "endpoint" ? x - 10 : x + width + 10;
   const interactive = payload.kind === "model";
 
   return (
-    <g
-      className={interactive ? "cursor-pointer outline-none" : undefined}
-      role={interactive ? "button" : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      aria-label={`${payload.kind === "endpoint" ? "Endpoint" : "Model"}: ${payload.label}`}
-      onKeyDown={(event) => {
-        if (!interactive) {
-          return;
-        }
-
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onActivate(payload);
-        }
-      }}
-    >
+    <g className={interactive ? "cursor-pointer" : undefined}>
       <rect
         x={x}
         y={y}

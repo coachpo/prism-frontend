@@ -8,6 +8,7 @@ import {
   Coins,
   Gauge,
 } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { MetricCard } from "@/components/MetricCard";
 import { formatMoneyMicros } from "@/lib/costing";
 import type { StatisticsRequestLogEntry } from "@/lib/types";
@@ -48,6 +49,7 @@ export function OperationsHealthSection({
   reportSymbol,
   reportCode,
 }: OperationsHealthSectionProps) {
+  const { formatNumber, locale, messages } = useLocale();
   const { totalSpendMicros, totalTokens, rate4xxCount, rate5xxCount, cachedRowCount } = useMemo(() => {
     let totalSpendMicros = 0;
     let totalTokens = 0;
@@ -82,7 +84,7 @@ export function OperationsHealthSection({
   return (
     <div className="space-y-3">
       <OperationsSectionTitle
-        title="Health"
+        title={messages.statistics.health}
         icon={CheckCircle2}
         iconClassName="h-4 w-4 text-emerald-600"
       />
@@ -91,64 +93,64 @@ export function OperationsHealthSection({
         <MetricCard
           label="RPS"
           value={requestsPerSecond.toFixed(requestsPerSecond < 10 ? 2 : 1)}
-          detail={`${filteredRequestCount.toLocaleString()} reqs in window`}
+          detail={messages.statistics.requestsInWindow(formatNumber(filteredRequestCount))}
           icon={<Activity className="h-4 w-4" />}
         />
         <MetricCard
-          label="Success Rate"
+          label={messages.statistics.successRate}
           value={`${filteredSuccessRate.toFixed(1)}%`}
-          detail={`${filteredErrorCount.toLocaleString()} errors`}
+          detail={`${formatNumber(filteredErrorCount)} ${messages.statistics.errors.toLowerCase()}`}
           icon={<Gauge className="h-4 w-4" />}
         />
         <MetricCard
-          label="P99 Latency"
-          value={`${filteredP99Latency.toLocaleString()}ms`}
-          detail={`TTFT p95: ${ttftP95.toLocaleString()}ms`}
+          label={messages.statistics.p99Latency}
+          value={`${formatNumber(filteredP99Latency)}ms`}
+          detail={`TTFT p95: ${formatNumber(ttftP95)}ms`}
           icon={<Clock className="h-4 w-4" />}
         />
         <MetricCard
-          label="P95 Latency"
-          value={`${filteredP95Latency.toLocaleString()}ms`}
-          detail={`Avg: ${filteredAvgLatency.toLocaleString()}ms`}
+          label={messages.statistics.p95Latency}
+          value={`${formatNumber(filteredP95Latency)}ms`}
+          detail={`${messages.dashboard.avgLatency}: ${formatNumber(filteredAvgLatency)}ms`}
           icon={<Clock className="h-4 w-4" />}
         />
         <MetricCard
-          label="Total Spend"
-          value={formatMoneyMicros(totalSpendMicros, reportSymbol, reportCode)}
-          detail={`${totalTokens.toLocaleString()} tokens`}
+          label={messages.statistics.totalSpend}
+          value={formatMoneyMicros(totalSpendMicros, reportSymbol, reportCode, 2, 6, locale)}
+          detail={`${formatNumber(totalTokens)} ${messages.statistics.tokens.toLowerCase()}`}
           icon={<CircleDollarSign className="h-4 w-4" />}
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <MetricCard
-          label="5xx Rate"
+          label={messages.statistics.fivexxRate}
           value={`${rate5xx.toFixed(2)}%`}
-          detail={`${rate5xxCount.toLocaleString()} requests`}
+          detail={messages.statistics.totalRequests(formatNumber(rate5xxCount))}
           icon={<AlertCircle className="h-4 w-4" />}
         />
         <MetricCard
-          label="4xx Rate"
+          label={messages.statistics.fourxxRate}
           value={`${rate4xx.toFixed(2)}%`}
-          detail={`${rate4xxCount.toLocaleString()} requests`}
+          detail={messages.statistics.totalRequests(formatNumber(rate4xxCount))}
           icon={<AlertCircle className="h-4 w-4" />}
         />
         <MetricCard
-          label="Cache Hit Rate"
+          label={messages.statistics.cacheHitRate}
           value={`${cacheHitRate.toFixed(1)}%`}
-          detail={`${cachedRowCount.toLocaleString()} cached rows`}
+          detail={messages.statistics.cachedRows(formatNumber(cachedRowCount))}
           icon={<Coins className="h-4 w-4" />}
         />
         <MetricCard
-          label="Total Requests"
-          value={filteredRequestCount.toLocaleString()}
-          detail={`${filteredSuccessCount.toLocaleString()} successful`}
+          label={messages.dashboard.requests24h}
+          value={formatNumber(filteredRequestCount)}
+          detail={messages.statistics.successful(formatNumber(filteredSuccessCount))}
           icon={<CheckCircle2 className="h-4 w-4" />}
         />
         <MetricCard
-          label="Total Tokens"
-          value={totalTokens.toLocaleString()}
-          detail="Input + output + special tokens"
+          label={messages.statistics.totalTokens}
+          value={formatNumber(totalTokens)}
+          detail={messages.statistics.inputOutputSpecial}
           icon={<Coins className="h-4 w-4" />}
         />
       </div>

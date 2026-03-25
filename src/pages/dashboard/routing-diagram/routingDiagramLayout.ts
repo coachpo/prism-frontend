@@ -4,6 +4,7 @@ import type {
   RoutingDiagramData,
   RoutingDiagramLink,
 } from "./routingDiagramContracts";
+import { compareStringsForLocale } from "@/i18n/format";
 
 export function getRoutingDiagramChartData(
   data: RoutingDiagramData,
@@ -44,9 +45,10 @@ export function getRoutingDiagramChartData(
 
 export function getRoutingDiagramEmptyState(
   data: RoutingDiagramData,
-): { title: string; description: string } {
+): { kind: "no_active_routes" | "no_recent_traffic"; title: string; description: string } {
   if (data.links.length === 0) {
     return {
+      kind: "no_active_routes",
       title: "No active routes",
       description:
         "Activate at least one model connection to map live routing paths across endpoints and models.",
@@ -54,6 +56,7 @@ export function getRoutingDiagramEmptyState(
   }
 
   return {
+    kind: "no_recent_traffic",
     title: "No routed traffic in the last 24h",
     description:
       "Active routes are configured, but no successful request traffic was recorded for the current profile in the last 24 hours.",
@@ -69,5 +72,5 @@ function compareLinksByPriority(left: RoutingDiagramLink, right: RoutingDiagramL
     return right.trafficRequestCount24h - left.trafficRequestCount24h;
   }
 
-  return left.endpointLabel.localeCompare(right.endpointLabel);
+  return compareStringsForLocale(left.endpointLabel, right.endpointLabel);
 }

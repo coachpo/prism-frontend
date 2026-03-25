@@ -1,7 +1,12 @@
 import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { ThroughputTab } from "../ThroughputTab";
+
+function renderWithLocale(ui: React.ReactElement) {
+  return render(<LocaleProvider>{ui}</LocaleProvider>);
+}
 
 interface AxisProps {
   axisLine?: { stroke?: string };
@@ -22,7 +27,7 @@ vi.mock("@/hooks/useTimezone", () => ({
 
 vi.mock("recharts", () => ({
   Area: () => null,
-  AreaChart: ({ children }: { children?: ReactNode }) => <svg>{children}</svg>,
+  AreaChart: ({ children }: { children?: ReactNode }) => <svg aria-label="mock chart">{children}</svg>,
   CartesianGrid: () => null,
   ResponsiveContainer: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   Tooltip: ({ labelStyle }: TooltipProps) => <div data-label-color={labelStyle?.color} data-testid="chart-tooltip" />,
@@ -46,8 +51,12 @@ vi.mock("recharts", () => ({
 }));
 
 describe("ThroughputTab", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("renders the RPM labels and explanation", () => {
-    render(
+    renderWithLocale(
       <ThroughputTab
         data={{
           average_rpm: 0.5,
@@ -78,7 +87,7 @@ describe("ThroughputTab", () => {
   });
 
   it("uses theme variables for chart axes in dark mode", () => {
-    render(
+    renderWithLocale(
       <ThroughputTab
         data={{
           average_rpm: 0.5,
@@ -110,7 +119,7 @@ describe("ThroughputTab", () => {
   });
 
   it("preserves the selected window when the response has no requests", () => {
-    render(
+    renderWithLocale(
       <ThroughputTab
         data={{
           average_rpm: 0,
@@ -131,7 +140,7 @@ describe("ThroughputTab", () => {
   });
 
   it("renders the refresh control as a square icon button", () => {
-    render(
+    renderWithLocale(
       <ThroughputTab
         data={{
           average_rpm: 0.5,
@@ -153,5 +162,29 @@ describe("ThroughputTab", () => {
     );
 
     expect(screen.getByRole("button", { name: "Refresh throughput statistics" })).toHaveAttribute("data-size", "icon-sm");
+  });
+
+  it("renders localized throughput copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    renderWithLocale(
+      <ThroughputTab
+        data={{
+          average_rpm: 0,
+          peak_rpm: 0,
+          current_rpm: 0,
+          total_requests: 0,
+          time_window_seconds: 3600,
+          buckets: [],
+        }}
+        isLoading={false}
+        manualRefresh={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText("平均 RPM")).toBeInTheDocument();
+    expect(screen.getByText("峰值 RPM")).toBeInTheDocument();
+    expect(screen.getByText("当前 RPM")).toBeInTheDocument();
+    expect(screen.getByText("暂无可用数据点")).toBeInTheDocument();
   });
 });

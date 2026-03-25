@@ -1,7 +1,9 @@
 import { getRouteHealthColor } from "./routingDiagramChartUtils";
 import type { RoutingLinkShapeProps } from "./routingDiagramChartTypes";
+import { useLocale } from "@/i18n/useLocale";
 
 export function RoutingDiagramLinkShape({ props }: { props: RoutingLinkShapeProps }) {
+  const { messages } = useLocale();
   const {
     sourceX = 0,
     sourceY = 0,
@@ -25,7 +27,11 @@ export function RoutingDiagramLinkShape({ props }: { props: RoutingLinkShapeProp
       strokeWidth={Math.max(linkWidth, 1)}
       strokeOpacity={strokeOpacity}
       strokeLinecap="butt"
-      aria-label={payload ? `Route from ${payload.endpointLabel} to ${payload.modelLabel}` : "Routing link"}
+      aria-label={
+        payload
+          ? messages.dashboard.routingLinkAria(payload.endpointLabel, payload.modelLabel)
+          : messages.dashboard.routingLink
+      }
     />
   );
 }

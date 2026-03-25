@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useTimezone } from "@/hooks/useTimezone";
+import { useLocale } from "@/i18n/useLocale";
 import { DashboardHighlightsGrid } from "@/pages/dashboard/DashboardHighlightsGrid";
 import { DashboardMetricsGrid } from "@/pages/dashboard/DashboardMetricsGrid";
 import { DashboardPageSkeleton } from "@/pages/dashboard/DashboardPageSkeleton";
@@ -17,6 +18,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { revision, selectedProfile } = useProfileContext();
   const { format: formatTime } = useTimezone();
+  const { messages } = useLocale();
   const data = useDashboardPageData({
     revision,
     selectedProfileId: selectedProfile?.id ?? null,
@@ -28,15 +30,15 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Dashboard" description="System overview and health status">
+      <PageHeader title={messages.dashboard.dashboardTitle} description={messages.dashboard.dashboardDescription}>
         <Button
           variant="outline"
           size="icon"
           className="h-9 w-9"
           onClick={() => void data.refreshDashboard()}
           disabled={data.isRefreshing}
-          aria-label="Refresh dashboard"
-          title="Refresh dashboard"
+          aria-label={messages.dashboard.refreshDashboard}
+          title={messages.dashboard.refreshDashboard}
         >
           <RefreshCw className={`h-4 w-4 ${data.isRefreshing ? "animate-spin" : ""}`} />
         </Button>

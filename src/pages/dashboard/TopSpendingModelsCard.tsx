@@ -1,4 +1,5 @@
 import { ArrowUpRight, DollarSign } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,18 +17,20 @@ export function TopSpendingModelsCard({
   onViewFullReport,
   topSpendingModels,
 }: TopSpendingModelsCardProps) {
+  const { locale, messages } = useLocale();
+
   return (
     <Card className="col-span-3">
       <CardHeader>
-        <CardTitle>Top Spending Models</CardTitle>
-        <CardDescription>Highest cost models (last 30 days)</CardDescription>
+        <CardTitle>{messages.dashboard.topSpendingModels}</CardTitle>
+        <CardDescription>{messages.dashboard.topSpendingModelsDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         {topSpendingModels.length === 0 ? (
           <EmptyState
             icon={<DollarSign className="h-6 w-6" />}
-            title="No spending data"
-            description="Cost data will appear here once requests are priced."
+            title={messages.dashboard.noSpendingData}
+            description={messages.dashboard.noSpendingDataDescription}
           />
         ) : (
           <div className="space-y-4">
@@ -56,13 +59,13 @@ export function TopSpendingModelsCard({
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium">
-                    {formatMoneyMicros(model.total_cost_micros, "$")}
+                    {formatMoneyMicros(model.total_cost_micros, "$", undefined, 2, 6, locale)}
                   </p>
                 </div>
               </div>
             ))}
             <Button variant="outline" className="mt-4 w-full" onClick={onViewFullReport}>
-              View Full Report
+              {messages.dashboard.viewFullReport}
               <ArrowUpRight className="ml-2 h-4 w-4" />
             </Button>
           </div>

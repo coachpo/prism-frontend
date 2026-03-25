@@ -1,4 +1,5 @@
 import type { DashboardRouteSnapshot } from "@/lib/types";
+import { compareStringsForLocale } from "@/i18n/format";
 import type {
   RoutingDiagramData,
   RoutingDiagramLink,
@@ -197,7 +198,7 @@ function compareLinksByPriority(left: RoutingDiagramLink, right: RoutingDiagramL
     return right.trafficRequestCount24h - left.trafficRequestCount24h;
   }
 
-  return left.endpointLabel.localeCompare(right.endpointLabel);
+  return compareStringsForLocale(left.endpointLabel, right.endpointLabel);
 }
 
 function compareTotalsByPriority(
@@ -208,5 +209,5 @@ function compareTotalsByPriority(
     return right[1].activeConnectionCount - left[1].activeConnectionCount;
   }
 
-  return left[1].label.localeCompare(right[1].label);
+  return compareStringsForLocale(left[1].label, right[1].label);
 }

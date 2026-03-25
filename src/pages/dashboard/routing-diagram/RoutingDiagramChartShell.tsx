@@ -10,6 +10,7 @@ import type {
   RoutingNodeShapeProps,
 } from "./routingDiagramChartTypes";
 import { getChartPayload, isRoutingDiagramNode } from "./routingDiagramChartUtils";
+import { useLocale } from "@/i18n/useLocale";
 
 interface RoutingDiagramChartShellProps extends RoutingDiagramChartProps {
   children?: ReactNode;
@@ -22,15 +23,17 @@ export function RoutingDiagramChartShell({
   onActivateNode,
   children,
 }: RoutingDiagramChartShellProps) {
+  const { messages } = useLocale();
+
   return (
     <div className="rounded-2xl border bg-gradient-to-br from-background via-background to-muted/35 p-3 sm:p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           <Network className="h-3.5 w-3.5" />
-          <span>Link width reflects active connection count. Color reflects 24h route success rate.</span>
+          <span>{messages.dashboard.routingChartHint}</span>
         </div>
         <span className="rounded-full border bg-background/80 px-2.5 py-1 font-medium text-foreground">
-          Click model nodes to open details
+          {messages.dashboard.routingChartActionHint}
         </span>
       </div>
 

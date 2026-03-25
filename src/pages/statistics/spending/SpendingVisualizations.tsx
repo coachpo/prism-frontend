@@ -1,4 +1,5 @@
 import { AlertCircle } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Bar,
   BarChart,
@@ -44,11 +45,13 @@ export function SpendingVisualizations({
   spendingGroupBy,
   spendingTopN,
 }: SpendingVisualizationsProps) {
+  const { locale, messages } = useLocale();
+
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2">
         <TopSpendingCard
-          title="Top Models by Cost"
+          title={messages.statistics.topModelsByCost}
           items={spending.top_spending_models.map((model) => ({
             label: model.model_id,
             costMicros: model.total_cost_micros,
@@ -58,7 +61,7 @@ export function SpendingVisualizations({
           currencyCode={reportCode}
         />
         <TopSpendingCard
-          title="Top Endpoints by Cost"
+          title={messages.statistics.topEndpointsByCost}
           items={spending.top_spending_endpoints.map((endpoint) => ({
             label: endpoint.endpoint_label,
             costMicros: endpoint.total_cost_micros,
@@ -75,7 +78,9 @@ export function SpendingVisualizations({
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium">
-                  Cost Components by {spendingGroupBy === "none" ? "Total" : spendingGroupBy.replace("_", " ")}
+                  {messages.statistics.costComponentsBy(
+                    spendingGroupBy === "none" ? messages.requestLogs.total : spendingGroupBy.replace("_", " ")
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="pb-4">
@@ -93,10 +98,10 @@ export function SpendingVisualizations({
                           fontSize: 12,
                           color: "var(--popover-foreground)",
                         }}
-                        formatter={(value: number) => [formatMoneyMicros(value, reportSymbol, reportCode), "Cost"]}
+                        formatter={(value: number) => [formatMoneyMicros(value, reportSymbol, reportCode, 2, 6, locale), messages.statistics.spend]}
                       />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
-                      <Bar dataKey="total_cost_micros" name="Total Cost" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="total_cost_micros" name={messages.statistics.totalSpend} fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

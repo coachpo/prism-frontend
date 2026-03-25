@@ -1,10 +1,19 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { DashboardHighlightsGrid } from "../DashboardHighlightsGrid";
 
+function renderWithLocale(ui: React.ReactElement) {
+  return render(<LocaleProvider>{ui}</LocaleProvider>);
+}
+
 describe("DashboardHighlightsGrid", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("renders the performance snapshot tile labels, values, and highlight class inline", () => {
-    render(
+    renderWithLocale(
       <DashboardHighlightsGrid
         highlighted={true}
         onInspectSpending={vi.fn()}
@@ -43,7 +52,7 @@ describe("DashboardHighlightsGrid", () => {
   });
 
   it("uses shared provider labels and icons for the provider mix card", () => {
-    render(
+    renderWithLocale(
       <DashboardHighlightsGrid
         highlighted={false}
         onInspectSpending={vi.fn()}
@@ -102,5 +111,36 @@ describe("DashboardHighlightsGrid", () => {
     expect(openAiLabel.previousElementSibling?.tagName).toBe("svg");
     expect(anthropicLabel.previousElementSibling?.tagName).toBe("svg");
     expect(geminiLabel.previousElementSibling?.tagName).toBe("svg");
+  });
+
+  it("renders localized dashboard highlight copy when the saved locale is Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    renderWithLocale(
+      <DashboardHighlightsGrid
+        highlighted={false}
+        onInspectSpending={vi.fn()}
+        onOpenStatistics={vi.fn()}
+        onReviewRequests={vi.fn()}
+        providerRows={[]}
+        snapshot={{
+          activeModels: 2,
+          averageRpm: 0,
+          averageRpmRequestTotal: 0,
+          avgLatency: 320,
+          errorRate: 5,
+          p95Latency: 880,
+          streamShare: 0,
+          successRate: 95,
+          totalCost: 123456,
+          totalModels: 3,
+          totalRequests: 2161,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("性能概览")).toBeInTheDocument();
+    expect(screen.getByText("打开统计")).toBeInTheDocument();
+    expect(screen.getByText("暂无提供商活动")).toBeInTheDocument();
   });
 });

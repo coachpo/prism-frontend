@@ -2,6 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CircleDollarSign } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useTimezone } from "@/hooks/useTimezone";
+import { useLocale } from "@/i18n/useLocale";
 import { SpendingBreakdownTable } from "./spending/SpendingBreakdownTable";
 import { SpendingFiltersCard } from "./spending/SpendingFiltersCard";
 import { SpendingSummaryMetrics } from "./spending/SpendingSummaryMetrics";
@@ -42,6 +43,7 @@ export function SpendingTab({
   manualRefresh,
 }: SpendingTabProps) {
   const { format: formatTime } = useTimezone();
+  const { messages } = useLocale();
 
   const { reportSymbol, reportCode, canPaginateForward, scatterData, insights } =
     useSpendingTabData(spending, spendingOffset, spendingLimit);
@@ -140,8 +142,8 @@ export function SpendingTab({
           ) : (
             <EmptyState
               icon={<CircleDollarSign className="h-6 w-6" />}
-              title="No spending data found"
-              description="Try adjusting your filters or time range."
+              title={messages.statistics.noSpendingDataFound}
+              description={messages.statistics.adjustFiltersOrTimeRange}
             />
           )}
         </>

@@ -1,4 +1,5 @@
 import { TrendingUp, Zap } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Area,
   AreaChart,
@@ -30,17 +31,19 @@ export function OperationsChartsSection({
   reportSymbol,
   reportCode,
 }: OperationsChartsSectionProps) {
+  const { locale, messages } = useLocale();
+
   return (
     <>
       <div className="space-y-3">
         <OperationsSectionTitle
-          title="Performance"
+          title={messages.statistics.performance}
           icon={Zap}
           iconClassName="h-4 w-4 text-amber-600"
         />
 
         <div className="grid gap-4 xl:grid-cols-2">
-          <OperationsChartCard title="Request Outcome Over Time" heightClassName="h-[260px]">
+          <OperationsChartCard title={messages.statistics.requestOutcomeOverTime} heightClassName="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -55,7 +58,7 @@ export function OperationsChartsSection({
             </ResponsiveContainer>
           </OperationsChartCard>
 
-          <OperationsChartCard title="Latency Percentiles" heightClassName="h-[260px]">
+          <OperationsChartCard title={messages.statistics.latencyPercentiles} heightClassName="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -77,13 +80,13 @@ export function OperationsChartsSection({
 
       <div className="space-y-3">
         <OperationsSectionTitle
-          title="Usage & Cost"
+          title={messages.statistics.usageAndCost}
           icon={TrendingUp}
           iconClassName="h-4 w-4 text-indigo-600"
         />
 
         <div className="grid gap-4 xl:grid-cols-2">
-          <OperationsChartCard title="Token Throughput" heightClassName="h-[240px]">
+          <OperationsChartCard title={messages.statistics.tokenThroughput} heightClassName="h-[240px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -91,13 +94,13 @@ export function OperationsChartsSection({
                 <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" allowDecimals={false} />
                 <RechartsTooltip contentStyle={OPERATIONS_CHART_TOOLTIP_STYLE} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="inputTokens" name="Input" fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="outputTokens" name="Output" fill="var(--chart-1)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="inputTokens" name={messages.statistics.input} fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="outputTokens" name={messages.statistics.output} fill="var(--chart-1)" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </OperationsChartCard>
 
-          <OperationsChartCard title="Cost by Bucket" heightClassName="h-[240px]">
+          <OperationsChartCard title={messages.statistics.costByBucket} heightClassName="h-[240px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -105,9 +108,9 @@ export function OperationsChartsSection({
                 <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
                 <RechartsTooltip
                   contentStyle={OPERATIONS_CHART_TOOLTIP_STYLE}
-                  formatter={(value: number) => [formatMoneyMicros(value, reportSymbol, reportCode), "Cost"]}
+                  formatter={(value: number) => [formatMoneyMicros(value, reportSymbol, reportCode, 2, 6, locale), messages.statistics.spend]}
                 />
-                <Line type="monotone" dataKey="totalCost" name="Cost" stroke="var(--chart-5)" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="totalCost" name={messages.statistics.spend} stroke="var(--chart-5)" strokeWidth={2.5} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </OperationsChartCard>

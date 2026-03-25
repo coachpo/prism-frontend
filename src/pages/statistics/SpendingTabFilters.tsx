@@ -1,4 +1,5 @@
 import { Filter, RefreshCw, Trash2 } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,26 +58,28 @@ export function SpendingTabFilters({
   providers,
   connections,
 }: SpendingTabFiltersProps) {
+  const { messages } = useLocale();
+
   return (
     <div className="rounded-lg border bg-card p-4">
       <div className="mb-4 flex items-center gap-2">
         <Filter className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-semibold">Filters</h3>
+        <h3 className="text-sm font-semibold">{messages.statistics.filters}</h3>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
         <div className="space-y-2">
-          <Label htmlFor="spending-preset">Time Range</Label>
+          <Label htmlFor="spending-preset">{messages.requestLogs.timeRange}</Label>
           <Select value={spendingPreset} onValueChange={(value) => setSpendingPreset(value as SpendingPreset)}>
             <SelectTrigger id="spending-preset">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="last_7_days">Last 7 Days</SelectItem>
-              <SelectItem value="last_30_days">Last 30 Days</SelectItem>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="custom">Custom Range</SelectItem>
+              <SelectItem value="today">{messages.statistics.today}</SelectItem>
+              <SelectItem value="last_7_days">{messages.statistics.last7Days}</SelectItem>
+              <SelectItem value="last_30_days">{messages.statistics.last30Days}</SelectItem>
+              <SelectItem value="all">{messages.statistics.allTime}</SelectItem>
+              <SelectItem value="custom">{messages.statistics.customRange}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -84,7 +87,7 @@ export function SpendingTabFilters({
         {spendingPreset === "custom" && (
           <>
             <div className="space-y-2">
-              <Label htmlFor="spending-from">From</Label>
+              <Label htmlFor="spending-from">{messages.statistics.from}</Label>
               <Input
                 id="spending-from"
                 type="date"
@@ -93,7 +96,7 @@ export function SpendingTabFilters({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="spending-to">To</Label>
+              <Label htmlFor="spending-to">{messages.statistics.to}</Label>
               <Input
                 id="spending-to"
                 type="date"
@@ -105,7 +108,7 @@ export function SpendingTabFilters({
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="spending-provider-type">Provider</Label>
+          <Label htmlFor="spending-provider-type">{messages.requestLogs.provider}</Label>
           <ProviderSelect
             value={spendingProviderType}
             onValueChange={setSpendingProviderType}
@@ -114,16 +117,16 @@ export function SpendingTabFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="spending-model-id">Model</Label>
+          <Label htmlFor="spending-model-id">{messages.requestLogs.model}</Label>
           <Select
             value={spendingModelId || "__all__"}
             onValueChange={(value) => setSpendingModelId(value === "__all__" ? "" : value)}
           >
             <SelectTrigger id="spending-model-id">
-              <SelectValue placeholder="Model" />
+              <SelectValue placeholder={messages.requestLogs.model} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All Models</SelectItem>
+              <SelectItem value="__all__">{messages.statistics.allModels}</SelectItem>
               {models.map((model) => (
                 <SelectItem key={model.model_id} value={model.model_id}>
                   {model.display_name || model.model_id}
@@ -134,16 +137,16 @@ export function SpendingTabFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="spending-connection-id">Connection</Label>
+          <Label htmlFor="spending-connection-id">{messages.statistics.connection}</Label>
           <Select
             value={spendingConnectionId || "__all__"}
             onValueChange={(value) => setSpendingConnectionId(value === "__all__" ? "" : value)}
           >
             <SelectTrigger id="spending-connection-id">
-              <SelectValue placeholder="Connection" />
+              <SelectValue placeholder={messages.statistics.connection} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All Connections</SelectItem>
+              <SelectItem value="__all__">{messages.statistics.allConnections}</SelectItem>
               {connections.map((connection) => (
                 <SelectItem key={connection.id} value={String(connection.id)}>
                   {getConnectionLabel(connection)}
@@ -154,7 +157,7 @@ export function SpendingTabFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="spending-group-by">Group By</Label>
+          <Label htmlFor="spending-group-by">{messages.statistics.groupBy}</Label>
           <Select
             value={spendingGroupBy}
             onValueChange={(value) => setSpendingGroupBy(value as SpendingGroupBy)}
@@ -163,14 +166,14 @@ export function SpendingTabFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">All</SelectItem>
-              <SelectItem value="day">Day</SelectItem>
-              <SelectItem value="week">Week</SelectItem>
-              <SelectItem value="month">Month</SelectItem>
-              <SelectItem value="provider">Provider</SelectItem>
-              <SelectItem value="model">Model</SelectItem>
-              <SelectItem value="endpoint">Endpoint</SelectItem>
-              <SelectItem value="model_endpoint">Model + Endpoint</SelectItem>
+              <SelectItem value="none">{messages.statistics.all}</SelectItem>
+              <SelectItem value="day">{messages.statistics.day}</SelectItem>
+              <SelectItem value="week">{messages.statistics.week}</SelectItem>
+              <SelectItem value="month">{messages.statistics.month}</SelectItem>
+              <SelectItem value="provider">{messages.statistics.providerGroup}</SelectItem>
+              <SelectItem value="model">{messages.statistics.modelGroup}</SelectItem>
+              <SelectItem value="endpoint">{messages.statistics.endpointGroup}</SelectItem>
+              <SelectItem value="model_endpoint">{messages.statistics.modelEndpointGroup}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -179,9 +182,9 @@ export function SpendingTabFilters({
       <div className="mt-4 flex gap-2">
         <Button variant="outline" size="sm" onClick={clearFilters}>
           <Trash2 className="mr-2 h-4 w-4" />
-          Clear Filters
+          {messages.statistics.clearFilters}
         </Button>
-        <Button variant="outline" size="icon-sm" onClick={refresh} aria-label="Refresh spending statistics" title="Refresh spending statistics">
+        <Button variant="outline" size="icon-sm" onClick={refresh} aria-label={messages.statistics.refreshSpendingStatistics} title={messages.statistics.refreshSpendingStatistics}>
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>

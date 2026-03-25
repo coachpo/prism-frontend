@@ -10,6 +10,8 @@ export const ROUTE_HEALTH_COLOR = {
   noData: "#64748b",
 } as const;
 
+export type RouteHealthState = keyof typeof ROUTE_HEALTH_COLOR;
+
 export function truncateLabel(value: string, limit: number): string {
   if (value.length <= limit) {
     return value;
@@ -27,40 +29,34 @@ export function getChartPayload(item: unknown): unknown {
 }
 
 export function getRouteHealthColor(successRate: number | null, requestCount: number): string {
+  return ROUTE_HEALTH_COLOR[getRouteHealthState(successRate, requestCount)];
+}
+
+export function getRouteHealthState(
+  successRate: number | null,
+  requestCount: number,
+): RouteHealthState {
   if (requestCount <= 0 || successRate === null) {
-    return ROUTE_HEALTH_COLOR.noData;
+    return "noData";
   }
 
   if (successRate >= 99) {
-    return ROUTE_HEALTH_COLOR.healthy;
+    return "healthy";
   }
 
   if (successRate >= 95) {
-    return ROUTE_HEALTH_COLOR.degraded;
+    return "degraded";
   }
 
-  return ROUTE_HEALTH_COLOR.failing;
+  return "failing";
 }
 
-export function getRouteHealthLabel(successRate: number | null, requestCount: number): string {
+export function formatSuccessRate(
+  successRate: number | null,
+  requestCount: number,
+): string | null {
   if (requestCount <= 0 || successRate === null) {
-    return "No recent request data";
-  }
-
-  if (successRate >= 99) {
-    return "Healthy";
-  }
-
-  if (successRate >= 95) {
-    return "Degraded";
-  }
-
-  return "Failing";
-}
-
-export function formatSuccessRate(successRate: number | null, requestCount: number): string {
-  if (requestCount <= 0 || successRate === null) {
-    return "No data";
+    return null;
   }
 
   return `${successRate.toFixed(2)}%`;

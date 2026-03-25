@@ -1,12 +1,31 @@
 import { ROUTE_HEALTH_COLOR } from "./routingDiagramChartUtils";
+import { useLocale } from "@/i18n/useLocale";
 
 export function RoutingDiagramLegend() {
+  const { messages } = useLocale();
+
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-      <HealthLegendPill label="Healthy" description="99%+" color={ROUTE_HEALTH_COLOR.healthy} />
-      <HealthLegendPill label="Degraded" description="95-98.99%" color={ROUTE_HEALTH_COLOR.degraded} />
-      <HealthLegendPill label="Failing" description="<95%" color={ROUTE_HEALTH_COLOR.failing} />
-      <HealthLegendPill label="No data" description="No recent requests" color={ROUTE_HEALTH_COLOR.noData} />
+      <HealthLegendPill
+        label={messages.dashboard.routingLegendHealthy}
+        description="99%+"
+        color={ROUTE_HEALTH_COLOR.healthy}
+      />
+      <HealthLegendPill
+        label={messages.dashboard.routingLegendDegraded}
+        description="95-98.99%"
+        color={ROUTE_HEALTH_COLOR.degraded}
+      />
+      <HealthLegendPill
+        label={messages.dashboard.routingLegendFailing}
+        description="<95%"
+        color={ROUTE_HEALTH_COLOR.failing}
+      />
+      <HealthLegendPill
+        label={messages.dashboard.routingLegendNoData}
+        description={messages.dashboard.routingLegendNoRecentRequests}
+        color={ROUTE_HEALTH_COLOR.noData}
+      />
     </div>
   );
 }

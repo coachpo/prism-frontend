@@ -3,6 +3,7 @@ import { Activity, TrendingUp, Zap, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricCard } from "@/components/MetricCard";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Area,
   AreaChart,
@@ -22,6 +23,7 @@ interface ThroughputTabProps {
 }
 
 export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabProps) {
+  const { formatNumber, messages } = useLocale();
   const { format: formatTime } = useTimezone();
   const axisTextColor = "var(--muted-foreground)";
   const axisStrokeColor = "var(--border)";
@@ -45,7 +47,7 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-muted-foreground">Loading throughput data...</p>
+        <p className="text-sm text-muted-foreground">{messages.statistics.loadingThroughputData}</p>
       </div>
     );
   }
@@ -53,7 +55,7 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
   if (!data) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-muted-foreground">No throughput data available</p>
+        <p className="text-sm text-muted-foreground">{messages.statistics.noThroughputDataAvailable}</p>
       </div>
     );
   }
@@ -66,8 +68,8 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
           size="icon-sm"
           onClick={manualRefresh}
           disabled={isLoading}
-          aria-label="Refresh throughput statistics"
-          title="Refresh throughput statistics"
+          aria-label={messages.statistics.refreshThroughputStatistics}
+          title={messages.statistics.refreshThroughputStatistics}
         >
           <RefreshCw className="h-4 w-4" />
         </Button>
@@ -75,27 +77,27 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          label="Average RPM"
+          label={messages.statistics.averageRpm}
           value={data.average_rpm.toFixed(3)}
-          detail={`${data.total_requests.toLocaleString()} total requests`}
+          detail={messages.statistics.totalRequests(formatNumber(data.total_requests))}
           icon={<Activity className="h-4 w-4" />}
         />
         <MetricCard
-          label="Peak RPM"
+          label={messages.statistics.peakRpm}
           value={data.peak_rpm.toFixed(3)}
-          detail="Highest 1-minute throughput"
+          detail={messages.statistics.highestOneMinuteThroughput}
           icon={<TrendingUp className="h-4 w-4" />}
         />
         <MetricCard
-          label="Current RPM"
+          label={messages.statistics.currentRpm}
           value={data.current_rpm.toFixed(3)}
-          detail="Most recent 1-minute bucket"
+          detail={messages.statistics.mostRecentOneMinuteBucket}
           icon={<Zap className="h-4 w-4" />}
         />
         <MetricCard
-          label="Time Window"
+          label={messages.statistics.timeWindow}
           value={`${(data.time_window_seconds / 3600).toFixed(1)}h`}
-          detail={`${data.time_window_seconds.toLocaleString()}s total`}
+          detail={messages.statistics.timeWindowTotal(formatNumber(data.time_window_seconds))}
           icon={<Activity className="h-4 w-4" />}
         />
       </div>
@@ -104,13 +106,13 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Requests Per Minute (RPM) Over Time
+            {messages.statistics.requestsPerMinuteOverTime}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {chartData.length === 0 ? (
             <div className="flex h-[300px] items-center justify-center">
-              <p className="text-sm text-muted-foreground">No data points available</p>
+              <p className="text-sm text-muted-foreground">{messages.statistics.noDataPointsAvailable}</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
@@ -135,7 +137,7 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
                   axisLine={{ stroke: axisStrokeColor }}
                   tickLine={{ stroke: axisStrokeColor }}
                   label={{
-                    value: "RPM",
+                    value: messages.statistics.averageRpm.replace("平均 ", "").replace("Average ", ""),
                     angle: -90,
                     position: "insideLeft",
                     style: { fill: axisTextColor },
@@ -151,7 +153,7 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
                   labelStyle={{ color: tooltipTextColor }}
                   formatter={(value: number, name: string) => {
                     if (name === "rpm") return [value.toFixed(3), "RPM"];
-                    if (name === "requests") return [value, "Requests"];
+                    if (name === "requests") return [value, messages.statistics.requests];
                     return [value, name];
                   }}
                 />
@@ -167,8 +169,7 @@ export function ThroughputTab({ data, isLoading, manualRefresh }: ThroughputTabP
           )}
           <div className="mt-4 text-xs text-muted-foreground">
             <p>
-              Each data point represents a 1-minute time bucket. RPM matches the requests recorded
-              in that minute, and Average RPM normalizes the selected window to requests per minute.
+              {messages.statistics.throughputExplanation}
             </p>
           </div>
         </CardContent>
