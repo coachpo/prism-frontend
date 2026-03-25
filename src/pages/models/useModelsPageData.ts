@@ -13,8 +13,6 @@ import type {
   Provider,
 } from "@/lib/types";
 import { toast } from "sonner";
-import { DEFAULT_VISIBLE_COLUMNS } from "./modelTableDefaults";
-import type { ModelColumnKey } from "./modelTableContracts";
 import {
   createEditModelFormData,
   createNewModelFormData,
@@ -38,10 +36,6 @@ export function useModelsPageData(revision: number) {
   const [editingModel, setEditingModel] = useState<ModelConfigListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ModelConfigListItem | null>(null);
   const [search, setSearch] = useState("");
-  const [providerFilter, setProviderFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [visibleColumns, setVisibleColumns] = useState<Record<ModelColumnKey, boolean>>(DEFAULT_VISIBLE_COLUMNS);
   const [formData, setFormData] = useState<ModelConfigCreate>(DEFAULT_MODEL_FORM_DATA);
   const { metricsLoading, modelMetrics24h, modelSpend30dMicros } = useModelMetrics24h(models);
 
@@ -167,40 +161,21 @@ export function useModelsPageData(revision: number) {
     editingModel ? formData.model_id : undefined,
   );
 
-  const filtered = models.filter((m) => {
-    if (search) {
-      const q = search.toLowerCase();
-      if (!m.model_id.toLowerCase().includes(q) && !(m.display_name || "").toLowerCase().includes(q)) {
-        return false;
-      }
-    }
-    if (providerFilter !== "all" && m.provider.provider_type !== providerFilter) return false;
-    if (statusFilter === "enabled" && !m.is_enabled) return false;
-    if (statusFilter === "disabled" && m.is_enabled) return false;
-    if (typeFilter !== "all" && m.model_type !== typeFilter) return false;
-    return true;
-  });
+  const filtered = useMemo(
+    () =>
+      models.filter((model) => {
+        if (!search) {
+          return true;
+        }
 
-  const hasActiveFilters = Boolean(search) || providerFilter !== "all" || statusFilter !== "all" || typeFilter !== "all";
-  const activeColumns = useMemo(
-    () => ({
-      provider: visibleColumns.provider,
-      type: visibleColumns.type,
-      strategy: visibleColumns.strategy,
-      endpoints: visibleColumns.endpoints,
-      success: visibleColumns.success,
-      p95: visibleColumns.p95,
-      requests: visibleColumns.requests,
-      spend: visibleColumns.spend,
-      status: visibleColumns.status,
-    }),
-    [visibleColumns]
+        const query = search.toLowerCase();
+        return (
+          model.model_id.toLowerCase().includes(query) ||
+          (model.display_name ?? "").toLowerCase().includes(query)
+        );
+      }),
+    [models, search]
   );
-
-  const resetVisibleColumns = () => setVisibleColumns(DEFAULT_VISIBLE_COLUMNS);
-  const updateColumnVisibility = (key: ModelColumnKey, checked: boolean) => {
-    setVisibleColumns((prev) => ({ ...prev, [key]: checked }));
-  };
 
   const setModelType = (value: "native" | "proxy") => {
     setFormData((current) => setModelTypeOnForm(current, value));
@@ -211,7 +186,6 @@ export function useModelsPageData(revision: number) {
   };
 
   return {
-    activeColumns,
     deleteTarget,
     editingModel,
     filtered,
@@ -219,7 +193,6 @@ export function useModelsPageData(revision: number) {
     handleDelete,
     handleOpenDialog,
     handleSubmit,
-    hasActiveFilters,
     isDialogOpen,
     loadbalanceStrategies,
     loading,
@@ -228,9 +201,7 @@ export function useModelsPageData(revision: number) {
     modelSpend30dMicros,
     models,
     nativeModelsForProvider,
-    providerFilter,
     providers,
-    resetVisibleColumns,
     search,
     selectedProvider,
     setDeleteTarget,
@@ -238,13 +209,6 @@ export function useModelsPageData(revision: number) {
     setIsDialogOpen,
     setLoadbalanceStrategyId,
     setModelType,
-    setProviderFilter,
     setSearch,
-    setStatusFilter,
-    setTypeFilter,
-    statusFilter,
-    typeFilter,
-    updateColumnVisibility,
-    visibleColumns,
   };
 }

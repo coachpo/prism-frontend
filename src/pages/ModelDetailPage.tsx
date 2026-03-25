@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -104,6 +105,17 @@ export function ModelDetailPage() {
               <h1 className="text-xl font-semibold tracking-tight truncate">
                 {model.display_name || model.model_id}
               </h1>
+              {!model.display_name ? (
+                <CopyButton
+                  value={model.model_id}
+                  label=""
+                  targetLabel="Model ID"
+                  aria-label={`Copy model ID ${model.model_id}`}
+                  variant="ghost"
+                  size="icon-xs"
+                  className="h-7 w-7 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                />
+              ) : null}
               <TypeBadge
                 label={model.model_type}
                 intent={model.model_type === "proxy" ? "accent" : "info"}
@@ -113,9 +125,22 @@ export function ModelDetailPage() {
                 intent={model.is_enabled ? "success" : "muted"}
               />
             </div>
-            <p className="mt-1 text-xs text-muted-foreground font-mono">
-              {model.display_name ? model.model_id : "Model configuration and connection routing"}
-            </p>
+            {model.display_name ? (
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="font-mono">{model.model_id}</span>
+                <CopyButton
+                  value={model.model_id}
+                  label=""
+                  targetLabel="Model ID"
+                  aria-label={`Copy model ID ${model.model_id}`}
+                  variant="ghost"
+                  size="icon-xs"
+                  className="h-7 w-7 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                />
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">Model configuration and connection routing</p>
+            )}
           </div>
 
           <Button

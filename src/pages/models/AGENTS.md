@@ -1,7 +1,7 @@
 # FRONTEND MODELS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/models/` owns model list filters, dialog state, native-vs-proxy form logic, native strategy attachment during create or edit, and separate 24-hour metric hydration behind `../ModelsPage.tsx`.
+`pages/models/` owns the models list search and row-card presentation, dialog state, native-vs-proxy form logic, native strategy attachment during create or edit, and separate 24-hour metric hydration behind `../ModelsPage.tsx`.
 
 ## STRUCTURE
 ```
@@ -9,10 +9,9 @@ models/
 ├── ModelDialog.tsx         # Create-edit dialog
 ├── DeleteModelDialog.tsx   # Delete confirmation flow
 ├── modelFormState.ts       # Form defaults, payload transforms, native-target helpers
-├── ModelsTable.tsx         # Filtered table rendering
-├── ModelsToolbar.tsx       # Search, provider/status/type filters, column toggles
-├── modelTableContracts.ts  # Column keys and table contracts
-├── modelTableDefaults.ts   # Default visible column map
+├── ModelsTable.tsx         # Search-filtered horizontal row list + row actions
+├── ModelsToolbar.tsx       # Search-only toolbar
+├── modelTableContracts.ts  # Shared metric type contract
 ├── useModelMetrics24h.ts   # 24h metrics and spend hydration
 └── useModelsPageData.ts    # Shared-cache bootstrap, local patching, dialog orchestration
 ```
@@ -22,8 +21,8 @@ models/
 - Shared model/provider bootstrap and mutation patching: `useModelsPageData.ts`
 - Proxy/native form behavior, strategy attachment rules, and payload transforms: `modelFormState.ts`
 - 24h metrics and spend overlays: `useModelMetrics24h.ts`
-- Filter and column controls: `ModelsToolbar.tsx`, `modelTableContracts.ts`, `modelTableDefaults.ts`
-- Table rendering and row actions: `ModelsTable.tsx`
+- Search toolbar: `ModelsToolbar.tsx`
+- Row rendering, navigation, and row actions: `ModelsTable.tsx`
 
 ## CONVENTIONS
 

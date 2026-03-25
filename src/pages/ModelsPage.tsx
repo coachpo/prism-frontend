@@ -20,15 +20,7 @@ export function ModelsPage() {
         <Skeleton className="h-8 w-40" />
         <Card className="gap-0">
           <CardHeader className="border-b">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <Skeleton className="h-9 w-full xl:max-w-sm" />
-              <div className="flex flex-wrap items-center gap-3">
-                <Skeleton className="h-9 w-32" />
-                <Skeleton className="h-9 w-28" />
-                <Skeleton className="h-9 w-28" />
-                <Skeleton className="h-9 w-28" />
-              </div>
-            </div>
+            <Skeleton className="h-9 w-full xl:max-w-sm" />
           </CardHeader>
           <CardContent className="p-0">
             <Skeleton className="h-[500px] rounded-none border-0" />
@@ -47,37 +39,21 @@ export function ModelsPage() {
         </Button>
       </PageHeader>
 
-      <Card className="gap-0">
-        <CardHeader className="border-b">
-          <ModelsToolbar
-            providerFilter={data.providerFilter}
-            providers={data.providers}
-            resetVisibleColumns={data.resetVisibleColumns}
-            search={data.search}
-            setProviderFilter={data.setProviderFilter}
-            setSearch={data.setSearch}
-            setStatusFilter={data.setStatusFilter}
-            setTypeFilter={data.setTypeFilter}
-            statusFilter={data.statusFilter}
-            typeFilter={data.typeFilter}
-            updateColumnVisibility={data.updateColumnVisibility}
-            visibleColumns={data.visibleColumns}
-          />
-        </CardHeader>
-        <CardContent className="p-0">
-          <ModelsTable
-            activeColumns={data.activeColumns}
-            filtered={data.filtered}
-            handleOpenDialog={data.handleOpenDialog}
-            hasActiveFilters={data.hasActiveFilters}
-            metricsLoading={data.metricsLoading}
-            modelMetrics24h={data.modelMetrics24h}
-            modelSpend30dMicros={data.modelSpend30dMicros}
-            search={data.search}
-            setDeleteTarget={data.setDeleteTarget}
-          />
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <ModelsToolbar
+          search={data.search}
+          setSearch={data.setSearch}
+        />
+        <ModelsTable
+          filtered={data.filtered}
+          handleOpenDialog={data.handleOpenDialog}
+          metricsLoading={data.metricsLoading}
+          modelMetrics24h={data.modelMetrics24h}
+          modelSpend30dMicros={data.modelSpend30dMicros}
+          search={data.search}
+          setDeleteTarget={data.setDeleteTarget}
+        />
+      </div>
 
       <ModelDialog
         editingModel={data.editingModel}

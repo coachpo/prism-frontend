@@ -292,6 +292,36 @@ describe("useModelsPageData", () => {
     expect(result.current.models.some((model) => model.id === 3)).toBe(true);
   });
 
+  it("filters the visible model list using search only", async () => {
+    api.models.list.mockResolvedValue([
+      buildModelListItem(),
+      buildModelListItem({
+        id: 2,
+        model_id: "claude-sonnet-4-6",
+        display_name: "Claude Sonnet 4.6",
+        provider_id: 20,
+        provider: buildProvider({ id: 20, provider_type: "anthropic" }),
+      }),
+    ]);
+    api.providers.list.mockResolvedValue([
+      buildProvider(),
+      buildProvider({ id: 20, provider_type: "anthropic" }),
+    ]);
+
+    const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.filtered).toHaveLength(2);
+    });
+
+    act(() => {
+      result.current.setSearch("claude");
+    });
+
+    expect(result.current.filtered.map((model) => model.model_id)).toEqual(["claude-sonnet-4-6"]);
+  });
+
   it("normalizes native failover updates and deletes models", async () => {
     api.models.update.mockResolvedValue(
       buildModelConfig({
