@@ -128,7 +128,7 @@ export function ProxyKeyCard({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="min-w-0 flex flex-wrap gap-2 sm:flex-1 sm:justify-end">
           <MetaChip
             label={locale === "zh-CN" ? "预览" : "Preview"}
             value={item.key_preview}

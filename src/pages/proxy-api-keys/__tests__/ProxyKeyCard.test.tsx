@@ -93,6 +93,34 @@ describe("ProxyKeyCard", () => {
     expect(rotateIcon).toHaveClass("animate-spin");
   });
 
+  it("keeps long IPv6 last-used metadata contained inside the card rail", () => {
+    const lastUsedIp = "2001:14bb:67c:c113:bd0f:c251:4077:e4d0";
+
+    render(
+      <LocaleProvider>
+        <ProxyKeyCard
+          item={buildProxyKey({ last_used_ip: lastUsedIp })}
+          authEnabled={true}
+          rotating={false}
+          deleting={false}
+          onEdit={vi.fn()}
+          onRotate={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </LocaleProvider>
+    );
+
+    const lastIpLabel = screen.getByText("Last IP");
+    const lastIpValue = screen.getByText(lastUsedIp);
+    const lastIpChip = lastIpLabel.closest("div");
+    const metadataRail = lastIpChip?.parentElement;
+
+    expect(metadataRail).toHaveClass("min-w-0");
+    expect(metadataRail).toHaveClass("sm:flex-1");
+    expect(lastIpChip).toHaveClass("min-w-0");
+    expect(lastIpValue).toHaveClass("break-all", "font-mono");
+  });
+
   it("renders localized proxy-key row copy when the saved locale is Chinese", () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
