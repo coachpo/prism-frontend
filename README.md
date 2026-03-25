@@ -1,6 +1,6 @@
 # Prism Frontend
 
-**React 19 dashboard for managing LLM proxy configuration with real-time telemetry and audit logging.**
+**React 19 dashboard for managing LLM proxy configuration with real-time telemetry, locale-aware management UI, and audit logging.**
 
 This is the frontend component of Prism, providing a web-based UI for configuring providers, models, endpoints, connections, and investigating request activity.
 
@@ -16,6 +16,7 @@ This is the frontend component of Prism, providing a web-based UI for configurin
 - **Routing**: React Router 7
 - **Notifications**: sonner (toast)
 - **Theme**: next-themes (dark/light mode)
+- **Localization**: frontend-only `en` / `zh-CN` locale layer with shared formatting helpers
 
 ---
 
@@ -101,7 +102,7 @@ pnpm run preview
 pnpm run lint
 ```
 
-The dev server will be available at http://localhost:5173.
+When running the frontend by itself, Vite uses its configured local port. When started through Prism's checked-in root launcher, the frontend is served at `http://localhost:15173`.
 
 ---
 
@@ -134,7 +135,7 @@ docker build \
 
 ### Pages
 
-1. **Dashboard** - Overview of all models with success rate badges
+1. **Dashboard** - Overview of all models with success rate badges and locale-aware formatting
 2. **Models** - CRUD interface for models (native + proxy), load balancing strategies (single/failover), failover recovery controls
 3. **Model Detail** - Connection management, health checks, success rate tracking
 4. **Endpoints** - Profile-scoped credential management (Base URL + API Key)
@@ -142,7 +143,7 @@ docker build \
 6. **Request Logs** - Investigate routed requests, audit payload capture, and request-level detail
 7. **Proxy API Keys** - Issue, rotate, and revoke runtime keys
 8. **Pricing Templates** - Shared pricing configuration for connections
-9. **Settings** - Provider audit toggles, auth setup, costing settings, retention, and config import/export
+9. **Settings** - Provider audit toggles, auth setup, costing settings, retention, locale-aware previews, and config import/export
 
 ### Components
 

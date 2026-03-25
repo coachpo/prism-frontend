@@ -11,6 +11,7 @@ frontend/
     ├── components/AGENTS.md                        # App layout, shared widgets, navigation config, ui wrappers
     ├── context/AGENTS.md                           # Auth bootstrap, selected-profile state, revision flow
     ├── hooks/AGENTS.md                             # Realtime hook, polling helpers, timezone formatting
+    ├── i18n/AGENTS.md                              # Frontend-only locale state, catalogs, and shared formatting
     ├── lib/AGENTS.md                               # Typed API boundary, websocket client, WebAuthn, shared types
     └── pages/AGENTS.md                             # Route-domain map and page child-doc delegation
 ```
@@ -34,6 +35,7 @@ frontend/
 - Sidebar entries, app layout behavior, profile-prefixed navigation helpers, and visible version label: `src/components/layout/AppLayout.tsx`, `src/components/layout/app-layout/navigationProfileConfig.ts`
 - Selected-profile state, revision bumps, and `X-Profile-Id` management-route scoping: `src/context/ProfileContext.tsx`, `src/context/AGENTS.md`, `src/lib/api/core.ts`
 - Shared typed frontend-to-backend boundary: `src/lib/api.ts`, `src/lib/AGENTS.md`
+- Frontend locale state, catalogs, and shared formatting: `src/i18n/AGENTS.md`, `src/i18n/LocaleProvider.tsx`, `src/i18n/format.ts`
 - Shared realtime websocket path and route consumers: `src/lib/websocket.ts`, `src/hooks/useRealtimeData.ts`, `src/hooks/AGENTS.md`, `src/pages/dashboard/AGENTS.md`
 - Page hierarchy and route-domain handoff: `src/pages/AGENTS.md`
 
@@ -41,6 +43,7 @@ frontend/
 
 - Treat `src/App.tsx` as the source of truth for mounted routes and auth-shell boundaries.
 - Keep Prism backend access on the typed `src/lib/api.ts` boundary and the modules it re-exports.
+- Keep locale state and shared formatting in `src/i18n/`; route and shell surfaces should consume that boundary rather than scattering inline locale logic.
 - Keep selected profile, active profile, and profile revision behavior in `ProfileContext`. Page docs can rely on that contract, but they should not redefine it.
 - Keep navigation facts at the shell level. Use page docs for route-domain behavior and leaf docs for dense local clusters.
 - Mention realtime at this level only where it changes route behavior, mainly dashboard refresh and shared websocket ownership.

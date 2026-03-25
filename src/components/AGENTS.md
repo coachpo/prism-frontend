@@ -16,7 +16,7 @@ components/
 ├── StatusBadge.tsx                      # Semantic status badge variants
 ├── WebSocketStatusIndicator.tsx         # Realtime connection-state chip
 ├── ProviderIcon.tsx + ProviderSelect.tsx
-└── ThemeToggle.tsx / CopyButton.tsx / EmptyState.tsx / SwitchController.tsx / AnimatedListItem.tsx
+└── ThemeToggle.tsx / LanguageSwitcher.tsx / GlobalPreferencesControls.tsx / CopyButton.tsx / EmptyState.tsx / SwitchController.tsx / AnimatedListItem.tsx
 ```
 
 ## WHERE TO LOOK
@@ -29,10 +29,12 @@ components/
 - Statistics cards and token displays: `statistics/TopSpendingCard.tsx`, `statistics/SpecialTokenSummaryCard.tsx`, `statistics/SpecialTokenCoverageStrip.tsx`, `statistics/TokenMetricCell.tsx`
 - Design-system boundary and wrappers: `ui/`, especially `ui/chart.tsx`, `ui/topography.tsx`, `ui/sonner.tsx`
 - Reused route widgets: `PageHeader.tsx`, `MetricCard.tsx`, `StatusBadge.tsx`, `WebSocketStatusIndicator.tsx`, `ProviderIcon.tsx`, `ProviderSelect.tsx`
+- Locale-backed shell controls: `LanguageSwitcher.tsx`, `GlobalPreferencesControls.tsx`, and `ThemeToggle.tsx` via `../i18n/useLocale.ts`
 
 ## CONVENTIONS
 
 - Keep shared components presentation-focused. Data fetching, query-param state, and transport concerns stay in page folders, hooks, and `src/lib/`.
+- Keep shared shell controls locale-aware through `src/i18n/` rather than embedding hard-coded English labels in the components.
 - Let `layout/app-layout/` own shell state and shell copy. `useAppLayoutState.ts` composes auth, selected-profile, and shell-open state, while `navigationProfileConfig.ts` stays the source of truth for nav links, profile-scoped route prefixes, `MAX_PROFILES`, and the version label.
 - Reuse `ui/` primitives before adding one-off dialog, table, badge, or card markup.
 - Keep loadbalance and statistics components fed by shaped props from hooks or route helpers. They should not open their own API or realtime layers.
