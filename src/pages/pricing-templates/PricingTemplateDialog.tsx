@@ -42,7 +42,8 @@ export function PricingTemplateDialog({
   pricingTemplateSaving,
   setPricingTemplateForm,
 }: PricingTemplateDialogProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const dialogMessages = messages.pricingTemplateDialog;
   return (
     <Dialog
       open={open}
@@ -54,36 +55,28 @@ export function PricingTemplateDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {editingPricingTemplate
-              ? locale === "zh-CN"
-                ? "编辑价格模板"
-                : "Edit Pricing Template"
-              : locale === "zh-CN"
-                ? "新增价格模板"
-                : "Add Pricing Template"}
+            {editingPricingTemplate ? dialogMessages.editTitle : dialogMessages.addTitle}
           </DialogTitle>
-          <DialogDescription>
-            {locale === "zh-CN" ? "配置每 100 万令牌的价格。" : "Configure pricing rates per 1M tokens."}
-          </DialogDescription>
+          <DialogDescription>{dialogMessages.description}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="template-name">Name</Label>
+              <Label htmlFor="template-name">{dialogMessages.nameLabel}</Label>
               <Input
                 id="template-name"
                 value={pricingTemplateForm.name}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, name: event.target.value }))
                 }
-                placeholder="e.g., GPT-4o Standard"
+                placeholder={dialogMessages.namePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="template-currency">Currency Code</Label>
+              <Label htmlFor="template-currency">{dialogMessages.currencyCodeLabel}</Label>
               <Input
                 id="template-currency"
                 value={pricingTemplateForm.pricing_currency_code}
@@ -100,45 +93,45 @@ export function PricingTemplateDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template-description">Description (Optional)</Label>
+            <Label htmlFor="template-description">{dialogMessages.descriptionLabel}</Label>
             <Input
               id="template-description"
               value={pricingTemplateForm.description}
               onChange={(event) =>
-                setPricingTemplateForm((prev) => ({ ...prev, description: event.target.value }))
-              }
-              placeholder="Optional details about this template"
+                  setPricingTemplateForm((prev) => ({ ...prev, description: event.target.value }))
+                }
+              placeholder={dialogMessages.descriptionPlaceholder}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4 rounded-md border bg-muted/20 p-4">
             <div className="space-y-2">
-              <Label htmlFor="template-input-price">Input Price (per 1M tokens)</Label>
+              <Label htmlFor="template-input-price">{dialogMessages.inputPriceLabel}</Label>
               <Input
                 id="template-input-price"
                 value={pricingTemplateForm.input_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, input_price: event.target.value }))
                 }
-                placeholder="0.00"
+                placeholder={dialogMessages.pricePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="template-output-price">Output Price (per 1M tokens)</Label>
+              <Label htmlFor="template-output-price">{dialogMessages.outputPriceLabel}</Label>
               <Input
                 id="template-output-price"
                 value={pricingTemplateForm.output_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, output_price: event.target.value }))
                 }
-                placeholder="0.00"
+                placeholder={dialogMessages.pricePlaceholder}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 rounded-md border bg-muted/20 p-4">
             <div className="space-y-2">
-              <Label htmlFor="template-cached-input-price">Cached Input Price (Optional)</Label>
+              <Label htmlFor="template-cached-input-price">{dialogMessages.cachedInputPriceLabel}</Label>
               <Input
                 id="template-cached-input-price"
                 value={pricingTemplateForm.cached_input_price}
@@ -148,11 +141,11 @@ export function PricingTemplateDialog({
                     cached_input_price: event.target.value,
                   }))
                 }
-                placeholder="0.00"
+                placeholder={dialogMessages.pricePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="template-cache-creation-price">Cache Creation Price (Optional)</Label>
+              <Label htmlFor="template-cache-creation-price">{dialogMessages.cacheCreationPriceLabel}</Label>
               <Input
                 id="template-cache-creation-price"
                 value={pricingTemplateForm.cache_creation_price}
@@ -162,11 +155,11 @@ export function PricingTemplateDialog({
                     cache_creation_price: event.target.value,
                   }))
                 }
-                placeholder="0.00"
+                placeholder={dialogMessages.pricePlaceholder}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="template-reasoning-price">Reasoning Price (Optional)</Label>
+              <Label htmlFor="template-reasoning-price">{dialogMessages.reasoningPriceLabel}</Label>
               <Input
                 id="template-reasoning-price"
                 value={pricingTemplateForm.reasoning_price}
@@ -176,13 +169,13 @@ export function PricingTemplateDialog({
                     reasoning_price: event.target.value,
                   }))
                 }
-                placeholder="0.00"
+                placeholder={dialogMessages.pricePlaceholder}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Missing Special Token Policy</Label>
+            <Label>{dialogMessages.missingSpecialTokenPolicyLabel}</Label>
             <Select
               value={pricingTemplateForm.missing_special_token_price_policy}
               onValueChange={(value: "MAP_TO_OUTPUT" | "ZERO_COST") =>
@@ -196,27 +189,19 @@ export function PricingTemplateDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MAP_TO_OUTPUT">Map to Output Price</SelectItem>
-                <SelectItem value="ZERO_COST">Zero Cost</SelectItem>
+                <SelectItem value="MAP_TO_OUTPUT">{dialogMessages.mapToOutputPrice}</SelectItem>
+                <SelectItem value="ZERO_COST">{dialogMessages.zeroCost}</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              How to price special tokens (like reasoning) if their specific price is not set.
-            </p>
+            <p className="text-xs text-muted-foreground">{dialogMessages.missingSpecialTokenPolicyHint}</p>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            {locale === "zh-CN" ? "取消" : "Cancel"}
+            {dialogMessages.cancel}
           </Button>
           <Button onClick={() => void onSave()} disabled={pricingTemplateSaving}>
-            {pricingTemplateSaving
-              ? locale === "zh-CN"
-                ? "保存中..."
-                : "Saving..."
-              : locale === "zh-CN"
-                ? "保存模板"
-                : "Save Template"}
+            {pricingTemplateSaving ? dialogMessages.saving : dialogMessages.save}
           </Button>
         </DialogFooter>
       </DialogContent>

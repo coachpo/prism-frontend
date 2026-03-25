@@ -112,4 +112,60 @@ describe("LoadbalanceStrategyDialog", () => {
     expect(screen.getByText("新增负载均衡策略")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存策略" })).toBeInTheDocument();
   });
+
+  it("renders localized Chinese field labels, descriptions, and tooltip accessibility copy", async () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+    vi.stubGlobal(
+      "ResizeObserver",
+      class ResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+
+    render(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={{
+              name: "failover-primary",
+              strategy_type: "failover",
+              failover_recovery_enabled: true,
+              failover_cooldown_seconds: 60,
+              failover_failure_threshold: 2,
+              failover_backoff_multiplier: 2,
+              failover_max_cooldown_seconds: 900,
+              failover_jitter_ratio: 0.2,
+              failover_auth_error_cooldown_seconds: 1800,
+            }}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={vi.fn()}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByLabelText("名称")).toBeInTheDocument();
+    expect(screen.getByText("策略类型")).toBeInTheDocument();
+    expect(screen.getByText("自动恢复")).toBeInTheDocument();
+    expect(
+      screen.getByText("允许此策略中的失败端点在后端管理的冷却窗口后自动恢复。"),
+    ).toBeInTheDocument();
+
+    const trigger = screen.getByRole("button", { name: "查看基础冷却时间（秒）说明" });
+    fireEvent.focus(trigger);
+    expect(
+      await screen.findByRole("tooltip", {
+        name: "达到阈值后，在瞬时失败后应用的起始冷却时间。",
+      }),
+    ).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
+  });
 });

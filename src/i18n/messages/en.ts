@@ -123,6 +123,58 @@ export interface Messages {
     settings: string;
     statistics: string;
   };
+  loadbalanceStrategyDialog: {
+    addTitle: string;
+    authErrorCooldownDescription: string;
+    authErrorCooldownLabel: string;
+    autoRecoveryDescription: string;
+    autoRecoveryLabel: string;
+    backoffMultiplierDescription: string;
+    backoffMultiplierLabel: string;
+    baseCooldownDescription: string;
+    baseCooldownLabel: string;
+    cancel: string;
+    description: string;
+    editTitle: string;
+    explainField: (label: string) => string;
+    failoverOption: string;
+    failureThresholdDescription: string;
+    failureThresholdLabel: string;
+    jitterRatioDescription: string;
+    jitterRatioLabel: string;
+    maxCooldownDescription: string;
+    maxCooldownLabel: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    save: string;
+    saving: string;
+    singleOption: string;
+    singleStrategyHint: string;
+    strategyTypeLabel: string;
+  };
+  pricingTemplateDialog: {
+    addTitle: string;
+    cacheCreationPriceLabel: string;
+    cachedInputPriceLabel: string;
+    cancel: string;
+    currencyCodeLabel: string;
+    description: string;
+    descriptionLabel: string;
+    descriptionPlaceholder: string;
+    editTitle: string;
+    inputPriceLabel: string;
+    mapToOutputPrice: string;
+    missingSpecialTokenPolicyHint: string;
+    missingSpecialTokenPolicyLabel: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    outputPriceLabel: string;
+    pricePlaceholder: string;
+    reasoningPriceLabel: string;
+    save: string;
+    saving: string;
+    zeroCost: string;
+  };
   settingsPage: {
     auditPrivacy: string;
     backup: string;
@@ -569,6 +621,67 @@ export const enMessages: Messages = {
     requestLogs: "Request Logs",
     settings: "Settings",
     statistics: "Statistics",
+  },
+  loadbalanceStrategyDialog: {
+    addTitle: "Add Loadbalance Strategy",
+    authErrorCooldownDescription:
+      "Cooldown used for auth-like failures such as invalid keys or permission errors.",
+    authErrorCooldownLabel: "Auth Error Cooldown",
+    autoRecoveryDescription:
+      "Allow failed endpoints in this strategy to recover automatically after backend-managed cooldown windows.",
+    autoRecoveryLabel: "Auto-Recovery",
+    backoffMultiplierDescription:
+      "Multiplier applied to the cooldown after each failure beyond the threshold.",
+    backoffMultiplierLabel: "Backoff Multiplier",
+    baseCooldownDescription:
+      "Starting cooldown applied after transient failures once the threshold is reached.",
+    baseCooldownLabel: "Base Cooldown (seconds)",
+    cancel: "Cancel",
+    description: "Configure reusable routing behavior for native models in this profile.",
+    editTitle: "Edit Loadbalance Strategy",
+    explainField: (label) => `Explain ${label}`,
+    failoverOption: "Failover",
+    failureThresholdDescription:
+      "Number of consecutive failures required before the cooldown window opens.",
+    failureThresholdLabel: "Failure Threshold",
+    jitterRatioDescription:
+      "Random spread applied to the cooldown so retries do not all happen at the same instant.",
+    jitterRatioLabel: "Jitter Ratio",
+    maxCooldownDescription:
+      "Upper limit for the computed cooldown, even after repeated failures.",
+    maxCooldownLabel: "Max Cooldown (seconds)",
+    nameLabel: "Name",
+    namePlaceholder: "e.g. failover-primary",
+    save: "Save Strategy",
+    saving: "Saving...",
+    singleOption: "Single",
+    singleStrategyHint:
+      "Single strategies always route through one active connection and do not expose recovery.",
+    strategyTypeLabel: "Strategy Type",
+  },
+  pricingTemplateDialog: {
+    addTitle: "Add Pricing Template",
+    cacheCreationPriceLabel: "Cache Creation Price (Optional)",
+    cachedInputPriceLabel: "Cached Input Price (Optional)",
+    cancel: "Cancel",
+    currencyCodeLabel: "Currency Code",
+    description: "Configure pricing rates per 1M tokens.",
+    descriptionLabel: "Description (Optional)",
+    descriptionPlaceholder: "Optional details about this template",
+    editTitle: "Edit Pricing Template",
+    inputPriceLabel: "Input Price (per 1M tokens)",
+    mapToOutputPrice: "Map to Output Price",
+    missingSpecialTokenPolicyHint:
+      "How to price special tokens (like reasoning) if their specific price is not set.",
+    missingSpecialTokenPolicyLabel: "Missing Special Token Policy",
+    nameLabel: "Name",
+    namePlaceholder: "e.g., GPT-4o Standard",
+    outputPriceLabel: "Output Price (per 1M tokens)",
+    pricePlaceholder: "0.00",
+    reasoningPriceLabel: "Reasoning Price (Optional)",
+    save: "Save Template",
+    saving: "Saving...",
+    zeroCost: "Zero Cost",
   },
   settingsPage: {
     auditPrivacy: "Audit & Privacy",

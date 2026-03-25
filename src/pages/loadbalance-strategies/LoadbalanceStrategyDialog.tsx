@@ -26,10 +26,12 @@ import type { LoadbalanceStrategyFormState } from "./loadbalanceStrategyFormStat
 
 function FailoverFieldLabel({
   htmlFor,
+  helpAriaLabel,
   label,
   description,
 }: {
   htmlFor: string;
+  helpAriaLabel: string;
   label: string;
   description: string;
 }) {
@@ -40,7 +42,7 @@ function FailoverFieldLabel({
         <TooltipTrigger asChild>
           <button
             type="button"
-            aria-label={`Explain ${label}`}
+            aria-label={helpAriaLabel}
             className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
           >
             <CircleHelp className="h-3.5 w-3.5" />
@@ -75,7 +77,8 @@ export function LoadbalanceStrategyDialog({
   open,
   setLoadbalanceStrategyForm,
 }: LoadbalanceStrategyDialogProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const dialogMessages = messages.loadbalanceStrategyDialog;
   const setNumericField = (
     field:
       | "failover_cooldown_seconds"
@@ -116,37 +119,29 @@ export function LoadbalanceStrategyDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {editingLoadbalanceStrategy
-              ? locale === "zh-CN"
-                ? "编辑负载均衡策略"
-                : "Edit Loadbalance Strategy"
-              : locale === "zh-CN"
-                ? "新增负载均衡策略"
-                : "Add Loadbalance Strategy"}
+            {editingLoadbalanceStrategy ? dialogMessages.editTitle : dialogMessages.addTitle}
           </DialogTitle>
-          <DialogDescription>
-            Configure reusable routing behavior for native models in this profile.
-          </DialogDescription>
+          <DialogDescription>{dialogMessages.description}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="loadbalance-strategy-name">Name</Label>
+            <Label htmlFor="loadbalance-strategy-name">{dialogMessages.nameLabel}</Label>
             <Input
               id="loadbalance-strategy-name"
               value={loadbalanceStrategyForm.name}
               onChange={(event) =>
-                setLoadbalanceStrategyForm((prev) => ({ ...prev, name: event.target.value }))
-              }
-              placeholder="e.g. failover-primary"
+                  setLoadbalanceStrategyForm((prev) => ({ ...prev, name: event.target.value }))
+                }
+              placeholder={dialogMessages.namePlaceholder}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Strategy Type</Label>
+            <Label>{dialogMessages.strategyTypeLabel}</Label>
             <Select
               value={loadbalanceStrategyForm.strategy_type}
               onValueChange={(value: "single" | "failover") =>
@@ -162,8 +157,8 @@ export function LoadbalanceStrategyDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="single">Single</SelectItem>
-                <SelectItem value="failover">Failover</SelectItem>
+                <SelectItem value="single">{dialogMessages.singleOption}</SelectItem>
+                <SelectItem value="failover">{dialogMessages.failoverOption}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -171,8 +166,8 @@ export function LoadbalanceStrategyDialog({
           {loadbalanceStrategyForm.strategy_type === "failover" ? (
             <>
               <SwitchController
-                label="Auto-Recovery"
-                description="Allow failed endpoints in this strategy to recover automatically after backend-managed cooldown windows."
+                label={dialogMessages.autoRecoveryLabel}
+                description={dialogMessages.autoRecoveryDescription}
                 checked={loadbalanceStrategyForm.failover_recovery_enabled}
                 onCheckedChange={(checked) =>
                   setLoadbalanceStrategyForm((prev) => ({
@@ -186,8 +181,9 @@ export function LoadbalanceStrategyDialog({
                 <div className="space-y-2">
                   <FailoverFieldLabel
                     htmlFor="failover-cooldown-seconds"
-                    label="Base Cooldown (seconds)"
-                    description="Starting cooldown applied after transient failures once the threshold is reached."
+                    helpAriaLabel={dialogMessages.explainField(dialogMessages.baseCooldownLabel)}
+                    label={dialogMessages.baseCooldownLabel}
+                    description={dialogMessages.baseCooldownDescription}
                   />
                   <Input
                     id="failover-cooldown-seconds"
@@ -209,8 +205,9 @@ export function LoadbalanceStrategyDialog({
                 <div className="space-y-2">
                   <FailoverFieldLabel
                     htmlFor="failover-failure-threshold"
-                    label="Failure Threshold"
-                    description="Number of consecutive failures required before the cooldown window opens."
+                    helpAriaLabel={dialogMessages.explainField(dialogMessages.failureThresholdLabel)}
+                    label={dialogMessages.failureThresholdLabel}
+                    description={dialogMessages.failureThresholdDescription}
                   />
                   <Input
                     id="failover-failure-threshold"
@@ -233,8 +230,9 @@ export function LoadbalanceStrategyDialog({
                 <div className="space-y-2">
                   <FailoverFieldLabel
                     htmlFor="failover-backoff-multiplier"
-                    label="Backoff Multiplier"
-                    description="Multiplier applied to the cooldown after each failure beyond the threshold."
+                    helpAriaLabel={dialogMessages.explainField(dialogMessages.backoffMultiplierLabel)}
+                    label={dialogMessages.backoffMultiplierLabel}
+                    description={dialogMessages.backoffMultiplierDescription}
                   />
                   <Input
                     id="failover-backoff-multiplier"
@@ -257,8 +255,9 @@ export function LoadbalanceStrategyDialog({
                 <div className="space-y-2">
                   <FailoverFieldLabel
                     htmlFor="failover-max-cooldown-seconds"
-                    label="Max Cooldown (seconds)"
-                    description="Upper limit for the computed cooldown, even after repeated failures."
+                    helpAriaLabel={dialogMessages.explainField(dialogMessages.maxCooldownLabel)}
+                    label={dialogMessages.maxCooldownLabel}
+                    description={dialogMessages.maxCooldownDescription}
                   />
                   <Input
                     id="failover-max-cooldown-seconds"
@@ -281,8 +280,9 @@ export function LoadbalanceStrategyDialog({
                 <div className="space-y-2">
                   <FailoverFieldLabel
                     htmlFor="failover-jitter-ratio"
-                    label="Jitter Ratio"
-                    description="Random spread applied to the cooldown so retries do not all happen at the same instant."
+                    helpAriaLabel={dialogMessages.explainField(dialogMessages.jitterRatioLabel)}
+                    label={dialogMessages.jitterRatioLabel}
+                    description={dialogMessages.jitterRatioDescription}
                   />
                   <Input
                     id="failover-jitter-ratio"
@@ -305,8 +305,9 @@ export function LoadbalanceStrategyDialog({
                 <div className="space-y-2">
                   <FailoverFieldLabel
                     htmlFor="failover-auth-error-cooldown-seconds"
-                    label="Auth Error Cooldown"
-                    description="Cooldown used for auth-like failures such as invalid keys or permission errors."
+                    helpAriaLabel={dialogMessages.explainField(dialogMessages.authErrorCooldownLabel)}
+                    label={dialogMessages.authErrorCooldownLabel}
+                    description={dialogMessages.authErrorCooldownDescription}
                   />
                   <Input
                     id="failover-auth-error-cooldown-seconds"
@@ -330,23 +331,17 @@ export function LoadbalanceStrategyDialog({
             </>
           ) : (
             <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
-              Single strategies always route through one active connection and do not expose recovery.
+              {dialogMessages.singleStrategyHint}
             </div>
           )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            {locale === "zh-CN" ? "取消" : "Cancel"}
+            {dialogMessages.cancel}
           </Button>
           <Button onClick={() => void onSave()} disabled={loadbalanceStrategySaving}>
-            {loadbalanceStrategySaving
-              ? locale === "zh-CN"
-                ? "保存中..."
-                : "Saving..."
-              : locale === "zh-CN"
-                ? "保存策略"
-                : "Save Strategy"}
+            {loadbalanceStrategySaving ? dialogMessages.saving : dialogMessages.save}
           </Button>
         </DialogFooter>
       </DialogContent>
