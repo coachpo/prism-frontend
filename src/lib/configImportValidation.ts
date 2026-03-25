@@ -25,6 +25,12 @@ const LoadbalanceStrategyImportSchema = z.strictObject({
   name: z.string(),
   strategy_type: z.enum(["single", "failover"]),
   failover_recovery_enabled: z.boolean(),
+  failover_cooldown_seconds: z.number().int().min(0).optional(),
+  failover_failure_threshold: z.number().int().min(1).max(10).optional(),
+  failover_backoff_multiplier: z.number().min(1).max(10).optional(),
+  failover_max_cooldown_seconds: z.number().int().min(1).max(86_400).optional(),
+  failover_jitter_ratio: z.number().min(0).max(1).optional(),
+  failover_auth_error_cooldown_seconds: z.number().int().min(1).max(86_400).optional(),
 });
 
 const ConnectionImportSchema = z.strictObject({

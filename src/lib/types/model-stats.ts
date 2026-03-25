@@ -9,6 +9,12 @@ export interface LoadbalanceStrategySummary {
   name: string;
   strategy_type: LoadBalancingStrategy;
   failover_recovery_enabled: boolean;
+  failover_cooldown_seconds: number;
+  failover_failure_threshold: number;
+  failover_backoff_multiplier: number;
+  failover_max_cooldown_seconds: number;
+  failover_jitter_ratio: number;
+  failover_auth_error_cooldown_seconds: number;
 }
 
 export interface LoadbalanceStrategy {
@@ -17,6 +23,12 @@ export interface LoadbalanceStrategy {
   name: string;
   strategy_type: LoadBalancingStrategy;
   failover_recovery_enabled: boolean;
+  failover_cooldown_seconds: number;
+  failover_failure_threshold: number;
+  failover_backoff_multiplier: number;
+  failover_max_cooldown_seconds: number;
+  failover_jitter_ratio: number;
+  failover_auth_error_cooldown_seconds: number;
   attached_model_count: number;
   created_at: string;
   updated_at: string;
@@ -26,12 +38,24 @@ export interface LoadbalanceStrategyCreate {
   name: string;
   strategy_type?: LoadBalancingStrategy;
   failover_recovery_enabled?: boolean;
+  failover_cooldown_seconds?: number;
+  failover_failure_threshold?: number;
+  failover_backoff_multiplier?: number;
+  failover_max_cooldown_seconds?: number;
+  failover_jitter_ratio?: number;
+  failover_auth_error_cooldown_seconds?: number;
 }
 
 export interface LoadbalanceStrategyUpdate {
   name?: string;
   strategy_type?: LoadBalancingStrategy;
   failover_recovery_enabled?: boolean;
+  failover_cooldown_seconds?: number;
+  failover_failure_threshold?: number;
+  failover_backoff_multiplier?: number;
+  failover_max_cooldown_seconds?: number;
+  failover_jitter_ratio?: number;
+  failover_auth_error_cooldown_seconds?: number;
 }
 
 export interface ModelConfig {

@@ -13,6 +13,7 @@ import type {
 import {
   DEFAULT_LOADBALANCE_STRATEGY_FORM,
   getAttachedModelCountFromErrorDetail,
+  getLoadbalanceStrategyFormValidationError,
   loadbalanceStrategyFormStateFromStrategy,
   toLoadbalanceStrategyPayload,
   type LoadbalanceStrategyFormState,
@@ -85,11 +86,13 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
   };
 
   const handleSaveLoadbalanceStrategy = async () => {
-    const payload = toLoadbalanceStrategyPayload(loadbalanceStrategyForm);
-    if (!payload.name) {
-      toast.error("Name is required");
+    const validationError = getLoadbalanceStrategyFormValidationError(loadbalanceStrategyForm);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
+
+    const payload = toLoadbalanceStrategyPayload(loadbalanceStrategyForm);
 
     setLoadbalanceStrategySaving(true);
     try {

@@ -88,6 +88,16 @@ export function LoadbalanceStrategiesTable({
                               : "Single active connection"
                             }
                           </span>
+                          {strategy.strategy_type === "failover" ? (
+                            <>
+                              <span className="text-xs text-muted-foreground">
+                                {`Threshold ${strategy.failover_failure_threshold} • Base ${strategy.failover_cooldown_seconds}s • Max ${strategy.failover_max_cooldown_seconds}s`}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {`Backoff ×${strategy.failover_backoff_multiplier} • Jitter ${strategy.failover_jitter_ratio} • Auth ${strategy.failover_auth_error_cooldown_seconds}s`}
+                              </span>
+                            </>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell>

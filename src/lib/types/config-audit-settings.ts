@@ -29,9 +29,25 @@ export interface ConfigLoadbalanceStrategyExport {
   name: string;
   strategy_type: LoadBalancingStrategy;
   failover_recovery_enabled: boolean;
+  failover_cooldown_seconds: number;
+  failover_failure_threshold: number;
+  failover_backoff_multiplier: number;
+  failover_max_cooldown_seconds: number;
+  failover_jitter_ratio: number;
+  failover_auth_error_cooldown_seconds: number;
 }
 
-export interface ConfigLoadbalanceStrategyImport extends ConfigLoadbalanceStrategyExport {}
+export interface ConfigLoadbalanceStrategyImport {
+  name: string;
+  strategy_type: LoadBalancingStrategy;
+  failover_recovery_enabled: boolean;
+  failover_cooldown_seconds?: number;
+  failover_failure_threshold?: number;
+  failover_backoff_multiplier?: number;
+  failover_max_cooldown_seconds?: number;
+  failover_jitter_ratio?: number;
+  failover_auth_error_cooldown_seconds?: number;
+}
 
 export interface ConfigConnectionExport {
   endpoint_name: string;

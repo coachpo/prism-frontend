@@ -10,6 +10,12 @@ function buildStrategy(overrides: Partial<LoadbalanceStrategy> = {}): Loadbalanc
     name: "Primary failover",
     strategy_type: "failover",
     failover_recovery_enabled: true,
+    failover_cooldown_seconds: 45,
+    failover_failure_threshold: 4,
+    failover_backoff_multiplier: 3.5,
+    failover_max_cooldown_seconds: 720,
+    failover_jitter_ratio: 0.35,
+    failover_auth_error_cooldown_seconds: 2400,
     attached_model_count: 4,
     created_at: "2026-03-25T08:00:00Z",
     updated_at: "2026-03-25T08:00:00Z",
@@ -71,5 +77,23 @@ describe("LoadbalanceStrategiesTable", () => {
     expect(deleteButton).toBeEnabled();
     expect(editIcon).not.toBeNull();
     expect(editIcon).toHaveClass("animate-spin");
+  });
+
+  it("shows a compact failover policy summary for failover strategies", () => {
+    const strategy = buildStrategy();
+
+    render(
+      <LoadbalanceStrategiesTable
+        loadbalanceStrategies={[strategy]}
+        loadbalanceStrategiesLoading={false}
+        loadbalanceStrategyPreparingEditId={null}
+        onCreate={vi.fn()}
+        onDelete={vi.fn()}
+        onEdit={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByText("Threshold 4 • Base 45s • Max 720s")).toBeInTheDocument();
+    expect(screen.getByText("Backoff ×3.5 • Jitter 0.35 • Auth 2400s")).toBeInTheDocument();
   });
 });

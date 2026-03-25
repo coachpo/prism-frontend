@@ -4,12 +4,24 @@ export type LoadbalanceStrategyFormState = {
   name: string;
   strategy_type: "single" | "failover";
   failover_recovery_enabled: boolean;
+  failover_cooldown_seconds: number;
+  failover_failure_threshold: number;
+  failover_backoff_multiplier: number;
+  failover_max_cooldown_seconds: number;
+  failover_jitter_ratio: number;
+  failover_auth_error_cooldown_seconds: number;
 };
 
 export const DEFAULT_LOADBALANCE_STRATEGY_FORM: LoadbalanceStrategyFormState = {
   name: "",
   strategy_type: "single",
   failover_recovery_enabled: false,
+  failover_cooldown_seconds: 60,
+  failover_failure_threshold: 2,
+  failover_backoff_multiplier: 2,
+  failover_max_cooldown_seconds: 900,
+  failover_jitter_ratio: 0.2,
+  failover_auth_error_cooldown_seconds: 1800,
 };
 
 export function loadbalanceStrategyFormStateFromStrategy(
@@ -19,18 +31,97 @@ export function loadbalanceStrategyFormStateFromStrategy(
     name: strategy.name,
     strategy_type: strategy.strategy_type,
     failover_recovery_enabled: strategy.failover_recovery_enabled,
+    failover_cooldown_seconds: strategy.failover_cooldown_seconds,
+    failover_failure_threshold: strategy.failover_failure_threshold,
+    failover_backoff_multiplier: strategy.failover_backoff_multiplier,
+    failover_max_cooldown_seconds: strategy.failover_max_cooldown_seconds,
+    failover_jitter_ratio: strategy.failover_jitter_ratio,
+    failover_auth_error_cooldown_seconds: strategy.failover_auth_error_cooldown_seconds,
   };
 }
 
 export function toLoadbalanceStrategyPayload(
   formState: LoadbalanceStrategyFormState,
 ): LoadbalanceStrategyFormState {
+  const normalizeInteger = (value: number) => Math.trunc(value);
+
   return {
     name: formState.name.trim(),
     strategy_type: formState.strategy_type,
     failover_recovery_enabled:
       formState.strategy_type === "failover" ? formState.failover_recovery_enabled : false,
+    failover_cooldown_seconds: normalizeInteger(formState.failover_cooldown_seconds),
+    failover_failure_threshold: normalizeInteger(formState.failover_failure_threshold),
+    failover_backoff_multiplier: formState.failover_backoff_multiplier,
+    failover_max_cooldown_seconds: normalizeInteger(formState.failover_max_cooldown_seconds),
+    failover_jitter_ratio: formState.failover_jitter_ratio,
+    failover_auth_error_cooldown_seconds: normalizeInteger(
+      formState.failover_auth_error_cooldown_seconds,
+    ),
   };
+}
+
+export function getLoadbalanceStrategyFormValidationError(
+  formState: LoadbalanceStrategyFormState,
+): string | null {
+  if (!formState.name.trim()) {
+    return "Name is required";
+  }
+
+  if (!Number.isInteger(formState.failover_cooldown_seconds)) {
+    return "Base cooldown must be a whole number of seconds";
+  }
+  if (formState.failover_cooldown_seconds < 0) {
+    return "Base cooldown must be at least 0 seconds";
+  }
+
+  if (!Number.isInteger(formState.failover_failure_threshold)) {
+    return "Failure threshold must be a whole number";
+  }
+  if (
+    formState.failover_failure_threshold < 1 ||
+    formState.failover_failure_threshold > 10
+  ) {
+    return "Failure threshold must be between 1 and 10";
+  }
+
+  if (
+    !Number.isFinite(formState.failover_backoff_multiplier) ||
+    formState.failover_backoff_multiplier < 1 ||
+    formState.failover_backoff_multiplier > 10
+  ) {
+    return "Backoff multiplier must be between 1 and 10";
+  }
+
+  if (!Number.isInteger(formState.failover_max_cooldown_seconds)) {
+    return "Max cooldown must be a whole number of seconds";
+  }
+  if (
+    formState.failover_max_cooldown_seconds < 1 ||
+    formState.failover_max_cooldown_seconds > 86_400
+  ) {
+    return "Max cooldown must be between 1 and 86400 seconds";
+  }
+
+  if (
+    !Number.isFinite(formState.failover_jitter_ratio) ||
+    formState.failover_jitter_ratio < 0 ||
+    formState.failover_jitter_ratio > 1
+  ) {
+    return "Jitter ratio must be between 0 and 1";
+  }
+
+  if (!Number.isInteger(formState.failover_auth_error_cooldown_seconds)) {
+    return "Auth error cooldown must be a whole number of seconds";
+  }
+  if (
+    formState.failover_auth_error_cooldown_seconds < 1 ||
+    formState.failover_auth_error_cooldown_seconds > 86_400
+  ) {
+    return "Auth error cooldown must be between 1 and 86400 seconds";
+  }
+
+  return null;
 }
 
 export function getAttachedModelCountFromErrorDetail(detail: unknown): number | null {

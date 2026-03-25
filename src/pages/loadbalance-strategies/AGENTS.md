@@ -25,9 +25,10 @@ loadbalance-strategies/
 - Keep backend access on the shared `api.*` boundary; this page should not create a parallel fetch layer.
 - Keep strategy form normalization and request shaping in `loadbalanceStrategyFormState.ts` rather than scattering the rules across dialogs.
 - Match the CRUD/page shell pattern used by other profile-scoped management pages such as pricing templates.
+- Keep persisted failover policy editing on the existing strategy dialog; model pages still only attach one reusable strategy.
 
 ## ANTI-PATTERNS
 
-- Do not add cooldown timing fields here; strategy timing remains global backend config, not page-managed state.
 - Do not let table components own API calls directly when `useLoadbalanceStrategiesPageData.ts` already centralizes CRUD orchestration.
-- Do not reintroduce model-level cooldown or failover-policy fields into the strategy UI.
+- Do not reintroduce model-level cooldown or failover-policy fields outside this strategy UI.
+- Do not create a second policy-management page or move strategy assignment out of the existing model dialogs.
