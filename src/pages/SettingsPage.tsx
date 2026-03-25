@@ -1,8 +1,8 @@
 import { useRef } from "react";
-import { useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/PageHeader";
+import { useLocale } from "@/i18n/useLocale";
 import { BackupSection } from "./settings/sections/BackupSection";
 import { BillingCurrencySection } from "./settings/sections/BillingCurrencySection";
 import { TimezoneSection } from "./settings/sections/TimezoneSection";
@@ -13,12 +13,12 @@ import { DeleteConfirmDialog } from "./settings/dialogs/DeleteConfirmDialog";
 import { RuleDialog } from "./settings/dialogs/RuleDialog";
 import { DeleteRuleConfirmDialog } from "./settings/dialogs/DeleteRuleConfirmDialog";
 import { SettingsSectionsNav } from "./settings/SettingsSectionsNav";
-import { useSettingsSectionNavigation } from "./settings/useSettingsSectionNavigation";
 import { useSettingsPageData } from "./settings/useSettingsPageData";
+import { useSettingsPageSectionState } from "./settings/useSettingsPageSectionState";
 import { SETTINGS_TABS } from "./settings/settingsPageHelpers";
 
 export function SettingsPage() {
-  const location = useLocation();
+  const { messages } = useLocale();
   const auditConfigurationRef = useRef<HTMLDivElement | null>(null);
   const {
     activeTab,
@@ -26,7 +26,8 @@ export function SettingsPage() {
     activeSectionId,
     setActiveSectionId,
     isAuditConfigurationFocused,
-  } = useSettingsSectionNavigation(location);
+    jumpToSection,
+  } = useSettingsPageSectionState();
   const data = useSettingsPageData();
 
   const handleJumpToSection = (sectionId: string) => {
@@ -36,15 +37,15 @@ export function SettingsPage() {
     }
 
     setActiveSectionId(sectionId);
-    window.history.replaceState(null, "", `#${sectionId}`);
+    jumpToSection(sectionId);
     target.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Settings"
-        description="Manage instance-wide authentication and profile-scoped configuration"
+        title={messages.settingsPage.settingsTitle}
+        description={messages.settingsPage.settingsDescription}
       />
 
       <Tabs
@@ -52,8 +53,8 @@ export function SettingsPage() {
         onValueChange={(value) => setActiveTab(value as typeof activeTab)}
       >
         <TabsList>
-          <TabsTrigger value={SETTINGS_TABS.profile}>Profile</TabsTrigger>
-          <TabsTrigger value={SETTINGS_TABS.global}>Global</TabsTrigger>
+          <TabsTrigger value={SETTINGS_TABS.profile}>{messages.settingsPage.profileTab}</TabsTrigger>
+          <TabsTrigger value={SETTINGS_TABS.global}>{messages.settingsPage.globalTab}</TabsTrigger>
         </TabsList>
 
         <TabsContent value={SETTINGS_TABS.profile}>
@@ -64,10 +65,10 @@ export function SettingsPage() {
                   variant="outline"
                   className="w-fit border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300"
                 >
-                  Profile-scoped settings
+                  {messages.settingsPage.profileScopedSettings}
                 </Badge>
                 <p className="text-sm text-amber-800 dark:text-amber-300">
-                  Changes here affect {data.selectedProfileLabel} and its runtime traffic.
+                  {messages.settingsPage.profileScopedDescription(data.selectedProfileLabel)}
                 </p>
               </div>
             </div>
@@ -75,7 +76,7 @@ export function SettingsPage() {
             <div className="space-y-4 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 lg:space-y-0">
               <aside className="lg:sticky lg:top-4 lg:h-fit">
                 <SettingsSectionsNav
-                  activeSectionId={activeSectionId}
+                  activeSectionId={activeSectionId ?? ""}
                   onJumpToSection={handleJumpToSection}
                 />
               </aside>
@@ -184,10 +185,10 @@ export function SettingsPage() {
                   variant="outline"
                   className="w-fit border-blue-500/30 bg-blue-500/15 text-blue-700 dark:text-blue-300"
                 >
-                  Global settings
+                  {messages.settingsPage.globalSettings}
                 </Badge>
                 <p className="text-sm text-blue-800 dark:text-blue-300">
-                  Changes here apply to all profiles and the entire Prism instance.
+                  {messages.settingsPage.globalSettingsDescription}
                 </p>
               </div>
             </div>

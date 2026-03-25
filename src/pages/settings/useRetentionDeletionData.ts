@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { getCurrentLocale } from "@/i18n/format";
 import { toast } from "sonner";
 import {
   DELETE_CONFIRM_KEYWORD,
@@ -26,6 +27,7 @@ export function useRetentionDeletionData() {
   );
 
   const handleOpenDeleteConfirm = () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     if (!cleanupType || !retentionPreset) {
       return;
     }
@@ -33,7 +35,7 @@ export function useRetentionDeletionData() {
     const deleteAll = retentionPreset === "all";
     const days = deleteAll ? null : Number.parseInt(retentionPreset, 10);
     if (!deleteAll && Number.isNaN(days)) {
-      toast.error("Select a valid retention option");
+      toast.error(isChinese ? "请选择有效的保留选项" : "Select a valid retention option");
       return;
     }
 
@@ -42,6 +44,7 @@ export function useRetentionDeletionData() {
   };
 
   const handleBatchDelete = async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     if (!deleteConfirm || !isDeletePhraseValid) {
       return;
     }
@@ -69,13 +72,17 @@ export function useRetentionDeletionData() {
         }
       }
 
-      toast.success(`${getCleanupTypeLabel(type)} deletion requested`);
+      toast.success(
+        isChinese
+          ? `已请求删除${getCleanupTypeLabel(type)}`
+          : `${getCleanupTypeLabel(type)} deletion requested`,
+      );
 
       setDeleteConfirm(null);
       setDeleteConfirmPhrase("");
       setRetentionPreset("");
     } catch {
-      toast.error("Deletion failed");
+      toast.error(isChinese ? "删除失败" : "Deletion failed");
     } finally {
       setDeleting(false);
     }

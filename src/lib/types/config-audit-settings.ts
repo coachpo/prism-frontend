@@ -7,7 +7,7 @@ export interface ConfigEndpointExport {
   position?: number | null;
 }
 
-export interface ConfigEndpointImport extends ConfigEndpointExport {}
+export type ConfigEndpointImport = ConfigEndpointExport;
 
 export interface ConfigPricingTemplateExport {
   name: string;
@@ -23,7 +23,7 @@ export interface ConfigPricingTemplateExport {
   version: number;
 }
 
-export interface ConfigPricingTemplateImport extends ConfigPricingTemplateExport {}
+export type ConfigPricingTemplateImport = ConfigPricingTemplateExport;
 
 export interface ConfigLoadbalanceStrategyExport {
   name: string;

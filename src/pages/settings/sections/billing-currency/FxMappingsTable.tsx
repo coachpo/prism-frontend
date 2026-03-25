@@ -1,4 +1,5 @@
 import { Check, Pencil, Trash2, X } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,10 +40,11 @@ export function FxMappingsTable({
   modelLabelMap,
   setEditingMappingFxRate,
 }: FxMappingsTableProps) {
+  const { locale } = useLocale();
   if (mappings.length === 0) {
     return (
       <div className="mt-3 rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground">
-        No endpoint FX mappings configured.
+        {locale === "zh-CN" ? "当前没有配置端点 FX 映射。" : "No endpoint FX mappings configured."}
       </div>
     );
   }
@@ -52,11 +54,11 @@ export function FxMappingsTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Model</TableHead>
-            <TableHead>Endpoint</TableHead>
-            <TableHead>FX rate</TableHead>
-            <TableHead>Source</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>{locale === "zh-CN" ? "模型" : "Model"}</TableHead>
+            <TableHead>{locale === "zh-CN" ? "端点" : "Endpoint"}</TableHead>
+            <TableHead>{locale === "zh-CN" ? "FX 汇率" : "FX rate"}</TableHead>
+            <TableHead>{locale === "zh-CN" ? "来源" : "Source"}</TableHead>
+            <TableHead className="text-right">{locale === "zh-CN" ? "操作" : "Actions"}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -89,7 +91,7 @@ export function FxMappingsTable({
                   )}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">Override</Badge>
+                  <Badge variant="secondary">{locale === "zh-CN" ? "覆盖" : "Override"}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -102,7 +104,7 @@ export function FxMappingsTable({
                           className="h-8 w-8"
                           onClick={handleSaveEditFxMapping}
                           disabled={Boolean(editMappingFxError)}
-                          aria-label="Save FX mapping"
+                          aria-label={locale === "zh-CN" ? "保存 FX 映射" : "Save FX mapping"}
                         >
                           <Check className="h-4 w-4" />
                         </Button>
@@ -112,7 +114,7 @@ export function FxMappingsTable({
                           size="icon"
                           className="h-8 w-8"
                           onClick={handleCancelEditFxMapping}
-                          aria-label="Cancel FX mapping edit"
+                          aria-label={locale === "zh-CN" ? "取消 FX 映射编辑" : "Cancel FX mapping edit"}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -125,7 +127,7 @@ export function FxMappingsTable({
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => handleStartEditFxMapping(mapping)}
-                          aria-label="Edit FX mapping"
+                          aria-label={locale === "zh-CN" ? "编辑 FX 映射" : "Edit FX mapping"}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -135,7 +137,7 @@ export function FxMappingsTable({
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => handleDeleteFxMapping(mapping)}
-                          aria-label="Delete FX mapping"
+                          aria-label={locale === "zh-CN" ? "删除 FX 映射" : "Delete FX mapping"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

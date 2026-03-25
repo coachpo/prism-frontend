@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocale } from "@/i18n/useLocale";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -37,6 +38,7 @@ export function TimezoneSection({
   timezonePreviewText,
   timezonePreviewZone,
 }: TimezoneSectionProps) {
+  const { locale } = useLocale();
   return (
     <section id="timezone" tabIndex={-1} className="scroll-mt-24">
       <Card>
@@ -45,10 +47,12 @@ export function TimezoneSection({
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <Globe className="h-4 w-4" />
-                Timezone
+                {locale === "zh-CN" ? "时区" : "Timezone"}
               </CardTitle>
               <CardDescription className="text-xs">
-                Timezone preference affects timestamp rendering across the dashboard.
+                {locale === "zh-CN"
+                  ? "时区偏好会影响整个仪表盘中的时间戳显示。"
+                  : "Timezone preference affects timestamp rendering across the dashboard."}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -64,7 +68,13 @@ export function TimezoneSection({
                   !timezoneDirty
                 }
               >
-                {costingSaving ? "Saving..." : "Save timezone"}
+                {costingSaving
+                  ? locale === "zh-CN"
+                    ? "保存中..."
+                    : "Saving..."
+                  : locale === "zh-CN"
+                    ? "保存时区"
+                    : "Save timezone"}
               </Button>
             </div>
           </div>
@@ -72,7 +82,7 @@ export function TimezoneSection({
         <CardContent className="space-y-4">
           {costingUnavailable ? (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-              Settings API is currently unavailable.
+              {locale === "zh-CN" ? "设置 API 当前不可用。" : "Settings API is currently unavailable."}
             </div>
           ) : costingLoading ? (
             <div className="space-y-2">
@@ -82,7 +92,7 @@ export function TimezoneSection({
             <div className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Timezone preference</Label>
+                  <Label>{locale === "zh-CN" ? "时区偏好" : "Timezone preference"}</Label>
                   <Select
                     value={costingForm.timezone_preference || "auto"}
                     onValueChange={(value) =>
@@ -93,11 +103,13 @@ export function TimezoneSection({
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select timezone" />
+                      <SelectValue placeholder={locale === "zh-CN" ? "选择时区" : "Select timezone"} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="auto">
-                        Auto (Browser: {Intl.DateTimeFormat().resolvedOptions().timeZone})
+                        {locale === "zh-CN"
+                          ? `自动（浏览器：${Intl.DateTimeFormat().resolvedOptions().timeZone})`
+                          : `Auto (Browser: ${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
                       </SelectItem>
                       {Intl.supportedValuesOf("timeZone").map((timezone) => (
                         <SelectItem key={timezone} value={timezone}>
@@ -110,7 +122,9 @@ export function TimezoneSection({
               </div>
 
               <p className="text-sm text-muted-foreground">
-                Example timestamp: {timezonePreviewText} ({timezonePreviewZone})
+                {locale === "zh-CN"
+                  ? `示例时间戳：${timezonePreviewText}（${timezonePreviewZone}）`
+                  : `Example timestamp: ${timezonePreviewText} (${timezonePreviewZone})`}
               </p>
             </div>
           )}

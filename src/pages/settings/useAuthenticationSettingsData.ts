@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { api } from "@/lib/api";
+import { getCurrentLocale } from "@/i18n/format";
 import type { AuthSettings } from "@/lib/types";
 import { toast } from "sonner";
 import { validateAuthPassword } from "./settingsPageHelpers";
@@ -28,6 +29,7 @@ export function useAuthenticationSettingsData({
   const [confirmingEmailVerification, setConfirmingEmailVerification] = useState(false);
 
   const fetchAuthSettings = useCallback(async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     try {
       const data = await api.settings.auth.get();
       setAuthSettings(data);
@@ -38,11 +40,18 @@ export function useAuthenticationSettingsData({
       setAuthPasswordConfirm("");
       setEmailVerificationOtp("");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load authentication settings");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : isChinese
+            ? "加载身份验证设置失败"
+            : "Failed to load authentication settings",
+      );
     }
   }, []);
 
   useEffect(() => {
+    void revision;
     void fetchAuthSettings();
   }, [fetchAuthSettings, revision]);
 
@@ -54,6 +63,7 @@ export function useAuthenticationSettingsData({
 
   const handleSaveAuthSettings = useCallback(
     async (nextEnabled?: boolean) => {
+      const isChinese = getCurrentLocale() === "zh-CN";
       const wasEnabled = authSettings?.auth_enabled ?? false;
       const isDisablingAuth = nextEnabled === false && wasEnabled;
 
@@ -62,7 +72,7 @@ export function useAuthenticationSettingsData({
         return;
       }
       if (!isDisablingAuth && authPasswordMismatch) {
-        toast.error("Passwords do not match");
+        toast.error(isChinese ? "两次输入的密码不一致" : "Passwords do not match");
         return;
       }
 
@@ -91,15 +101,25 @@ export function useAuthenticationSettingsData({
         }
 
         if (!wasEnabled && saved.auth_enabled) {
-          toast.success("Authentication enabled. Sign in to continue.");
+          toast.success(
+            isChinese
+              ? "身份验证已启用。请重新登录以继续。"
+              : "Authentication enabled. Sign in to continue.",
+          );
           navigate("/login", { replace: true });
           return;
         }
 
-        toast.success("Authentication settings saved");
+        toast.success(isChinese ? "身份验证设置已保存" : "Authentication settings saved");
       } catch (error) {
         setAuthEnabledInput(authSettings?.auth_enabled ?? false);
-        toast.error(error instanceof Error ? error.message : "Failed to save authentication settings");
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : isChinese
+              ? "保存身份验证设置失败"
+              : "Failed to save authentication settings",
+        );
       } finally {
         setAuthSaving(false);
       }
@@ -108,8 +128,9 @@ export function useAuthenticationSettingsData({
   );
 
   const handleRequestEmailVerification = useCallback(async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     if (!authEmail.trim()) {
-      toast.error("Email is required");
+      toast.error(isChinese ? "邮箱为必填项" : "Email is required");
       return;
     }
 
@@ -129,17 +150,24 @@ export function useAuthenticationSettingsData({
             }
           : prev
       );
-      toast.success("Verification code sent");
+      toast.success(isChinese ? "验证码已发送" : "Verification code sent");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send verification code");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : isChinese
+            ? "发送验证码失败"
+            : "Failed to send verification code",
+      );
     } finally {
       setSendingEmailVerification(false);
     }
   }, [authEmail]);
 
   const handleConfirmEmailVerification = useCallback(async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     if (!emailVerificationOtp.trim()) {
-      toast.error("Verification code is required");
+      toast.error(isChinese ? "验证码为必填项" : "Verification code is required");
       return;
     }
 
@@ -161,9 +189,15 @@ export function useAuthenticationSettingsData({
       );
       setAuthEmail(result.email ?? authEmail);
       setEmailVerificationOtp("");
-      toast.success("Email verified");
+      toast.success(isChinese ? "邮箱已验证" : "Email verified");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to verify email");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : isChinese
+            ? "验证邮箱失败"
+            : "Failed to verify email",
+      );
     } finally {
       setConfirmingEmailVerification(false);
     }

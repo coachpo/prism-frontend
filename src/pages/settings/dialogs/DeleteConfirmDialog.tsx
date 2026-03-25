@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ export function DeleteConfirmDialog({
   deleting,
   isDeletePhraseValid,
 }: DeleteConfirmDialogProps) {
+  const { locale } = useLocale();
   return (
     <Dialog
       open={Boolean(deleteConfirm)}
@@ -50,11 +52,13 @@ export function DeleteConfirmDialog({
         }
       }}
     >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <DialogHeader>
+          <DialogTitle>{locale === "zh-CN" ? "确认删除" : "Confirm Deletion"}</DialogTitle>
           <DialogDescription>
-            This deletes data in {selectedProfileLabel} and cannot be undone.
+            {locale === "zh-CN"
+              ? `${selectedProfileLabel} 中的数据将被删除且无法撤销。`
+              : `This deletes data in ${selectedProfileLabel} and cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -93,14 +97,14 @@ export function DeleteConfirmDialog({
               setDeleteConfirmPhrase("");
             }}
           >
-            Cancel
+            {locale === "zh-CN" ? "取消" : "Cancel"}
           </Button>
           <Button
             variant="destructive"
             onClick={() => void handleBatchDelete()}
             disabled={deleting || !isDeletePhraseValid}
           >
-            {deleting ? "Deleting..." : "Delete"}
+            {deleting ? (locale === "zh-CN" ? "删除中..." : "Deleting...") : locale === "zh-CN" ? "删除" : "Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>

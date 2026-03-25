@@ -1,6 +1,7 @@
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { api } from "@/lib/api";
+import { getCurrentLocale } from "@/i18n/format";
 import { ConfigImportSchema } from "@/lib/configImportValidation";
 import type { ConfigImportRequest } from "@/lib/types";
 import { toast } from "sonner";
@@ -41,8 +42,13 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
   }, [parsedConfig]);
 
   const handleExport = async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     if (!exportSecretsAcknowledged) {
-      toast.error("Acknowledge that endpoint API keys are included before exporting.");
+      toast.error(
+        isChinese
+          ? "请先确认导出中包含端点 API 密钥。"
+          : "Acknowledge that endpoint API keys are included before exporting.",
+      );
       return;
     }
 
@@ -59,15 +65,16 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
       anchor.download = `gateway-config-${date}.json`;
       anchor.click();
       URL.revokeObjectURL(url);
-      toast.success("Configuration exported successfully");
+      toast.success(isChinese ? "配置导出成功" : "Configuration exported successfully");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Export failed");
+      toast.error(error instanceof Error ? error.message : isChinese ? "导出失败" : "Export failed");
     } finally {
       setExporting(false);
     }
   };
 
   const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -89,12 +96,13 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
 
       setParsedConfig(validation.data as ConfigImportRequest);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Invalid JSON file");
+      toast.error(error instanceof Error ? error.message : isChinese ? "无效的 JSON 文件" : "Invalid JSON file");
       resetSelectedFile();
     }
   };
 
   const handleImport = async () => {
+    const isChinese = getCurrentLocale() === "zh-CN";
     if (!parsedConfig) {
       return;
     }
@@ -103,12 +111,14 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
     try {
       const result = await api.config.import(parsedConfig);
       toast.success(
-        `Imported ${result.endpoints_imported} endpoints, ${result.strategies_imported} strategies, ${result.models_imported} models, ${result.connections_imported} connections`
+        isChinese
+          ? `已导入 ${result.endpoints_imported} 个端点、${result.strategies_imported} 个策略、${result.models_imported} 个模型、${result.connections_imported} 个连接`
+          : `Imported ${result.endpoints_imported} endpoints, ${result.strategies_imported} strategies, ${result.models_imported} models, ${result.connections_imported} connections`
       );
       resetSelectedFile();
       bumpRevision();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Import failed");
+      toast.error(error instanceof Error ? error.message : isChinese ? "导入失败" : "Import failed");
     } finally {
       setImporting(false);
     }

@@ -1,11 +1,11 @@
 import type { RefObject } from "react";
-import { Ban, Lock, Pencil, Plus, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Ban, Shield } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocale } from "@/i18n/useLocale";
 import { cn } from "@/lib/utils";
 import type { HeaderBlocklistRule, Provider } from "@/lib/types";
 import { AuditConfigurationProviderToggles } from "./AuditConfigurationProviderToggles";
-import { AuditConfigurationRuleSection } from "./AuditConfigurationRuleSection";
+import { AuditConfigurationRulesPanel } from "./AuditConfigurationRulesPanel";
 
 interface AuditConfigurationSectionProps {
   auditConfigurationRef: RefObject<HTMLDivElement | null>;
@@ -44,6 +44,7 @@ export function AuditConfigurationSection({
   openEditRuleDialog,
   setDeleteRuleConfirm,
 }: AuditConfigurationSectionProps) {
+  const { locale } = useLocale();
   return (
     <section id="audit-configuration" tabIndex={-1} className="scroll-mt-24 space-y-4">
       <Card
@@ -56,24 +57,26 @@ export function AuditConfigurationSection({
       >
         <CardHeader className="pb-3">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Shield className="h-4 w-4" />
-              Audit & Privacy
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Configure provider-level audit capture and privacy defaults.
-            </CardDescription>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Shield className="h-4 w-4" />
+                {locale === "zh-CN" ? "审计与隐私" : "Audit & Privacy"}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {locale === "zh-CN"
+                  ? "配置提供商级别的审计捕获和隐私默认值。"
+                  : "Configure provider-level audit capture and privacy defaults."}
+              </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">Audit:</span> Record request/response
-              metadata.
+              <span className="font-medium text-foreground">{locale === "zh-CN" ? "审计：" : "Audit:"}</span>{" "}
+              {locale === "zh-CN" ? "记录请求/响应元数据。" : "Record request/response metadata."}
             </p>
             <p>
-              <span className="font-medium text-foreground">Bodies:</span> Include request/response
-              bodies (sensitive).
+              <span className="font-medium text-foreground">{locale === "zh-CN" ? "正文：" : "Bodies:"}</span>{" "}
+              {locale === "zh-CN" ? "包含请求/响应正文（敏感）。" : "Include request/response bodies (sensitive)."}
             </p>
           </div>
 
@@ -93,57 +96,30 @@ export function AuditConfigurationSection({
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="space-y-1">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <Ban className="h-4 w-4" />
-                Header Blocklist
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Strips headers before sending upstream.
-              </CardDescription>
-            </div>
-            <Button size="sm" variant="outline" onClick={openAddRuleDialog}>
-              <Plus className="mr-2 h-3.5 w-3.5" />
-              Add Rule
-            </Button>
+          <div className="space-y-1">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Ban className="h-4 w-4" />
+              {locale === "zh-CN" ? "请求头屏蔽列表" : "Header Blocklist"}
+            </CardTitle>
+            <CardDescription className="text-xs">
+              {locale === "zh-CN" ? "在发送到上游之前移除指定请求头。" : "Strips headers before sending upstream."}
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Use header rules to block privacy, tunnel, and tracing metadata from provider requests.
-          </p>
-
-          {loadingRules ? (
-            <div className="h-24 flex items-center justify-center text-sm text-muted-foreground">
-              Loading rules...
-            </div>
-          ) : (
-            <>
-              <AuditConfigurationRuleSection
-                emptyState="No system rules found."
-                icon={<Lock className="h-3.5 w-3.5 text-muted-foreground" />}
-                locked
-                open={systemRulesOpen}
-                rules={systemRules}
-                title="System rules (locked)"
-                onOpenChange={setSystemRulesOpen}
-              />
-
-              <AuditConfigurationRuleSection
-                emptyState="No custom rules. Add one to strip private headers before forwarding."
-                icon={<Pencil className="h-3.5 w-3.5 text-muted-foreground" />}
-                locked={false}
-                open={userRulesOpen}
-                rules={customRules}
-                title="Custom rules"
-                onOpenChange={setUserRulesOpen}
-                onToggleRule={handleToggleRule}
-                onEditRule={openEditRuleDialog}
-                onDeleteRule={setDeleteRuleConfirm}
-              />
-            </>
-          )}
+          <AuditConfigurationRulesPanel
+            customRules={customRules}
+            loadingRules={loadingRules}
+            onDeleteRule={setDeleteRuleConfirm}
+            onEditRule={openEditRuleDialog}
+            onOpenAddRuleDialog={openAddRuleDialog}
+            onOpenChangeSystemRules={setSystemRulesOpen}
+            onOpenChangeUserRules={setUserRulesOpen}
+            onToggleRule={handleToggleRule}
+            systemRules={systemRules}
+            systemRulesOpen={systemRulesOpen}
+            userRulesOpen={userRulesOpen}
+          />
         </CardContent>
       </Card>
     </section>

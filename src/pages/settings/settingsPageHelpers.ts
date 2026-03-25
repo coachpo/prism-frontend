@@ -1,4 +1,9 @@
 import type { Connection, CostingSettingsUpdate, EndpointFxMapping } from "@/lib/types";
+import {
+  compareStringsForLocale,
+  formatNumber,
+  getCurrentLocale,
+} from "@/i18n/format";
 import { isValidPositiveDecimalString } from "@/lib/costing";
 
 export const SETTINGS_TABS = {
@@ -64,7 +69,7 @@ export const normalizeMappings = (mappings: EndpointFxMapping[]): EndpointFxMapp
       if (a.model_id === b.model_id) {
         return a.endpoint_id - b.endpoint_id;
       }
-      return a.model_id.localeCompare(b.model_id);
+      return compareStringsForLocale(a.model_id, b.model_id);
     });
 
 export const normalizeCostingForm = (form: CostingSettingsUpdate): CostingSettingsUpdate => ({
@@ -91,16 +96,20 @@ export const areMappingsEqual = (left: EndpointFxMapping[], right: EndpointFxMap
 };
 
 export const validateFxRate = (rawValue: string): string | null => {
+  const locale = getCurrentLocale();
+  const isChinese = locale === "zh-CN";
   const value = rawValue.trim();
   if (!value) {
-    return "FX rate is required";
+    return isChinese ? "FX 汇率为必填项" : "FX rate is required";
   }
   if (!isValidPositiveDecimalString(value)) {
-    return "FX rate must be greater than zero";
+    return isChinese ? "FX 汇率必须大于零" : "FX rate must be greater than zero";
   }
   const [, decimals = ""] = value.split(".");
   if (decimals.length > FX_RATE_MAX_DECIMALS) {
-    return `Use up to ${FX_RATE_MAX_DECIMALS} decimal places`;
+    return isChinese
+      ? `最多保留 ${FX_RATE_MAX_DECIMALS} 位小数`
+      : `Use up to ${FX_RATE_MAX_DECIMALS} decimal places`;
   }
   return null;
 };
@@ -123,14 +132,20 @@ export const validateMappings = (mappings: EndpointFxMapping[]): string | null =
 };
 
 export const validateAuthPassword = (value: string): string | null => {
+  const locale = getCurrentLocale();
+  const isChinese = locale === "zh-CN";
   if (!value) {
     return null;
   }
   if (value.length < AUTH_PASSWORD_MIN_LENGTH) {
-    return `Password must be at least ${AUTH_PASSWORD_MIN_LENGTH} characters`;
+    return isChinese
+      ? `密码至少需要 ${AUTH_PASSWORD_MIN_LENGTH} 个字符`
+      : `Password must be at least ${AUTH_PASSWORD_MIN_LENGTH} characters`;
   }
   if (value.length > AUTH_PASSWORD_MAX_LENGTH) {
-    return `Password must be at most ${AUTH_PASSWORD_MAX_LENGTH} characters`;
+    return isChinese
+      ? `密码最多只能有 ${AUTH_PASSWORD_MAX_LENGTH} 个字符`
+      : `Password must be at most ${AUTH_PASSWORD_MAX_LENGTH} characters`;
   }
   return null;
 };
@@ -140,7 +155,7 @@ export const formatFxRateDisplay = (value: string): string => {
   if (!Number.isFinite(numeric)) {
     return value;
   }
-  return numeric.toLocaleString(undefined, {
+  return formatNumber(numeric, getCurrentLocale(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: FX_RATE_MAX_DECIMALS,
   });
@@ -148,7 +163,7 @@ export const formatFxRateDisplay = (value: string): string => {
 
 export const formatTimezonePreview = (timezone: string): string => {
   try {
-    const parts = new Intl.DateTimeFormat("sv-SE", {
+    const parts = new Intl.DateTimeFormat(getCurrentLocale(), {
       timeZone: timezone,
       year: "numeric",
       month: "2-digit",

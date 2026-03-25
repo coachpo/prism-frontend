@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ProviderIcon } from "@/components/ProviderIcon";
+import { useLocale } from "@/i18n/useLocale";
 import type { Provider } from "@/lib/types";
 
 interface AuditConfigurationProviderTogglesProps {
@@ -14,11 +15,12 @@ export function AuditConfigurationProviderToggles({
   toggleAudit,
   toggleBodies,
 }: AuditConfigurationProviderTogglesProps) {
+  const { locale } = useLocale();
   return (
     <div className="space-y-3">
       {providers.map((provider) => {
-        const auditStatus = provider.audit_enabled ? "On" : "Off";
-        const bodiesStatus = provider.audit_capture_bodies ? "On" : "Off";
+        const auditStatus = provider.audit_enabled ? (locale === "zh-CN" ? "开启" : "On") : locale === "zh-CN" ? "关闭" : "Off";
+        const bodiesStatus = provider.audit_capture_bodies ? (locale === "zh-CN" ? "开启" : "On") : locale === "zh-CN" ? "关闭" : "Off";
 
         return (
           <div key={provider.id} className="rounded-lg border p-3">
@@ -32,7 +34,7 @@ export function AuditConfigurationProviderToggles({
 
               <div className="flex flex-col items-start gap-2 md:items-end">
                 <p className="text-xs text-muted-foreground">
-                  Audit: {auditStatus} · Bodies: {bodiesStatus}
+                  {locale === "zh-CN" ? "审计" : "Audit"}: {auditStatus} · {locale === "zh-CN" ? "正文" : "Bodies"}: {bodiesStatus}
                 </p>
                 <div className="flex items-center gap-5">
                   <div className="flex items-center gap-2">
@@ -43,7 +45,7 @@ export function AuditConfigurationProviderToggles({
                       className="data-[state=checked]:bg-emerald-500"
                     />
                     <Label htmlFor={`audit-${provider.id}`} className="text-xs">
-                      Audit
+                      {locale === "zh-CN" ? "审计" : "Audit"}
                     </Label>
                   </div>
                   <div className="flex items-center gap-2">
@@ -55,7 +57,7 @@ export function AuditConfigurationProviderToggles({
                       className="data-[state=checked]:bg-emerald-500"
                     />
                     <Label htmlFor={`bodies-${provider.id}`} className="text-xs">
-                      Bodies
+                      {locale === "zh-CN" ? "正文" : "Bodies"}
                     </Label>
                   </div>
                 </div>
@@ -63,7 +65,7 @@ export function AuditConfigurationProviderToggles({
             </div>
             {provider.audit_enabled && provider.audit_capture_bodies ? (
               <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                May capture prompts/outputs.
+                {locale === "zh-CN" ? "可能会捕获提示词/输出。" : "May capture prompts/outputs."}
               </div>
             ) : null}
           </div>

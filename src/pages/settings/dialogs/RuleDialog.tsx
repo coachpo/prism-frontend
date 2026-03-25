@@ -1,5 +1,6 @@
 import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Dialog,
   DialogContent,
@@ -38,15 +39,20 @@ export function RuleDialog({
   setRuleForm,
   handleSaveRule,
 }: RuleDialogProps) {
+  const { locale } = useLocale();
   return (
     <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editingRule ? "Edit Rule" : "Add Rule"}</DialogTitle>
+          <DialogTitle>{editingRule ? (locale === "zh-CN" ? "编辑规则" : "Edit Rule") : locale === "zh-CN" ? "新增规则" : "Add Rule"}</DialogTitle>
           <DialogDescription>
             {editingRule
-              ? "Modify an existing custom header blocklist rule."
-              : "Create a custom rule to block headers before requests are sent upstream."}
+              ? locale === "zh-CN"
+                ? "修改现有的自定义请求头屏蔽规则。"
+                : "Modify an existing custom header blocklist rule."
+              : locale === "zh-CN"
+                ? "创建自定义规则，在请求发送到上游之前屏蔽指定请求头。"
+                : "Create a custom rule to block headers before requests are sent upstream."}
           </DialogDescription>
         </DialogHeader>
 
@@ -151,9 +157,9 @@ export function RuleDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
-            Cancel
+            {locale === "zh-CN" ? "取消" : "Cancel"}
           </Button>
-          <Button onClick={() => void handleSaveRule()}>Save Rule</Button>
+          <Button onClick={() => void handleSaveRule()}>{locale === "zh-CN" ? "保存规则" : "Save Rule"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

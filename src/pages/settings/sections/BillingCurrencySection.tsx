@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocale } from "@/i18n/useLocale";
 import type { Connection, CostingSettingsUpdate, EndpointFxMapping, ModelConfigListItem } from "@/lib/types";
 import { FxMappingForm } from "./billing-currency/FxMappingForm";
 import { FxMappingsSummary } from "./billing-currency/FxMappingsSummary";
@@ -74,6 +75,7 @@ export function BillingCurrencySection({
   handleStartEditFxMapping,
   handleDeleteFxMapping,
 }: BillingCurrencySectionProps) {
+  const { locale } = useLocale();
   return (
     <section id="billing-currency" tabIndex={-1} className="scroll-mt-24">
       <Card>
@@ -82,10 +84,12 @@ export function BillingCurrencySection({
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <Coins className="h-4 w-4" />
-                Billing & Currency
+                {locale === "zh-CN" ? "计费与货币" : "Billing & Currency"}
               </CardTitle>
               <CardDescription className="text-xs">
-                Configure reporting currency and endpoint FX overrides used by spending dashboards.
+                {locale === "zh-CN"
+                  ? "配置支出仪表盘使用的报告货币和端点 FX 覆盖。"
+                  : "Configure reporting currency and endpoint FX overrides used by spending dashboards."}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -101,7 +105,13 @@ export function BillingCurrencySection({
                   !billingDirty
                 }
               >
-                {costingSaving ? "Saving..." : "Save"}
+                {costingSaving
+                  ? locale === "zh-CN"
+                    ? "保存中..."
+                    : "Saving..."
+                  : locale === "zh-CN"
+                    ? "保存"
+                    : "Save"}
               </Button>
             </div>
           </div>
@@ -109,8 +119,9 @@ export function BillingCurrencySection({
         <CardContent className="space-y-4">
           {costingUnavailable ? (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-              Costing settings API is currently unavailable. Upgrade the backend to enable this
-              feature.
+              {locale === "zh-CN"
+                ? "计费设置 API 当前不可用。请升级后端以启用此功能。"
+                : "Costing settings API is currently unavailable. Upgrade the backend to enable this feature."}
             </div>
           ) : costingLoading ? (
             <div className="space-y-2">

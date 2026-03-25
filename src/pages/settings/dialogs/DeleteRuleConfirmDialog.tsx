@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ export function DeleteRuleConfirmDialog({
   setDeleteRuleConfirm,
   handleDeleteRule,
 }: DeleteRuleConfirmDialogProps) {
+  const { locale } = useLocale();
   return (
     <Dialog
       open={Boolean(deleteRuleConfirm)}
@@ -31,18 +33,19 @@ export function DeleteRuleConfirmDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Rule</DialogTitle>
+          <DialogTitle>{locale === "zh-CN" ? "删除规则" : "Delete Rule"}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete the rule "{deleteRuleConfirm?.name}"? This action
-            cannot be undone.
+            {locale === "zh-CN"
+              ? `确定要删除规则“${deleteRuleConfirm?.name}”吗？此操作无法撤销。`
+              : `Are you sure you want to delete the rule "${deleteRuleConfirm?.name}"? This action cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setDeleteRuleConfirm(null)}>
-            Cancel
+            {locale === "zh-CN" ? "取消" : "Cancel"}
           </Button>
           <Button variant="destructive" onClick={() => void handleDeleteRule()}>
-            Delete
+            {locale === "zh-CN" ? "删除" : "Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>

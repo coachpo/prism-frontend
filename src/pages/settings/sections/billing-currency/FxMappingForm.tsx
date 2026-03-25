@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,10 +42,11 @@ export function FxMappingForm({
   setMappingFxRate,
   setMappingModelId,
 }: FxMappingFormProps) {
+  const { locale } = useLocale();
   return (
     <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto]">
       <div className="space-y-2">
-        <Label>Model</Label>
+        <Label>{locale === "zh-CN" ? "模型" : "Model"}</Label>
         <Select
           value={mappingModelId}
           onValueChange={(value) => {
@@ -56,7 +58,7 @@ export function FxMappingForm({
           }}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select model" />
+            <SelectValue placeholder={locale === "zh-CN" ? "选择模型" : "Select model"} />
           </SelectTrigger>
           <SelectContent>
             {nativeModels.map((model) => (
@@ -69,14 +71,14 @@ export function FxMappingForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Endpoint</Label>
+        <Label>{locale === "zh-CN" ? "端点" : "Endpoint"}</Label>
         <Select
           value={mappingEndpointId}
           onValueChange={setMappingEndpointId}
           disabled={!mappingModelId || mappingLoading}
         >
           <SelectTrigger>
-            <SelectValue placeholder={mappingLoading ? "Loading endpoints..." : "Select endpoint"} />
+            <SelectValue placeholder={mappingLoading ? (locale === "zh-CN" ? "正在加载端点..." : "Loading endpoints...") : locale === "zh-CN" ? "选择端点" : "Select endpoint"} />
           </SelectTrigger>
           <SelectContent>
             {mappingEndpointOptions.map((endpoint) => (
@@ -89,7 +91,7 @@ export function FxMappingForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="mapping-fx-rate">FX rate</Label>
+        <Label htmlFor="mapping-fx-rate">{locale === "zh-CN" ? "FX 汇率" : "FX rate"}</Label>
         <Input
           id="mapping-fx-rate"
           value={mappingFxRate}
@@ -116,7 +118,7 @@ export function FxMappingForm({
           }
         >
           <Plus className="mr-2 h-4 w-4" />
-          Add Mapping
+          {locale === "zh-CN" ? "新增映射" : "Add Mapping"}
         </Button>
       </div>
     </div>
