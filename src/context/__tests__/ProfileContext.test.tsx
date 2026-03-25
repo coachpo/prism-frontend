@@ -1,6 +1,10 @@
 import { StrictMode } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
+import { createProfileBootstrapLoader } from "../profile/bootstrap";
+import { parseStoredProfileId } from "../profile/persistence";
+import { resolveSelectedProfile } from "../profile/selection";
 import { ProfileProvider, useProfileContext } from "../ProfileContext";
 
 const api = vi.hoisted(() => ({
@@ -75,11 +79,13 @@ describe("ProfileProvider", () => {
 
   it("deduplicates StrictMode bootstrap profile fetches", async () => {
     render(
-      <StrictMode>
-        <ProfileProvider>
-          <ProfileProbe />
-        </ProfileProvider>
-      </StrictMode>,
+      <LocaleProvider>
+        <StrictMode>
+          <ProfileProvider>
+            <ProfileProbe />
+          </ProfileProvider>
+        </StrictMode>
+      </LocaleProvider>,
     );
 
     await waitFor(() => {
@@ -123,11 +129,13 @@ describe("ProfileProvider", () => {
     api.profiles.getActive.mockResolvedValue(profiles[0]);
 
     render(
-      <StrictMode>
-        <ProfileProvider>
-          <ProfileProbe />
-        </ProfileProvider>
-      </StrictMode>,
+      <LocaleProvider>
+        <StrictMode>
+          <ProfileProvider>
+            <ProfileProbe />
+          </ProfileProvider>
+        </StrictMode>
+      </LocaleProvider>,
     );
 
     await waitFor(() => {
@@ -174,9 +182,11 @@ describe("ProfileProvider", () => {
     api.profiles.getActive.mockResolvedValueOnce(firstProfile).mockResolvedValueOnce(secondProfile);
 
     const firstRender = render(
-      <ProfileProvider>
-        <ProfileProbe />
-      </ProfileProvider>,
+      <LocaleProvider>
+        <ProfileProvider>
+          <ProfileProbe />
+        </ProfileProvider>
+      </LocaleProvider>,
     );
 
     await waitFor(() => {
@@ -186,9 +196,11 @@ describe("ProfileProvider", () => {
     firstRender.unmount();
 
     render(
-      <ProfileProvider>
-        <ProfileProbe />
-      </ProfileProvider>,
+      <LocaleProvider>
+        <ProfileProvider>
+          <ProfileProbe />
+        </ProfileProvider>
+      </LocaleProvider>,
     );
 
     await waitFor(() => {
@@ -197,5 +209,105 @@ describe("ProfileProvider", () => {
 
     expect(api.profiles.list).toHaveBeenCalledTimes(2);
     expect(api.profiles.getActive).toHaveBeenCalledTimes(2);
+  });
+
+  it("reuses the in-flight bootstrap request when StrictMode bootstraps twice", async () => {
+    const profilesDeferred = Promise.resolve([
+      {
+        id: 1,
+        name: "Default",
+        description: null,
+        is_active: true,
+        is_default: true,
+        is_editable: true,
+        version: 1,
+        created_at: "",
+        deleted_at: null,
+        updated_at: "",
+      },
+    ]);
+    const activeDeferred = Promise.resolve({
+      id: 1,
+      name: "Default",
+      description: null,
+      is_active: true,
+      is_default: true,
+      is_editable: true,
+      version: 1,
+      created_at: "",
+      deleted_at: null,
+      updated_at: "",
+    });
+
+    const listProfiles = vi.fn(() => profilesDeferred);
+    const getActiveProfile = vi.fn(() => activeDeferred);
+    const loadBootstrapState = createProfileBootstrapLoader({
+      listProfiles,
+      getActiveProfile,
+    });
+
+    const [first, second] = await Promise.all([
+      loadBootstrapState(true),
+      loadBootstrapState(true),
+    ]);
+
+    expect(first).toEqual(second);
+    expect(listProfiles).toHaveBeenCalledTimes(1);
+    expect(getActiveProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it("parses stored profile ids conservatively", () => {
+    expect(parseStoredProfileId("12")).toBe(12);
+    expect(parseStoredProfileId("0")).toBeNull();
+    expect(parseStoredProfileId("abc")).toBeNull();
+    expect(parseStoredProfileId(null)).toBeNull();
+  });
+
+  it("prefers a stored profile before default and active fallbacks", () => {
+    const profiles = [
+      {
+        id: 1,
+        name: "Default",
+        description: null,
+        is_active: true,
+        is_default: true,
+        is_editable: true,
+        version: 1,
+        created_at: "",
+        deleted_at: null,
+        updated_at: "",
+      },
+      {
+        id: 2,
+        name: "Secondary",
+        description: null,
+        is_active: false,
+        is_default: false,
+        is_editable: true,
+        version: 1,
+        created_at: "",
+        deleted_at: null,
+        updated_at: "",
+      },
+    ];
+
+    expect(resolveSelectedProfile(profiles, 2, 1)?.id).toBe(2);
+    expect(resolveSelectedProfile(profiles, 999, 1)?.id).toBe(1);
+  });
+
+  it("renders localized loading copy while profile bootstrap is pending", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+    api.profiles.list.mockImplementation(() => new Promise(() => {}));
+    api.profiles.getActive.mockImplementation(() => new Promise(() => {}));
+
+    render(
+      <LocaleProvider>
+        <ProfileProvider>
+          <div>content</div>
+        </ProfileProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("正在加载配置档案...")).toBeInTheDocument();
   });
 });

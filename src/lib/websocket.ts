@@ -1,4 +1,22 @@
 import type { DashboardRealtimeUpdatePayload } from "@/lib/types";
+import {
+  buildPingMessage,
+  buildPongMessage,
+  buildSubscribeMessage,
+  buildUnsubscribeAllMessage,
+  buildUnsubscribeChannelMessage,
+  parseRealtimeMessage,
+  shouldReplyWithPong,
+} from "@/lib/websocket/protocol";
+import {
+  decrementChannelRefCount,
+  incrementChannelRefCount,
+} from "@/lib/websocket/subscriptions";
+import {
+  calculateReconnectDelay,
+  createRealtimeWebSocketUrl,
+  getInitialConnectionState,
+} from "@/lib/websocket/transport";
 
 export type RealtimeChannel = "dashboard";
 
@@ -50,9 +68,7 @@ export class WebSocketClient {
   private shouldEmitReconnect = false;
 
   constructor(options: WebSocketClientOptions = {}) {
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host;
-    this.url = options.url || `${protocol}//${host}/api/realtime/ws`;
+    this.url = createRealtimeWebSocketUrl(window.location, options.url);
     this.reconnectInterval = options.reconnectInterval || 3000;
     this.maxReconnectAttempts = options.maxReconnectAttempts || 10;
     this.heartbeatInterval = options.heartbeatInterval || 30000;
@@ -68,9 +84,10 @@ export class WebSocketClient {
 
     this.isIntentionallyClosed = false;
     this.setConnectionState(
-      this.hasConnectedOnce || this.reconnectAttempts > 0
-        ? "reconnecting"
-        : "connecting"
+      getInitialConnectionState({
+        hasConnectedOnce: this.hasConnectedOnce,
+        reconnectAttempts: this.reconnectAttempts,
+      })
     );
 
     try {
@@ -101,7 +118,7 @@ export class WebSocketClient {
         }
 
         try {
-          const message: RealtimeMessage = JSON.parse(event.data);
+          const message = parseRealtimeMessage(event.data);
           this.handleMessage(message);
         } catch (error) {
           console.error("[WebSocket] Failed to parse message:", error);
@@ -171,30 +188,29 @@ export class WebSocketClient {
       this.currentProfileId = profileId;
     }
 
-    const currentCount = this.channelRefCounts.get(channel) ?? 0;
-    this.channelRefCounts.set(channel, currentCount + 1);
+    const { nextRefCounts, shouldSubscribe } = incrementChannelRefCount(
+      this.channelRefCounts,
+      channel
+    );
+    this.channelRefCounts = nextRefCounts;
 
-    if (currentCount === 0 && this.ws?.readyState === WebSocket.OPEN) {
-      this.send({ type: "subscribe", profile_id: profileId, channel });
+    if (shouldSubscribe && this.ws?.readyState === WebSocket.OPEN) {
+      this.send(buildSubscribeMessage(profileId, channel));
     }
   }
 
   unsubscribeChannel(channel: RealtimeChannel): void {
-    const currentCount = this.channelRefCounts.get(channel) ?? 0;
-    if (currentCount === 0) {
-      return;
+    const { hasSubscriptions, nextRefCounts, shouldUnsubscribe } = decrementChannelRefCount(
+      this.channelRefCounts,
+      channel
+    );
+    this.channelRefCounts = nextRefCounts;
+
+    if (shouldUnsubscribe && this.ws?.readyState === WebSocket.OPEN) {
+      this.send(buildUnsubscribeChannelMessage(channel));
     }
 
-    if (currentCount === 1) {
-      this.channelRefCounts.delete(channel);
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.send({ type: "unsubscribe_channel", channel });
-      }
-    } else {
-      this.channelRefCounts.set(channel, currentCount - 1);
-    }
-
-    if (this.channelRefCounts.size === 0) {
+    if (!hasSubscriptions) {
       this.currentProfileId = null;
     }
   }
@@ -204,7 +220,7 @@ export class WebSocketClient {
     this.currentProfileId = null;
 
     if (this.ws?.readyState === WebSocket.OPEN) {
-      this.send({ type: "unsubscribe" });
+      this.send(buildUnsubscribeAllMessage());
     }
   }
 
@@ -222,7 +238,7 @@ export class WebSocketClient {
     }
 
     for (const channel of channels) {
-      this.send({ type: "unsubscribe_channel", channel });
+      this.send(buildUnsubscribeChannelMessage(channel));
     }
 
     this.resubscribeAll();
@@ -256,8 +272,8 @@ export class WebSocketClient {
   }
 
   private handleMessage(message: RealtimeMessage): void {
-    if (message.type === "heartbeat") {
-      this.send({ type: "pong" });
+    if (shouldReplyWithPong(message)) {
+      this.send(buildPongMessage());
     }
 
     this.emit(message);
@@ -279,11 +295,7 @@ export class WebSocketClient {
     }
 
     for (const channel of this.channelRefCounts.keys()) {
-      this.send({
-        type: "subscribe",
-        profile_id: this.currentProfileId,
-        channel,
-      });
+      this.send(buildSubscribeMessage(this.currentProfileId, channel));
     }
   }
 
@@ -293,7 +305,10 @@ export class WebSocketClient {
     }
 
     this.reconnectAttempts += 1;
-    const delay = this.reconnectInterval * Math.min(this.reconnectAttempts, 5);
+    const delay = calculateReconnectDelay(
+      this.reconnectInterval,
+      this.reconnectAttempts
+    );
 
     console.log(
       `[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`
@@ -308,7 +323,7 @@ export class WebSocketClient {
   private startHeartbeat(): void {
     this.stopHeartbeat();
     this.heartbeatTimer = setInterval(() => {
-      this.send({ type: "ping" });
+      this.send(buildPingMessage());
     }, this.heartbeatInterval);
   }
 

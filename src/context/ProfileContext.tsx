@@ -9,7 +9,11 @@ import {
   type ReactNode,
 } from "react";
 import { api, setApiProfileId } from "@/lib/api";
+import { useLocale } from "@/i18n/useLocale";
 import type { Profile, ProfileCreate, ProfileUpdate } from "@/lib/types";
+import { createProfileBootstrapLoader } from "./profile/bootstrap";
+import { parseStoredProfileId, PROFILE_STORAGE_KEY, writeStoredProfileId } from "./profile/persistence";
+import { resolveSelectedProfile } from "./profile/selection";
 
 interface ProfileContextType {
   profiles: Profile[];
@@ -30,70 +34,13 @@ interface ProfileContextType {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-const STORAGE_KEY = "prism.selectedProfileId";
-
-interface ProfileBootstrapState {
-  activeProfile: Profile | null;
-  profiles: Profile[];
-}
-
-let profileBootstrapPromise: Promise<ProfileBootstrapState> | null = null;
-
-async function loadProfileBootstrapState(
-  reuseInFlight = false,
-): Promise<ProfileBootstrapState> {
-  if (reuseInFlight && profileBootstrapPromise) {
-    return profileBootstrapPromise;
-  }
-
-  const loadPromise = Promise.all([
-    api.profiles.list(),
-    api.profiles.getActive(),
-  ]).then(([profiles, activeProfile]) => ({
-    activeProfile,
-    profiles,
-  }));
-
-  if (reuseInFlight) {
-    profileBootstrapPromise = loadPromise;
-    void loadPromise.finally(() => {
-      if (profileBootstrapPromise === loadPromise) {
-        profileBootstrapPromise = null;
-      }
-    });
-  }
-
-  return loadPromise;
-}
-
-function parseStoredProfileId(raw: string | null): number | null {
-  if (!raw) return null;
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-function resolveSelectedProfile(
-  profiles: Profile[],
-  storedProfileId: number | null,
-  activeProfileId: number | null
-): Profile | null {
-  if (storedProfileId !== null) {
-    const storedProfile = profiles.find((profile) => profile.id === storedProfileId);
-    if (storedProfile) return storedProfile;
-  }
-
-  const defaultProfile = profiles.find((profile) => profile.is_default);
-  if (defaultProfile) return defaultProfile;
-
-  if (activeProfileId !== null) {
-    const activeProfile = profiles.find((profile) => profile.id === activeProfileId);
-    if (activeProfile) return activeProfile;
-  }
-
-  return profiles[0] ?? null;
-}
+const loadProfileBootstrapState = createProfileBootstrapLoader({
+  getActiveProfile: () => api.profiles.getActive(),
+  listProfiles: () => api.profiles.list(),
+});
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
+  const { messages } = useLocale();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
@@ -116,11 +63,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       selectedProfileIdRef.current = profileId;
       setSelectedProfileId(profileId);
       setApiProfileId(profileId);
-      if (profileId === null) {
-        localStorage.removeItem(STORAGE_KEY);
-      } else {
-        localStorage.setItem(STORAGE_KEY, String(profileId));
-      }
+      writeStoredProfileId(profileId);
       if (options?.bumpRevision) {
         bumpRevision();
       }
@@ -192,7 +135,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setProfiles(fetchedProfiles);
         setActiveProfile(fetchedActiveProfile);
 
-        const persistedId = parseStoredProfileId(localStorage.getItem(STORAGE_KEY));
+        const persistedId = parseStoredProfileId(
+          localStorage.getItem(PROFILE_STORAGE_KEY)
+        );
         syncSelectedProfile(
           fetchedProfiles,
           fetchedActiveProfile?.id ?? null,
@@ -295,7 +240,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       <div className="flex h-screen w-full items-center justify-center bg-background text-muted-foreground">
         <div className="flex flex-col items-center gap-2">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm font-medium">Loading profiles...</p>
+          <p className="text-sm font-medium">{messages.profiles.loadingProfiles}</p>
         </div>
       </div>
     );

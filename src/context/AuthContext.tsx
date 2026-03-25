@@ -1,90 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { LoginSessionDuration, SessionResponse } from "@/lib/types";
+import {
+  createAuthBootstrapLoader,
+  type AuthBootstrapMode,
+  type AuthBootstrapState,
+} from "./auth/bootstrap";
+import {
+  PROACTIVE_REFRESH_MS,
+  runPassiveSessionRefresh as runPassiveSessionRefreshHelper,
+  shouldRefreshOnVisibilityChange,
+  shouldRunProactiveRefresh,
+} from "./auth/refresh";
 import { AuthContext, type AuthContextValue } from "./auth-context";
 
-const PROACTIVE_REFRESH_MS = 12 * 60 * 1000; // 12 minutes
-
-interface AuthBootstrapState {
-  authEnabled: boolean;
-  authenticated: boolean;
-  username: string | null;
-}
-
-type AuthBootstrapMode = "full" | "public";
-
-const authBootstrapPromises = new Map<AuthBootstrapMode, Promise<AuthBootstrapState>>();
-
-async function loadAuthBootstrapState(
-  mode: AuthBootstrapMode,
-  reuseInFlight = false,
-): Promise<AuthBootstrapState> {
-  const inFlight = authBootstrapPromises.get(mode);
-  if (reuseInFlight && inFlight) {
-    return inFlight;
-  }
-
-  const loadPromise = (async (): Promise<AuthBootstrapState> => {
-    if (mode === "public") {
-      const session = await api.auth.publicBootstrap();
-      return {
-        authEnabled: session.auth_enabled,
-        authenticated: session.authenticated,
-        username: session.username,
-      };
-    }
-
-    const status = await api.auth.status();
-    if (!status.auth_enabled) {
-      return {
-        authEnabled: false,
-        authenticated: false,
-        username: null,
-      };
-    }
-
-    try {
-      const session = await api.auth.session();
-      return {
-        authEnabled: session.auth_enabled,
-        authenticated: session.authenticated,
-        username: session.username,
-      };
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        try {
-          const session = await api.auth.refresh();
-          return {
-            authEnabled: session.auth_enabled,
-            authenticated: session.authenticated,
-            username: session.username,
-          };
-        } catch (refreshError) {
-          if (refreshError instanceof ApiError && refreshError.status === 401) {
-            return {
-              authEnabled: true,
-              authenticated: false,
-              username: null,
-            };
-          }
-          throw refreshError;
-        }
-      }
-      throw error;
-    }
-  })();
-
-  if (reuseInFlight) {
-    authBootstrapPromises.set(mode, loadPromise);
-    void loadPromise.finally(() => {
-      if (authBootstrapPromises.get(mode) === loadPromise) {
-        authBootstrapPromises.delete(mode);
-      }
-    });
-  }
-
-  return loadPromise;
-}
+const loadAuthBootstrapState = createAuthBootstrapLoader({
+  publicBootstrap: () => api.auth.publicBootstrap(),
+  refresh: () => api.auth.refresh(),
+  session: () => api.auth.session(),
+  status: () => api.auth.status(),
+});
 
 export function AuthProvider({
   bootstrapMode = "full",
@@ -115,24 +50,15 @@ export function AuthProvider({
   }, []);
 
   const runPassiveSessionRefresh = useCallback(async () => {
-    if (authMutationInFlightRef.current) {
-      return;
-    }
-
     const requestVersion = authStateVersionRef.current;
 
-    try {
-      const session = await api.auth.refresh();
-      if (
-        authMutationInFlightRef.current ||
-        requestVersion !== authStateVersionRef.current
-      ) {
-        return;
-      }
-      applySessionState(session);
-    } catch {
-      // Ignore background refresh failures; bootstrap/manual flows handle state recovery.
-    }
+    await runPassiveSessionRefreshHelper({
+      applySessionState,
+      getAuthStateVersion: () => authStateVersionRef.current,
+      isMutationInFlight: () => authMutationInFlightRef.current,
+      refreshSession: () => api.auth.refresh(),
+      requestVersion,
+    });
   }, [applySessionState]);
 
   const startRefreshTimer = useCallback(() => {
@@ -173,7 +99,7 @@ export function AuthProvider({
 
   // Start/stop proactive refresh timer based on auth state
   useEffect(() => {
-    if (authenticated && authEnabled) {
+    if (shouldRunProactiveRefresh(authenticated, authEnabled)) {
       startRefreshTimer();
     } else {
       stopRefreshTimer();
@@ -184,7 +110,13 @@ export function AuthProvider({
   // Refresh session when user returns to the tab after being away
   useEffect(() => {
     function handleVisibilityChange() {
-      if (document.visibilityState === "visible" && authenticated && authEnabled) {
+      if (
+        shouldRefreshOnVisibilityChange(
+          document.visibilityState,
+          authenticated,
+          authEnabled
+        )
+      ) {
         void runPassiveSessionRefresh();
       }
     }

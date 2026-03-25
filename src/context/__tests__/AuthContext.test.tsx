@@ -1,5 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createAuthBootstrapLoader } from "../auth/bootstrap";
+import { runPassiveSessionRefresh } from "../auth/refresh";
 import { AuthProvider } from "../AuthContext";
 import { useAuth } from "../useAuth";
 
@@ -165,5 +167,56 @@ describe("AuthProvider", () => {
     expect(api.auth.publicBootstrap).toHaveBeenCalledTimes(1);
     expect(api.auth.status).not.toHaveBeenCalled();
     expect(api.auth.session).not.toHaveBeenCalled();
+  });
+
+  it("reuses the in-flight bootstrap request for the same mode", async () => {
+    const publicBootstrap = vi.fn().mockResolvedValue({
+      auth_enabled: true,
+      authenticated: false,
+      username: null,
+    });
+    const loadBootstrapState = createAuthBootstrapLoader({
+      publicBootstrap,
+      refresh: vi.fn(),
+      session: vi.fn(),
+      status: vi.fn(),
+    });
+
+    const [first, second] = await Promise.all([
+      loadBootstrapState("public", true),
+      loadBootstrapState("public", true),
+    ]);
+
+    expect(first).toEqual(second);
+    expect(publicBootstrap).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not apply a passive refresh result after the auth version changes", async () => {
+    const deferredRefresh = createDeferred<{
+      auth_enabled: boolean;
+      authenticated: boolean;
+      username: string | null;
+    }>();
+    const applySessionState = vi.fn();
+    const authState = { version: 1, mutationInFlight: false };
+
+    const refreshPromise = runPassiveSessionRefresh({
+      applySessionState,
+      getAuthStateVersion: () => authState.version,
+      isMutationInFlight: () => authState.mutationInFlight,
+      refreshSession: () => deferredRefresh.promise,
+      requestVersion: authState.version,
+    });
+
+    authState.version = 2;
+    deferredRefresh.resolve({
+      auth_enabled: true,
+      authenticated: true,
+      username: "alice",
+    });
+
+    await refreshPromise;
+
+    expect(applySessionState).not.toHaveBeenCalled();
   });
 });
