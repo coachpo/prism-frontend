@@ -30,7 +30,7 @@ const PricingTemplateImportSchema = z.strictObject({
 
 const LoadbalanceStrategyImportSchema = z.strictObject({
   name: z.string(),
-  strategy_type: z.enum(["single", "failover"]),
+  strategy_type: z.enum(["single", "fill-first", "failover"]),
   failover_recovery_enabled: z.boolean(),
   failover_cooldown_seconds: z.number().int().min(0).optional(),
   failover_failure_threshold: z.number().int().min(1).max(10).optional(),
@@ -38,6 +38,17 @@ const LoadbalanceStrategyImportSchema = z.strictObject({
   failover_max_cooldown_seconds: z.number().int().min(1).max(86_400).optional(),
   failover_jitter_ratio: z.number().min(0).max(1).optional(),
   failover_auth_error_cooldown_seconds: z.number().int().min(1).max(86_400).optional(),
+  failover_ban_mode: z.enum(["off", "temporary", "manual"]).optional(),
+  failover_max_cooldown_strikes_before_ban: z.number().int().min(0).max(100).optional(),
+  failover_ban_duration_seconds: z.number().int().min(0).max(86_400).optional(),
+});
+
+const VendorImportSchema = z.strictObject({
+  key: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  audit_enabled: z.boolean(),
+  audit_capture_bodies: z.boolean(),
 });
 
 const ConnectionImportSchema = z.strictObject({
@@ -59,7 +70,8 @@ const ProxyTargetImportSchema = z.strictObject({
 });
 
 const ModelImportSchema = z.strictObject({
-  provider_type: z.string(),
+  vendor_key: z.string(),
+  api_family: z.enum(["openai", "anthropic", "gemini"]),
   model_id: z.string(),
   display_name: z.string().nullable(),
   model_type: z.enum(["native", "proxy"]),
@@ -91,8 +103,9 @@ const UserSettingsImportSchema = z.strictObject({
 
 export const ConfigImportSchema = z
   .strictObject({
-    version: z.literal(5),
+    version: z.literal(6),
     exported_at: z.string().optional(),
+    vendors: z.array(VendorImportSchema),
     endpoints: z.array(EndpointImportSchema),
     pricing_templates: z.array(PricingTemplateImportSchema),
     loadbalance_strategies: z.array(LoadbalanceStrategyImportSchema),
@@ -101,6 +114,14 @@ export const ConfigImportSchema = z
     header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),
   })
   .superRefine((data, ctx) => {
+    const vendorKeys = collectNamedReferences({
+      items: data.vendors,
+      ctx,
+      collectionPath: "vendors",
+      referenceLabel: "vendor",
+      getName: (vendor) => vendor.key,
+    });
+
     const endpointNames = collectNamedReferences({
       items: data.endpoints,
       ctx,
@@ -134,6 +155,16 @@ export const ConfigImportSchema = z
 
     const connectionPairs = new Set<string>();
     data.models.forEach((model, modelIndex) => {
+      resolveRequiredReferenceName({
+        value: model.vendor_key,
+        ctx,
+        knownNames: vendorKeys,
+        path: ["models", modelIndex, "vendor_key"],
+        missingMessage: `Model '${model.model_id}' must include vendor_key`,
+        unknownMessage: (vendorKey) =>
+          `Unknown vendor_key '${vendorKey}' in import payload`,
+      });
+
       const normalizedStrategyName = normalizeReferenceName(model.loadbalance_strategy_name);
       if (model.model_type === "native") {
         resolveRequiredReferenceName({

@@ -11,9 +11,6 @@ const api = vi.hoisted(() => ({
   models: {
     list: vi.fn(),
   },
-  providers: {
-    list: vi.fn(),
-  },
   stats: {
     requests: vi.fn(),
   },
@@ -25,7 +22,7 @@ function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPa
   return {
     ingress_request_id: "",
     model_id: "",
-    provider_type: "",
+    api_family: "",
     connection_id: "",
     endpoint_id: "",
     time_range: DEFAULTS.time_range,
@@ -54,7 +51,6 @@ describe("useRequestLogsPageData", () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     api.models.list.mockResolvedValue([]);
-    api.providers.list.mockResolvedValue([]);
     api.endpoints.list.mockResolvedValue([]);
     api.endpoints.connections.mockResolvedValue({ items: [] });
     api.stats.requests.mockResolvedValue({
@@ -76,7 +72,7 @@ describe("useRequestLogsPageData", () => {
         revision: 1,
         state: createState({
           model_id: "gpt-5.4",
-          provider_type: "openai",
+          api_family: "openai",
           connection_id: "42",
           endpoint_id: "99",
           status_family: "5xx",
@@ -107,7 +103,7 @@ describe("useRequestLogsPageData", () => {
         state: createState({
           ingress_request_id: "ingress_req_42",
           model_id: "gpt-5.4",
-          provider_type: "openai",
+          api_family: "openai",
           connection_id: "42",
           endpoint_id: "99",
           status_family: "5xx",
@@ -130,7 +126,7 @@ describe("useRequestLogsPageData", () => {
     expect(api.stats.requests).toHaveBeenCalledWith({
       ingress_request_id: "ingress_req_42",
       model_id: "gpt-5.4",
-      provider_type: "openai",
+      api_family: "openai",
       status_family: "5xx",
       connection_id: 42,
       endpoint_id: 99,

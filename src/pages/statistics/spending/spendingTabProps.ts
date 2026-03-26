@@ -1,6 +1,6 @@
 import type {
+  ApiFamily,
   ConnectionDropdownItem,
-  Provider,
   SpendingGroupBy,
   SpendingReportResponse,
 } from "@/lib/types";
@@ -17,8 +17,8 @@ export interface SpendingTabProps {
   setSpendingFrom: (value: string) => void;
   spendingTo: string;
   setSpendingTo: (value: string) => void;
-  spendingProviderType: string;
-  setSpendingProviderType: (value: string) => void;
+  spendingApiFamily: string;
+  setSpendingApiFamily: (value: string) => void;
   spendingModelId: string;
   setSpendingModelId: (value: string) => void;
   spendingConnectionId: string;
@@ -33,7 +33,7 @@ export interface SpendingTabProps {
   setSpendingTopN: (value: number) => void;
   models: { model_id: string; display_name: string | null }[];
   connections: ConnectionDropdownItem[];
-  providers: Provider[];
+  apiFamilies: ApiFamily[];
   clearSpendingFilters: () => void;
   manualRefresh: () => void;
 }

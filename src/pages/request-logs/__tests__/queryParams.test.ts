@@ -11,7 +11,7 @@ function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPa
   return {
     ingress_request_id: "",
     model_id: "",
-    provider_type: "",
+    api_family: "",
     connection_id: "",
     endpoint_id: "",
     time_range: DEFAULTS.time_range,
@@ -40,7 +40,7 @@ describe("request log query params", () => {
     const state = createState({
       model_id: "gpt-5.4",
       ingress_request_id: "ingress_req_42",
-      provider_type: "openai",
+      api_family: "openai",
       connection_id: "42",
       endpoint_id: "99",
       time_range: "7d",
@@ -66,6 +66,7 @@ describe("request log query params", () => {
 
     expect(params.get("special_token_filter")).toBe("reasoning");
     expect(params.get("status_family")).toBe("5xx");
+    expect(params.get("api_family")).toBe("openai");
     expect(params.get("priced_only")).toBe("true");
     expect(params.get("billable_only")).toBe("true");
     expect(params.get("triage")).toBe("true");

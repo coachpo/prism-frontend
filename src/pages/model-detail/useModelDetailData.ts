@@ -7,6 +7,7 @@ import type {
   Connection,
   Endpoint,
   LoadbalanceStrategy,
+  Vendor,
   ProxyTarget,
   SpendingSummary,
   StatsSummary,
@@ -198,10 +199,32 @@ export function useModelDetailData(id: string | undefined) {
     };
   }, [kpiSummary24h, kpiSpend24hMicros]);
 
+  const vendors = useMemo(() => {
+    const seenVendorIds = new Set<number>();
+    const nextVendors: Vendor[] = [];
+
+    const pushVendor = (vendor: Vendor | undefined) => {
+      if (!vendor || seenVendorIds.has(vendor.id)) {
+        return;
+      }
+
+      seenVendorIds.add(vendor.id);
+      nextVendors.push(vendor);
+    };
+
+    pushVendor(model?.vendor);
+    allModels.forEach((item) => {
+      pushVendor(item.vendor);
+    });
+
+    return nextVendors;
+  }, [allModels, model?.vendor]);
+
   return {
     model,
     loading,
     loadbalanceStrategies,
+    vendors,
     isEditModelDialogOpen,
     setIsEditModelDialogOpen,
     editLoadbalanceStrategyId,

@@ -47,17 +47,18 @@ function buildHookValue(modelType: "native" | "proxy") {
   return {
     model: {
       id: 9,
-      provider_id: 7,
-      provider: {
+      vendor_id: 7,
+      vendor: {
         id: 7,
+        key: "anthropic",
         name: "Anthropic",
-        provider_type: "anthropic",
         description: null,
         audit_enabled: false,
         audit_capture_bodies: false,
         created_at: "2026-03-20T10:00:00Z",
         updated_at: "2026-03-20T10:00:00Z",
       },
+      api_family: "anthropic",
       model_id: "claude-proxy",
       display_name: "Claude Proxy",
       model_type: modelType,

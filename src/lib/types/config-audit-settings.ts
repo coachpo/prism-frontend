@@ -1,4 +1,5 @@
 import type { LoadBalancingStrategy, ModelType, ProxyTarget } from "./model-stats";
+import type { ApiFamily } from "./vendor";
 
 export interface ConfigEndpointExport {
   name: string;
@@ -76,7 +77,8 @@ export interface ConfigConnectionImport {
 }
 
 export interface ConfigModelExport {
-  provider_type: string;
+  vendor_key: string;
+  api_family: ApiFamily;
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
@@ -87,7 +89,8 @@ export interface ConfigModelExport {
 }
 
 export interface ConfigModelImport {
-  provider_type: string;
+  vendor_key: string;
+  api_family: ApiFamily;
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
@@ -123,9 +126,20 @@ export interface ConfigUserSettingsImport {
   timezone_preference?: string | null;
 }
 
+export interface ConfigVendorExport {
+  key: string;
+  name: string;
+  description: string | null;
+  audit_enabled: boolean;
+  audit_capture_bodies: boolean;
+}
+
+export type ConfigVendorImport = ConfigVendorExport;
+
 export interface ConfigExportResponse {
-  version: 5;
+  version: 6;
   exported_at: string;
+  vendors: ConfigVendorExport[];
   endpoints: ConfigEndpointExport[];
   pricing_templates: ConfigPricingTemplateExport[];
   loadbalance_strategies: ConfigLoadbalanceStrategyExport[];
@@ -135,8 +149,9 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 5;
+  version: 6;
   exported_at?: string;
+  vendors: ConfigVendorImport[];
   endpoints: ConfigEndpointImport[];
   pricing_templates: ConfigPricingTemplateImport[];
   loadbalance_strategies: ConfigLoadbalanceStrategyImport[];
@@ -157,7 +172,7 @@ export interface AuditLogListItem {
   id: number;
   request_log_id: number | null;
   profile_id: number;
-  provider_id: number;
+  vendor_id?: number;
   model_id: string;
   endpoint_id: number | null;
   connection_id: number | null;
@@ -177,7 +192,7 @@ export interface AuditLogDetail {
   id: number;
   request_log_id: number | null;
   profile_id: number;
-  provider_id: number;
+  vendor_id?: number;
   model_id: string;
   endpoint_id: number | null;
   connection_id: number | null;
@@ -204,7 +219,7 @@ export interface AuditLogListResponse {
 
 export interface AuditLogParams {
   request_log_id?: number;
-  provider_id?: number;
+  vendor_id?: number;
   model_id?: string;
   status_code?: number;
   endpoint_id?: number;

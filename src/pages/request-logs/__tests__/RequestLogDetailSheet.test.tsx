@@ -14,7 +14,10 @@ const baseRequest = {
   model_id: "gpt-5.4",
   resolved_target_model_id: null,
   profile_id: 7,
-  provider_type: "openai",
+  api_family: "openai",
+  vendor_id: 1,
+  vendor_key: "openai",
+  vendor_name: "OpenAI",
   endpoint_id: 12,
   connection_id: 34,
   ingress_request_id: null,
@@ -64,7 +67,7 @@ const baseAudit: AuditLogDetail = {
   id: 9,
   request_log_id: 42,
   profile_id: 7,
-  provider_id: 1,
+  vendor_id: 1,
   model_id: "gpt-5.4",
   endpoint_id: 12,
   connection_id: 34,
@@ -128,6 +131,8 @@ describe("RequestLogDetailSheet", () => {
     expect(screen.getByText("Request #42")).toBeInTheDocument();
     expect(screen.getAllByText("GPT 5.4")).toHaveLength(2);
     expect(screen.getAllByText("/v1/chat/completions")).toHaveLength(2);
+    expect(screen.getByText("API Family")).toBeInTheDocument();
+    expect(screen.getAllByText("OpenAI").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: /#34/i }));
     expect(onNavigateToConnection).toHaveBeenCalledWith(34);
@@ -373,5 +378,18 @@ describe("RequestLogDetailSheet", () => {
     expect(screen.getByText("技术排查")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /概览/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /审计/i })).toBeInTheDocument();
+  });
+
+  it("omits the vendor row when the log does not include vendor metadata", () => {
+    renderSheet({
+      request: {
+        ...baseRequest,
+        vendor_id: null,
+        vendor_key: null,
+        vendor_name: null,
+      },
+    });
+
+    expect(screen.queryByText("Vendor")).not.toBeInTheDocument();
   });
 });

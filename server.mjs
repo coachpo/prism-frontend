@@ -1,7 +1,7 @@
 // Production container server for the built frontend. It serves static files
 // from dist/ and exposes /health for probes; local development should use Vite.
 import { createServer } from "node:http"
-import { createReadStream } from "node:fs"
+import { createReadStream, readFileSync } from "node:fs"
 import { stat } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -11,7 +11,8 @@ const __dirname = path.dirname(__filename)
 const DIST_DIR = path.join(__dirname, "dist")
 const INDEX_FILE = path.join(DIST_DIR, "index.html")
 const PORT = Number(process.env.PORT ?? "3000")
-const HEALTH_BODY = '{"status":"ok","version":"0.1.0"}'
+const APP_VERSION = resolveAppVersion()
+const HEALTH_BODY = JSON.stringify({ status: "ok", version: APP_VERSION })
 
 const CONTENT_TYPES = new Map([
   [".css", "text/css; charset=utf-8"],
@@ -25,6 +26,15 @@ const CONTENT_TYPES = new Map([
   [".woff", "font/woff"],
   [".woff2", "font/woff2"],
 ])
+
+function resolveAppVersion() {
+  try {
+    const packageJson = JSON.parse(readFileSync(path.join(__dirname, "package.json"), "utf8"))
+    return typeof packageJson?.version === "string" && packageJson.version.trim() ? packageJson.version.trim() : "0.0.0"
+  } catch {
+    return "0.0.0"
+  }
+}
 
 function sendJson(res, statusCode, body, method = "GET") {
   const contentLength = Buffer.byteLength(body)

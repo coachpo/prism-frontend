@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { getSharedProviders, setSharedProviders } from "@/lib/referenceData";
+import { getSharedVendors, setSharedVendors } from "@/lib/referenceData";
 import type {
   HeaderBlocklistRule,
   HeaderBlocklistRuleCreate,
-  Provider,
+  Vendor,
 } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -20,7 +20,7 @@ const DEFAULT_RULE_FORM: HeaderBlocklistRuleCreate = {
 };
 
 export function useAuditConfigurationData({ revision }: UseAuditConfigurationDataInput) {
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [blocklistRules, setBlocklistRules] = useState<HeaderBlocklistRule[]>([]);
   const [loadingRules, setLoadingRules] = useState(false);
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
@@ -29,30 +29,30 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
   const [deleteRuleConfirm, setDeleteRuleConfirm] = useState<HeaderBlocklistRule | null>(null);
   const [systemRulesOpen, setSystemRulesOpen] = useState(false);
   const [userRulesOpen, setUserRulesOpen] = useState(true);
-  const providersRequestIdRef = useRef(0);
+  const vendorsRequestIdRef = useRef(0);
   const rulesRequestIdRef = useRef(0);
 
-  const fetchProviders = useCallback(async () => {
-    const requestId = ++providersRequestIdRef.current;
+  const fetchVendors = useCallback(async () => {
+    const requestId = ++vendorsRequestIdRef.current;
     try {
-      const data = await getSharedProviders(revision);
-      if (requestId !== providersRequestIdRef.current) {
+      const data = await getSharedVendors(revision);
+      if (requestId !== vendorsRequestIdRef.current) {
         return;
       }
-      setProviders(data);
+      setVendors(data);
     } catch {
-      if (requestId !== providersRequestIdRef.current) {
+      if (requestId !== vendorsRequestIdRef.current) {
         return;
       }
-      toast.error("Failed to load providers");
+      toast.error("Failed to load vendors");
     }
   }, [revision]);
 
-  const commitProviders = useCallback(
-    (updater: (current: Provider[]) => Provider[]) => {
-      setProviders((current) => {
+  const commitVendors = useCallback(
+    (updater: (current: Vendor[]) => Vendor[]) => {
+      setVendors((current) => {
         const next = updater(current);
-        setSharedProviders(revision, next);
+        setSharedVendors(revision, next);
         return next;
       });
     },
@@ -81,48 +81,48 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
   }, []);
 
   useEffect(() => {
-    void fetchProviders();
+    void fetchVendors();
     void fetchRules();
-  }, [fetchProviders, fetchRules, revision]);
+  }, [fetchVendors, fetchRules]);
 
   const systemRules = useMemo(() => blocklistRules.filter((rule) => rule.is_system), [blocklistRules]);
   const customRules = useMemo(() => blocklistRules.filter((rule) => !rule.is_system), [blocklistRules]);
 
-  const toggleAudit = async (providerId: number, checked: boolean) => {
-    commitProviders((prev) =>
-      prev.map((provider) =>
-        provider.id === providerId ? { ...provider, audit_enabled: checked } : provider
+  const toggleAudit = async (vendorId: number, checked: boolean) => {
+    commitVendors((prev) =>
+      prev.map((vendor) =>
+        vendor.id === vendorId ? { ...vendor, audit_enabled: checked } : vendor
       )
     );
 
     try {
-      await api.providers.update(providerId, { audit_enabled: checked });
+      await api.vendors.update(vendorId, { audit_enabled: checked });
     } catch {
-      commitProviders((prev) =>
-        prev.map((provider) =>
-          provider.id === providerId ? { ...provider, audit_enabled: !checked } : provider
+      commitVendors((prev) =>
+        prev.map((vendor) =>
+          vendor.id === vendorId ? { ...vendor, audit_enabled: !checked } : vendor
         )
       );
-      toast.error("Failed to update provider");
+      toast.error("Failed to update vendor");
     }
   };
 
-  const toggleBodies = async (providerId: number, checked: boolean) => {
-    commitProviders((prev) =>
-      prev.map((provider) =>
-        provider.id === providerId ? { ...provider, audit_capture_bodies: checked } : provider
+  const toggleBodies = async (vendorId: number, checked: boolean) => {
+    commitVendors((prev) =>
+      prev.map((vendor) =>
+        vendor.id === vendorId ? { ...vendor, audit_capture_bodies: checked } : vendor
       )
     );
 
     try {
-      await api.providers.update(providerId, { audit_capture_bodies: checked });
+      await api.vendors.update(vendorId, { audit_capture_bodies: checked });
     } catch {
-      commitProviders((prev) =>
-        prev.map((provider) =>
-          provider.id === providerId ? { ...provider, audit_capture_bodies: !checked } : provider
+      commitVendors((prev) =>
+        prev.map((vendor) =>
+          vendor.id === vendorId ? { ...vendor, audit_capture_bodies: !checked } : vendor
         )
       );
-      toast.error("Failed to update provider");
+      toast.error("Failed to update vendor");
     }
   };
 
@@ -208,7 +208,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
     loadingRules,
     openAddRuleDialog,
     openEditRuleDialog,
-    providers,
+    vendors,
     ruleDialogOpen,
     ruleForm,
     setDeleteRuleConfirm,

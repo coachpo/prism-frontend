@@ -30,6 +30,30 @@ function getBanSummary(strategy: LoadbalanceStrategy, locale: "en" | "zh-CN") {
     : `Ban manual dismiss • ${strategy.failover_max_cooldown_strikes_before_ban} max-cooldown strikes`;
 }
 
+function getStrategyLabel(strategyType: LoadbalanceStrategy["strategy_type"], locale: "en" | "zh-CN") {
+  if (strategyType === "fill-first") {
+    return locale === "zh-CN" ? "优先填充" : "Fill-first";
+  }
+
+  if (strategyType === "failover") {
+    return locale === "zh-CN" ? "故障转移" : "Failover";
+  }
+
+  return locale === "zh-CN" ? "单连接" : "Single";
+}
+
+function getStrategySummary(strategyType: LoadbalanceStrategy["strategy_type"], locale: "en" | "zh-CN") {
+  if (strategyType === "fill-first") {
+    return locale === "zh-CN" ? "严格优先级溢出，可选恢复" : "Strict priority spillover with optional recovery";
+  }
+
+  if (strategyType === "failover") {
+    return locale === "zh-CN" ? "按健康感知故障转移，可选恢复" : "Health-aware failover with optional recovery";
+  }
+
+  return locale === "zh-CN" ? "单个活动连接" : "Single active connection";
+}
+
 interface LoadbalanceStrategiesTableProps {
   loadbalanceStrategies: LoadbalanceStrategy[];
   loadbalanceStrategiesLoading: boolean;
@@ -105,16 +129,9 @@ export function LoadbalanceStrategiesTable({
                         <div className="flex flex-col gap-1">
                           <span className="font-medium">{strategy.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {strategy.strategy_type === "failover"
-                              ? locale === "zh-CN"
-                                ? "优先顺序，可选恢复"
-                                : "Priority order with optional recovery"
-                              : locale === "zh-CN"
-                                ? "单个活动连接"
-                                : "Single active connection"
-                            }
+                            {getStrategySummary(strategy.strategy_type, locale)}
                           </span>
-                          {strategy.strategy_type === "failover" ? (
+                          {strategy.strategy_type !== "single" ? (
                             <>
                               <span className="text-xs text-muted-foreground">
                                 {locale === "zh-CN"
@@ -135,16 +152,8 @@ export function LoadbalanceStrategiesTable({
                       </TableCell>
                       <TableCell>
                         <TypeBadge
-                          label={
-                            strategy.strategy_type === "failover"
-                              ? locale === "zh-CN"
-                                ? "故障转移"
-                                : "Failover"
-                              : locale === "zh-CN"
-                                ? "单连接"
-                                : "Single"
-                          }
-                          intent={strategy.strategy_type === "failover" ? "accent" : "info"}
+                          label={getStrategyLabel(strategy.strategy_type, locale)}
+                          intent={strategy.strategy_type === "single" ? "info" : "accent"}
                         />
                       </TableCell>
                       <TableCell>

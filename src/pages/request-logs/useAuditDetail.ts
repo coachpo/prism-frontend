@@ -42,7 +42,7 @@ export function useAuditDetail({ requestLogId, enabled }: UseAuditDetailParams) 
             await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
             continue;
           }
-          setError("No audit capture found for this request. Audit logging may be disabled for this provider.");
+          setError("No audit capture found for this request. Audit logging may be disabled for this vendor.");
           setLoading(false);
           return;
         }

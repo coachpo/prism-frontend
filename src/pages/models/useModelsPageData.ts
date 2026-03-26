@@ -4,21 +4,21 @@ import { getCurrentLocale } from "@/i18n/format";
 import {
   getSharedLoadbalanceStrategies,
   getSharedModels,
-  getSharedProviders,
+  getSharedVendors,
   setSharedModels,
 } from "@/lib/referenceData";
 import type {
   LoadbalanceStrategy,
   ModelConfigCreate,
   ModelConfigListItem,
-  Provider,
+  Vendor,
 } from "@/lib/types";
 import { toast } from "sonner";
 import {
   createEditModelFormData,
   createNewModelFormData,
   DEFAULT_MODEL_FORM_DATA,
-  getNativeModelsForProvider,
+  getNativeModelsForApiFamily,
   setLoadbalanceStrategyIdOnForm,
   setModelTypeOnForm,
   toModelCreatePayload,
@@ -31,7 +31,7 @@ import { useModelMetrics24h } from "./useModelMetrics24h";
 export function useModelsPageData(revision: number) {
   const [loadbalanceStrategies, setLoadbalanceStrategies] = useState<LoadbalanceStrategy[]>([]);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<ModelConfigListItem | null>(null);
@@ -43,23 +43,23 @@ export function useModelsPageData(revision: number) {
   const applyBootstrapData = useCallback((data: {
     loadbalanceStrategiesData: LoadbalanceStrategy[];
     modelsData: ModelConfigListItem[];
-    providersData: Provider[];
+    vendorsData: Vendor[];
   }) => {
     setLoadbalanceStrategies(data.loadbalanceStrategiesData);
     setModels(data.modelsData);
-    setProviders(data.providersData);
+    setVendors(data.vendorsData);
   }, []);
 
   const fetchData = useCallback(async (currentRevision: number) => {
     return Promise.all([
       getSharedLoadbalanceStrategies(currentRevision),
       getSharedModels(currentRevision),
-      getSharedProviders(currentRevision),
+      getSharedVendors(currentRevision),
     ]).then(
-      ([loadbalanceStrategiesData, modelsData, providersData]) => ({
+      ([loadbalanceStrategiesData, modelsData, vendorsData]) => ({
         loadbalanceStrategiesData,
         modelsData,
-        providersData,
+        vendorsData,
       })
     );
   }, []);
@@ -104,7 +104,7 @@ export function useModelsPageData(revision: number) {
       setFormData(createEditModelFormData(model));
     } else {
       setEditingModel(null);
-      setFormData(createNewModelFormData(providers));
+      setFormData(createNewModelFormData(vendors));
     }
     setIsDialogOpen(true);
   };
@@ -112,8 +112,12 @@ export function useModelsPageData(revision: number) {
   const handleSubmit = async (event: SubmitEventLike) => {
     const isChinese = getCurrentLocale() === "zh-CN";
     event.preventDefault();
-    if (!formData.provider_id) {
-      toast.error(isChinese ? "请选择提供商" : "Please select a provider");
+    if (!formData.vendor_id) {
+      toast.error(isChinese ? "请选择供应商" : "Please select a vendor");
+      return;
+    }
+    if (!formData.api_family) {
+      toast.error(isChinese ? "请选择 API 家族" : "Please select an API family");
       return;
     }
     if (formData.model_type === "proxy" && (formData.proxy_targets?.length ?? 0) === 0) {
@@ -165,10 +169,10 @@ export function useModelsPageData(revision: number) {
     }
   };
 
-  const selectedProvider = providers.find((p) => p.id === formData.provider_id);
-  const nativeModelsForProvider = getNativeModelsForProvider(
+  const selectedVendor = vendors.find((vendor) => vendor.id === formData.vendor_id);
+  const nativeModelsForApiFamily = getNativeModelsForApiFamily(
     models,
-    formData.provider_id,
+    formData.api_family ?? "openai",
     editingModel ? formData.model_id : undefined,
   );
 
@@ -211,10 +215,10 @@ export function useModelsPageData(revision: number) {
     modelMetrics24h,
     modelSpend30dMicros,
     models,
-    nativeModelsForProvider,
-    providers,
+    nativeModelsForApiFamily,
+    vendors,
     search,
-    selectedProvider,
+    selectedVendor,
     setDeleteTarget,
     setFormData,
     setIsDialogOpen,

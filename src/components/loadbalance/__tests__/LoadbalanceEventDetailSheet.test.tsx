@@ -32,7 +32,7 @@ describe("LoadbalanceEventDetailSheet", () => {
       blocked_until_mono: null,
       model_id: "gpt-5.4",
       endpoint_id: 7,
-      provider_id: 1,
+      vendor_id: 1,
       summary: {
         event: "Connection banned",
         reason: "Reached the max-cooldown strike threshold",

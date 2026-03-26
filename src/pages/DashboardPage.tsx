@@ -55,7 +55,7 @@ export function DashboardPage() {
 
       <DashboardHighlightsGrid
         snapshot={data.metricSnapshot}
-        providerRows={data.providerRows}
+        apiFamilyRows={data.apiFamilyRows}
         highlighted={data.metricsHighlighted}
         onOpenStatistics={() => navigate("/statistics")}
         onInspectSpending={() => navigate("/statistics?tab=spending")}

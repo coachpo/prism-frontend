@@ -2,14 +2,14 @@ import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { LoadbalanceStrategy, ModelConfigCreate, ModelConfigListItem, Provider } from "@/lib/types";
+import type { LoadbalanceStrategy, ModelConfigCreate, ModelConfigListItem, Vendor } from "@/lib/types";
 import { ModelDialog } from "../ModelDialog";
 
-function buildProvider(overrides: Partial<Provider> = {}): Provider {
+function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
   return {
     id: 7,
+    key: "openai",
     name: "OpenAI",
-    provider_type: "openai",
     description: null,
     audit_enabled: false,
     audit_capture_bodies: false,
@@ -22,8 +22,9 @@ function buildProvider(overrides: Partial<Provider> = {}): Provider {
 function buildNativeModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigListItem {
   return {
     id: 11,
-    provider_id: 7,
-    provider: buildProvider(),
+    vendor_id: 7,
+    vendor: buildVendor(),
+    api_family: "openai",
     model_id: "gpt-4o-mini",
     display_name: "GPT-4o Mini",
     model_type: "native",
@@ -64,15 +65,16 @@ const loadbalanceStrategies: LoadbalanceStrategy[] = [
 ];
 
 function Harness() {
-  const providers = [buildProvider()];
-  const nativeModelsForProvider = [
+  const vendors = [buildVendor()];
+  const nativeModelsForApiFamily = [
     buildNativeModel(),
     buildNativeModel({ id: 12, model_id: "gpt-4.1-mini", display_name: "GPT-4.1 Mini" }),
     buildNativeModel({ id: 13, model_id: "gpt-4.1", display_name: "GPT-4.1" }),
   ];
   const [formData, setFormData] = useState<ModelConfigCreate>(
     {
-      provider_id: 7,
+      vendor_id: 7,
+      api_family: "openai",
       model_id: "friendly-proxy",
       display_name: "Friendly Proxy",
       model_type: "proxy",
@@ -89,9 +91,8 @@ function Harness() {
         formData={formData}
         isDialogOpen
         loadbalanceStrategies={loadbalanceStrategies}
-        nativeModelsForProvider={nativeModelsForProvider}
-        providers={providers}
-        selectedProvider={providers[0]}
+        nativeModelsForApiFamily={nativeModelsForApiFamily}
+        vendors={vendors}
         setFormData={setFormData}
         setIsDialogOpen={vi.fn()}
         setLoadbalanceStrategyId={vi.fn()}
@@ -142,6 +143,47 @@ describe("ModelDialog proxy target editing", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove target gpt-4o-mini" }));
     expect(screen.getByTestId("proxy-targets-state")).toHaveTextContent(
       JSON.stringify([{ target_model_id: "gpt-4.1-mini", position: 0 }]),
+    );
+  });
+
+  it("keeps fill-first attached with priority spillover wording for native models", () => {
+    render(
+      <LocaleProvider>
+        <ModelDialog
+          editingModel={null}
+          formData={{
+            vendor_id: 7,
+            api_family: "openai",
+            model_id: "gpt-4o-mini",
+            display_name: "GPT-4o Mini",
+            model_type: "native",
+            proxy_targets: [],
+            loadbalance_strategy_id: 101,
+            is_enabled: true,
+          }}
+          isDialogOpen
+          loadbalanceStrategies={[
+            ...loadbalanceStrategies,
+            {
+              ...loadbalanceStrategies[0],
+              id: 101,
+              name: "priority-pack",
+              strategy_type: "fill-first",
+            },
+          ]}
+          nativeModelsForApiFamily={[]}
+          vendors={[buildVendor()]}
+          setFormData={vi.fn()}
+          setIsDialogOpen={vi.fn()}
+          setLoadbalanceStrategyId={vi.fn()}
+          setModelType={vi.fn()}
+          onSubmit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getAllByRole("combobox")[3]).toHaveTextContent(
+      "priority-pack (Fill-first · Priority spillover)",
     );
   });
 });

@@ -28,8 +28,9 @@ import type {
   ProfileActivateRequest,
   ProfileCreate,
   ProfileUpdate,
-  Provider,
-  ProviderUpdate,
+  Vendor,
+  VendorCreate,
+  VendorUpdate,
 } from "../types";
 import { request } from "./core";
 
@@ -54,14 +55,20 @@ export const profiles = {
     }),
 };
 
-export const providers = {
-  list: () => request<Provider[]>("/api/providers"),
-  get: (id: number) => request<Provider>(`/api/providers/${id}`),
-  update: (id: number, data: ProviderUpdate) =>
-    request<Provider>(`/api/providers/${id}`, {
+export const vendors = {
+  list: () => request<Vendor[]>("/api/vendors"),
+  get: (id: number) => request<Vendor>(`/api/vendors/${id}`),
+  create: (data: VendorCreate) =>
+    request<Vendor>("/api/vendors", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  update: (id: number, data: VendorUpdate) =>
+    request<Vendor>(`/api/vendors/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  delete: (id: number) => request<void>(`/api/vendors/${id}`, { method: "DELETE" }),
 };
 
 export const models = {

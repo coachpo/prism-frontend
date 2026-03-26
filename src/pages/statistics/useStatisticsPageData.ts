@@ -15,7 +15,7 @@ export function useStatisticsPageData({
 }: UseStatisticsPageDataInput) {
   const latestOperationsLogIdRef = useRef(0);
   const [newLogIds, setNewLogIds] = useState<Set<number>>(new Set());
-  const { connections, models, providers } = useStatisticsFilterOptions(revision);
+  const { apiFamilies, connections, models } = useStatisticsFilterOptions(revision);
   const {
     fetchOperationsLogs,
     fetchSpendingData,
@@ -89,18 +89,18 @@ export function useStatisticsPageData({
 
   const operationsTabProps = useMemo(
     () => ({
+      apiFamilies,
       connectionId: state.connectionId,
       connections,
       logs,
       modelId: state.modelId,
       models,
       operationsStatusFilter: state.operationsStatusFilter,
-      providers,
-      providerType: state.providerType,
+      apiFamily: state.apiFamily,
       setConnectionId: state.setConnectionId,
       setModelId: state.setModelId,
       setOperationsStatusFilter: state.setOperationsStatusFilter,
-      setProviderType: state.setProviderType,
+      setApiFamily: state.setApiFamily,
       setSpecialTokenFilter: state.setSpecialTokenFilter,
       setTimeRange: state.setTimeRange,
       specialTokenFilter: state.specialTokenFilter,
@@ -110,14 +110,15 @@ export function useStatisticsPageData({
       clearOperationsFilters: state.clearOperationsFilters,
       manualRefresh: refreshOperations,
     }),
-    [connections, logs, models, providers, state, newLogIds, clearNewLogHighlight, refreshOperations]
+    [apiFamilies, connections, logs, models, state, newLogIds, clearNewLogHighlight, refreshOperations]
   );
 
   const spendingTabProps = useMemo(
     () => ({
+      apiFamilies,
       connections,
       models,
-      providers,
+      setSpendingApiFamily: state.setSpendingApiFamily,
       setSpendingConnectionId: state.setSpendingConnectionId,
       setSpendingFrom: state.setSpendingFrom,
       setSpendingGroupBy: state.setSpendingGroupBy,
@@ -125,10 +126,10 @@ export function useStatisticsPageData({
       setSpendingModelId: state.setSpendingModelId,
       setSpendingOffset: state.setSpendingOffset,
       setSpendingPreset: state.setSpendingPreset,
-      setSpendingProviderType: state.setSpendingProviderType,
       setSpendingTo: state.setSpendingTo,
       setSpendingTopN: state.setSpendingTopN,
       spending,
+      spendingApiFamily: state.spendingApiFamily,
       spendingConnectionId: state.spendingConnectionId,
       spendingError,
       spendingFrom: state.spendingFrom,
@@ -138,14 +139,13 @@ export function useStatisticsPageData({
       spendingModelId: state.spendingModelId,
       spendingOffset: state.spendingOffset,
       spendingPreset: state.spendingPreset,
-      spendingProviderType: state.spendingProviderType,
       spendingTo: state.spendingTo,
       spendingTopN: state.spendingTopN,
       spendingUpdatedAt,
       clearSpendingFilters: state.clearSpendingFilters,
       manualRefresh: refreshSpending,
     }),
-    [connections, models, providers, spending, spendingError, spendingLoading, spendingUpdatedAt, state, refreshSpending]
+    [apiFamilies, connections, models, spending, spendingError, spendingLoading, spendingUpdatedAt, state, refreshSpending]
   );
 
   const showInitialLoading = useMemo(() => {

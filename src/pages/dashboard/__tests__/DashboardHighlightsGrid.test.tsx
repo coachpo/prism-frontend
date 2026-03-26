@@ -19,7 +19,7 @@ describe("DashboardHighlightsGrid", () => {
         onInspectSpending={vi.fn()}
         onOpenStatistics={vi.fn()}
         onReviewRequests={vi.fn()}
-        providerRows={[]}
+        apiFamilyRows={[]}
         snapshot={{
           activeModels: 2,
           averageRpm: 0,
@@ -51,14 +51,14 @@ describe("DashboardHighlightsGrid", () => {
     expect(streamShareLabel.closest("div")).toHaveClass("ws-value-updated");
   });
 
-  it("uses shared provider labels and icons for the provider mix card", () => {
+  it("uses shared api-family labels and icons for the API family mix card", () => {
     renderWithLocale(
       <DashboardHighlightsGrid
         highlighted={false}
         onInspectSpending={vi.fn()}
         onOpenStatistics={vi.fn()}
         onReviewRequests={vi.fn()}
-        providerRows={[
+        apiFamilyRows={[
           {
             key: "openai",
             total_requests: 2161,
@@ -122,7 +122,7 @@ describe("DashboardHighlightsGrid", () => {
         onInspectSpending={vi.fn()}
         onOpenStatistics={vi.fn()}
         onReviewRequests={vi.fn()}
-        providerRows={[]}
+        apiFamilyRows={[]}
         snapshot={{
           activeModels: 2,
           averageRpm: 0,
@@ -141,6 +141,6 @@ describe("DashboardHighlightsGrid", () => {
 
     expect(screen.getByText("性能概览")).toBeInTheDocument();
     expect(screen.getByText("打开统计")).toBeInTheDocument();
-    expect(screen.getByText("暂无提供商活动")).toBeInTheDocument();
+    expect(screen.getByText("暂无 API 家族活动")).toBeInTheDocument();
   });
 });

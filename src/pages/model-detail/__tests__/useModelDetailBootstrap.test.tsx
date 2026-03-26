@@ -1,7 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearSharedReferenceData } from "@/lib/referenceData";
-import type { SpendingSummary } from "@/lib/types";
+import type { LoadbalanceStrategySummary, SpendingSummary } from "@/lib/types";
+import { buildProxyTargetOptions } from "../useModelDetailDataSupport";
 import { useModelDetailBootstrap } from "../useModelDetailBootstrap";
 
 function createDeferred<T>() {
@@ -39,12 +40,21 @@ vi.mock("sonner", () => ({
   },
 }));
 
-function buildLoadbalanceStrategySummary(overrides: Record<string, unknown> = {}) {
+function buildLoadbalanceStrategySummary(overrides: Partial<LoadbalanceStrategySummary> = {}): LoadbalanceStrategySummary {
   return {
     id: 100,
     name: "single-primary",
     strategy_type: "single",
     failover_recovery_enabled: false,
+    failover_cooldown_seconds: 60,
+    failover_failure_threshold: 2,
+    failover_backoff_multiplier: 2,
+    failover_max_cooldown_seconds: 900,
+    failover_jitter_ratio: 0.2,
+    failover_auth_error_cooldown_seconds: 1800,
+    failover_ban_mode: "off",
+    failover_max_cooldown_strikes_before_ban: 0,
+    failover_ban_duration_seconds: 0,
     ...overrides,
   };
 }
@@ -56,6 +66,20 @@ function buildLoadbalanceStrategy(overrides: Record<string, unknown> = {}) {
     attached_model_count: 1,
     created_at: "",
     updated_at: "",
+  };
+}
+
+function buildVendor(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 10,
+    key: "openai",
+    name: "OpenAI",
+    description: null,
+    audit_enabled: false,
+    audit_capture_bodies: false,
+    created_at: "",
+    updated_at: "",
+    ...overrides,
   };
 }
 
@@ -73,6 +97,69 @@ describe("useModelDetailBootstrap", () => {
     clearSharedReferenceData();
   });
 
+  it("builds proxy target options from matching api families even when the vendor differs", () => {
+    const options = buildProxyTargetOptions(
+      {
+        id: 9,
+        vendor_id: 30,
+        vendor: buildVendor({ id: 30, key: "together-ai", name: "Together AI" }),
+        api_family: "openai",
+        model_id: "friendly-proxy",
+        display_name: "Friendly Proxy",
+        model_type: "proxy",
+        proxy_targets: [],
+        loadbalance_strategy_id: null,
+        loadbalance_strategy: null,
+        is_enabled: true,
+        connections: [],
+        created_at: "",
+        updated_at: "",
+      },
+      [
+        {
+          id: 1,
+          vendor_id: 10,
+          vendor: buildVendor({ id: 10, key: "openai", name: "OpenAI" }),
+          api_family: "openai",
+          model_id: "gpt-5.4",
+          display_name: "GPT-5.4",
+          model_type: "native",
+          proxy_targets: [],
+          loadbalance_strategy_id: 100,
+          loadbalance_strategy: buildLoadbalanceStrategySummary(),
+          is_enabled: true,
+          connection_count: 1,
+          active_connection_count: 1,
+          health_success_rate: 100,
+          health_total_requests: 10,
+          created_at: "",
+          updated_at: "",
+        },
+        {
+          id: 2,
+          vendor_id: 30,
+          vendor: buildVendor({ id: 30, key: "together-ai", name: "Together AI" }),
+          api_family: "gemini",
+          model_id: "gemini-2.5-pro",
+          display_name: "Gemini 2.5 Pro",
+          model_type: "native",
+          proxy_targets: [],
+          loadbalance_strategy_id: 100,
+          loadbalance_strategy: buildLoadbalanceStrategySummary(),
+          is_enabled: true,
+          connection_count: 1,
+          active_connection_count: 1,
+          health_success_rate: 100,
+          health_total_requests: 10,
+          created_at: "",
+          updated_at: "",
+        },
+      ],
+    );
+
+    expect(options).toEqual([{ modelId: "gpt-5.4", label: "GPT-5.4 (gpt-5.4)" }]);
+  });
+
   it("ignores stale spending responses after switching models", async () => {
     const firstSpending = createDeferred<{
       summary: SpendingSummary;
@@ -83,8 +170,9 @@ describe("useModelDetailBootstrap", () => {
     api.models.get
       .mockResolvedValueOnce({
         id: 1,
-        provider_id: 10,
-        provider: { id: 10, provider_type: "openai", audit_enabled: false, created_at: "", updated_at: "" },
+        vendor_id: 10,
+        vendor: buildVendor({ id: 10, key: "openai", name: "OpenAI" }),
+        api_family: "openai",
         model_id: "gpt-5.4",
         display_name: "GPT-5.4",
         model_type: "native",
@@ -98,8 +186,9 @@ describe("useModelDetailBootstrap", () => {
       })
       .mockResolvedValueOnce({
         id: 2,
-        provider_id: 20,
-        provider: { id: 20, provider_type: "anthropic", audit_enabled: false, created_at: "", updated_at: "" },
+        vendor_id: 20,
+        vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
+        api_family: "anthropic",
         model_id: "claude-sonnet-4-6",
         display_name: "Claude Sonnet 4.6",
         model_type: "native",
@@ -242,8 +331,9 @@ describe("useModelDetailBootstrap", () => {
   it("resets connection metric opt-in state when switching models", async () => {
     api.models.get.mockResolvedValue({
       id: 1,
-      provider_id: 10,
-      provider: { id: 10, provider_type: "openai", audit_enabled: false, created_at: "", updated_at: "" },
+      vendor_id: 10,
+      vendor: buildVendor({ id: 10, key: "openai", name: "OpenAI" }),
+      api_family: "openai",
       model_id: "gpt-5.4",
       display_name: "GPT-5.4",
       model_type: "native",
@@ -320,8 +410,9 @@ describe("useModelDetailBootstrap", () => {
   it("keeps manual connection metric opt-in state during same-model refreshes", async () => {
     api.models.get.mockResolvedValue({
       id: 1,
-      provider_id: 10,
-      provider: { id: 10, provider_type: "openai", audit_enabled: false, created_at: "", updated_at: "" },
+      vendor_id: 10,
+      vendor: buildVendor({ id: 10, key: "openai", name: "OpenAI" }),
+      api_family: "openai",
       model_id: "gpt-5.4",
       display_name: "GPT-5.4",
       model_type: "native",

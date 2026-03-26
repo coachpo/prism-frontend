@@ -1,6 +1,6 @@
 import { Filter } from "lucide-react";
 import { useLocale } from "@/i18n/useLocale";
-import { ProviderSelect } from "@/components/ProviderSelect";
+import { ApiFamilySelect } from "@/components/ApiFamilySelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,9 +26,10 @@ import {
 interface SpendingFilterGroupsProps
   extends Pick<
     SpendingTabProps,
+    | "apiFamilies"
     | "connections"
     | "models"
-    | "providers"
+    | "setSpendingApiFamily"
     | "setSpendingConnectionId"
     | "setSpendingFrom"
     | "setSpendingGroupBy"
@@ -36,16 +37,15 @@ interface SpendingFilterGroupsProps
     | "setSpendingModelId"
     | "setSpendingOffset"
     | "setSpendingPreset"
-    | "setSpendingProviderType"
     | "setSpendingTo"
     | "setSpendingTopN"
+    | "spendingApiFamily"
     | "spendingConnectionId"
     | "spendingFrom"
     | "spendingGroupBy"
     | "spendingLimit"
     | "spendingModelId"
     | "spendingPreset"
-    | "spendingProviderType"
     | "spendingTo"
     | "spendingTopN"
   > {
@@ -56,12 +56,13 @@ interface SpendingFilterGroupsProps
 }
 
 export function SpendingFilterGroups({
+  apiFamilies,
   connections,
   formatTime,
   models,
   onReset,
-  providers,
   reportCode,
+  setSpendingApiFamily,
   setSpendingConnectionId,
   setSpendingFrom,
   setSpendingGroupBy,
@@ -69,16 +70,15 @@ export function SpendingFilterGroups({
   setSpendingModelId,
   setSpendingOffset,
   setSpendingPreset,
-  setSpendingProviderType,
   setSpendingTo,
   setSpendingTopN,
+  spendingApiFamily,
   spendingConnectionId,
   spendingFrom,
   spendingGroupBy,
   spendingLimit,
   spendingModelId,
   spendingPreset,
-  spendingProviderType,
   spendingTo,
   spendingTopN,
   spendingUpdatedAt,
@@ -153,14 +153,15 @@ export function SpendingFilterGroups({
         ) : null}
 
         <div className="space-y-1">
-          <span className="text-xs text-muted-foreground">{messages.requestLogs.provider}</span>
-          <ProviderSelect
-            value={spendingProviderType}
+          <span className="text-xs text-muted-foreground">{messages.common.apiFamily}</span>
+          <ApiFamilySelect
+            value={spendingApiFamily}
             onValueChange={(value) => {
-              setSpendingProviderType(value);
+              setSpendingApiFamily(value);
               setSpendingOffset(0);
             }}
-            providers={providers}
+            apiFamilies={apiFamilies}
+            allLabel={`${messages.statistics.all} ${messages.common.apiFamily}`}
             className="h-8 text-xs"
           />
         </div>
@@ -236,8 +237,8 @@ export function SpendingFilterGroups({
                         ? messages.statistics.week
                         : option.value === "month"
                           ? messages.statistics.month
-                          : option.value === "provider"
-                            ? messages.statistics.providerGroup
+                          : option.value === "api_family"
+                            ? messages.common.apiFamily
                             : option.value === "model"
                               ? messages.statistics.modelGroup
                               : option.value === "endpoint"

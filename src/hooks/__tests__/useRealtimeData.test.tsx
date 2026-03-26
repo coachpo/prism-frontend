@@ -67,7 +67,7 @@ function makeRequestLog(overrides: Partial<RequestLogEntry> = {}): RequestLogEnt
     model_id: "gpt-4o-mini",
     resolved_target_model_id: null,
     profile_id: 1,
-    provider_type: "openai",
+    api_family: "openai",
     endpoint_id: 2,
     connection_id: 3,
     ingress_request_id: null,
@@ -140,7 +140,7 @@ function makeDashboardUpdatePayload(
       total_tokens: 300,
       groups: [],
     },
-    provider_summary_24h: {
+    api_family_summary_24h: {
       total_requests: 24,
       success_count: 23,
       error_count: 1,

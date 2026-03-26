@@ -4,18 +4,18 @@ import type {
   Connection,
   LoadbalanceCurrentStateItem,
   ModelConfig,
-  Provider,
+  Vendor,
 } from "@/lib/types";
 import { ConnectionCard } from "../connections-list/ConnectionCard";
 import { ConnectionCardActions } from "../connections-list/ConnectionCardActions";
 import { ConnectionCardHeader } from "../connections-list/ConnectionCardHeader";
 import { ConnectionCardMetrics } from "../connections-list/ConnectionCardMetrics";
 
-function buildProvider(): Provider {
+function buildVendor(): Vendor {
   return {
     id: 1,
+    key: "openai",
     name: "OpenAI",
-    provider_type: "openai",
     description: null,
     audit_enabled: false,
     audit_capture_bodies: false,
@@ -27,8 +27,9 @@ function buildProvider(): Provider {
 function buildModel(): ModelConfig {
   return {
     id: 5,
-    provider_id: 1,
-    provider: buildProvider(),
+    vendor_id: 1,
+    vendor: buildVendor(),
+    api_family: "openai",
     model_id: "gpt-5.4",
     display_name: "GPT-5.4",
     model_type: "native",

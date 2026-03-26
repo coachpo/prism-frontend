@@ -1,15 +1,15 @@
 import type { RefObject } from "react";
 import { cn } from "@/lib/utils";
-import type { HeaderBlocklistRule, Provider } from "@/lib/types";
+import type { HeaderBlocklistRule, Vendor } from "@/lib/types";
 import { AuditConfigurationDefaultsCard } from "./AuditConfigurationDefaultsCard";
 import { AuditConfigurationHeaderBlocklistCard } from "./AuditConfigurationHeaderBlocklistCard";
 
 interface AuditConfigurationSectionProps {
   auditConfigurationRef: RefObject<HTMLDivElement | null>;
   isAuditConfigurationFocused: boolean;
-  providers: Provider[];
-  toggleAudit: (providerId: number, checked: boolean) => Promise<void>;
-  toggleBodies: (providerId: number, checked: boolean) => Promise<void>;
+  vendors: Vendor[];
+  toggleAudit: (vendorId: number, checked: boolean) => Promise<void>;
+  toggleBodies: (vendorId: number, checked: boolean) => Promise<void>;
   loadingRules: boolean;
   systemRulesOpen: boolean;
   setSystemRulesOpen: (open: boolean) => void;
@@ -26,7 +26,7 @@ interface AuditConfigurationSectionProps {
 export function AuditConfigurationSection({
   auditConfigurationRef,
   isAuditConfigurationFocused,
-  providers,
+  vendors,
   toggleAudit,
   toggleBodies,
   loadingRules,
@@ -49,7 +49,7 @@ export function AuditConfigurationSection({
           "transition-all duration-300",
           isAuditConfigurationFocused && "ring-2 ring-primary/50 bg-primary/5"
         )}
-        providers={providers}
+        vendors={vendors}
         toggleAudit={toggleAudit}
         toggleBodies={toggleBodies}
       />

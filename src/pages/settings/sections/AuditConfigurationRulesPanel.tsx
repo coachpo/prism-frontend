@@ -38,7 +38,7 @@ export function AuditConfigurationRulesPanel({
         <p className="text-xs text-muted-foreground">
           {locale === "zh-CN"
             ? "使用请求头规则屏蔽隐私、隧道和追踪元数据，避免其发送到提供商。"
-            : "Use header rules to block privacy, tunnel, and tracing metadata from provider requests."}
+              : "Use header rules to block privacy, tunnel, and tracing metadata before forwarding requests upstream."}
         </p>
         <Button size="sm" variant="outline" onClick={onOpenAddRuleDialog}>
           <Plus className="mr-2 h-3.5 w-3.5" />

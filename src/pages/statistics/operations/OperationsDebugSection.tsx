@@ -18,6 +18,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatMoneyMicros } from "@/lib/costing";
+import { formatApiFamily } from "@/lib/utils";
 import type { StatisticsRequestLogEntry } from "@/lib/types";
 import type { InvestigateTab } from "../queryParams";
 import { OperationsChartCard } from "./chartPresentation";
@@ -66,7 +67,7 @@ function InvestigateRequestRow({
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{item.model_id}</p>
         <p className="text-xs text-muted-foreground">
-          {item.provider_type} · {item.status_code}
+          {formatApiFamily(item.api_family ?? "")} · {item.status_code}
         </p>
       </div>
       <div className="flex items-center gap-2">

@@ -18,13 +18,13 @@ describe("request log filter split components", () => {
 
     renderWithLocale(
       <FiltersBarPrimaryFilters
-        filterOptions={{ connections: [], endpoints: [], models: [], providers: [] }}
+        filterOptions={{ apiFamilies: [], connections: [], endpoints: [], models: [] }}
         filterOptionsLoaded={true}
         state={{
           connection_id: "",
           endpoint_id: "",
           model_id: "",
-          provider_type: "",
+          api_family: "",
           search: "",
           status_family: "all",
           time_range: "24h",
@@ -33,7 +33,7 @@ describe("request log filter split components", () => {
           setConnectionId: vi.fn(),
           setEndpointId: vi.fn(),
           setModelId: vi.fn(),
-          setProviderType: vi.fn(),
+          setApiFamily: vi.fn(),
           setSearch,
           setStatusFamily: vi.fn(),
           setTimeRange: vi.fn(),
@@ -41,7 +41,7 @@ describe("request log filter split components", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText(/model, provider, path, or error/i), {
+    fireEvent.change(screen.getByPlaceholderText(/model, vendor, path, or error/i), {
       target: { value: "gateway error" },
     });
 
@@ -92,13 +92,13 @@ describe("request log filter split components", () => {
 
     renderWithLocale(
       <FiltersBarPrimaryFilters
-        filterOptions={{ connections: [], endpoints: [], models: [], providers: [] }}
+        filterOptions={{ apiFamilies: [], connections: [], endpoints: [], models: [] }}
         filterOptionsLoaded={true}
         state={{
           connection_id: "",
           endpoint_id: "",
           model_id: "",
-          provider_type: "",
+          api_family: "",
           search: "",
           status_family: "all",
           time_range: "24h",
@@ -107,7 +107,7 @@ describe("request log filter split components", () => {
           setConnectionId: vi.fn(),
           setEndpointId: vi.fn(),
           setModelId: vi.fn(),
-          setProviderType: vi.fn(),
+          setApiFamily: vi.fn(),
           setSearch: vi.fn(),
           setStatusFamily: vi.fn(),
           setTimeRange: vi.fn(),
@@ -116,7 +116,7 @@ describe("request log filter split components", () => {
     );
 
     expect(screen.getByText("搜索")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("模型、提供商、路径或错误")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("模型、供应商、路径或错误")).toBeInTheDocument();
     expect(screen.getByText("时间范围")).toBeInTheDocument();
   });
 
@@ -124,6 +124,7 @@ describe("request log filter split components", () => {
     renderWithLocale(
       <FiltersBarPrimaryFilters
         filterOptions={{
+          apiFamilies: ["openai"],
           connections: [],
           endpoints: [],
           models: [
@@ -140,29 +141,27 @@ describe("request log filter split components", () => {
               loadbalance_strategy_id: null,
               model_id: "gpt-4o-mini",
               model_type: "native",
-              provider: {
-                audit_capture_bodies: false,
-                audit_enabled: false,
-                created_at: "2026-01-01T00:00:00Z",
-                description: null,
+              vendor: {
                 id: 1,
+                key: "openai",
                 name: "OpenAI",
-                provider_type: "openai",
+                description: null,
+                audit_enabled: false,
+                audit_capture_bodies: false,
+                created_at: "2026-01-01T00:00:00Z",
                 updated_at: "2026-01-01T00:00:00Z",
               },
-              provider_id: 1,
               proxy_targets: [],
               updated_at: "2026-01-01T00:00:00Z",
             },
           ],
-          providers: [],
         }}
         filterOptionsLoaded={true}
         state={{
           connection_id: "",
           endpoint_id: "",
           model_id: "gpt-4o-mini",
-          provider_type: "",
+          api_family: "",
           search: "",
           status_family: "all",
           time_range: "24h",
@@ -171,7 +170,7 @@ describe("request log filter split components", () => {
           setConnectionId: vi.fn(),
           setEndpointId: vi.fn(),
           setModelId: vi.fn(),
-          setProviderType: vi.fn(),
+          setApiFamily: vi.fn(),
           setSearch: vi.fn(),
           setStatusFamily: vi.fn(),
           setTimeRange: vi.fn(),
@@ -181,5 +180,35 @@ describe("request log filter split components", () => {
 
     expect(screen.getByText("GPT-4o Mini")).toBeInTheDocument();
     expect(screen.queryByText("gpt-4o-mini")).not.toBeInTheDocument();
+  });
+
+  it("renders API Family copy instead of provider-era labels", () => {
+    renderWithLocale(
+      <FiltersBarPrimaryFilters
+        filterOptions={{ apiFamilies: ["openai", "anthropic"], connections: [], endpoints: [], models: [] }}
+        filterOptionsLoaded={true}
+        state={{
+          connection_id: "",
+          endpoint_id: "",
+          model_id: "",
+          api_family: "openai",
+          search: "",
+          status_family: "all",
+          time_range: "24h",
+        }}
+        actions={{
+          setConnectionId: vi.fn(),
+          setEndpointId: vi.fn(),
+          setModelId: vi.fn(),
+          setApiFamily: vi.fn(),
+          setSearch: vi.fn(),
+          setStatusFamily: vi.fn(),
+          setTimeRange: vi.fn(),
+        }}
+      />,
+    );
+
+    expect(screen.getByText("API Family")).toBeInTheDocument();
+    expect(screen.queryByText("Provider")).not.toBeInTheDocument();
   });
 });

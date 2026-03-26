@@ -1,6 +1,6 @@
 import type {
+  ApiFamily,
   ConnectionDropdownItem,
-  Provider,
   StatisticsRequestLogEntry,
 } from "@/lib/types";
 import type {
@@ -14,11 +14,11 @@ export interface OperationsTabProps {
   clearNewLogHighlight: (logId: number) => void;
   models: { model_id: string; display_name: string | null }[];
   connections: ConnectionDropdownItem[];
-  providers: Provider[];
+  apiFamilies: ApiFamily[];
   modelId: string;
   setModelId: (val: string) => void;
-  providerType: string;
-  setProviderType: (val: string) => void;
+  apiFamily: string;
+  setApiFamily: (val: string) => void;
   connectionId: string;
   setConnectionId: (val: string) => void;
   timeRange: "1h" | "24h" | "7d" | "all";

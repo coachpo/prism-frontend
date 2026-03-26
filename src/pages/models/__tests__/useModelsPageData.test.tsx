@@ -22,7 +22,7 @@ const api = vi.hoisted(() => ({
     list: vi.fn(),
     update: vi.fn(),
   },
-  providers: {
+  vendors: {
     list: vi.fn(),
   },
   stats: {
@@ -42,11 +42,14 @@ function StrictWrapper({ children }: { children: ReactNode }) {
   return <StrictMode>{children}</StrictMode>;
 }
 
-function buildProvider(overrides: Record<string, unknown> = {}) {
+function buildVendor(overrides: Record<string, unknown> = {}) {
   return {
     id: 10,
-    provider_type: "openai",
+    key: "openai",
+    name: "OpenAI",
+    description: null,
     audit_enabled: false,
+    audit_capture_bodies: false,
     created_at: "",
     updated_at: "",
     ...overrides,
@@ -76,8 +79,9 @@ function buildLoadbalanceStrategy(overrides: Record<string, unknown> = {}) {
 function buildModelListItem(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
-    provider_id: 10,
-    provider: buildProvider(),
+    vendor_id: 10,
+    vendor: buildVendor(),
+    api_family: "openai",
     model_id: "gpt-5.4",
     display_name: "GPT-5.4",
     model_type: "native",
@@ -98,8 +102,9 @@ function buildModelListItem(overrides: Record<string, unknown> = {}) {
 function buildModelConfig(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
-    provider_id: 10,
-    provider: buildProvider(),
+    vendor_id: 10,
+    vendor: buildVendor(),
+    api_family: "openai",
     model_id: "gpt-5.4",
     display_name: "GPT-5.4",
     model_type: "native",
@@ -146,7 +151,7 @@ describe("useModelsPageData", () => {
     document.documentElement.lang = "en";
     api.loadbalanceStrategies.list.mockResolvedValue([buildLoadbalanceStrategy()]);
     api.models.list.mockResolvedValue([buildModelListItem()]);
-    api.providers.list.mockResolvedValue([buildProvider()]);
+    api.vendors.list.mockResolvedValue([buildVendor()]);
     api.stats.modelMetrics.mockResolvedValue({
       items: [
         {
@@ -178,7 +183,7 @@ describe("useModelsPageData", () => {
     });
 
     expect(api.models.list).toHaveBeenCalledTimes(1);
-    expect(api.providers.list).toHaveBeenCalledTimes(1);
+    expect(api.vendors.list).toHaveBeenCalledTimes(1);
     expect(api.stats.modelMetrics).toHaveBeenCalledTimes(1);
     expect(api.stats.modelMetrics).toHaveBeenCalledWith({
       model_ids: ["gpt-5.4"],
@@ -190,23 +195,24 @@ describe("useModelsPageData", () => {
 
   it("ignores stale in-flight bootstrap results after revision changes", async () => {
     const deferredModels = createDeferred<Parameters<typeof api.models.list.mockResolvedValue>[0]>();
-    const deferredProviders = createDeferred<Parameters<typeof api.providers.list.mockResolvedValue>[0]>();
+    const deferredVendors = createDeferred<Parameters<typeof api.vendors.list.mockResolvedValue>[0]>();
 
     api.models.list
       .mockImplementationOnce(() => deferredModels.promise)
       .mockResolvedValueOnce([
         buildModelListItem({
           id: 2,
-          provider_id: 20,
-          provider: buildProvider({ id: 20, provider_type: "anthropic" }),
+          vendor_id: 20,
+          vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
+          api_family: "anthropic",
           model_id: "claude-sonnet-4-6",
           display_name: "Claude Sonnet 4.6",
           health_total_requests: 5,
         }),
       ]);
-    api.providers.list
-      .mockImplementationOnce(() => deferredProviders.promise)
-      .mockResolvedValueOnce([buildProvider({ id: 20, provider_type: "anthropic" })]);
+    api.vendors.list
+      .mockImplementationOnce(() => deferredVendors.promise)
+      .mockResolvedValueOnce([buildVendor({ id: 20, key: "anthropic", name: "Anthropic" })]);
     api.stats.modelMetrics.mockImplementation(({ model_ids }: { model_ids: string[] }) =>
       Promise.resolve({
         items: model_ids.map((modelId) => ({
@@ -234,19 +240,22 @@ describe("useModelsPageData", () => {
     deferredModels.resolve([
       buildModelListItem(),
     ]);
-    deferredProviders.resolve([buildProvider()]);
+    deferredVendors.resolve([buildVendor()]);
 
     await waitFor(() => {
       expect(result.current.models[0]?.id).toBe(2);
-      expect(result.current.providers[0]?.id).toBe(20);
+      expect((result.current as unknown as { vendors: Array<{ id: number }> }).vendors[0]?.id).toBe(20);
       expect(result.current.modelSpend30dMicros[2]).toBe(456789);
     });
   });
 
-  it("normalizes proxy model creation payloads", async () => {
+  it("creates proxy models with separate vendor and api family fields", async () => {
     api.models.create.mockResolvedValue(
       buildModelConfig({
         id: 3,
+        vendor_id: 30,
+        vendor: buildVendor({ id: 30, key: "together-ai", name: "Together AI" }),
+        api_family: "openai",
         model_id: "friendly-proxy",
         display_name: "Friendly Proxy",
         model_type: "proxy",
@@ -268,7 +277,8 @@ describe("useModelsPageData", () => {
         (current) =>
           ({
             ...current,
-            provider_id: 10,
+            vendor_id: 30,
+            api_family: "openai",
             model_id: "friendly-proxy",
             display_name: "Friendly Proxy",
             model_type: "proxy",
@@ -287,7 +297,8 @@ describe("useModelsPageData", () => {
     const createPayload = api.models.create.mock.calls[0]?.[0];
 
     expect(createPayload).toMatchObject({
-      provider_id: 10,
+      vendor_id: 30,
+      api_family: "openai",
       model_id: "friendly-proxy",
       display_name: "Friendly Proxy",
       model_type: "proxy",
@@ -299,20 +310,68 @@ describe("useModelsPageData", () => {
     expect(result.current.models.some((model) => model.id === 3)).toBe(true);
   });
 
+  it("builds proxy target options from api family compatibility instead of vendor identity", async () => {
+    api.models.list.mockResolvedValue([
+      buildModelListItem({
+        id: 1,
+        vendor_id: 10,
+        vendor: buildVendor({ id: 10, key: "openai", name: "OpenAI" }),
+        api_family: "openai",
+        model_id: "gpt-5.4",
+        display_name: "GPT-5.4",
+      }),
+      buildModelListItem({
+        id: 2,
+        vendor_id: 20,
+        vendor: buildVendor({ id: 20, key: "google", name: "Google" }),
+        api_family: "gemini",
+        model_id: "gemini-2.5-pro",
+        display_name: "Gemini 2.5 Pro",
+      }),
+    ]);
+    api.vendors.list.mockResolvedValue([
+      buildVendor({ id: 10, key: "openai", name: "OpenAI" }),
+      buildVendor({ id: 30, key: "together-ai", name: "Together AI" }),
+    ]);
+
+    const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      result.current.handleOpenDialog();
+      result.current.setFormData((current) => ({
+        ...current,
+        vendor_id: 30,
+        api_family: "openai",
+        model_type: "proxy",
+      }));
+    });
+
+    expect(
+      (result.current as unknown as { nativeModelsForApiFamily: Array<{ model_id: string }> }).nativeModelsForApiFamily.map(
+        (model) => model.model_id,
+      ),
+    ).toEqual(["gpt-5.4"]);
+  });
+
   it("filters the visible model list using search only", async () => {
     api.models.list.mockResolvedValue([
       buildModelListItem(),
-      buildModelListItem({
-        id: 2,
-        model_id: "claude-sonnet-4-6",
-        display_name: "Claude Sonnet 4.6",
-        provider_id: 20,
-        provider: buildProvider({ id: 20, provider_type: "anthropic" }),
-      }),
-    ]);
-    api.providers.list.mockResolvedValue([
-      buildProvider(),
-      buildProvider({ id: 20, provider_type: "anthropic" }),
+        buildModelListItem({
+          id: 2,
+          model_id: "claude-sonnet-4-6",
+          display_name: "Claude Sonnet 4.6",
+          vendor_id: 20,
+          vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
+          api_family: "anthropic",
+        }),
+      ]);
+    api.vendors.list.mockResolvedValue([
+      buildVendor(),
+      buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
     ]);
 
     const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
@@ -360,7 +419,9 @@ describe("useModelsPageData", () => {
     });
 
     expect(api.models.update).toHaveBeenCalledWith(1, {
-      provider_id: 10,
+      vendor_id: 10,
+      api_family: "openai",
+      model_id: "gpt-5.4",
       display_name: null,
       model_type: "native",
       proxy_targets: [],
@@ -392,13 +453,13 @@ describe("useModelsPageData", () => {
 
     act(() => {
       result.current.handleOpenDialog();
-      result.current.setFormData((current) => ({ ...current, provider_id: 0 }));
+      result.current.setFormData((current) => ({ ...current, vendor_id: 0 }));
     });
 
     await act(async () => {
       await result.current.handleSubmit(createSubmitEvent());
     });
 
-    expect((await import("sonner")).toast.error).toHaveBeenCalledWith("请选择提供商");
+    expect((await import("sonner")).toast.error).toHaveBeenCalledWith("请选择供应商");
   });
 });

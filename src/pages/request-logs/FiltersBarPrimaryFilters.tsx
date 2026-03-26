@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { ProviderIcon } from "@/components/ProviderIcon";
+import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocale } from "@/i18n/useLocale";
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatProviderType } from "@/lib/utils";
+import { formatApiFamily } from "@/lib/utils";
 import type { FilterOptions } from "./useRequestLogsPageData";
 import type { RequestLogPageActions } from "./useRequestLogPageState";
 import { STATUS_FAMILY_OPTIONS, TIME_RANGE_OPTIONS } from "./queryParams";
@@ -22,7 +22,7 @@ interface FiltersBarPrimaryFiltersProps {
     | "setConnectionId"
     | "setEndpointId"
     | "setModelId"
-    | "setProviderType"
+    | "setApiFamily"
     | "setSearch"
     | "setStatusFamily"
     | "setTimeRange"
@@ -34,7 +34,7 @@ interface FiltersBarPrimaryFiltersProps {
     | "connection_id"
     | "endpoint_id"
     | "model_id"
-    | "provider_type"
+    | "api_family"
     | "search"
     | "status_family"
     | "time_range"
@@ -94,22 +94,22 @@ export function FiltersBarPrimaryFilters({
       </div>
 
       <div>
-        <ToolbarLabel>{messages.requestLogs.provider}</ToolbarLabel>
+        <ToolbarLabel>{messages.common.apiFamily}</ToolbarLabel>
         <Select
-          value={state.provider_type || "__all__"}
-          onValueChange={(value) => actions.setProviderType(value === "__all__" ? "" : value)}
+          value={state.api_family || "__all__"}
+          onValueChange={(value) => actions.setApiFamily(value === "__all__" ? "" : value)}
         >
           <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background/80 text-xs">
-            <SelectValue placeholder={messages.requestLogs.allProviders} />
+            <SelectValue placeholder={`${messages.statistics.all} ${messages.common.apiFamily}`} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">{messages.requestLogs.allProviders}</SelectItem>
+            <SelectItem value="__all__">{`${messages.statistics.all} ${messages.common.apiFamily}`}</SelectItem>
             {filterOptionsLoaded &&
-              filterOptions.providers.map((provider) => (
-                <SelectItem key={provider.id} value={provider.provider_type}>
+              filterOptions.apiFamilies.map((apiFamily) => (
+                <SelectItem key={apiFamily} value={apiFamily}>
                   <span className="flex items-center gap-2">
-                    <ProviderIcon providerType={provider.provider_type} size={14} />
-                    {formatProviderType(provider.provider_type)}
+                    <ApiFamilyIcon apiFamily={apiFamily} size={14} />
+                    {formatApiFamily(apiFamily)}
                   </span>
                 </SelectItem>
               ))}

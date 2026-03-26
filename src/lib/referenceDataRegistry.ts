@@ -5,7 +5,7 @@ import type {
   LoadbalanceStrategy,
   ModelConfigListItem,
   PricingTemplate,
-  Provider,
+  Vendor,
 } from "@/lib/types";
 
 export interface ReferenceDataMap {
@@ -14,7 +14,7 @@ export interface ReferenceDataMap {
   loadbalanceStrategies: LoadbalanceStrategy[];
   models: ModelConfigListItem[];
   pricingTemplates: PricingTemplate[];
-  providers: Provider[];
+  vendors: Vendor[];
 }
 
 export type ReferenceDataKind = keyof ReferenceDataMap;
@@ -52,8 +52,8 @@ export const referenceDataRegistry = {
   pricingTemplates: {
     load: () => api.pricingTemplates.list(),
   },
-  providers: {
-    load: () => api.providers.list(),
+  vendors: {
+    load: () => api.vendors.list(),
   },
 } satisfies ReferenceDataRegistry;
 

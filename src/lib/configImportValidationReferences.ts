@@ -8,6 +8,7 @@ type CollectNamedReferencesOptions<T extends { name: string }> = {
   ctx: RefinementContext;
   collectionPath: string;
   referenceLabel: string;
+  getName?: (item: T) => string | null | undefined;
 };
 
 type ResolveReferenceNameOptions = {
@@ -45,11 +46,12 @@ export function collectNamedReferences<T extends { name: string }>({
   ctx,
   collectionPath,
   referenceLabel,
+  getName,
 }: CollectNamedReferencesOptions<T>): Set<string> {
   const names = new Set<string>();
 
   items.forEach((item, index) => {
-    const normalizedName = normalizeReferenceName(item.name);
+    const normalizedName = normalizeReferenceName(getName ? getName(item) : item.name);
 
     if (normalizedName === null) {
       addCustomIssue(

@@ -15,12 +15,13 @@ describe("spending filter split component", () => {
   it("shows custom range inputs when the custom preset is active", () => {
     renderWithLocale(
       <SpendingFilterGroups
+        apiFamilies={[]}
         connections={[]}
         formatTime={() => "12:00:00"}
         models={[]}
         onReset={vi.fn()}
-        providers={[]}
         reportCode="USD"
+        setSpendingApiFamily={vi.fn()}
         setSpendingConnectionId={vi.fn()}
         setSpendingFrom={vi.fn()}
         setSpendingGroupBy={vi.fn()}
@@ -28,16 +29,15 @@ describe("spending filter split component", () => {
         setSpendingModelId={vi.fn()}
         setSpendingOffset={vi.fn()}
         setSpendingPreset={vi.fn()}
-        setSpendingProviderType={vi.fn()}
         setSpendingTo={vi.fn()}
         setSpendingTopN={vi.fn()}
+        spendingApiFamily="all"
         spendingConnectionId=""
         spendingFrom="2026-03-01"
         spendingGroupBy="model"
         spendingLimit={20}
         spendingModelId=""
         spendingPreset="custom"
-        spendingProviderType="all"
         spendingTo="2026-03-31"
         spendingTopN={10}
         spendingUpdatedAt="2026-03-25T12:00:00Z"
@@ -53,12 +53,13 @@ describe("spending filter split component", () => {
 
     renderWithLocale(
       <SpendingFilterGroups
+        apiFamilies={[]}
         connections={[]}
         formatTime={() => "12:00:00"}
         models={[]}
         onReset={onReset}
-        providers={[]}
         reportCode="USD"
+        setSpendingApiFamily={vi.fn()}
         setSpendingConnectionId={vi.fn()}
         setSpendingFrom={vi.fn()}
         setSpendingGroupBy={vi.fn()}
@@ -66,16 +67,15 @@ describe("spending filter split component", () => {
         setSpendingModelId={vi.fn()}
         setSpendingOffset={vi.fn()}
         setSpendingPreset={vi.fn()}
-        setSpendingProviderType={vi.fn()}
         setSpendingTo={vi.fn()}
         setSpendingTopN={vi.fn()}
+        spendingApiFamily="all"
         spendingConnectionId=""
         spendingFrom=""
         spendingGroupBy="model"
         spendingLimit={20}
         spendingModelId=""
         spendingPreset="last_7_days"
-        spendingProviderType="all"
         spendingTo=""
         spendingTopN={10}
         spendingUpdatedAt="2026-03-25T12:00:00Z"
@@ -91,12 +91,13 @@ describe("spending filter split component", () => {
 
     renderWithLocale(
       <SpendingFilterGroups
+        apiFamilies={[]}
         connections={[]}
         formatTime={() => "12:00:00"}
         models={[]}
         onReset={vi.fn()}
-        providers={[]}
         reportCode="USD"
+        setSpendingApiFamily={vi.fn()}
         setSpendingConnectionId={vi.fn()}
         setSpendingFrom={vi.fn()}
         setSpendingGroupBy={vi.fn()}
@@ -104,16 +105,15 @@ describe("spending filter split component", () => {
         setSpendingModelId={vi.fn()}
         setSpendingOffset={vi.fn()}
         setSpendingPreset={vi.fn()}
-        setSpendingProviderType={vi.fn()}
         setSpendingTo={vi.fn()}
         setSpendingTopN={vi.fn()}
+        spendingApiFamily="all"
         spendingConnectionId=""
         spendingFrom=""
         spendingGroupBy="model"
         spendingLimit={20}
         spendingModelId=""
         spendingPreset="last_7_days"
-        spendingProviderType="all"
         spendingTo=""
         spendingTopN={10}
         spendingUpdatedAt="2026-03-25T12:00:00Z"
@@ -121,6 +121,7 @@ describe("spending filter split component", () => {
     );
 
     expect(screen.getByText("时间范围")).toBeInTheDocument();
+    expect(screen.getByText("API 家族")).toBeInTheDocument();
     expect(screen.getByText("分组方式")).toBeInTheDocument();
     expect(screen.getByText(/更新时间/)).toBeInTheDocument();
   });

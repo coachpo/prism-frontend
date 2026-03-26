@@ -77,7 +77,7 @@ export const stats = {
     from_time?: string;
     to_time?: string;
     model_id?: string;
-    provider_type?: string;
+    api_family?: string;
     endpoint_id?: number;
     connection_id?: number;
   }) => {

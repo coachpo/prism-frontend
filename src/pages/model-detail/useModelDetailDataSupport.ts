@@ -1,4 +1,5 @@
 import type {
+  ApiFamily,
   Connection,
   ConnectionCreate,
   Endpoint,
@@ -8,6 +9,19 @@ import type {
   ModelConfigListItem,
 } from "@/lib/types";
 import { normalizeProxyTargets } from "../models/modelFormState";
+
+function resolveApiFamily(
+  model: Pick<ModelConfig, "api_family"> | Pick<ModelConfigListItem, "api_family">,
+): ApiFamily {
+  return model.api_family ?? "openai";
+}
+
+function resolveVendorId(
+  model: Pick<ModelConfig, "vendor_id"> | Pick<ModelConfigListItem, "vendor_id">,
+  fallback?: Pick<ModelConfigListItem, "vendor_id" | "vendor">,
+) {
+  return model.vendor_id ?? fallback?.vendor_id ?? fallback?.vendor?.id ?? 0;
+}
 
 export const createDefaultEndpointForm = (): EndpointCreate => ({
   name: "",
@@ -162,8 +176,9 @@ export function patchModelListItemFromDetail(
 
     return {
       ...item,
-      provider_id: model.provider_id,
-      provider: model.provider,
+      vendor_id: resolveVendorId(model, item),
+      vendor: model.vendor ?? item.vendor,
+      api_family: model.api_family ?? item.api_family ?? resolveApiFamily(model),
       model_id: model.model_id,
       display_name: model.display_name,
       model_type: model.model_type,
@@ -192,7 +207,7 @@ export function buildProxyTargetOptions(
 
   const nativeTargets = allModels
     .filter((candidate) => (
-      candidate.provider_id === model.provider_id &&
+      resolveApiFamily(candidate) === resolveApiFamily(model) &&
       candidate.model_type === "native" &&
       candidate.id !== model.id
     ))

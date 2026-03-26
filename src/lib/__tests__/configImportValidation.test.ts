@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
-import type { ConfigImportRequest } from "../types";
+import type { ApiFamily, ConfigImportRequest, Vendor } from "../types";
 import { ConfigImportSchema } from "../configImportValidation";
 
 function buildImportPayload(): ConfigImportRequest {
   return {
-    version: 5,
+    version: 6,
     exported_at: "2026-03-25T08:00:00Z",
+    vendors: [
+      {
+        key: "openai",
+        name: "OpenAI",
+        description: "OpenAI vendor",
+        audit_enabled: true,
+        audit_capture_bodies: false,
+      },
+    ],
     endpoints: [
       {
         name: "openai-main",
@@ -24,7 +33,8 @@ function buildImportPayload(): ConfigImportRequest {
     ],
     models: [
       {
-        provider_type: "openai",
+        vendor_key: "openai",
+        api_family: "openai",
         model_id: "gpt-4o",
         display_name: "GPT-4o",
         model_type: "native",
@@ -59,6 +69,26 @@ function getIssuePairs(payload: ConfigImportRequest) {
 }
 
 describe("ConfigImportSchema", () => {
+  it("accepts version 6 imports and exposes vendor/api-family shared types", () => {
+    const vendor: Vendor = {
+      id: 1,
+      key: "openai",
+      name: "OpenAI",
+      description: "OpenAI vendor",
+      audit_enabled: true,
+      audit_capture_bodies: false,
+      created_at: "2026-03-25T08:00:00Z",
+      updated_at: "2026-03-25T08:00:00Z",
+    };
+    const apiFamily: ApiFamily = "openai";
+
+    const result = ConfigImportSchema.safeParse(buildImportPayload());
+
+    expect(vendor.key).toBe("openai");
+    expect(apiFamily).toBe("openai");
+    expect(result.success).toBe(true);
+  });
+
   it("normalizes reference names through the extracted helper module", async () => {
     const { normalizeReferenceName } = await import("../configImportValidationReferences");
 
@@ -99,8 +129,35 @@ describe("ConfigImportSchema", () => {
     }
   });
 
-  it("keeps version 5 strategy payloads valid when the new fields are omitted", () => {
+  it("keeps version 6 strategy payloads valid when the new fields are omitted", () => {
     const result = ConfigImportSchema.safeParse(buildImportPayload());
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts fill-first strategies in version 6 imports", () => {
+    const result = ConfigImportSchema.safeParse({
+      ...buildImportPayload(),
+      loadbalance_strategies: [
+        {
+          name: "fill-first-primary",
+          strategy_type: "fill-first",
+          failover_recovery_enabled: true,
+          failover_cooldown_seconds: 45,
+          failover_failure_threshold: 4,
+          failover_backoff_multiplier: 3.5,
+          failover_max_cooldown_seconds: 720,
+          failover_jitter_ratio: 0.35,
+          failover_auth_error_cooldown_seconds: 2400,
+        },
+      ],
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          loadbalance_strategy_name: "fill-first-primary",
+        },
+      ],
+    });
 
     expect(result.success).toBe(true);
   });

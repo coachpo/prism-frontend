@@ -1,8 +1,8 @@
 import type { LucideIcon } from "lucide-react";
-import { ProviderIcon } from "@/components/ProviderIcon";
+import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatProviderType } from "@/lib/utils";
+import { formatApiFamily } from "@/lib/utils";
 
 export function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -44,11 +44,15 @@ export function SectionCard({
   );
 }
 
-export function ProviderPill({ providerType }: { providerType: string }) {
+export function ApiFamilyPill({ apiFamily }: { apiFamily: string | null | undefined }) {
+  if (!apiFamily) {
+    return null;
+  }
+
   return (
     <Badge variant="outline" className="gap-1.5 border-border/70 bg-background/80 text-[10px] font-medium">
-      <ProviderIcon providerType={providerType} size={12} />
-      {formatProviderType(providerType)}
+      <ApiFamilyIcon apiFamily={apiFamily} size={12} />
+      {formatApiFamily(apiFamily)}
     </Badge>
   );
 }

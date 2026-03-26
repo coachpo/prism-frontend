@@ -1,10 +1,10 @@
-import { ProviderIcon } from "@/components/ProviderIcon";
+import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
 import { getCurrentLocale } from "@/i18n/format";
 import { enMessages } from "@/i18n/messages/en";
 import { zhCNMessages } from "@/i18n/messages/zh-CN";
 import { formatMoneyMicros } from "@/lib/costing";
-import { cn, formatProviderType } from "@/lib/utils";
+import { cn, formatApiFamily } from "@/lib/utils";
 import type { RequestLogEntry } from "@/lib/types";
 import { AlertCircle, Clock } from "lucide-react";
 
@@ -47,12 +47,9 @@ export interface ColumnDef {
   ) => React.ReactNode;
 }
 
-function getRequestLogMessages() {
-  return getCurrentLocale() === "zh-CN" ? zhCNMessages.requestLogs : enMessages.requestLogs;
-}
-
 export function getColumns(view: "all" | "compact"): ColumnDef[] {
-  const messages = getRequestLogMessages();
+  const localeMessages = getCurrentLocale() === "zh-CN" ? zhCNMessages : enMessages;
+  const messages = localeMessages.requestLogs;
   const base: ColumnDef[] = [
     {
       key: "created_at",
@@ -91,14 +88,14 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       },
     },
     {
-      key: "provider_type",
-      label: messages.provider,
+      key: "api_family",
+      label: localeMessages.common.apiFamily,
       width: 150,
       grow: 1,
       render: (row) => (
         <span className="flex items-center gap-2 overflow-hidden text-xs text-muted-foreground">
-          <ProviderIcon providerType={row.provider_type} size={14} className="text-muted-foreground" />
-          <span className="truncate">{formatProviderType(row.provider_type)}</span>
+          <ApiFamilyIcon apiFamily={row.api_family ?? ""} size={14} className="text-muted-foreground" />
+          <span className="truncate">{formatApiFamily(row.api_family ?? "")}</span>
         </span>
       ),
     },

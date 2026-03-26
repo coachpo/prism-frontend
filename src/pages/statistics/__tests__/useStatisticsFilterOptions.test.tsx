@@ -1,75 +1,118 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearSharedReferenceData } from "@/lib/referenceData";
 import { useStatisticsFilterOptions } from "../useStatisticsFilterOptions";
 
-const api = vi.hoisted(() => ({
-  endpoints: {
-    connections: vi.fn(),
-  },
-  models: {
-    list: vi.fn(),
-  },
-  providers: {
-    list: vi.fn(),
-  },
+const referenceData = vi.hoisted(() => ({
+  getSharedConnectionOptions: vi.fn(),
+  getSharedModels: vi.fn(),
+  getSharedVendors: vi.fn(),
 }));
 
-vi.mock("@/lib/api", () => ({ api }));
+vi.mock("@/lib/referenceData", () => referenceData);
 
 describe("useStatisticsFilterOptions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    clearSharedReferenceData();
-    api.models.list.mockResolvedValue([
-      { model_id: "gpt-5.4", display_name: "GPT-5.4" },
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    referenceData.getSharedModels.mockResolvedValue([
+      {
+        id: 1,
+        vendor_id: 10,
+        vendor: {
+          id: 10,
+          key: "openai",
+          name: "OpenAI",
+          description: null,
+          audit_enabled: false,
+          audit_capture_bodies: true,
+          created_at: "",
+          updated_at: "",
+        },
+        api_family: "openai",
+        model_id: "gpt-5.4",
+        display_name: "GPT 5.4",
+        model_type: "native",
+        proxy_targets: [],
+        loadbalance_strategy_id: null,
+        loadbalance_strategy: null,
+        is_enabled: true,
+        connection_count: 1,
+        active_connection_count: 1,
+        health_success_rate: null,
+        health_total_requests: 0,
+        created_at: "",
+        updated_at: "",
+      },
+      {
+        id: 2,
+        vendor_id: 11,
+        vendor: {
+          id: 11,
+          key: "anthropic",
+          name: "Anthropic",
+          description: null,
+          audit_enabled: false,
+          audit_capture_bodies: true,
+          created_at: "",
+          updated_at: "",
+        },
+        api_family: "anthropic",
+        model_id: "claude-sonnet-4-5",
+        display_name: "Claude Sonnet 4.5",
+        model_type: "native",
+        proxy_targets: [],
+        loadbalance_strategy_id: null,
+        loadbalance_strategy: null,
+        is_enabled: true,
+        connection_count: 1,
+        active_connection_count: 1,
+        health_success_rate: null,
+        health_total_requests: 0,
+        created_at: "",
+        updated_at: "",
+      },
     ]);
-    api.endpoints.connections.mockResolvedValue({
-      items: [{ connection_id: 1, label: "Primary", provider_type: "openai" }],
-    });
-    api.providers.list.mockRejectedValue(new Error("provider lookup failed"));
+    referenceData.getSharedConnectionOptions.mockResolvedValue([{ id: 7, name: "Primary" }]);
+    referenceData.getSharedVendors.mockResolvedValue([
+      {
+        id: 10,
+        key: "openai",
+        name: "OpenAI",
+        description: null,
+        audit_enabled: false,
+        audit_capture_bodies: true,
+        created_at: "",
+        updated_at: "",
+      },
+    ]);
   });
 
   afterEach(() => {
-    clearSharedReferenceData();
+    vi.restoreAllMocks();
   });
 
-  it("keeps model and connection filters when provider loading fails", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-
+  it("derives api-family filter options separately from vendor lookups", async () => {
     const { result } = renderHook(() => useStatisticsFilterOptions(1));
 
     await waitFor(() => {
-      expect(result.current.models).toHaveLength(1);
-      expect(result.current.connections).toHaveLength(1);
+      expect(result.current.apiFamilies).toEqual(["openai", "anthropic"]);
     });
 
-    expect(result.current.providers).toEqual([]);
-    expect(consoleError).toHaveBeenCalledWith(
-      "Failed to fetch statistics providers",
-      expect.any(Error)
-    );
-
-    consoleError.mockRestore();
+    expect(result.current.vendors).toHaveLength(1);
+    expect(result.current.connections).toHaveLength(1);
+    expect(result.current.models).toEqual([
+      { model_id: "gpt-5.4", display_name: "GPT 5.4" },
+      { model_id: "claude-sonnet-4-5", display_name: "Claude Sonnet 4.5" },
+    ]);
   });
 
-  it("reuses shared filter data across hook instances for the same revision", async () => {
-    api.providers.list.mockResolvedValueOnce([
-      { id: 10, provider_type: "openai", audit_enabled: false, created_at: "", updated_at: "" },
-    ]);
+  it("falls back to the canonical api families when model bootstrap fails", async () => {
+    referenceData.getSharedModels.mockRejectedValueOnce(new Error("models unavailable"));
 
-    const first = renderHook(() => useStatisticsFilterOptions(2));
-    const second = renderHook(() => useStatisticsFilterOptions(2));
+    const { result } = renderHook(() => useStatisticsFilterOptions(2));
 
     await waitFor(() => {
-      expect(first.result.current.models).toHaveLength(1);
-      expect(second.result.current.models).toHaveLength(1);
-      expect(first.result.current.providers).toHaveLength(1);
-      expect(second.result.current.providers).toHaveLength(1);
+      expect(result.current.apiFamilies).toEqual(["openai", "anthropic", "gemini"]);
     });
-
-    expect(api.models.list).toHaveBeenCalledTimes(1);
-    expect(api.endpoints.connections).toHaveBeenCalledTimes(1);
-    expect(api.providers.list).toHaveBeenCalledTimes(1);
   });
 });

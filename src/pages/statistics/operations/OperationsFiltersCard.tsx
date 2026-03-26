@@ -1,8 +1,8 @@
 import { Filter } from "lucide-react";
 import { useLocale } from "@/i18n/useLocale";
+import { ApiFamilySelect } from "@/components/ApiFamilySelect";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ProviderSelect } from "@/components/ProviderSelect";
 import {
   Select,
   SelectContent,
@@ -24,11 +24,11 @@ interface OperationsFiltersCardProps
     OperationsTabProps,
     | "models"
     | "connections"
-    | "providers"
+    | "apiFamilies"
     | "modelId"
     | "setModelId"
-    | "providerType"
-    | "setProviderType"
+    | "apiFamily"
+    | "setApiFamily"
     | "connectionId"
     | "setConnectionId"
     | "timeRange"
@@ -45,11 +45,11 @@ interface OperationsFiltersCardProps
 export function OperationsFiltersCard({
   models,
   connections,
-  providers,
+  apiFamilies,
   modelId,
   setModelId,
-  providerType,
-  setProviderType,
+  apiFamily,
+  setApiFamily,
   connectionId,
   setConnectionId,
   timeRange,
@@ -108,10 +108,11 @@ export function OperationsFiltersCard({
             </SelectContent>
           </Select>
 
-          <ProviderSelect
-            value={providerType}
-            onValueChange={setProviderType}
-            providers={providers}
+          <ApiFamilySelect
+            value={apiFamily}
+            onValueChange={setApiFamily}
+            apiFamilies={apiFamilies}
+            allLabel={`${messages.statistics.all} ${messages.common.apiFamily}`}
             className="h-8 text-xs"
           />
 

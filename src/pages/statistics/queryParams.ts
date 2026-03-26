@@ -38,7 +38,7 @@ export const SPENDING_GROUP_BY_OPTIONS: readonly SpendingGroupBy[] = [
   "day",
   "week",
   "month",
-  "provider",
+  "api_family",
   "model",
   "endpoint",
   "model_endpoint",

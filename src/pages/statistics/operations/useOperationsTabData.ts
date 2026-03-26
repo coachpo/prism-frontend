@@ -24,7 +24,7 @@ const OPERATIONS_REPORT_CODE = "USD";
 interface UseOperationsTabDataInput {
   logs: StatisticsRequestLogEntry[];
   modelId: string;
-  providerType: string;
+  apiFamily: string;
   connectionId: string;
   timeRange: "1h" | "24h" | "7d" | "all";
   specialTokenFilter: SpecialTokenFilter;

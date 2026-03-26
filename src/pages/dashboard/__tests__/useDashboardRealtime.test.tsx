@@ -34,7 +34,7 @@ function makeRequestLog(overrides: Partial<RequestLogEntry> = {}): RequestLogEnt
     model_id: "gpt-4o-mini",
     resolved_target_model_id: null,
     profile_id: 1,
-    provider_type: "openai",
+    api_family: "openai",
     endpoint_id: 2,
     connection_id: 3,
     ingress_request_id: null,
@@ -105,7 +105,7 @@ function makeUpdatePayload(): DashboardRealtimeUpdatePayload {
       total_tokens: 300,
       groups: [],
     },
-    provider_summary_24h: {
+    api_family_summary_24h: {
       total_requests: 40,
       success_count: 38,
       error_count: 2,
@@ -190,7 +190,7 @@ describe("useDashboardRealtime", () => {
 
     let recentRequests = [makeRequestLog({ id: 100 })];
     let stats: StatsSummary | null = null;
-    let providerStats: StatsSummary | null = null;
+    let apiFamilyStats: StatsSummary | null = null;
     let spending: SpendingReportResponse | null = null;
     let throughput: ThroughputStatsResponse | null = null;
     let routingDiagramData: RoutingDiagramData | null = null;
@@ -202,8 +202,8 @@ describe("useDashboardRealtime", () => {
     const setStats = vi.fn((value) => {
       stats = typeof value === "function" ? value(stats) : value;
     });
-    const setProviderStats = vi.fn((value) => {
-      providerStats = typeof value === "function" ? value(providerStats) : value;
+    const setApiFamilyStats = vi.fn((value) => {
+      apiFamilyStats = typeof value === "function" ? value(apiFamilyStats) : value;
     });
     const setSpending = vi.fn((value) => {
       spending = typeof value === "function" ? value(spending) : value;
@@ -224,7 +224,7 @@ describe("useDashboardRealtime", () => {
         fetchDashboardData: vi.fn(),
         latestDashboardRequestIdRef,
         selectedProfileId: 1,
-        setProviderStats,
+        setApiFamilyStats,
         setRecentRequests,
         setRoutingDiagramData,
         setRoutingDiagramError,
@@ -241,7 +241,7 @@ describe("useDashboardRealtime", () => {
     expect(latestDashboardRequestIdRef.current).toBe(202);
     expect(recentRequests.map((request) => request.id)).toEqual([202, 100]);
     expect(stats).toEqual(payload.stats_summary_24h);
-    expect(providerStats).toEqual(payload.provider_summary_24h);
+    expect(apiFamilyStats).toEqual(payload.api_family_summary_24h);
     expect(spending).toEqual(payload.spending_summary_30d);
     expect(throughput).toEqual(payload.throughput_24h);
     expect(routingDiagramError).toBeNull();
@@ -271,7 +271,7 @@ describe("useDashboardRealtime", () => {
         fetchDashboardData,
         latestDashboardRequestIdRef: { current: 0 },
         selectedProfileId: 1,
-        setProviderStats: vi.fn(),
+        setApiFamilyStats: vi.fn(),
         setRecentRequests: vi.fn(),
         setRoutingDiagramData: vi.fn(),
         setRoutingDiagramError: vi.fn(),

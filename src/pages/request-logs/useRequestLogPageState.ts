@@ -34,7 +34,7 @@ export function useRequestLogPageState() {
   );
 
   const setModelId = useCallback((v: string) => update({ model_id: v }), [update]);
-  const setProviderType = useCallback((v: string) => update({ provider_type: v }), [update]);
+  const setApiFamily = useCallback((v: string) => update({ api_family: v }), [update]);
   const setConnectionId = useCallback((v: string) => update({ connection_id: v }), [update]);
   const setEndpointId = useCallback((v: string) => update({ endpoint_id: v }), [update]);
   const setTimeRange = useCallback((v: TimeRange) => update({ time_range: v }), [update]);
@@ -92,7 +92,7 @@ export function useRequestLogPageState() {
   const hasActiveFilters = !!(
     state.ingress_request_id ||
     state.model_id ||
-    state.provider_type ||
+    state.api_family ||
     state.connection_id ||
     state.endpoint_id ||
     state.time_range !== DEFAULTS.time_range ||
@@ -114,7 +114,7 @@ export function useRequestLogPageState() {
     isExactMode,
     hasActiveFilters,
     setModelId,
-    setProviderType,
+    setApiFamily,
     setConnectionId,
     setEndpointId,
     setTimeRange,

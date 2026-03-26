@@ -1,5 +1,6 @@
-import { ProviderSelect } from "@/components/ProviderSelect";
+import { ApiFamilySelect } from "@/components/ApiFamilySelect";
 import { SwitchController } from "@/components/SwitchController";
+import { VendorSelect } from "@/components/VendorSelect";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/useLocale";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
@@ -18,7 +19,7 @@ import type {
   LoadbalanceStrategy,
   ModelConfigCreate,
   ModelConfigListItem,
-  Provider,
+  Vendor,
 } from "@/lib/types";
 import type { SubmitEventLike } from "./modelFormState";
 import {
@@ -33,9 +34,8 @@ type Props = {
   formData: ModelConfigCreate;
   isDialogOpen: boolean;
   loadbalanceStrategies: LoadbalanceStrategy[];
-  nativeModelsForProvider: ModelConfigListItem[];
-  providers: Provider[];
-  selectedProvider?: Provider;
+  nativeModelsForApiFamily: ModelConfigListItem[];
+  vendors: Vendor[];
   setFormData: (value: ModelConfigCreate | ((prev: ModelConfigCreate) => ModelConfigCreate)) => void;
   setIsDialogOpen: (open: boolean) => void;
   setLoadbalanceStrategyId: (value: number | null) => void;
@@ -48,24 +48,25 @@ export function ModelDialog({
   formData,
   isDialogOpen,
   loadbalanceStrategies,
-  nativeModelsForProvider,
-  providers,
-  selectedProvider,
+  nativeModelsForApiFamily,
+  vendors,
   setFormData,
   setIsDialogOpen,
   setLoadbalanceStrategyId,
   setModelType,
   onSubmit,
 }: Props) {
-  const { locale } = useLocale();
+  const { locale, messages } = useLocale();
+  const strategyCopy = messages.loadbalanceStrategyCopy;
+  const fieldCopy = messages.common;
   const normalizedProxyTargets = normalizeProxyTargets(formData.proxy_targets);
   const selectedProxyTargetIds = new Set(normalizedProxyTargets.map((target) => target.target_model_id));
-  const remainingProxyTargets = nativeModelsForProvider.filter(
+  const remainingProxyTargets = nativeModelsForApiFamily.filter(
     (model) => !selectedProxyTargetIds.has(model.model_id),
   );
 
   const resolveTargetLabel = (targetModelId: string) => {
-    const matchedModel = nativeModelsForProvider.find((model) => model.model_id === targetModelId);
+    const matchedModel = nativeModelsForApiFamily.find((model) => model.model_id === targetModelId);
     if (!matchedModel) {
       return targetModelId;
     }
@@ -75,6 +76,18 @@ export function ModelDialog({
       : matchedModel.model_id;
   };
 
+  const getStrategyOptionText = (strategy: LoadbalanceStrategy) => {
+    if (strategy.strategy_type === "fill-first") {
+      return `${strategy.name} (${strategyCopy.fillFirstLabel} · ${strategyCopy.fillFirstSummary})`;
+    }
+
+    if (strategy.strategy_type === "failover") {
+      return `${strategy.name} (${strategyCopy.failoverLabel} · ${strategyCopy.failoverSummary})`;
+    }
+
+    return `${strategy.name} (${strategyCopy.singleLabel})`;
+  };
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="sm:max-w-md">
@@ -82,33 +95,48 @@ export function ModelDialog({
           <DialogTitle>{editingModel ? (locale === "zh-CN" ? "编辑模型" : "Edit Model") : locale === "zh-CN" ? "新建模型" : "New Model"}</DialogTitle>
           <DialogDescription>
             {locale === "zh-CN"
-              ? "配置此模型的提供商、路由类型和策略绑定。"
-              : "Configure provider, routing type, and strategy attachment for this model."}
+              ? "配置此模型的供应商、API 家族、路由类型和策略绑定。"
+              : "Configure vendor, API family, routing type, and strategy attachment for this model."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label>{locale === "zh-CN" ? "提供商" : "Provider"}</Label>
-            <ProviderSelect
-              value={String(formData.provider_id)}
-              onValueChange={(v) =>
-                setFormData((prev) => {
-                  const nextProviderId = Number.parseInt(v, 10);
-                  return {
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>{fieldCopy.vendor}</Label>
+              <VendorSelect
+                value={String(formData.vendor_id ?? "")}
+                onValueChange={(value) => {
+                  const nextVendorId = Number.parseInt(value, 10);
+                  setFormData((prev) => ({
                     ...prev,
-                    provider_id: nextProviderId,
+                    vendor_id: nextVendorId,
+                  }));
+                }}
+                valueType="vendor_id"
+                vendors={vendors}
+                showAll={false}
+                placeholder={locale === "zh-CN" ? "选择供应商" : "Select vendor"}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>{fieldCopy.apiFamily}</Label>
+              <ApiFamilySelect
+                value={formData.api_family ?? ""}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    api_family: value as typeof prev.api_family,
                     proxy_targets:
-                      prev.model_type === "proxy" && nextProviderId !== prev.provider_id
+                      prev.model_type === "proxy" && value !== prev.api_family
                         ? []
                         : normalizeProxyTargets(prev.proxy_targets),
-                  };
-                })
-              }
-              valueType="provider_id"
-              providers={providers}
-              showAll={false}
-              placeholder={locale === "zh-CN" ? "选择提供商" : "Select provider"}
-            />
+                  }))
+                }
+                showAll={false}
+                placeholder={locale === "zh-CN" ? "选择 API 家族" : "Select API family"}
+              />
+            </div>
           </div>
 
           {!editingModel && (
@@ -153,11 +181,11 @@ export function ModelDialog({
                   ? "请求会按顺序尝试这些原生目标，找到第一个可用目标后停止。"
                   : "Requests try these native targets in order and stop at the first available target."}
               </p>
-              {nativeModelsForProvider.length === 0 ? (
+              {nativeModelsForApiFamily.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {locale === "zh-CN"
-                    ? `${selectedProvider?.name || "该提供商"} 暂无可用的原生模型。请先创建一个原生模型。`
-                    : `No native models available for ${selectedProvider?.name || "this provider"}. Create a native model first.`}
+                    ? `${formData.api_family || "该 API 家族"} 暂无可用的原生模型。请先创建一个原生模型。`
+                    : `No native models available for the ${formData.api_family || "selected"} API family. Create a native model first.`}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -236,8 +264,8 @@ export function ModelDialog({
                     <p className="text-xs text-muted-foreground">
                       {remainingProxyTargets.length === 0
                         ? locale === "zh-CN"
-                          ? "当前提供商下的原生模型都已加入。"
-                          : "All native models for this provider are already included."
+                          ? "当前 API 家族下的原生模型都已加入。"
+                          : "All native models for this API family are already included."
                         : locale === "zh-CN"
                           ? `还可添加 ${remainingProxyTargets.length} 个原生模型。`
                           : `${remainingProxyTargets.length} more native targets available.`}
@@ -281,17 +309,17 @@ export function ModelDialog({
                   value={formData.loadbalance_strategy_id === null ? undefined : String(formData.loadbalance_strategy_id)}
                   onValueChange={(value) => setLoadbalanceStrategyId(Number.parseInt(value, 10))}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder={locale === "zh-CN" ? "选择策略" : "Select strategy"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {loadbalanceStrategies.map((strategy) => (
-                      <SelectItem key={strategy.id} value={String(strategy.id)}>
-                        {strategy.name} ({strategy.strategy_type})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder={locale === "zh-CN" ? "选择策略" : "Select strategy"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loadbalanceStrategies.map((strategy) => (
+                        <SelectItem key={strategy.id} value={String(strategy.id)}>
+                          {getStrategyOptionText(strategy)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
               )}
             </div>
           )}

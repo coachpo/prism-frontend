@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ProviderIcon } from "@/components/ProviderIcon";
-import { formatProviderType, formatLabel } from "@/lib/utils";
+import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
+import { useLocale } from "@/i18n/useLocale";
+import { formatApiFamily } from "@/lib/utils";
 import { formatMoneyMicros } from "@/lib/costing";
 import { useTimezone } from "@/hooks/useTimezone";
 import { Coins, Gauge, FileText } from "lucide-react";
@@ -43,6 +44,11 @@ export function OverviewCards({
   onViewRequestLogs,
 }: OverviewCardsProps) {
   const { format: formatTime } = useTimezone();
+  const { messages } = useLocale();
+  const strategyCopy = messages.loadbalanceStrategyCopy;
+  const fieldCopy = messages.common;
+  const apiFamily = model.api_family ?? "openai";
+  const vendorLabel = model.vendor?.name ?? formatApiFamily(apiFamily);
 
   return (
     <>
@@ -52,10 +58,16 @@ export function OverviewCards({
             <h3 className="font-semibold mb-4">Configuration</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Provider</p>
+                <p className="text-xs text-muted-foreground mb-1">{fieldCopy.vendor}</p>
                 <div className="flex items-center gap-2">
-                  <ProviderIcon providerType={model.provider.provider_type} size={14} />
-                  <span className="text-sm font-medium">{formatProviderType(model.provider.provider_type)}</span>
+                  <span className="text-sm font-medium">{vendorLabel}</span>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">{fieldCopy.apiFamily}</p>
+                <div className="flex items-center gap-2">
+                  <ApiFamilyIcon apiFamily={apiFamily} size={14} />
+                  <span className="text-sm font-medium">{formatApiFamily(apiFamily)}</span>
                 </div>
               </div>
               <div>
@@ -77,7 +89,11 @@ export function OverviewCards({
                     <div className="space-y-0.5">
                       <div>{model.loadbalance_strategy.name}</div>
                       <div className="text-xs font-normal text-muted-foreground">
-                        {formatLabel(model.loadbalance_strategy.strategy_type)}
+                        {model.loadbalance_strategy.strategy_type === "fill-first"
+                          ? strategyCopy.fillFirstSummary
+                          : model.loadbalance_strategy.strategy_type === "failover"
+                            ? strategyCopy.failoverSummary
+                            : strategyCopy.singleLabel}
                       </div>
                     </div>
                   ) : (
@@ -89,14 +105,12 @@ export function OverviewCards({
                 <p className="text-xs text-muted-foreground mb-1">Strategy Recovery</p>
                 <span className="text-sm font-medium">
                   {model.model_type === "native" && model.loadbalance_strategy ? (
-                    model.loadbalance_strategy.strategy_type === "failover" ? (
-                      model.loadbalance_strategy.failover_recovery_enabled ? (
-                        <span className="text-emerald-600 dark:text-emerald-400">Enabled</span>
-                      ) : (
-                        <span className="text-muted-foreground">Disabled</span>
-                      )
-                    ) : (
+                    model.loadbalance_strategy.strategy_type === "single" ? (
                       <span className="text-muted-foreground">Not applicable for single strategies</span>
+                    ) : model.loadbalance_strategy.failover_recovery_enabled ? (
+                      <span className="text-emerald-600 dark:text-emerald-400">Enabled</span>
+                    ) : (
+                      <span className="text-muted-foreground">Disabled</span>
                     )
                   ) : (
                     <span className="text-muted-foreground">N/A</span>
@@ -172,6 +186,7 @@ export function OverviewCards({
           </CardContent>
         </Card>
       </div>
+
       <Card>
         <CardContent className="p-4">
           <h3 className="font-semibold mb-4 flex items-center gap-2">

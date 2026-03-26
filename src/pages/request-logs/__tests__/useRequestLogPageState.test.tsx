@@ -118,4 +118,22 @@ describe("useRequestLogPageState", () => {
     expect(result.current.state.ingress_request_id).toBe("ingress_req_42");
     expect(result.current.state.offset).toBe(0);
   });
+
+  it("uses api_family query state for family filters", async () => {
+    const { result } = renderHook(() => useRequestLogPageState(), {
+      wrapper: createWrapper("/request-logs?api_family=anthropic&offset=50"),
+    });
+
+    expect(result.current.state.api_family).toBe("anthropic");
+
+    act(() => {
+      result.current.setApiFamily("gemini");
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.api_family).toBe("gemini");
+    });
+
+    expect(result.current.state.offset).toBe(0);
+  });
 });

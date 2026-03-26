@@ -140,7 +140,7 @@ export function LoadbalanceEventDetailSheet({
                   <DetailRow label="Model ID" value={event.model_id} />
                   <DetailRow label="Connection ID" value={event.connection_id} />
                   <DetailRow label="Endpoint ID" value={event.endpoint_id} />
-                  <DetailRow label="Provider ID" value={event.provider_id} />
+                  <DetailRow label="Vendor ID" value={event.vendor_id} />
                   <DetailRow label="Profile ID" value={event.profile_id} />
                   <DetailRow label="Consecutive Failures" value={event.consecutive_failures} />
                 </div>

@@ -15,17 +15,18 @@ vi.mock("@/lib/api", () => ({ api }));
 
 const model: ModelConfig = {
   id: 1,
-  provider_id: 10,
-  provider: {
+  vendor_id: 10,
+  vendor: {
     id: 10,
+    key: "openai",
     name: "OpenAI",
-    provider_type: "openai",
     description: null,
     audit_enabled: false,
     audit_capture_bodies: false,
     created_at: "",
     updated_at: "",
   },
+  api_family: "openai",
   model_id: "gpt-5.4",
   display_name: "GPT-5.4",
   model_type: "native",

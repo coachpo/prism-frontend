@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ComponentProps } from "react";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { DeleteModelDialog } from "../DeleteModelDialog";
 import { ModelDialog } from "../ModelDialog";
@@ -19,35 +20,38 @@ describe("model dialogs i18n", () => {
   });
 
   it("renders localized model dialog copy", () => {
+    const dialogProps: ComponentProps<typeof ModelDialog> = {
+      editingModel: null,
+      formData: {
+        vendor_id: 1,
+        api_family: "openai",
+        model_id: "",
+        display_name: null,
+        model_type: "native",
+        proxy_targets: [],
+        loadbalance_strategy_id: null,
+        is_enabled: true,
+      },
+      isDialogOpen: true,
+      loadbalanceStrategies: [],
+      nativeModelsForApiFamily: [],
+      vendors: [],
+      setFormData: vi.fn(),
+      setIsDialogOpen: vi.fn(),
+      setLoadbalanceStrategyId: vi.fn(),
+      setModelType: vi.fn(),
+      onSubmit: vi.fn(),
+    };
+
     render(
       <LocaleProvider>
-        <ModelDialog
-          editingModel={null}
-          formData={{
-            provider_id: 1,
-            model_id: "",
-            display_name: null,
-            model_type: "native",
-            proxy_targets: [],
-            loadbalance_strategy_id: null,
-            is_enabled: true,
-          }}
-          isDialogOpen={true}
-          loadbalanceStrategies={[]}
-          nativeModelsForProvider={[]}
-          providers={[]}
-          selectedProvider={undefined}
-          setFormData={vi.fn()}
-          setIsDialogOpen={vi.fn()}
-          setLoadbalanceStrategyId={vi.fn()}
-          setModelType={vi.fn()}
-          onSubmit={vi.fn()}
-        />
+        <ModelDialog {...dialogProps} />
       </LocaleProvider>,
     );
 
     expect(screen.getByText("新建模型")).toBeInTheDocument();
-    expect(screen.getByText("提供商")).toBeInTheDocument();
+    expect(screen.getByText("供应商")).toBeInTheDocument();
+    expect(screen.getByText("API 家族")).toBeInTheDocument();
     expect(screen.getByText("模型 ID")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
   });
@@ -58,17 +62,18 @@ describe("model dialogs i18n", () => {
         <DeleteModelDialog
           deleteTarget={{
             id: 1,
-            provider_id: 1,
-            provider: {
+            vendor_id: 1,
+            vendor: {
               id: 1,
+              key: "openai",
               name: "OpenAI",
-              provider_type: "openai",
               description: null,
               audit_enabled: false,
               audit_capture_bodies: false,
               created_at: "",
               updated_at: "",
             },
+            api_family: "openai",
             model_id: "gpt-4o",
             display_name: "GPT 4O",
             model_type: "native",

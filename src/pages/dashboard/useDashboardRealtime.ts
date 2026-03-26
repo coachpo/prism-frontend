@@ -13,7 +13,7 @@ type Params = {
   fetchDashboardData: (args?: { forceRefresh?: boolean; silent?: boolean }) => Promise<void>;
   latestDashboardRequestIdRef: React.MutableRefObject<number>;
   selectedProfileId: number | null;
-  setProviderStats: React.Dispatch<React.SetStateAction<StatsSummary | null>>;
+  setApiFamilyStats: React.Dispatch<React.SetStateAction<StatsSummary | null>>;
   setRecentRequests: React.Dispatch<React.SetStateAction<RequestLogEntry[]>>;
   setRoutingDiagramData: React.Dispatch<React.SetStateAction<RoutingDiagramData | null>>;
   setRoutingDiagramError: React.Dispatch<React.SetStateAction<string | null>>;
@@ -26,7 +26,7 @@ export function useDashboardRealtime({
   fetchDashboardData,
   latestDashboardRequestIdRef,
   selectedProfileId,
-  setProviderStats,
+  setApiFamilyStats,
   setRecentRequests,
   setRoutingDiagramData,
   setRoutingDiagramError,
@@ -65,7 +65,7 @@ export function useDashboardRealtime({
       setRecentNewIds((prev) => new Set(prev).add(entry.id));
 
       setStats(update.stats_summary_24h);
-      setProviderStats(update.provider_summary_24h);
+      setApiFamilyStats(update.api_family_summary_24h);
       setSpending(update.spending_summary_30d);
       setThroughput(update.throughput_24h);
       setRoutingDiagramError(null);
@@ -77,7 +77,7 @@ export function useDashboardRealtime({
     },
     [
       latestDashboardRequestIdRef,
-      setProviderStats,
+      setApiFamilyStats,
       setRecentRequests,
       setRoutingDiagramData,
       setRoutingDiagramError,

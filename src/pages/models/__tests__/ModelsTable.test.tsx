@@ -2,14 +2,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { ModelConfigListItem, Provider } from "@/lib/types";
+import type { ModelConfigListItem, Vendor } from "@/lib/types";
 import { ModelsTable } from "../ModelsTable";
 
-function buildProvider(overrides: Partial<Provider> = {}): Provider {
+function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
   return {
     id: 7,
+    key: "openai",
     name: "OpenAI",
-    provider_type: "openai",
     description: null,
     audit_enabled: false,
     audit_capture_bodies: false,
@@ -22,8 +22,9 @@ function buildProvider(overrides: Partial<Provider> = {}): Provider {
 function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigListItem {
   return {
     id: 11,
-    provider_id: 7,
-    provider: buildProvider(),
+    vendor_id: 7,
+    vendor: buildVendor(),
+    api_family: "openai",
     model_id: "gpt-4o-mini",
     display_name: "GPT-4o Mini",
     model_type: "native",
@@ -194,21 +195,29 @@ describe("ModelsTable", () => {
     }
   });
 
-  it("renders provider-grouped sections with visible model counts", () => {
+  it("renders api-family sections while keeping vendor labels on the individual rows", () => {
     renderTable({
       filtered: [
-        buildModel(),
+        buildModel({
+          vendor_id: 30,
+          vendor: buildVendor({ id: 30, key: "together-ai", name: "Together AI" }),
+          api_family: "openai",
+        }),
         buildModel({
           id: 12,
           model_id: "gpt-4.1-mini",
           display_name: "GPT-4.1 Mini",
+          vendor_id: 7,
+          vendor: buildVendor({ id: 7, key: "openai", name: "OpenAI" }),
+          api_family: "openai",
         }),
         buildModel({
           id: 13,
           model_id: "claude-sonnet-4-6",
           display_name: "Claude Sonnet 4.6",
-          provider_id: 20,
-          provider: buildProvider({ id: 20, name: "Anthropic", provider_type: "anthropic" }),
+          vendor_id: 20,
+          vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
+          api_family: "anthropic",
           model_type: "proxy",
           proxy_targets: [
             { target_model_id: "claude-sonnet-4-5-20250929", position: 0 },
@@ -222,12 +231,14 @@ describe("ModelsTable", () => {
 
     expect(screen.getByRole("button", { name: /openai/i })).toHaveTextContent("2 models");
     expect(screen.getByRole("button", { name: /anthropic/i })).toHaveTextContent("1 model");
+    expect(screen.getByText("Together AI")).toBeInTheDocument();
+    expect(screen.getAllByText("OpenAI").length).toBeGreaterThan(0);
     expect(screen.getByText("GPT-4o Mini")).toBeInTheDocument();
     expect(screen.getByText("GPT-4.1 Mini")).toBeInTheDocument();
     expect(screen.getByText("Claude Sonnet 4.6")).toBeInTheDocument();
   });
 
-  it("collapses and re-expands a provider group without affecting other groups", () => {
+  it("collapses and re-expands an API family group without affecting other groups", () => {
     renderTable({
       filtered: [
         buildModel(),
@@ -240,8 +251,9 @@ describe("ModelsTable", () => {
           id: 13,
           model_id: "claude-sonnet-4-6",
           display_name: "Claude Sonnet 4.6",
-          provider_id: 20,
-          provider: buildProvider({ id: 20, name: "Anthropic", provider_type: "anthropic" }),
+          vendor_id: 20,
+          vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
+          api_family: "anthropic",
         }),
       ],
     });
@@ -260,7 +272,7 @@ describe("ModelsTable", () => {
     expect(screen.getByText("GPT-4.1 Mini")).toBeInTheDocument();
   });
 
-  it("keeps matching provider rows visible while search is active even after the group was collapsed", () => {
+  it("keeps matching API family rows visible while search is active even after the group was collapsed", () => {
     const allModels = [
       buildModel(),
       buildModel({
@@ -272,8 +284,9 @@ describe("ModelsTable", () => {
         id: 13,
         model_id: "claude-sonnet-4-6",
         display_name: "Claude Sonnet 4.6",
-        provider_id: 20,
-        provider: buildProvider({ id: 20, name: "Anthropic", provider_type: "anthropic" }),
+        vendor_id: 20,
+        vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
+        api_family: "anthropic",
       }),
     ];
     const { rerender } = renderTable({ filtered: allModels });
@@ -289,7 +302,7 @@ describe("ModelsTable", () => {
               path="/models"
               element={
                 <ModelsTable
-                  filtered={allModels.filter((model) => model.provider.provider_type === "openai")}
+                  filtered={allModels.filter((model) => model.api_family === "openai")}
                   handleOpenDialog={vi.fn()}
                   metricsLoading={false}
                   modelMetrics24h={{}}
@@ -326,8 +339,9 @@ describe("ModelsTable", () => {
           id: 13,
           model_id: "claude-sonnet-4-6",
           display_name: "Claude Sonnet 4.6",
-          provider_id: 20,
-          provider: buildProvider({ id: 20, name: "Anthropic", provider_type: "anthropic" }),
+          vendor_id: 20,
+          vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
+          api_family: "anthropic",
           model_type: "proxy",
           proxy_targets: [
             { target_model_id: "claude-sonnet-4-5-20250929", position: 0 },
@@ -341,6 +355,26 @@ describe("ModelsTable", () => {
 
     expect(screen.getByText("2 targets · claude-sonnet-4-5-20250929 first")).toBeInTheDocument();
     expect(screen.queryByText(/Target claude-sonnet-4-5-20250929/i)).not.toBeInTheDocument();
+  });
+
+  it("renders priority spillover summaries for fill-first strategies", () => {
+    renderTable({
+      filtered: [
+        buildModel({
+          loadbalance_strategy: {
+            ...buildModel().loadbalance_strategy!,
+            id: 101,
+            name: "priority-pack",
+            strategy_type: "fill-first",
+            failover_recovery_enabled: true,
+          },
+          loadbalance_strategy_id: 101,
+        }),
+      ],
+    });
+
+    expect(screen.getByText("priority-pack · Priority spillover")).toBeInTheDocument();
+    expect(screen.queryByText(/Fill First/i)).not.toBeInTheDocument();
   });
 
   it("renders a smaller copy button next to the model id", () => {

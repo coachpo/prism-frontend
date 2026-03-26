@@ -28,8 +28,18 @@ describe("useCostingSettingsBootstrap", () => {
     api.models.list.mockResolvedValue([
       {
         id: 1,
-        provider_id: 10,
-        provider: { id: 10, provider_type: "openai", audit_enabled: false, created_at: "", updated_at: "" },
+        vendor_id: 10,
+        vendor: {
+          id: 10,
+          key: "openai",
+          name: "OpenAI",
+          description: null,
+          audit_enabled: false,
+          audit_capture_bodies: true,
+          created_at: "",
+          updated_at: "",
+        },
+        api_family: "openai",
         model_id: "gpt-5.4",
         display_name: "GPT-5.4",
         model_type: "native",

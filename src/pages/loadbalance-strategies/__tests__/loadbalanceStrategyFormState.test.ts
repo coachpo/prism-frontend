@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { LoadbalanceStrategy } from "@/lib/types";
 import {
   DEFAULT_LOADBALANCE_STRATEGY_FORM,
   getLoadbalanceStrategyFormValidationError,
@@ -25,11 +26,11 @@ describe("loadbalanceStrategyFormState", () => {
   });
 
   it("hydrates all failover policy fields from an existing strategy", () => {
-    const strategy = {
+    const strategy: LoadbalanceStrategy = {
       id: 12,
       profile_id: 3,
       name: "Primary failover",
-      strategy_type: "failover" as const,
+      strategy_type: "failover",
       failover_recovery_enabled: true,
       failover_cooldown_seconds: 45,
       failover_failure_threshold: 4,
@@ -43,7 +44,7 @@ describe("loadbalanceStrategyFormState", () => {
       attached_model_count: 4,
       created_at: "2026-03-25T08:00:00Z",
       updated_at: "2026-03-25T08:00:00Z",
-    } as const;
+    };
 
     expect(loadbalanceStrategyFormStateFromStrategy(strategy)).toMatchObject({
       name: "Primary failover",
@@ -58,6 +59,46 @@ describe("loadbalanceStrategyFormState", () => {
       failover_ban_mode: "temporary",
       failover_max_cooldown_strikes_before_ban: 3,
       failover_ban_duration_seconds: 1800,
+    });
+  });
+
+  it("accepts fill-first strategies and preserves recovery for non-single payloads", () => {
+    const strategy: LoadbalanceStrategy = {
+      id: 14,
+      profile_id: 3,
+      name: "Primary fill-first",
+      strategy_type: "fill-first",
+      failover_recovery_enabled: true,
+      failover_cooldown_seconds: 45,
+      failover_failure_threshold: 4,
+      failover_backoff_multiplier: 3.5,
+      failover_max_cooldown_seconds: 720,
+      failover_jitter_ratio: 0.35,
+      failover_auth_error_cooldown_seconds: 2400,
+      failover_ban_mode: "temporary",
+      failover_max_cooldown_strikes_before_ban: 3,
+      failover_ban_duration_seconds: 1800,
+      attached_model_count: 2,
+      created_at: "2026-03-25T08:00:00Z",
+      updated_at: "2026-03-25T08:00:00Z",
+    };
+
+    expect(loadbalanceStrategyFormStateFromStrategy(strategy)).toMatchObject({
+      strategy_type: "fill-first",
+      failover_recovery_enabled: true,
+    });
+
+    expect(
+      toLoadbalanceStrategyPayload({
+        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+        name: "  Primary fill-first  ",
+        strategy_type: "fill-first",
+        failover_recovery_enabled: true,
+      }),
+    ).toMatchObject({
+      name: "Primary fill-first",
+      strategy_type: "fill-first",
+      failover_recovery_enabled: true,
     });
   });
 

@@ -19,6 +19,7 @@ export function ModelDetailPage() {
     model,
     loading,
     loadbalanceStrategies,
+    vendors,
     isEditModelDialogOpen,
     setIsEditModelDialogOpen,
     editLoadbalanceStrategyId,
@@ -174,6 +175,7 @@ export function ModelDetailPage() {
         loadbalanceStrategies={loadbalanceStrategies}
         onOpenChange={setIsEditModelDialogOpen}
         model={model}
+        vendors={vendors}
         setEditLoadbalanceStrategyId={setEditLoadbalanceStrategyId}
         handleEditModelSubmit={handleEditModelSubmit}
       />

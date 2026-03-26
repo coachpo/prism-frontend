@@ -35,7 +35,9 @@ export interface Messages {
     usernameOrEmail: string;
   };
   common: {
+    apiFamily: string;
     loadingApplication: string;
+    vendor: string;
   };
   dashboard: {
     activeModels: string;
@@ -46,8 +48,8 @@ export interface Messages {
     inspectSpendingBreakdown: string;
     dashboardDescription: string;
     dashboardTitle: string;
-    noProviderActivity: string;
-    noProviderActivityDescription: string;
+    noApiFamilyActivity: string;
+    noApiFamilyActivityDescription: string;
     noRecentActivity: string;
     noRecentActivityDescription: string;
     noSpendingData: string;
@@ -55,8 +57,8 @@ export interface Messages {
     openStatistics: string;
     performanceSnapshot: string;
     performanceSnapshotDescription: string;
-    providerMix: string;
-    providerMixDescription: string;
+    apiFamilyMix: string;
+    apiFamilyMixDescription: string;
     quickActions: string;
     quickActionsDescription: string;
     recentActivity: string;
@@ -147,6 +149,7 @@ export interface Messages {
     editTitle: string;
     explainField: (label: string) => string;
     failoverOption: string;
+    fillFirstOption: string;
     failureThresholdDescription: string;
     failureThresholdLabel: string;
     jitterRatioDescription: string;
@@ -162,6 +165,14 @@ export interface Messages {
     singleOption: string;
     singleStrategyHint: string;
     strategyTypeLabel: string;
+  };
+  loadbalanceStrategyCopy: {
+    failoverLabel: string;
+    failoverSummary: string;
+    fillFirstLabel: string;
+    fillFirstSummary: string;
+    singleLabel: string;
+    singleSummary: string;
   };
   pricingTemplateDialog: {
     addTitle: string;
@@ -263,7 +274,6 @@ export interface Messages {
     allConnections: string;
     allEndpoints: string;
     allModels: string;
-    allProviders: string;
     allStatuses: string;
     any: string;
     anyLatency: string;
@@ -287,7 +297,6 @@ export interface Messages {
     outcome: string;
     overview: string;
     pricedOnly: string;
-    provider: string;
     reasoning: string;
     refreshRequestLogs: string;
     requestTitle: (id: number | string) => string;
@@ -441,7 +450,6 @@ export interface Messages {
     month: string;
     endpointGroup: string;
     modelGroup: string;
-    providerGroup: string;
     modelEndpointGroup: string;
     requestsInWindow: (count: string) => string;
     requestsTab: string;
@@ -544,7 +552,9 @@ export const enMessages: Messages = {
     usernameOrEmail: "Username or email",
   },
   common: {
+    apiFamily: "API Family",
     loadingApplication: "Loading application...",
+    vendor: "Vendor",
   },
   dashboard: {
     activeModels: "Active Models",
@@ -559,13 +569,13 @@ export const enMessages: Messages = {
     noRecentActivityDescription: "Requests will appear here once processed.",
     noSpendingData: "No spending data",
     noSpendingDataDescription: "Cost data will appear here once requests are priced.",
-    noProviderActivity: "No provider activity",
-    noProviderActivityDescription: "Provider request distribution appears after traffic is processed.",
+  noApiFamilyActivity: "No API family activity",
+  noApiFamilyActivityDescription: "API family request distribution appears after traffic is processed.",
     openStatistics: "Open Statistics",
     performanceSnapshot: "Performance Snapshot",
     performanceSnapshotDescription: "Current operational profile (24h)",
-    providerMix: "Provider Mix",
-    providerMixDescription: "Request distribution by provider (24h)",
+  apiFamilyMix: "API Family Mix",
+  apiFamilyMixDescription: "Request distribution by API family (24h)",
     quickActions: "Quick Actions",
     quickActionsDescription: "Jump to focused spending analysis",
     recentActivity: "Recent Activity",
@@ -669,6 +679,7 @@ export const enMessages: Messages = {
     editTitle: "Edit Loadbalance Strategy",
     explainField: (label) => `Explain ${label}`,
     failoverOption: "Failover",
+    fillFirstOption: "Fill-first",
     failureThresholdDescription:
       "Number of consecutive failures required before the cooldown window opens.",
     failureThresholdLabel: "Failure Threshold",
@@ -689,6 +700,14 @@ export const enMessages: Messages = {
     singleStrategyHint:
       "Single strategies always route through one active connection and do not expose recovery.",
     strategyTypeLabel: "Strategy Type",
+  },
+  loadbalanceStrategyCopy: {
+    failoverLabel: "Failover",
+    failoverSummary: "Health-aware failover",
+    fillFirstLabel: "Fill-first",
+    fillFirstSummary: "Priority spillover",
+    singleLabel: "Single",
+    singleSummary: "Single active connection",
   },
   pricingTemplateDialog: {
     addTitle: "Add Pricing Template",
@@ -794,7 +813,6 @@ export const enMessages: Messages = {
     allConnections: "All connections",
     allEndpoints: "All endpoints",
     allModels: "All models",
-    allProviders: "All providers",
     allStatuses: "All statuses",
     any: "Any",
     anyLatency: "Any latency",
@@ -819,7 +837,6 @@ export const enMessages: Messages = {
     outcome: "Outcome",
     overview: "Overview",
     pricedOnly: "Priced only",
-    provider: "Provider",
     reasoning: "Reasoning",
     refreshRequestLogs: "Refresh request logs",
     requestTitle: (id) => `Request #${id}`,
@@ -832,7 +849,7 @@ export const enMessages: Messages = {
     requestBody: "Request",
     requestHeaders: "Request headers",
     search: "Search",
-    searchPlaceholder: "model, provider, path, or error",
+    searchPlaceholder: "model, vendor, path, or error",
     relaxScope: "Relax the scope or clear local refinements to widen the investigation surface.",
     returnToRequestList: "Return to request list",
     response: (status) => `Response (${status})`,
@@ -972,7 +989,6 @@ export const enMessages: Messages = {
     month: "Month",
     endpointGroup: "Endpoint",
     modelGroup: "Model",
-    providerGroup: "Provider",
     modelEndpointGroup: "Model + Endpoint",
     requestsInWindow: (count) => `${count} reqs in window`,
     requestsTab: "Requests",

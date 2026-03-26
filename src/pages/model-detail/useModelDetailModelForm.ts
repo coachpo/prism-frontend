@@ -82,14 +82,29 @@ export function useModelDetailModelForm({
         return;
       }
 
-        const formData = new FormData(event.currentTarget);
-        const updateData: ModelConfigUpdate = {
-          display_name: (formData.get("display_name") as string) || null,
-          model_id: formData.get("model_id") as string,
-          proxy_targets: model.model_type === "proxy" ? normalizeProxyTargets(editProxyTargets) : [],
-          loadbalance_strategy_id:
-            model.model_type === "native"
-              ? Number.parseInt(editLoadbalanceStrategyId, 10) || null
+      const formData = new FormData(event.currentTarget);
+      const vendorId = Number.parseInt(String(formData.get("vendor_id") ?? ""), 10);
+      const apiFamily = String(formData.get("api_family") ?? "").trim();
+
+      if (!vendorId) {
+        toast.error("Please select a vendor");
+        return;
+      }
+
+      if (!apiFamily) {
+        toast.error("Please select an API family");
+        return;
+      }
+
+      const updateData: ModelConfigUpdate = {
+        vendor_id: vendorId,
+        api_family: apiFamily as ModelConfigUpdate["api_family"],
+        display_name: (formData.get("display_name") as string) || null,
+        model_id: formData.get("model_id") as string,
+        proxy_targets: model.model_type === "proxy" ? normalizeProxyTargets(editProxyTargets) : [],
+        loadbalance_strategy_id:
+          model.model_type === "native"
+            ? Number.parseInt(editLoadbalanceStrategyId, 10) || null
             : null,
       };
 

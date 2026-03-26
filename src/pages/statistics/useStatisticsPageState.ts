@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { SpendingGroupBy } from "@/lib/types";
 import {
@@ -30,8 +30,8 @@ export interface StatisticsPageState {
   setModelId: (value: string) => void;
   connectionId: string;
   setConnectionId: (value: string) => void;
-  providerType: string;
-  setProviderType: (value: string) => void;
+  apiFamily: string;
+  setApiFamily: (value: string) => void;
   timeRange: OperationsTimeRange;
   setTimeRange: (value: OperationsTimeRange) => void;
   specialTokenFilter: SpecialTokenFilter;
@@ -44,8 +44,8 @@ export interface StatisticsPageState {
   setSpendingFrom: (value: string) => void;
   spendingTo: string;
   setSpendingTo: (value: string) => void;
-  spendingProviderType: string;
-  setSpendingProviderType: (value: string) => void;
+  spendingApiFamily: string;
+  setSpendingApiFamily: (value: string) => void;
   spendingModelId: string;
   setSpendingModelId: (value: string) => void;
   spendingConnectionId: string;
@@ -66,8 +66,8 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialOperationsModelId = searchParams.get("model_id");
-  const initialOperationsProviderType = searchParams.get("provider_type");
-  const initialSpendingProviderType = searchParams.get("spending_provider_type");
+  const initialOperationsApiFamily = searchParams.get("api_family");
+  const initialSpendingApiFamily = searchParams.get("spending_api_family");
 
   const [activeTab, setActiveTab] = useState<StatisticsTab>(() =>
     parseEnumParam(searchParams.get("tab"), STATISTICS_TABS, "operations")
@@ -80,9 +80,9 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
   const [connectionId, setConnectionId] = useState(() =>
     parseConnectionFilterParam(searchParams.get("connection_id"))
   );
-  const [providerType, setProviderType] = useState<string>(
-    initialOperationsProviderType && initialOperationsProviderType.trim() !== ""
-      ? initialOperationsProviderType
+  const [apiFamily, setApiFamily] = useState<string>(
+    initialOperationsApiFamily && initialOperationsApiFamily.trim() !== ""
+      ? initialOperationsApiFamily
       : "all"
   );
   const [timeRange, setTimeRange] = useState<OperationsTimeRange>(() =>
@@ -103,9 +103,9 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
   );
   const [spendingFrom, setSpendingFrom] = useState(searchParams.get("spending_from") ?? "");
   const [spendingTo, setSpendingTo] = useState(searchParams.get("spending_to") ?? "");
-  const [spendingProviderType, setSpendingProviderType] = useState(
-    initialSpendingProviderType && initialSpendingProviderType.trim() !== ""
-      ? initialSpendingProviderType
+  const [spendingApiFamily, setSpendingApiFamily] = useState(
+    initialSpendingApiFamily && initialSpendingApiFamily.trim() !== ""
+      ? initialSpendingApiFamily
       : "all"
   );
   const [spendingModelId, setSpendingModelId] = useState(searchParams.get("spending_model_id") ?? "");
@@ -140,7 +140,7 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
         setOrDelete("tab", activeTab, "operations");
         setOrDelete("time_range", timeRange, "24h");
         setOrDelete("model_id", modelId, "__all__");
-        setOrDelete("provider_type", providerType, "all");
+        setOrDelete("api_family", apiFamily, "all");
         setOrDelete("connection_id", connectionId, "__all__");
         setOrDelete("special_token_filter", specialTokenFilter, "all");
         setOrDelete("status_filter", operationsStatusFilter, "all");
@@ -154,7 +154,7 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
           next.delete("spending_to");
         }
 
-        setOrDelete("spending_provider_type", spendingProviderType, "all");
+        setOrDelete("spending_api_family", spendingApiFamily, "all");
         setOrDelete("spending_model_id", spendingModelId);
         setOrDelete("spending_connection_id", spendingConnectionId);
         setOrDelete("spending_group_by", spendingGroupBy, "model");
@@ -174,12 +174,13 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
     );
   }, [
     activeTab,
+    apiFamily,
     connectionId,
     modelId,
     operationsStatusFilter,
-    providerType,
     setSearchParams,
     specialTokenFilter,
+    spendingApiFamily,
     spendingConnectionId,
     spendingFrom,
     spendingGroupBy,
@@ -187,70 +188,53 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
     spendingModelId,
     spendingOffset,
     spendingPreset,
-    spendingProviderType,
     spendingTo,
     spendingTopN,
     timeRange,
   ]);
 
   useEffect(() => {
+    void revision;
     queueMicrotask(() => {
       setSpendingOffset((current) => (current === 0 ? current : 0));
     });
   }, [revision]);
 
-  const clearOperationsFilters = useCallback(() => {
+  const clearOperationsFilters = () => {
     setModelId("__all__");
-    setProviderType("all");
+    setApiFamily("all");
     setConnectionId("__all__");
     setTimeRange("24h");
     setSpecialTokenFilter("all");
     setOperationsStatusFilter("all");
-  }, [
-    setModelId,
-    setProviderType,
-    setConnectionId,
-    setTimeRange,
-    setSpecialTokenFilter,
-    setOperationsStatusFilter,
-  ]);
+  };
 
-  const clearSpendingFilters = useCallback(() => {
+  const clearSpendingFilters = () => {
     setSpendingPreset("last_7_days");
     setSpendingFrom("");
     setSpendingTo("");
-    setSpendingProviderType("all");
+    setSpendingApiFamily("all");
     setSpendingModelId("");
     setSpendingConnectionId("");
     setSpendingGroupBy("model");
     setSpendingLimit(DEFAULT_SPENDING_LIMIT);
     setSpendingOffset(0);
     setSpendingTopN(DEFAULT_SPENDING_TOP_N);
-  }, [
-    setSpendingPreset,
-    setSpendingFrom,
-    setSpendingTo,
-    setSpendingProviderType,
-    setSpendingModelId,
-    setSpendingConnectionId,
-    setSpendingGroupBy,
-    setSpendingLimit,
-    setSpendingOffset,
-    setSpendingTopN,
-  ]);
+  };
 
   return {
     activeTab,
+    apiFamily,
     connectionId,
     modelId,
     operationsStatusFilter,
-    providerType,
     setActiveTab,
+    setApiFamily,
     setConnectionId,
     setModelId,
     setOperationsStatusFilter,
-    setProviderType,
     setSpecialTokenFilter,
+    setSpendingApiFamily,
     setSpendingConnectionId,
     setSpendingFrom,
     setSpendingGroupBy,
@@ -258,11 +242,11 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
     setSpendingModelId,
     setSpendingOffset,
     setSpendingPreset,
-    setSpendingProviderType,
     setSpendingTo,
     setSpendingTopN,
     setTimeRange,
     specialTokenFilter,
+    spendingApiFamily,
     spendingConnectionId,
     spendingFrom,
     spendingGroupBy,
@@ -270,7 +254,6 @@ export function useStatisticsPageState(revision: number): StatisticsPageState {
     spendingModelId,
     spendingOffset,
     spendingPreset,
-    spendingProviderType,
     spendingTo,
     spendingTopN,
     timeRange,

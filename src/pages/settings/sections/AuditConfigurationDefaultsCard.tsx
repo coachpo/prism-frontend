@@ -2,21 +2,21 @@ import type { RefObject } from "react";
 import { Shield } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/i18n/useLocale";
-import type { Provider } from "@/lib/types";
-import { AuditConfigurationProviderToggles } from "./AuditConfigurationProviderToggles";
+import type { Vendor } from "@/lib/types";
+import { AuditConfigurationVendorToggles } from "./AuditConfigurationVendorToggles";
 
 interface AuditConfigurationDefaultsCardProps {
   cardRef?: RefObject<HTMLDivElement | null>;
   className?: string;
-  providers: Provider[];
-  toggleAudit: (providerId: number, checked: boolean) => Promise<void>;
-  toggleBodies: (providerId: number, checked: boolean) => Promise<void>;
+  vendors: Vendor[];
+  toggleAudit: (vendorId: number, checked: boolean) => Promise<void>;
+  toggleBodies: (vendorId: number, checked: boolean) => Promise<void>;
 }
 
 export function AuditConfigurationDefaultsCard({
   cardRef,
   className,
-  providers,
+  vendors,
   toggleAudit,
   toggleBodies,
 }: AuditConfigurationDefaultsCardProps) {
@@ -32,8 +32,8 @@ export function AuditConfigurationDefaultsCard({
           </CardTitle>
           <CardDescription className="text-xs">
             {locale === "zh-CN"
-              ? "配置提供商级别的审计捕获和隐私默认值。"
-              : "Configure provider-level audit capture and privacy defaults."}
+              ? "配置供应商级别的审计捕获和隐私默认值。"
+              : "Configure vendor-level audit capture and privacy defaults."}
           </CardDescription>
         </div>
       </CardHeader>
@@ -49,13 +49,13 @@ export function AuditConfigurationDefaultsCard({
           </p>
         </div>
 
-        {providers.length === 0 ? (
+        {vendors.length === 0 ? (
           <div className="rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground">
-            No providers available.
+            {locale === "zh-CN" ? "暂无可用供应商。" : "No vendors available."}
           </div>
         ) : (
-          <AuditConfigurationProviderToggles
-            providers={providers}
+          <AuditConfigurationVendorToggles
+            vendors={vendors}
             toggleAudit={toggleAudit}
             toggleBodies={toggleBodies}
           />

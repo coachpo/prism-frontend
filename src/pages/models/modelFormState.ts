@@ -1,16 +1,71 @@
 import type {
+  ApiFamily,
   ModelConfig,
   ModelConfigCreate,
   ModelConfigListItem,
   ModelConfigUpdate,
   ProxyTarget,
-  Provider,
+  Vendor,
 } from "@/lib/types";
 
 export type SubmitEventLike = Pick<Event, "preventDefault">;
 
+const DEFAULT_API_FAMILY: ApiFamily = "openai";
+
+function vendorKeyToApiFamily(key: string | undefined): ApiFamily {
+  if (key === "anthropic") {
+    return "anthropic";
+  }
+
+  if (key === "google") {
+    return "gemini";
+  }
+
+  return "openai";
+}
+
+export function resolveModelApiFamily(
+  model: Pick<ModelConfigListItem, "api_family"> | Pick<ModelConfig, "api_family">,
+): ApiFamily {
+  return model.api_family ?? DEFAULT_API_FAMILY;
+}
+
+function resolveModelVendorId(
+  model: Pick<ModelConfigListItem, "vendor_id"> | Pick<ModelConfig, "vendor_id">,
+  existing?: Pick<ModelConfigListItem, "vendor_id" | "vendor">,
+): number {
+  return model.vendor_id ?? existing?.vendor_id ?? existing?.vendor?.id ?? 0;
+}
+
+function resolveModelVendor(
+  model: Pick<ModelConfigListItem, "vendor"> | Pick<ModelConfig, "vendor">,
+  vendorId: number,
+  apiFamily: ApiFamily,
+  existing?: Pick<ModelConfigListItem, "vendor">,
+) {
+  if (model.vendor) {
+    return model.vendor;
+  }
+
+  if (existing?.vendor) {
+    return existing.vendor;
+  }
+
+  return {
+    id: vendorId,
+    key: apiFamily === "gemini" ? "google" : apiFamily,
+    name: apiFamily,
+    description: null,
+    audit_enabled: false,
+    audit_capture_bodies: false,
+    created_at: "",
+    updated_at: "",
+  };
+}
+
 export const DEFAULT_MODEL_FORM_DATA: ModelConfigCreate = {
-  provider_id: 0,
+  vendor_id: 0,
+  api_family: DEFAULT_API_FAMILY,
   model_id: "",
   display_name: "",
   model_type: "native",
@@ -85,8 +140,11 @@ export function removeProxyTarget(proxyTargets: ProxyTarget[], targetModelId: st
 }
 
 export function createEditModelFormData(model: ModelConfigListItem): ModelConfigCreate {
+  const vendorId = resolveModelVendorId(model);
+
   return {
-    provider_id: model.provider_id,
+    vendor_id: vendorId,
+    api_family: resolveModelApiFamily(model),
     model_id: model.model_id,
     display_name: model.display_name || "",
     model_type: model.model_type,
@@ -96,24 +154,35 @@ export function createEditModelFormData(model: ModelConfigListItem): ModelConfig
   };
 }
 
-export function createNewModelFormData(providers: Provider[]): ModelConfigCreate {
+export function createNewModelFormData(vendors: Vendor[]): ModelConfigCreate {
+  const firstVendor = vendors[0];
+  const vendorId = firstVendor?.id ?? 0;
+
   return {
     ...DEFAULT_MODEL_FORM_DATA,
-    provider_id: providers[0]?.id ?? 0,
+    vendor_id: vendorId,
+    api_family: vendorKeyToApiFamily(firstVendor?.key),
   };
 }
 
 export function toModelCreatePayload(formData: ModelConfigCreate): ModelConfigCreate {
   return {
-    ...formData,
+    vendor_id: formData.vendor_id,
+    api_family: formData.api_family,
+    model_id: formData.model_id,
+    display_name: formData.display_name,
+    model_type: formData.model_type,
+    is_enabled: formData.is_enabled,
     ...getNormalizedRoutingState(formData),
   };
 }
 
 export function toModelUpdatePayload(formData: ModelConfigCreate): ModelConfigUpdate {
   return {
-    provider_id: formData.provider_id,
+    vendor_id: formData.vendor_id,
+    api_family: formData.api_family,
     display_name: formData.display_name || null,
+    model_id: formData.model_id,
     model_type: formData.model_type,
     is_enabled: formData.is_enabled,
     ...getNormalizedRoutingState(formData),
@@ -138,15 +207,15 @@ export function setLoadbalanceStrategyIdOnForm(
   return { ...formData, loadbalance_strategy_id: strategyId };
 }
 
-export function getNativeModelsForProvider(
+export function getNativeModelsForApiFamily(
   models: ModelConfigListItem[],
-  providerId: number,
+  apiFamily: ApiFamily,
   excludedModelId?: string,
 ): ModelConfigListItem[] {
   return models.filter(
     (model) =>
       model.model_type === "native" &&
-      model.provider_id === providerId &&
+      resolveModelApiFamily(model) === apiFamily &&
       (!excludedModelId || model.model_id !== excludedModelId),
   );
 }
@@ -155,10 +224,15 @@ export function toModelListItem(
   model: ModelConfig,
   existing?: ModelConfigListItem,
 ): ModelConfigListItem {
+  const vendorId = resolveModelVendorId(model, existing);
+  const apiFamily = resolveModelApiFamily(model);
+  const vendor = resolveModelVendor(model, vendorId, apiFamily, existing);
+
   return {
     id: model.id,
-    provider_id: model.provider_id,
-    provider: model.provider,
+    vendor_id: vendorId,
+    vendor,
+    api_family: apiFamily,
     model_id: model.model_id,
     display_name: model.display_name,
     model_type: model.model_type,

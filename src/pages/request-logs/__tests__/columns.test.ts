@@ -29,7 +29,7 @@ describe("formatCost", () => {
             model_id: "claude-sonnet-4-5",
             resolved_target_model_id: "claude-sonnet-4-5-20250929",
             profile_id: 7,
-            provider_type: "anthropic",
+            api_family: "anthropic",
             endpoint_id: null,
             connection_id: null,
             ingress_request_id: null,

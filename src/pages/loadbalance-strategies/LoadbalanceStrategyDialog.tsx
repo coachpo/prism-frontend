@@ -143,29 +143,29 @@ export function LoadbalanceStrategyDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>{dialogMessages.strategyTypeLabel}</Label>
-            <Select
-              value={loadbalanceStrategyForm.strategy_type}
-              onValueChange={(value: "single" | "failover") =>
-                setLoadbalanceStrategyForm((prev) => ({
-                  ...prev,
-                  strategy_type: value,
-                  failover_recovery_enabled:
-                    value === "failover" ? prev.failover_recovery_enabled : false,
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="single">{dialogMessages.singleOption}</SelectItem>
-                <SelectItem value="failover">{dialogMessages.failoverOption}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <Label>{dialogMessages.strategyTypeLabel}</Label>
+              <Select
+                value={loadbalanceStrategyForm.strategy_type}
+                onValueChange={(value: "single" | "fill-first" | "failover") =>
+                  setLoadbalanceStrategyForm((prev) => ({
+                    ...prev,
+                    strategy_type: value,
+                    failover_recovery_enabled: value === "single" ? false : prev.failover_recovery_enabled,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single">{dialogMessages.singleOption}</SelectItem>
+                  <SelectItem value="fill-first">{dialogMessages.fillFirstOption}</SelectItem>
+                  <SelectItem value="failover">{dialogMessages.failoverOption}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {loadbalanceStrategyForm.strategy_type === "failover" ? (
+          {loadbalanceStrategyForm.strategy_type !== "single" ? (
             <>
               <SwitchController
                 label={dialogMessages.autoRecoveryLabel}

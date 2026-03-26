@@ -8,7 +8,7 @@ import {
   IconActionButton,
   IconActionGroup,
 } from "@/components/IconActionGroup";
-import { ProviderIcon } from "@/components/ProviderIcon";
+import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,11 +20,11 @@ import {
 } from "@/components/ui/collapsible";
 import { formatMoneyMicros } from "@/lib/costing";
 import type { ModelConfigListItem } from "@/lib/types";
-import { cn, formatLabel, formatProviderType } from "@/lib/utils";
+import { cn, formatApiFamily } from "@/lib/utils";
 import { formatLatencyForDisplay } from "../model-detail/modelDetailMetricsAndPaths";
 import type { ModelDerivedMetric } from "./modelTableContracts";
 
-const PROVIDER_ORDER = ["openai", "anthropic", "gemini"] as const;
+const API_FAMILY_ORDER = ["openai", "anthropic", "gemini"] as const;
 const TYPE_ORDER: ModelConfigListItem["model_type"][] = ["native", "proxy"];
 const STATUS_ORDER = [
   {
@@ -57,27 +57,35 @@ type SharedRenderProps = Pick<
   onNavigate: (modelId: number) => void;
 };
 
-type ProviderGroup = {
+type ApiFamilyGroup = {
   models: ModelConfigListItem[];
-  providerLabel: string;
-  providerType: string;
+  apiFamilyLabel: string;
+  apiFamily: string;
 };
 
-function getProviderSortIndex(providerType: string) {
-  const index = PROVIDER_ORDER.indexOf(providerType as (typeof PROVIDER_ORDER)[number]);
-  return index === -1 ? PROVIDER_ORDER.length : index;
+function resolveApiFamily(model: ModelConfigListItem) {
+  return model.api_family ?? "openai";
 }
 
-function orderProviderModels(models: ModelConfigListItem[]) {
+function resolveVendorName(model: ModelConfigListItem) {
+  return model.vendor?.name?.trim() || formatApiFamily(resolveApiFamily(model));
+}
+
+function getApiFamilySortIndex(apiFamily: string) {
+  const index = API_FAMILY_ORDER.indexOf(apiFamily as (typeof API_FAMILY_ORDER)[number]);
+  return index === -1 ? API_FAMILY_ORDER.length : index;
+}
+
+function orderApiFamilyModels(models: ModelConfigListItem[]) {
   return TYPE_ORDER.flatMap((modelType) =>
     STATUS_ORDER.flatMap(({ matches }) => models.filter((model) => model.model_type === modelType && matches(model)))
   );
 }
 
-function groupModels(filtered: ModelConfigListItem[]): ProviderGroup[] {
-  const providerTypes = [...new Set(filtered.map((model) => model.provider.provider_type))].sort((left, right) => {
-    const leftIndex = getProviderSortIndex(left);
-    const rightIndex = getProviderSortIndex(right);
+function groupModels(filtered: ModelConfigListItem[]): ApiFamilyGroup[] {
+  const apiFamilies = [...new Set(filtered.map((model) => resolveApiFamily(model)))].sort((left, right) => {
+    const leftIndex = getApiFamilySortIndex(left);
+    const rightIndex = getApiFamilySortIndex(right);
 
     if (leftIndex !== rightIndex) {
       return leftIndex - rightIndex;
@@ -86,14 +94,13 @@ function groupModels(filtered: ModelConfigListItem[]): ProviderGroup[] {
     return left.localeCompare(right);
   });
 
-  return providerTypes.map((providerType) => {
-    const providerModels = filtered.filter((model) => model.provider.provider_type === providerType);
-    const providerLabel = providerModels[0]?.provider.name?.trim() || formatProviderType(providerType);
+  return apiFamilies.map((apiFamily) => {
+    const apiFamilyModels = filtered.filter((model) => resolveApiFamily(model) === apiFamily);
 
     return {
-      models: orderProviderModels(providerModels),
-      providerLabel,
-      providerType,
+      models: orderApiFamilyModels(apiFamilyModels),
+      apiFamilyLabel: formatApiFamily(apiFamily),
+      apiFamily,
     };
   });
 }
@@ -150,7 +157,8 @@ function ModelRow({
   onNavigate,
   setDeleteTarget,
 }: SharedRenderProps & { model: ModelConfigListItem }) {
-  const { locale } = useLocale();
+  const { locale, messages } = useLocale();
+  const strategyCopy = messages.loadbalanceStrategyCopy;
   const metrics24h = modelMetrics24h[model.id];
   const successRate = metrics24h?.success_rate ?? null;
   const requestCount = metrics24h?.request_count_24h ?? 0;
@@ -158,13 +166,19 @@ function ModelRow({
   const spend30dMicros = modelSpend30dMicros[model.id] ?? 0;
   const title = model.display_name || model.model_id;
   const proxyTargetSummary = getProxyTargetSummary(model, locale as "en" | "zh-CN");
+  const apiFamilyLabel = formatApiFamily(resolveApiFamily(model));
+  const vendorLabel = resolveVendorName(model);
   const typeLabel = model.model_type === "proxy" ? (locale === "zh-CN" ? "代理" : "Proxy") : locale === "zh-CN" ? "原生" : "Native";
   const typeIntent = model.model_type === "proxy" ? "accent" : "info";
   const statusLabel = model.is_enabled ? (locale === "zh-CN" ? "已启用" : "Enabled") : locale === "zh-CN" ? "已禁用" : "Disabled";
   const statusIntent = model.is_enabled ? "success" : "muted";
   const showModelId = Boolean(model.display_name && model.display_name !== model.model_id);
   const strategySummary = model.loadbalance_strategy
-    ? `${model.loadbalance_strategy.name} · ${locale === "zh-CN" && model.loadbalance_strategy.strategy_type === "failover" ? "故障转移" : formatLabel(model.loadbalance_strategy.strategy_type)}`
+    ? model.loadbalance_strategy.strategy_type === "fill-first"
+      ? `${model.loadbalance_strategy.name} · ${strategyCopy.fillFirstSummary}`
+      : model.loadbalance_strategy.strategy_type === "failover"
+        ? `${model.loadbalance_strategy.name} · ${strategyCopy.failoverSummary}`
+        : `${model.loadbalance_strategy.name} · ${strategyCopy.singleLabel}`
     : locale === "zh-CN"
       ? "未配置策略"
       : "Strategy not configured";
@@ -236,6 +250,8 @@ function ModelRow({
             ) : null}
 
             {model.model_type === "native" ? <CompactMetaBadge>{strategySummary}</CompactMetaBadge> : null}
+            <CompactMetaBadge>{vendorLabel}</CompactMetaBadge>
+            <CompactMetaBadge>{apiFamilyLabel}</CompactMetaBadge>
             <TypeBadge label={typeLabel} intent={typeIntent} />
             <StatusBadge label={statusLabel} intent={statusIntent} />
           </div>
@@ -285,7 +301,7 @@ function ModelRow({
   );
 }
 
-function ProviderSection({
+function ApiFamilySection({
   group,
   isExpanded,
   metricsLoading,
@@ -296,7 +312,7 @@ function ProviderSection({
   search,
   setDeleteTarget,
 }: SharedRenderProps & {
-  group: ProviderGroup;
+  group: ApiFamilyGroup;
   isExpanded: boolean;
   onOpenChange: (isOpen: boolean) => void;
   search: string;
@@ -320,12 +336,12 @@ function ProviderSection({
           >
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/35 text-foreground">
-                <ProviderIcon providerType={group.providerType} size={16} />
+                <ApiFamilyIcon apiFamily={group.apiFamily} size={16} />
               </div>
 
               <div className="min-w-0 text-left">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-foreground">{group.providerLabel}</span>
+                  <span className="text-sm font-semibold text-foreground">{group.apiFamilyLabel}</span>
                   <Badge
                     variant="outline"
                     className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"
@@ -376,8 +392,8 @@ export function ModelsTable({
 }: Props) {
   const { locale } = useLocale();
   const navigate = useNavigate();
-  const providerGroups = useMemo(() => groupModels(filtered), [filtered]);
-  const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
+  const apiFamilyGroups = useMemo(() => groupModels(filtered), [filtered]);
+  const [expandedApiFamilies, setExpandedApiFamilies] = useState<Record<string, boolean>>({});
 
   if (filtered.length === 0) {
     return (
@@ -415,19 +431,19 @@ export function ModelsTable({
 
   return (
     <div className="grid gap-3 p-4">
-      {providerGroups.map((group) => (
-        <ProviderSection
-          key={group.providerType}
+      {apiFamilyGroups.map((group) => (
+          <ApiFamilySection
+          key={group.apiFamily}
           group={group}
-          isExpanded={search.trim().length > 0 || (expandedProviders[group.providerType] ?? true)}
+          isExpanded={search.trim().length > 0 || (expandedApiFamilies[group.apiFamily] ?? true)}
           metricsLoading={metricsLoading}
           modelMetrics24h={modelMetrics24h}
           modelSpend30dMicros={modelSpend30dMicros}
           onNavigate={(modelId) => navigate(`/models/${modelId}`)}
           onOpenChange={(isOpen) =>
-            setExpandedProviders((currentState) => ({
+            setExpandedApiFamilies((currentState) => ({
               ...currentState,
-              [group.providerType]: isOpen,
+              [group.apiFamily]: isOpen,
             }))
           }
           search={search}

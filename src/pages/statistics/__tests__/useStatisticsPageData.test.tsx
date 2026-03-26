@@ -25,9 +25,10 @@ const statisticsReportsState = {
 
 vi.mock("../useStatisticsFilterOptions", () => ({
   useStatisticsFilterOptions: () => ({
+    apiFamilies: ["openai", "anthropic", "gemini"],
     connections: [],
     models: [],
-    providers: [],
+    vendors: [],
   }),
 }));
 
@@ -45,18 +46,19 @@ vi.mock("@/hooks/usePolling", () => ({
 function createState(activeTab: StatisticsPageState["activeTab"]): StatisticsPageState {
   return {
     activeTab,
+    apiFamily: "all",
     clearOperationsFilters: vi.fn(),
     clearSpendingFilters: vi.fn(),
     connectionId: "__all__",
     modelId: "__all__",
     operationsStatusFilter: "all",
-    providerType: "all",
     setActiveTab: vi.fn(),
+    setApiFamily: vi.fn(),
     setConnectionId: vi.fn(),
     setModelId: vi.fn(),
     setOperationsStatusFilter: vi.fn(),
-    setProviderType: vi.fn(),
     setSpecialTokenFilter: vi.fn(),
+    setSpendingApiFamily: vi.fn(),
     setSpendingConnectionId: vi.fn(),
     setSpendingFrom: vi.fn(),
     setSpendingGroupBy: vi.fn(),
@@ -64,11 +66,11 @@ function createState(activeTab: StatisticsPageState["activeTab"]): StatisticsPag
     setSpendingModelId: vi.fn(),
     setSpendingOffset: vi.fn(),
     setSpendingPreset: vi.fn(),
-    setSpendingProviderType: vi.fn(),
     setSpendingTo: vi.fn(),
     setSpendingTopN: vi.fn(),
     setTimeRange: vi.fn(),
     specialTokenFilter: "all",
+    spendingApiFamily: "all",
     spendingConnectionId: "",
     spendingFrom: "",
     spendingGroupBy: "model",
@@ -76,7 +78,6 @@ function createState(activeTab: StatisticsPageState["activeTab"]): StatisticsPag
     spendingModelId: "",
     spendingOffset: 0,
     spendingPreset: "last_7_days",
-    spendingProviderType: "all",
     spendingTo: "",
     spendingTopN: 5,
     timeRange: "24h",

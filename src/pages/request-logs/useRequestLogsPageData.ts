@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
+  ApiFamily,
   Endpoint,
   ModelConfigListItem,
-  Provider,
   RequestLogEntry,
 } from "@/lib/types";
 import type { RequestLogPageState } from "./queryParams";
 import { timeRangeToFromTime } from "./queryParams";
+
+const API_FAMILIES: ApiFamily[] = ["openai", "anthropic", "gemini"];
+
+function toApiFamily(value: string): ApiFamily | undefined {
+  return API_FAMILIES.find((apiFamily) => apiFamily === value);
+}
 
 interface ConnectionOption {
   id: number;
@@ -15,8 +21,8 @@ interface ConnectionOption {
 }
 
 export interface FilterOptions {
+  apiFamilies: ApiFamily[];
   models: ModelConfigListItem[];
-  providers: Provider[];
   endpoints: Endpoint[];
   connections: ConnectionOption[];
 }
@@ -32,8 +38,8 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    apiFamilies: API_FAMILIES,
     models: [],
-    providers: [],
     endpoints: [],
     connections: [],
   });
@@ -43,16 +49,14 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const bootstrapFilterOptions = useCallback(async () => {
-    const [modelsResult, providersResult, endpointsResult, connectionsResult] =
+    const [modelsResult, endpointsResult, connectionsResult] =
       await Promise.allSettled([
         api.models.list(),
-        api.providers.list(),
         api.endpoints.list(),
         api.endpoints.connections(),
       ]);
 
     const models = modelsResult.status === "fulfilled" ? modelsResult.value : [];
-    const providers = providersResult.status === "fulfilled" ? providersResult.value : [];
     const endpoints = endpointsResult.status === "fulfilled" ? endpointsResult.value : [];
 
     const connMap: ConnectionOption[] = [];
@@ -65,7 +69,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
       }
     }
 
-    setFilterOptions({ models, providers, endpoints, connections: connMap });
+    setFilterOptions({ apiFamilies: API_FAMILIES, models, endpoints, connections: connMap });
     setFilterOptionsLoaded(true);
   }, []);
 
@@ -90,10 +94,10 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
 
     const params = isExact
       ? { request_id: parseInt(state.request_id, 10), limit: 1 }
-      : {
+        : {
           ingress_request_id: state.ingress_request_id || undefined,
           model_id: state.model_id || undefined,
-          provider_type: state.provider_type || undefined,
+          api_family: state.api_family ? toApiFamily(state.api_family) : undefined,
           status_family: state.status_family === "all" ? undefined : state.status_family,
           connection_id: state.connection_id ? parseInt(state.connection_id, 10) : undefined,
           endpoint_id: state.endpoint_id ? parseInt(state.endpoint_id, 10) : undefined,
@@ -123,7 +127,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     state.request_id,
     state.ingress_request_id,
     state.model_id,
-    state.provider_type,
+    state.api_family,
     state.status_family,
     state.connection_id,
     state.endpoint_id,

@@ -15,7 +15,7 @@ import {
   models,
   pricingTemplates,
   profiles,
-  providers,
+  vendors,
 } from "./api/management";
 
 export { ApiError, getApiProfileId, setApiProfileId };
@@ -31,7 +31,7 @@ export const api = {
   models,
   pricingTemplates,
   profiles,
-  providers,
+  vendors,
   settings: {
     ...settings,
     costing: settingsCosting,

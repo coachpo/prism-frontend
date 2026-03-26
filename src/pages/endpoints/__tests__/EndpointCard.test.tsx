@@ -1,14 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { Endpoint, ModelConfigListItem, Provider } from "@/lib/types";
+import type { Endpoint, ModelConfigListItem, Vendor } from "@/lib/types";
 import { EndpointCardView } from "../EndpointCard";
 
-function buildProvider(overrides: Partial<Provider> = {}): Provider {
+function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
   return {
     id: 7,
+    key: "openai",
     name: "OpenAI",
-    provider_type: "openai",
     description: null,
     audit_enabled: false,
     audit_capture_bodies: false,
@@ -21,8 +21,9 @@ function buildProvider(overrides: Partial<Provider> = {}): Provider {
 function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigListItem {
   return {
     id: 11,
-    provider_id: 7,
-    provider: buildProvider(),
+    vendor_id: 7,
+    vendor: buildVendor(),
+    api_family: "openai",
     model_id: "gpt-4o-mini",
     display_name: "GPT-4o Mini",
     model_type: "native",

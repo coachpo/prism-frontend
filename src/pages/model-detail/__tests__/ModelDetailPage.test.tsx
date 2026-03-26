@@ -89,13 +89,22 @@ function buildModelDetailData() {
   return {
     model: {
       id: 5,
+      vendor_id: 1,
+      vendor: {
+        id: 1,
+        key: "openai",
+        name: "OpenAI",
+        description: null,
+        audit_enabled: false,
+        audit_capture_bodies: false,
+        created_at: "",
+        updated_at: "",
+      },
+      api_family: "openai",
       model_id: "gpt-5.4",
       display_name: "GPT-5.4",
       model_type: "proxy",
       is_enabled: true,
-      provider: {
-        provider_type: "openai",
-      },
       proxy_targets: [{ target_model_id: "gpt-4o" }],
       created_at: "2026-03-25T10:00:00Z",
       loadbalance_strategy: null,

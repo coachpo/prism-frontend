@@ -116,7 +116,7 @@ export function SettingsProfileTab({
           <AuditConfigurationSection
             auditConfigurationRef={auditConfigurationRef}
             isAuditConfigurationFocused={isAuditConfigurationFocused}
-            providers={data.providers}
+            vendors={data.vendors}
             toggleAudit={data.toggleAudit}
             toggleBodies={data.toggleBodies}
             loadingRules={data.loadingRules}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getWebSocketClient,
   type ConnectionState,
@@ -19,7 +19,7 @@ const CHANNEL_PAYLOAD_EXTRACTORS: {
       ? {
           request_log: message.request_log,
           stats_summary_24h: message.stats_summary_24h,
-          provider_summary_24h: message.provider_summary_24h,
+          api_family_summary_24h: message.api_family_summary_24h,
           spending_summary_30d: message.spending_summary_30d,
           throughput_24h: message.throughput_24h,
           routing_route_24h: message.routing_route_24h,
@@ -78,7 +78,7 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
     onReconnectRef.current = onReconnect;
   }, [onReconnect]);
 
-  const markSyncComplete = useCallback(() => {
+  function markSyncComplete() {
     isSyncingRef.current = false;
     setIsSyncing(false);
 
@@ -88,7 +88,7 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
     for (const pendingEvent of pendingEvents) {
       onDataRef.current?.(pendingEvent.payload);
     }
-  }, [setIsSyncing]);
+  }
 
   useEffect(() => {
     if (!enabled) {
@@ -163,7 +163,7 @@ export function useRealtimeData<TChannel extends RealtimeChannel = "dashboard">(
         client.unsubscribeChannel(channel);
       }
     };
-  }, [channel, client, enabled, markSyncComplete, profileId]);
+  }, [channel, client, enabled, profileId]);
 
   return {
     isConnected,

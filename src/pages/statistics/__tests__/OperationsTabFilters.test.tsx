@@ -21,8 +21,8 @@ describe("OperationsTabFilters", () => {
         setTimeRange={vi.fn()}
         modelId="__all__"
         setModelId={vi.fn()}
-        providerType="all"
-        setProviderType={vi.fn()}
+        apiFamily="all"
+        setApiFamily={vi.fn()}
         connectionId="__all__"
         setConnectionId={vi.fn()}
         specialTokenFilter="all"
@@ -32,13 +32,14 @@ describe("OperationsTabFilters", () => {
         clearFilters={vi.fn()}
         refresh={vi.fn()}
         models={[]}
-        providers={[]}
+        apiFamilies={[]}
         connections={[]}
       />,
     );
 
     expect(screen.getByText("筛选条件")).toBeInTheDocument();
     expect(screen.getByText("时间范围")).toBeInTheDocument();
+    expect(screen.getByText("API 家族")).toBeInTheDocument();
     expect(screen.getByText("特殊令牌")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "清除筛选条件" })).toBeInTheDocument();
   });

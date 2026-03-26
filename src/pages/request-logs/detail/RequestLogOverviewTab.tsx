@@ -1,16 +1,16 @@
 import { AlertTriangle, Coins, Copy, ExternalLink, FileText, Gauge, Route } from "lucide-react";
 import { useLocale } from "@/i18n/useLocale";
-import { ProviderIcon } from "@/components/ProviderIcon";
+import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, formatProviderType } from "@/lib/utils";
+import { cn, formatApiFamily } from "@/lib/utils";
 import type { RequestLogEntry } from "@/lib/types";
 import { formatCost, formatTokens } from "../columns";
 import {
+  ApiFamilyPill,
   DetailRow,
-  ProviderPill,
   SectionCard,
   SummaryStat,
 } from "./requestLogDetailShared";
@@ -51,6 +51,7 @@ export function RequestLogOverviewTab({
     : null;
   const formattedErrorDetail = request.error_detail ? formatErrorDetail(request.error_detail) : null;
   const hasFormattedErrorDetail = formattedErrorDetail !== null && formattedErrorDetail !== request.error_detail;
+  const apiFamily = request.api_family;
 
   return (
     <div className="space-y-4">
@@ -60,7 +61,7 @@ export function RequestLogOverviewTab({
             <div className="flex flex-wrap items-center gap-2">
               <ValueBadge label={String(request.status_code)} intent={getStatusIntent(request.status_code)} className="px-1.5 py-0 font-mono" />
               {request.is_stream && <TypeBadge label={messages.requestLogs.streaming} intent="blue" className="px-2 py-0.5" />}
-              <ProviderPill providerType={request.provider_type} />
+              <ApiFamilyPill apiFamily={apiFamily} />
             </div>
 
             <div>
@@ -172,13 +173,16 @@ export function RequestLogOverviewTab({
                 </div>
               </DetailRow>
             ) : null}
-            <DetailRow label={messages.requestLogs.provider}>
-             <span className="flex items-center gap-2">
-               <ProviderIcon providerType={request.provider_type} size={16} />
-              {formatProviderType(request.provider_type)}
-            </span>
-          </DetailRow>
-           <DetailRow label={messages.requestLogs.path}>
+            <DetailRow label={messages.common.apiFamily}>
+              <span className="flex items-center gap-2">
+                <ApiFamilyIcon apiFamily={apiFamily ?? ""} size={16} />
+               {formatApiFamily(apiFamily ?? "")}
+             </span>
+           </DetailRow>
+            {request.vendor_name ? (
+              <DetailRow label={messages.common.vendor}>{request.vendor_name}</DetailRow>
+            ) : null}
+            <DetailRow label={messages.requestLogs.path}>
             <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
               {request.request_path}
             </span>

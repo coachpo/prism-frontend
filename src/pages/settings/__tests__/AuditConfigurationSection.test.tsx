@@ -2,31 +2,9 @@ import { createRef } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { HeaderBlocklistRule, Provider } from "@/lib/types";
+import type { HeaderBlocklistRule, Vendor } from "@/lib/types";
 import { AuditConfigurationRulesPanel } from "../sections/AuditConfigurationRulesPanel";
 import { AuditConfigurationSection } from "../sections/AuditConfigurationSection";
-
-vi.mock("../sections/AuditConfigurationDefaultsCard", () => ({
-  AuditConfigurationDefaultsCard: ({
-    providers,
-    toggleAudit,
-    toggleBodies,
-  }: {
-    providers: Provider[];
-    toggleAudit: (providerId: number, checked: boolean) => Promise<void>;
-    toggleBodies: (providerId: number, checked: boolean) => Promise<void>;
-  }) => (
-    <div>
-      <div>{`defaults-card:${providers.map((provider) => provider.name).join(",")}`}</div>
-      <button type="button" onClick={() => void toggleAudit(providers[0].id, true)}>
-        toggle-audit-defaults
-      </button>
-      <button type="button" onClick={() => void toggleBodies(providers[0].id, true)}>
-        toggle-bodies-defaults
-      </button>
-    </div>
-  ),
-}));
 
 vi.mock("../sections/AuditConfigurationHeaderBlocklistCard", () => ({
   AuditConfigurationHeaderBlocklistCard: ({
@@ -72,12 +50,12 @@ vi.mock("../sections/AuditConfigurationHeaderBlocklistCard", () => ({
   ),
 }));
 
-const provider: Provider = {
+const vendor: Vendor = {
   id: 7,
+  key: "openai",
   name: "OpenAI",
-  provider_type: "openai",
   description: null,
-  audit_enabled: false,
+  audit_enabled: true,
   audit_capture_bodies: false,
   created_at: "",
   updated_at: "",
@@ -132,7 +110,7 @@ describe("AuditConfigurationRulesPanel", () => {
 });
 
 describe("AuditConfigurationSection", () => {
-  it("renders extracted defaults and header-blocklist cards while keeping provider and rule actions wired", () => {
+  it("renders vendor audit defaults and keeps the header-blocklist actions wired", () => {
     const toggleAudit = vi.fn().mockResolvedValue(undefined);
     const toggleBodies = vi.fn().mockResolvedValue(undefined);
     const setSystemRulesOpen = vi.fn();
@@ -147,7 +125,7 @@ describe("AuditConfigurationSection", () => {
         <AuditConfigurationSection
           auditConfigurationRef={createRef<HTMLDivElement>()}
           isAuditConfigurationFocused={false}
-          providers={[provider]}
+          vendors={[vendor]}
           toggleAudit={toggleAudit}
           toggleBodies={toggleBodies}
           loadingRules={false}
@@ -165,11 +143,14 @@ describe("AuditConfigurationSection", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByText("defaults-card:OpenAI")).toBeInTheDocument();
+    expect(screen.getByText("Configure vendor-level audit capture and privacy defaults.")).toBeInTheDocument();
+    expect(screen.getByText("OpenAI")).toBeInTheDocument();
     expect(screen.getByText("header-blocklist-card:1:1")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "toggle-audit-defaults" }));
-    fireEvent.click(screen.getByRole("button", { name: "toggle-bodies-defaults" }));
+    const [auditSwitch, bodiesSwitch] = screen.getAllByRole("switch");
+
+    fireEvent.click(auditSwitch);
+    fireEvent.click(bodiesSwitch);
     fireEvent.click(screen.getByRole("button", { name: "add-blocklist-rule" }));
     fireEvent.click(screen.getByRole("button", { name: "open-system-rules" }));
     fireEvent.click(screen.getByRole("button", { name: "open-user-rules" }));
@@ -177,7 +158,7 @@ describe("AuditConfigurationSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "edit-custom-rule" }));
     fireEvent.click(screen.getByRole("button", { name: "delete-custom-rule" }));
 
-    expect(toggleAudit).toHaveBeenCalledWith(7, true);
+    expect(toggleAudit).toHaveBeenCalledWith(7, false);
     expect(toggleBodies).toHaveBeenCalledWith(7, true);
     expect(openAddRuleDialog).toHaveBeenCalledTimes(1);
     expect(setSystemRulesOpen).toHaveBeenCalledWith(true);

@@ -9,9 +9,10 @@ import { SpendingFilterGroups } from "./SpendingFilterGroups";
 interface SpendingFiltersCardProps
   extends Pick<
     SpendingTabProps,
+    | "apiFamilies"
     | "connections"
     | "models"
-    | "providers"
+    | "setSpendingApiFamily"
     | "setSpendingConnectionId"
     | "setSpendingFrom"
     | "setSpendingGroupBy"
@@ -19,16 +20,15 @@ interface SpendingFiltersCardProps
     | "setSpendingModelId"
     | "setSpendingOffset"
     | "setSpendingPreset"
-    | "setSpendingProviderType"
     | "setSpendingTo"
     | "setSpendingTopN"
+    | "spendingApiFamily"
     | "spendingConnectionId"
     | "spendingFrom"
     | "spendingGroupBy"
     | "spendingLimit"
     | "spendingModelId"
     | "spendingPreset"
-    | "spendingProviderType"
     | "spendingTo"
     | "spendingTopN"
   > {
@@ -38,11 +38,12 @@ interface SpendingFiltersCardProps
 }
 
 export function SpendingFiltersCard({
+  apiFamilies,
   connections,
   formatTime,
   models,
-  providers,
   reportCode,
+  setSpendingApiFamily,
   setSpendingConnectionId,
   setSpendingFrom,
   setSpendingGroupBy,
@@ -50,16 +51,15 @@ export function SpendingFiltersCard({
   setSpendingModelId,
   setSpendingOffset,
   setSpendingPreset,
-  setSpendingProviderType,
   setSpendingTo,
   setSpendingTopN,
+  spendingApiFamily,
   spendingConnectionId,
   spendingFrom,
   spendingGroupBy,
   spendingLimit,
   spendingModelId,
   spendingPreset,
-  spendingProviderType,
   spendingTo,
   spendingTopN,
   spendingUpdatedAt,
@@ -68,7 +68,7 @@ export function SpendingFiltersCard({
     setSpendingPreset("last_7_days");
     setSpendingFrom("");
     setSpendingTo("");
-    setSpendingProviderType("all");
+    setSpendingApiFamily("all");
     setSpendingModelId("");
     setSpendingConnectionId("");
     setSpendingGroupBy("model");
@@ -81,12 +81,13 @@ export function SpendingFiltersCard({
     <Card className="sticky top-4 z-10 border-border/70 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <CardContent className="space-y-3 p-4">
         <SpendingFilterGroups
+          apiFamilies={apiFamilies}
           connections={connections}
           formatTime={formatTime}
           models={models}
           onReset={handleReset}
-          providers={providers}
           reportCode={reportCode}
+          setSpendingApiFamily={setSpendingApiFamily}
           setSpendingConnectionId={setSpendingConnectionId}
           setSpendingFrom={setSpendingFrom}
           setSpendingGroupBy={setSpendingGroupBy}
@@ -94,16 +95,15 @@ export function SpendingFiltersCard({
           setSpendingModelId={setSpendingModelId}
           setSpendingOffset={setSpendingOffset}
           setSpendingPreset={setSpendingPreset}
-          setSpendingProviderType={setSpendingProviderType}
           setSpendingTo={setSpendingTo}
           setSpendingTopN={setSpendingTopN}
+          spendingApiFamily={spendingApiFamily}
           spendingConnectionId={spendingConnectionId}
           spendingFrom={spendingFrom}
           spendingGroupBy={spendingGroupBy}
           spendingLimit={spendingLimit}
           spendingModelId={spendingModelId}
           spendingPreset={spendingPreset}
-          spendingProviderType={spendingProviderType}
           spendingTo={spendingTo}
           spendingTopN={spendingTopN}
           spendingUpdatedAt={spendingUpdatedAt}

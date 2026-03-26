@@ -63,7 +63,7 @@ export interface LoadbalanceEvent {
   blocked_until_mono: number | null;
   model_id: string | null;
   endpoint_id: number | null;
-  provider_id: number | null;
+  vendor_id: number | null;
   summary: LoadbalanceEventSummary;
   created_at: string;
 }

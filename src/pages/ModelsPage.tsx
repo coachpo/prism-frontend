@@ -69,9 +69,8 @@ export function ModelsPage() {
         formData={data.formData}
         isDialogOpen={data.isDialogOpen}
         loadbalanceStrategies={data.loadbalanceStrategies}
-        nativeModelsForProvider={data.nativeModelsForProvider}
-        providers={data.providers}
-        selectedProvider={data.selectedProvider}
+        nativeModelsForApiFamily={data.nativeModelsForApiFamily}
+        vendors={data.vendors}
         setFormData={data.setFormData}
         setIsDialogOpen={data.setIsDialogOpen}
         setLoadbalanceStrategyId={data.setLoadbalanceStrategyId}

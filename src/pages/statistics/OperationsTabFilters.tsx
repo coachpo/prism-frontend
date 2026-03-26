@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProviderSelect } from "@/components/ProviderSelect";
+import { ApiFamilySelect } from "@/components/ApiFamilySelect";
 import {
   OPERATIONS_TIME_RANGES,
   type OperationsStatusFilter,
@@ -17,15 +17,15 @@ import {
   type SpecialTokenFilter,
 } from "./queryParams";
 import { getConnectionLabel } from "./utils";
-import type { Provider, ConnectionDropdownItem } from "@/lib/types";
+import type { ApiFamily, ConnectionDropdownItem } from "@/lib/types";
 
 interface OperationsTabFiltersProps {
   timeRange: OperationsTimeRange;
   setTimeRange: (value: OperationsTimeRange) => void;
   modelId: string;
   setModelId: (value: string) => void;
-  providerType: string;
-  setProviderType: (value: string) => void;
+  apiFamily: string;
+  setApiFamily: (value: string) => void;
   connectionId: string;
   setConnectionId: (value: string) => void;
   specialTokenFilter: SpecialTokenFilter;
@@ -35,7 +35,7 @@ interface OperationsTabFiltersProps {
   clearFilters: () => void;
   refresh: () => void;
   models: { model_id: string; display_name: string | null }[];
-  providers: Provider[];
+  apiFamilies: ApiFamily[];
   connections: ConnectionDropdownItem[];
 }
 
@@ -44,8 +44,8 @@ export function OperationsTabFilters({
   setTimeRange,
   modelId,
   setModelId,
-  providerType,
-  setProviderType,
+  apiFamily,
+  setApiFamily,
   connectionId,
   setConnectionId,
   specialTokenFilter,
@@ -55,7 +55,7 @@ export function OperationsTabFilters({
   clearFilters,
   refresh,
   models,
-  providers,
+  apiFamilies,
   connections,
 }: OperationsTabFiltersProps) {
   const { messages } = useLocale();
@@ -102,11 +102,13 @@ export function OperationsTabFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="provider-type">{messages.requestLogs.provider}</Label>
-          <ProviderSelect
-            value={providerType}
-            onValueChange={setProviderType}
-            providers={providers}
+          <Label htmlFor="api-family">{messages.common.apiFamily}</Label>
+          <ApiFamilySelect
+            value={apiFamily}
+            onValueChange={setApiFamily}
+            apiFamilies={apiFamilies}
+            allLabel={`${messages.statistics.all} ${messages.common.apiFamily}`}
+            className="h-10"
           />
         </div>
 

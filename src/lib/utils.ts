@@ -11,12 +11,12 @@ export function formatLabel(value: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-const PROVIDER_TYPE_LABELS: Record<string, string> = {
+const API_FAMILY_LABELS: Record<string, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",
   gemini: "Gemini",
 };
 
-export function formatProviderType(providerType: string): string {
-  return PROVIDER_TYPE_LABELS[providerType] ?? "-";
+export function formatApiFamily(apiFamily: string): string {
+  return API_FAMILY_LABELS[apiFamily] ?? "-";
 }

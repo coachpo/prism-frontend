@@ -13,11 +13,11 @@ export function OperationsTab({
   clearNewLogHighlight,
   models,
   connections,
-  providers,
+  apiFamilies,
   modelId,
   setModelId,
-  providerType,
-  setProviderType,
+  apiFamily,
+  setApiFamily,
   connectionId,
   setConnectionId,
   timeRange,
@@ -57,7 +57,7 @@ export function OperationsTab({
   } = useOperationsTabData({
     logs,
     modelId,
-    providerType,
+    apiFamily,
     connectionId,
     timeRange,
     specialTokenFilter,
@@ -72,8 +72,8 @@ export function OperationsTab({
         setTimeRange={setTimeRange}
         modelId={modelId}
         setModelId={setModelId}
-        providerType={providerType}
-        setProviderType={setProviderType}
+        apiFamily={apiFamily}
+        setApiFamily={setApiFamily}
         connectionId={connectionId}
         setConnectionId={setConnectionId}
         specialTokenFilter={specialTokenFilter}
@@ -83,7 +83,7 @@ export function OperationsTab({
         clearFilters={clearOperationsFilters}
         refresh={manualRefresh}
         models={models}
-        providers={providers}
+        apiFamilies={apiFamilies}
         connections={connections}
       />
 

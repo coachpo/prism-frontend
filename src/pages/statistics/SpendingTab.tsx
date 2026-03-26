@@ -21,8 +21,8 @@ export function SpendingTab({
   setSpendingFrom,
   spendingTo,
   setSpendingTo,
-  spendingProviderType,
-  setSpendingProviderType,
+  spendingApiFamily,
+  setSpendingApiFamily,
   spendingModelId,
   setSpendingModelId,
   spendingConnectionId,
@@ -38,7 +38,7 @@ export function SpendingTab({
   spendingUpdatedAt,
   models,
   connections,
-  providers,
+  apiFamilies,
   clearSpendingFilters,
   manualRefresh,
 }: SpendingTabProps) {
@@ -57,8 +57,8 @@ export function SpendingTab({
         setSpendingFrom={setSpendingFrom}
         spendingTo={spendingTo}
         setSpendingTo={setSpendingTo}
-        spendingProviderType={spendingProviderType}
-        setSpendingProviderType={setSpendingProviderType}
+        spendingApiFamily={spendingApiFamily}
+        setSpendingApiFamily={setSpendingApiFamily}
         spendingModelId={spendingModelId}
         setSpendingModelId={setSpendingModelId}
         spendingConnectionId={spendingConnectionId}
@@ -68,16 +68,17 @@ export function SpendingTab({
         clearFilters={clearSpendingFilters}
         refresh={manualRefresh}
         models={models}
-        providers={providers}
+        apiFamilies={apiFamilies}
         connections={connections}
       />
 
       <SpendingFiltersCard
+        apiFamilies={apiFamilies}
         connections={connections}
         formatTime={formatTime}
         models={models}
-        providers={providers}
         reportCode={reportCode}
+        setSpendingApiFamily={setSpendingApiFamily}
         setSpendingConnectionId={setSpendingConnectionId}
         setSpendingFrom={setSpendingFrom}
         setSpendingGroupBy={setSpendingGroupBy}
@@ -85,16 +86,15 @@ export function SpendingTab({
         setSpendingModelId={setSpendingModelId}
         setSpendingOffset={setSpendingOffset}
         setSpendingPreset={setSpendingPreset}
-        setSpendingProviderType={setSpendingProviderType}
         setSpendingTo={setSpendingTo}
         setSpendingTopN={setSpendingTopN}
+        spendingApiFamily={spendingApiFamily}
         spendingConnectionId={spendingConnectionId}
         spendingFrom={spendingFrom}
         spendingGroupBy={spendingGroupBy}
         spendingLimit={spendingLimit}
         spendingModelId={spendingModelId}
         spendingPreset={spendingPreset}
-        spendingProviderType={spendingProviderType}
         spendingTo={spendingTo}
         spendingTopN={spendingTopN}
         spendingUpdatedAt={spendingUpdatedAt}

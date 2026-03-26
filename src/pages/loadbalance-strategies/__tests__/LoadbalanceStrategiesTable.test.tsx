@@ -110,6 +110,30 @@ describe("LoadbalanceStrategiesTable", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders distinct priority spillover copy for fill-first strategies", () => {
+    const strategy = buildStrategy({
+      name: "Primary fill-first",
+      strategy_type: "fill-first",
+      failover_recovery_enabled: true,
+    });
+
+    render(
+      <LocaleProvider>
+        <LoadbalanceStrategiesTable
+          loadbalanceStrategies={[strategy]}
+          loadbalanceStrategiesLoading={false}
+          loadbalanceStrategyPreparingEditId={null}
+          onCreate={vi.fn()}
+          onDelete={vi.fn()}
+          onEdit={vi.fn().mockResolvedValue(undefined)}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByText("Strict priority spillover with optional recovery")).toBeInTheDocument();
+    expect(screen.getByText("Threshold 4 • Base 45s • Max 720s")).toBeInTheDocument();
+  });
+
   it("renders localized table copy when the saved locale is Chinese", () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
@@ -152,7 +176,7 @@ describe("LoadbalanceStrategiesTable", () => {
     expect(screen.getByText("类型")).toBeInTheDocument();
     expect(screen.getByText("恢复")).toBeInTheDocument();
     expect(screen.getByText("已绑定模型")).toBeInTheDocument();
-    expect(screen.getByText("优先顺序，可选恢复")).toBeInTheDocument();
+    expect(screen.getByText("按健康感知故障转移，可选恢复")).toBeInTheDocument();
     expect(screen.getByText("已启用")).toBeInTheDocument();
     expect(screen.getByText(/阈值 4/)).toBeInTheDocument();
     expect(screen.getByText(/退避 ×3.5/)).toBeInTheDocument();

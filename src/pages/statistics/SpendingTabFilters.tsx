@@ -10,10 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProviderSelect } from "@/components/ProviderSelect";
+import { ApiFamilySelect } from "@/components/ApiFamilySelect";
 import { type SpendingPreset } from "./queryParams";
 import { getConnectionLabel } from "./utils";
-import type { Provider, SpendingGroupBy, ConnectionDropdownItem } from "@/lib/types";
+import type { ApiFamily, SpendingGroupBy, ConnectionDropdownItem } from "@/lib/types";
 
 interface SpendingTabFiltersProps {
   spendingPreset: SpendingPreset;
@@ -22,8 +22,8 @@ interface SpendingTabFiltersProps {
   setSpendingFrom: (value: string) => void;
   spendingTo: string;
   setSpendingTo: (value: string) => void;
-  spendingProviderType: string;
-  setSpendingProviderType: (value: string) => void;
+  spendingApiFamily: string;
+  setSpendingApiFamily: (value: string) => void;
   spendingModelId: string;
   setSpendingModelId: (value: string) => void;
   spendingConnectionId: string;
@@ -33,7 +33,7 @@ interface SpendingTabFiltersProps {
   clearFilters: () => void;
   refresh: () => void;
   models: { model_id: string; display_name: string | null }[];
-  providers: Provider[];
+  apiFamilies: ApiFamily[];
   connections: ConnectionDropdownItem[];
 }
 
@@ -44,8 +44,8 @@ export function SpendingTabFilters({
   setSpendingFrom,
   spendingTo,
   setSpendingTo,
-  spendingProviderType,
-  setSpendingProviderType,
+  spendingApiFamily,
+  setSpendingApiFamily,
   spendingModelId,
   setSpendingModelId,
   spendingConnectionId,
@@ -55,7 +55,7 @@ export function SpendingTabFilters({
   clearFilters,
   refresh,
   models,
-  providers,
+  apiFamilies,
   connections,
 }: SpendingTabFiltersProps) {
   const { messages } = useLocale();
@@ -108,11 +108,13 @@ export function SpendingTabFilters({
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="spending-provider-type">{messages.requestLogs.provider}</Label>
-          <ProviderSelect
-            value={spendingProviderType}
-            onValueChange={setSpendingProviderType}
-            providers={providers}
+          <Label htmlFor="spending-api-family">{messages.common.apiFamily}</Label>
+          <ApiFamilySelect
+            value={spendingApiFamily}
+            onValueChange={setSpendingApiFamily}
+            apiFamilies={apiFamilies}
+            allLabel={`${messages.statistics.all} ${messages.common.apiFamily}`}
+            className="h-10"
           />
         </div>
 
@@ -170,7 +172,7 @@ export function SpendingTabFilters({
               <SelectItem value="day">{messages.statistics.day}</SelectItem>
               <SelectItem value="week">{messages.statistics.week}</SelectItem>
               <SelectItem value="month">{messages.statistics.month}</SelectItem>
-              <SelectItem value="provider">{messages.statistics.providerGroup}</SelectItem>
+              <SelectItem value="api_family">{messages.common.apiFamily}</SelectItem>
               <SelectItem value="model">{messages.statistics.modelGroup}</SelectItem>
               <SelectItem value="endpoint">{messages.statistics.endpointGroup}</SelectItem>
               <SelectItem value="model_endpoint">{messages.statistics.modelEndpointGroup}</SelectItem>

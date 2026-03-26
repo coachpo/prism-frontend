@@ -1,9 +1,9 @@
-import type { Provider } from "./profile-provider";
+import type { ApiFamily, Vendor } from "./vendor";
 import type { Connection } from "./routing";
 import type { LoadbalanceBanMode } from "./loadbalance";
 
 export type ModelType = "native" | "proxy";
-export type LoadBalancingStrategy = "single" | "failover";
+export type LoadBalancingStrategy = "single" | "fill-first" | "failover";
 
 export interface ProxyTarget {
   target_model_id: string;
@@ -78,8 +78,9 @@ export interface LoadbalanceStrategyUpdate {
 
 export interface ModelConfig {
   id: number;
-  provider_id: number;
-  provider: Provider;
+  vendor_id?: number;
+  vendor?: Vendor;
+  api_family?: ApiFamily;
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
@@ -94,8 +95,9 @@ export interface ModelConfig {
 
 export interface ModelConfigListItem {
   id: number;
-  provider_id: number;
-  provider: Provider;
+  vendor_id?: number;
+  vendor?: Vendor;
+  api_family?: ApiFamily;
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
@@ -112,7 +114,8 @@ export interface ModelConfigListItem {
 }
 
 export interface ModelConfigCreate {
-  provider_id: number;
+  vendor_id?: number;
+  api_family?: ApiFamily;
   model_id: string;
   display_name?: string | null;
   model_type?: ModelType;
@@ -122,7 +125,8 @@ export interface ModelConfigCreate {
 }
 
 export interface ModelConfigUpdate {
-  provider_id?: number;
+  vendor_id?: number;
+  api_family?: ApiFamily;
   model_id?: string;
   display_name?: string | null;
   model_type?: ModelType;
@@ -136,7 +140,10 @@ export interface RequestLogEntry {
   model_id: string;
   resolved_target_model_id: string | null;
   profile_id: number;
-  provider_type: string;
+  api_family?: ApiFamily;
+  vendor_id?: number | null;
+  vendor_key?: string | null;
+  vendor_name?: string | null;
   endpoint_id: number | null;
   connection_id: number | null;
   ingress_request_id: string | null;
@@ -193,7 +200,7 @@ export type StatisticsRequestLogEntry = Pick<
   RequestLogEntry,
   | "id"
   | "model_id"
-  | "provider_type"
+  | "api_family"
   | "status_code"
   | "response_time_ms"
   | "input_tokens"
@@ -242,7 +249,7 @@ export interface StatsRequestParams {
   request_id?: number;
   ingress_request_id?: string;
   model_id?: string;
-  provider_type?: string;
+  api_family?: ApiFamily;
   status_family?: RequestStatusFamily;
   status_code?: number;
   success?: boolean;
@@ -257,9 +264,9 @@ export interface StatsRequestParams {
 export interface StatsSummaryParams {
   from_time?: string;
   to_time?: string;
-  group_by?: "model" | "provider" | "endpoint";
+  group_by?: "model" | "api_family" | "endpoint";
   model_id?: string;
-  provider_type?: string;
+  api_family?: ApiFamily;
   endpoint_id?: number;
   connection_id?: number;
 }
@@ -320,7 +327,7 @@ export type SpendingGroupBy =
   | "day"
   | "week"
   | "month"
-  | "provider"
+  | "api_family"
   | "model"
   | "endpoint"
   | "model_endpoint";
@@ -329,7 +336,7 @@ export interface SpendingReportParams {
   preset?: "today" | "last_7_days" | "last_30_days" | "custom" | "all";
   from_time?: string;
   to_time?: string;
-  provider_type?: string;
+  api_family?: ApiFamily;
   model_id?: string;
   connection_id?: number;
   group_by?: SpendingGroupBy;
@@ -415,7 +422,7 @@ export interface DashboardRouteSnapshot {
 export interface DashboardRealtimeUpdatePayload {
   request_log: RequestLogEntry;
   stats_summary_24h: StatsSummary;
-  provider_summary_24h: StatsSummary;
+  api_family_summary_24h: StatsSummary;
   spending_summary_30d: SpendingReportResponse;
   throughput_24h: ThroughputStatsResponse;
   routing_route_24h: DashboardRouteSnapshot | null;

@@ -1,10 +1,10 @@
 import { Activity, ArrowUpRight, DollarSign, FileText } from "lucide-react";
 import { useLocale } from "@/i18n/useLocale";
 import { EmptyState } from "@/components/EmptyState";
-import { ProviderIcon } from "@/components/ProviderIcon";
+import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn, formatProviderType } from "@/lib/utils";
+import { cn, formatApiFamily } from "@/lib/utils";
 import type { StatGroup } from "@/lib/types";
 import type { DashboardMetricSnapshot } from "./useDashboardPageData";
 
@@ -13,7 +13,7 @@ interface DashboardHighlightsGridProps {
   onInspectSpending: () => void;
   onOpenStatistics: () => void;
   onReviewRequests: () => void;
-  providerRows: StatGroup[];
+  apiFamilyRows: StatGroup[];
   snapshot: DashboardMetricSnapshot;
 }
 
@@ -22,7 +22,7 @@ export function DashboardHighlightsGrid({
   onInspectSpending,
   onOpenStatistics,
   onReviewRequests,
-  providerRows,
+  apiFamilyRows,
   snapshot,
 }: DashboardHighlightsGridProps) {
   const { formatNumber, messages } = useLocale();
@@ -64,35 +64,35 @@ export function DashboardHighlightsGrid({
 
       <Card>
         <CardHeader>
-          <CardTitle>{messages.dashboard.providerMix}</CardTitle>
-          <CardDescription>{messages.dashboard.providerMixDescription}</CardDescription>
+          <CardTitle>{messages.dashboard.apiFamilyMix}</CardTitle>
+          <CardDescription>{messages.dashboard.apiFamilyMixDescription}</CardDescription>
         </CardHeader>
         <CardContent>
-          {providerRows.length === 0 ? (
+          {apiFamilyRows.length === 0 ? (
             <EmptyState
               icon={<Activity className="h-6 w-6" />}
-              title={messages.dashboard.noProviderActivity}
-              description={messages.dashboard.noProviderActivityDescription}
+              title={messages.dashboard.noApiFamilyActivity}
+              description={messages.dashboard.noApiFamilyActivityDescription}
             />
           ) : (
             <div className="space-y-3">
-              {providerRows.slice(0, 3).map((provider) => {
+              {apiFamilyRows.slice(0, 3).map((apiFamily) => {
                 const ratio =
                   snapshot.totalRequests > 0
-                    ? (provider.total_requests / snapshot.totalRequests) * 100
+                    ? (apiFamily.total_requests / snapshot.totalRequests) * 100
                     : 0;
 
                 return (
-                  <div key={provider.key} className="space-y-1.5">
+                  <div key={apiFamily.key} className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <div className="flex min-w-0 items-center gap-1.5">
-                        <ProviderIcon providerType={provider.key} size={14} />
+                        <ApiFamilyIcon apiFamily={apiFamily.key} size={14} />
                         <p className="truncate text-sm font-medium">
-                          {formatProviderType(provider.key)}
+                          {formatApiFamily(apiFamily.key)}
                         </p>
                       </div>
                       <p className="text-xs text-muted-foreground tabular-nums">
-                        {formatNumber(provider.total_requests)} req
+                        {formatNumber(apiFamily.total_requests)} req
                       </p>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-muted">

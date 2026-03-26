@@ -6,7 +6,7 @@ export const SPENDING_GROUP_BY_OPTIONS = [
   { label: "Day", value: "day" },
   { label: "Week", value: "week" },
   { label: "Month", value: "month" },
-  { label: "Provider", value: "provider" },
+  { label: "API Family", value: "api_family" },
   { label: "Model", value: "model" },
   { label: "Endpoint", value: "endpoint" },
   { label: "Model + Endpoint", value: "model_endpoint" },

@@ -21,7 +21,7 @@ type Params = {
 
 interface DashboardBootstrapResult {
   modelsData: ModelConfigListItem[];
-  providerStatsData: StatsSummary;
+  apiFamilyStatsData: StatsSummary;
   requestsData: RequestLogListResponse;
   routingResult: {
     data: RoutingDiagramData;
@@ -69,7 +69,7 @@ async function loadDashboardBootstrapData(
   const loadPromise = Promise.all([
     modelsPromise,
     api.stats.summary({ from_time: from24h }),
-    api.stats.summary({ from_time: from24h, group_by: "provider" }),
+    api.stats.summary({ from_time: from24h, group_by: "api_family" }),
     api.stats.spending({ preset: "last_30_days", top_n: 5 }),
     api.stats.throughput({ from_time: from24h, to_time: to24h }),
     api.stats.requests({ limit: 12 }),
@@ -125,10 +125,10 @@ async function loadDashboardBootstrapData(
       }
     })(),
   ]).then(
-    ([modelsData, statsData, providerStatsData, spendingData, throughputData, requestsData, routingResult]) => ({
+    ([modelsData, statsData, apiFamilyStatsData, spendingData, throughputData, requestsData, routingResult]) => ({
       modelsData,
       statsData,
-      providerStatsData,
+      apiFamilyStatsData,
       spendingData,
       throughputData,
       requestsData,
@@ -159,7 +159,7 @@ export function useDashboardBootstrapData({
   const [loading, setLoading] = useState(true);
   const [models, setModels] = useState<ModelConfigListItem[]>([]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
-  const [providerStats, setProviderStats] = useState<StatsSummary | null>(null);
+  const [apiFamilyStats, setApiFamilyStats] = useState<StatsSummary | null>(null);
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
   const [throughput, setThroughput] = useState<ThroughputStatsResponse | null>(null);
   const [recentRequests, setRecentRequests] = useState<RequestLogEntry[]>([]);
@@ -190,7 +190,7 @@ export function useDashboardBootstrapData({
         const {
           modelsData,
           statsData,
-          providerStatsData,
+          apiFamilyStatsData,
           spendingData,
           throughputData,
           requestsData,
@@ -219,7 +219,7 @@ export function useDashboardBootstrapData({
 
         setModels(modelsData);
         setStats(statsData);
-        setProviderStats(providerStatsData);
+        setApiFamilyStats(apiFamilyStatsData);
         setSpending(spendingData);
         setThroughput(throughputData);
         setRecentRequests(requestsData.items);
@@ -242,12 +242,12 @@ export function useDashboardBootstrapData({
     fetchDashboardData,
     loading,
     models,
-    providerStats,
+    apiFamilyStats,
     recentRequests,
     routingDiagramData,
     routingDiagramError,
     routingDiagramLoading,
-    setProviderStats,
+    setApiFamilyStats,
     setRecentRequests,
     setRoutingDiagramData,
     setRoutingDiagramError,

@@ -31,7 +31,7 @@ export function applyClientFilters(
     result = result.filter(
       (r) =>
         r.model_id.toLowerCase().includes(q) ||
-        r.provider_type.toLowerCase().includes(q) ||
+        (r.api_family?.toLowerCase().includes(q) ?? false) ||
         r.request_path.toLowerCase().includes(q) ||
         (r.error_detail?.toLowerCase().includes(q) ?? false)
     );

@@ -262,4 +262,77 @@ describe("LoadbalanceStrategyDialog", () => {
 
     expect(screen.queryByLabelText("Ban Duration (seconds)")).not.toBeInTheDocument();
   });
+
+  it("shows fill-first in the strategy selector and treats it like another non-single strategy", () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class ResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+
+    const setLoadbalanceStrategyForm = vi.fn();
+    const currentForm = {
+      name: "fill-first-primary",
+      strategy_type: "fill-first" as const,
+      failover_recovery_enabled: true,
+      failover_cooldown_seconds: 60,
+      failover_failure_threshold: 2,
+      failover_backoff_multiplier: 2,
+      failover_max_cooldown_seconds: 900,
+      failover_jitter_ratio: 0.2,
+      failover_auth_error_cooldown_seconds: 1800,
+      failover_ban_mode: "off" as const,
+      failover_max_cooldown_strikes_before_ban: 0,
+      failover_ban_duration_seconds: 0,
+    };
+
+    render(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={currentForm}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={setLoadbalanceStrategyForm}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    const strategyTypeSelect = screen.getAllByRole("combobox")[0];
+    expect(strategyTypeSelect).toHaveTextContent("Fill-first");
+    fireEvent.click(strategyTypeSelect);
+    expect(screen.getAllByText("Fill-first").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByText("Failover"));
+    const switchToFailover = setLoadbalanceStrategyForm.mock.calls.at(-1)?.[0] as
+      | ((state: typeof currentForm) => typeof currentForm)
+      | undefined;
+    expect(switchToFailover?.(currentForm)).toMatchObject({
+      strategy_type: "failover",
+      failover_recovery_enabled: true,
+    });
+
+    fireEvent.click(strategyTypeSelect);
+    fireEvent.click(screen.getByText("Single"));
+    const switchToSingle = setLoadbalanceStrategyForm.mock.calls.at(-1)?.[0] as
+      | ((state: typeof currentForm) => typeof currentForm)
+      | undefined;
+    expect(switchToSingle?.(currentForm)).toMatchObject({
+      strategy_type: "single",
+      failover_recovery_enabled: false,
+    });
+
+    vi.unstubAllGlobals();
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
 });

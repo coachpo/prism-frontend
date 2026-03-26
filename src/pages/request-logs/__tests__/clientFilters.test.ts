@@ -8,7 +8,7 @@ function createRequest(overrides: Partial<RequestLogEntry> = {}): RequestLogEntr
     model_id: "gpt-5.4",
     resolved_target_model_id: null,
     profile_id: 7,
-    provider_type: "openai",
+    api_family: "openai",
     endpoint_id: 10,
     connection_id: 22,
     ingress_request_id: null,
@@ -139,5 +139,27 @@ describe("applyClientFilters", () => {
     });
 
     expect(filtered.map((item) => item.id)).toEqual([2, 3]);
+  });
+
+  it("searches api_family text directly", () => {
+    const items = [
+      createRequest({ id: 1, api_family: "openai" }),
+      createRequest({ id: 2, api_family: "anthropic" }),
+    ];
+
+    const filtered = applyClientFilters(items, {
+      search: "anthropic",
+      outcome_filter: "all",
+      stream_filter: "all",
+      latency_bucket: "all",
+      token_min: "",
+      token_max: "",
+      priced_only: false,
+      billable_only: false,
+      special_token_filter: "",
+      triage: false,
+    });
+
+    expect(filtered.map((item) => item.id)).toEqual([2]);
   });
 });

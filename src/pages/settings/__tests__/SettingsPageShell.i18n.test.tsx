@@ -52,7 +52,7 @@ vi.mock("../useSettingsPageData", () => ({
     timezoneDirty: false,
     timezonePreviewText: "preview",
     timezonePreviewZone: "UTC",
-    providers: [],
+    vendors: [],
     toggleAudit: vi.fn(),
     toggleBodies: vi.fn(),
     loadingRules: false,

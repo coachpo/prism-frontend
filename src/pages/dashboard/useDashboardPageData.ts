@@ -34,12 +34,12 @@ export function useDashboardPageData({
     fetchDashboardData,
     loading,
     models,
-    providerStats,
+    apiFamilyStats,
     recentRequests,
     routingDiagramData,
     routingDiagramError,
     routingDiagramLoading,
-    setProviderStats,
+    setApiFamilyStats,
     setRecentRequests,
     setRoutingDiagramData,
     setRoutingDiagramError,
@@ -66,7 +66,7 @@ export function useDashboardPageData({
     fetchDashboardData,
     latestDashboardRequestIdRef,
     selectedProfileId,
-    setProviderStats,
+    setApiFamilyStats,
     setRecentRequests,
     setRoutingDiagramData,
     setRoutingDiagramError,
@@ -81,7 +81,7 @@ export function useDashboardPageData({
 
   useEffect(() => {
     void fetchDashboardData({ reuseInFlight: true });
-  }, [fetchDashboardData, revision]);
+  }, [fetchDashboardData]);
 
   const metricSnapshot = useMemo<DashboardMetricSnapshot>(() => {
     const activeModels = models.filter((model) => model.is_enabled).length;
@@ -110,9 +110,9 @@ export function useDashboardPageData({
     };
   }, [models, recentRequests, spending, stats, throughput]);
 
-  const providerRows = useMemo<StatGroup[]>(() => {
-    return [...(providerStats?.groups ?? [])].sort((left, right) => right.total_requests - left.total_requests);
-  }, [providerStats]);
+  const apiFamilyRows = useMemo<StatGroup[]>(() => {
+    return [...(apiFamilyStats?.groups ?? [])].sort((left, right) => right.total_requests - left.total_requests);
+  }, [apiFamilyStats]);
 
   const topSpendingModels = useMemo<SpendingTopModel[]>(() => {
     return spending?.top_spending_models ?? [];
@@ -127,7 +127,7 @@ export function useDashboardPageData({
     metricSnapshot,
     metricsHighlighted,
     modelDisplayNames,
-    providerRows,
+    apiFamilyRows,
     recentNewIds,
     recentRequests,
     refreshDashboard,

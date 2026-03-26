@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type {
+  ApiFamily,
   SpendingReportResponse,
   StatisticsRequestLogEntry,
   ThroughputStatsResponse,
@@ -8,6 +9,12 @@ import type {
 import { getFromTime } from "./queryParams";
 import type { StatisticsPageState } from "./useStatisticsPageState";
 import { toIsoFromDateInput } from "./utils";
+
+const API_FAMILIES: ApiFamily[] = ["openai", "anthropic", "gemini"];
+
+function toApiFamily(value: string): ApiFamily | undefined {
+  return API_FAMILIES.find((apiFamily) => apiFamily === value);
+}
 
 type Params = {
   latestOperationsLogIdRef: React.MutableRefObject<number>;
@@ -18,9 +25,10 @@ type Params = {
 export function useStatisticsReports({ latestOperationsLogIdRef, revision, state }: Params) {
   const {
     activeTab,
+    apiFamily,
     connectionId,
     modelId,
-    providerType,
+    spendingApiFamily,
     spendingConnectionId,
     spendingFrom,
     spendingGroupBy,
@@ -28,7 +36,6 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
     spendingModelId,
     spendingOffset,
     spendingPreset,
-    spendingProviderType,
     spendingTo,
     spendingTopN,
     timeRange,
@@ -58,7 +65,7 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
       try {
         const requestParams = {
           model_id: modelId !== "__all__" ? modelId : undefined,
-          provider_type: providerType !== "all" ? providerType : undefined,
+          api_family: apiFamily !== "all" ? toApiFamily(apiFamily) : undefined,
           connection_id:
             connectionId !== "__all__" ? Number.parseInt(connectionId, 10) : undefined,
           from_time: getFromTime(timeRange),
@@ -83,7 +90,7 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
         }
       }
     },
-    [connectionId, latestOperationsLogIdRef, modelId, providerType, timeRange]
+    [apiFamily, connectionId, latestOperationsLogIdRef, modelId, timeRange]
   );
 
   const fetchThroughputData = useCallback(
@@ -99,7 +106,7 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
         const response = await api.stats.throughput({
           from_time: getFromTime(timeRange),
           model_id: modelId !== "__all__" ? modelId : undefined,
-          provider_type: providerType !== "all" ? providerType : undefined,
+          api_family: apiFamily !== "all" ? toApiFamily(apiFamily) : undefined,
           connection_id:
             connectionId !== "__all__" ? Number.parseInt(connectionId, 10) : undefined,
         });
@@ -117,7 +124,7 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
         }
       }
     },
-    [connectionId, modelId, providerType, timeRange]
+    [apiFamily, connectionId, modelId, timeRange]
   );
 
   const fetchSpendingData = useCallback(
@@ -140,7 +147,7 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
               : undefined,
           to_time:
             spendingPreset === "custom" ? toIsoFromDateInput(spendingTo, "end") : undefined,
-          provider_type: spendingProviderType === "all" ? undefined : spendingProviderType,
+          api_family: spendingApiFamily === "all" ? undefined : toApiFamily(spendingApiFamily),
           model_id: spendingModelId || undefined,
           connection_id: spendingConnectionId
             ? Number.parseInt(spendingConnectionId, 10)
@@ -179,7 +186,7 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
       spendingModelId,
       spendingOffset,
       spendingPreset,
-      spendingProviderType,
+      spendingApiFamily,
       spendingTo,
       spendingTopN,
     ]
@@ -189,6 +196,8 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
     if (activeTab !== "operations") {
       return;
     }
+
+    void revision;
 
     const timeout = window.setTimeout(() => {
       void fetchOperationsLogs();
@@ -202,6 +211,8 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
       return;
     }
 
+    void revision;
+
     const timeout = window.setTimeout(() => {
       void fetchThroughputData();
     }, 300);
@@ -213,6 +224,8 @@ export function useStatisticsReports({ latestOperationsLogIdRef, revision, state
     if (activeTab !== "spending") {
       return;
     }
+
+    void revision;
 
     const timeout = window.setTimeout(() => {
       void fetchSpendingData();

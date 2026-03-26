@@ -40,7 +40,7 @@ export interface RequestLogPageState {
   // Server filters
   ingress_request_id: string;
   model_id: string;
-  provider_type: string;
+  api_family: string;
   connection_id: string;
   endpoint_id: string;
   time_range: TimeRange;
@@ -81,7 +81,7 @@ export function parsePageState(params: URLSearchParams): RequestLogPageState {
   return {
     ingress_request_id: params.get("ingress_request_id") ?? "",
     model_id: params.get("model_id") ?? "",
-    provider_type: params.get("provider_type") ?? "",
+    api_family: params.get("api_family") ?? "",
     connection_id: params.get("connection_id") ?? "",
     endpoint_id: params.get("endpoint_id") ?? "",
     time_range: parseEnum(params.get("time_range"), TIME_RANGE_OPTIONS, DEFAULTS.time_range),
@@ -108,7 +108,7 @@ export function stateToParams(state: RequestLogPageState): URLSearchParams {
   const p = new URLSearchParams();
   if (state.ingress_request_id) p.set("ingress_request_id", state.ingress_request_id);
   if (state.model_id) p.set("model_id", state.model_id);
-  if (state.provider_type) p.set("provider_type", state.provider_type);
+  if (state.api_family) p.set("api_family", state.api_family);
   if (state.connection_id) p.set("connection_id", state.connection_id);
   if (state.endpoint_id) p.set("endpoint_id", state.endpoint_id);
   if (state.time_range !== DEFAULTS.time_range) p.set("time_range", state.time_range);

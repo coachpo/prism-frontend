@@ -119,7 +119,7 @@ function buildRequestLogEntry(): RequestLogEntry {
     model_id: "gpt-5.4",
     resolved_target_model_id: null,
     profile_id: 7,
-    provider_type: "openai",
+    api_family: "openai",
     endpoint_id: 12,
     connection_id: 34,
     ingress_request_id: null,

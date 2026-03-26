@@ -1,14 +1,24 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
-import { LocaleProvider } from "@/i18n/LocaleProvider";
-import { AppSidebar } from "../AppSidebar";
-import { VERSION_LABEL } from "../navigationProfileConfig";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-type SidebarProps = React.ComponentProps<typeof AppSidebar>;
+const TEST_APP_VERSION = "9.8.7";
+const TEST_GIT_RUN_NUMBER = "123";
+const TEST_GIT_REVISION = "deadbee";
 
-function renderSidebar(overrides: Partial<SidebarProps> = {}) {
-  const props: SidebarProps = {
+async function renderSidebar(overrides: Record<string, unknown> = {}) {
+  vi.stubEnv("VITE_APP_VERSION", TEST_APP_VERSION);
+  vi.stubEnv("VITE_GIT_RUN_NUMBER", TEST_GIT_RUN_NUMBER);
+  vi.stubEnv("VITE_GIT_REVISION", TEST_GIT_REVISION);
+  vi.resetModules();
+
+  const [{ AppSidebar }, { VERSION_LABEL }, { LocaleProvider }] = await Promise.all([
+    import("../AppSidebar"),
+    import("../navigationProfileConfig"),
+    import("@/i18n/LocaleProvider"),
+  ]);
+
+  const props = {
     activeProfileName: "Production",
     closeProfileSwitcher: vi.fn(),
     hasMismatch: false,
@@ -29,12 +39,18 @@ function renderSidebar(overrides: Partial<SidebarProps> = {}) {
   return {
     ...view,
     props,
+    VERSION_LABEL,
   };
 }
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
+});
+
 describe("AppSidebar", () => {
-  it("uses mobile-only hit testing disablement while hidden", () => {
-    renderSidebar({ sidebarOpen: false });
+  it("uses mobile-only hit testing disablement while hidden", async () => {
+    await renderSidebar({ sidebarOpen: false });
 
     const sidebar = screen.getByRole("complementary", { name: "Primary navigation" });
 
@@ -45,8 +61,8 @@ describe("AppSidebar", () => {
     expect(sidebar).toHaveClass("lg:pointer-events-auto");
   });
 
-  it("stays interactive when open and closes on navigation click", () => {
-    const { props } = renderSidebar();
+  it("stays interactive when open and closes on navigation click", async () => {
+    const { props } = await renderSidebar();
 
     const sidebar = screen.getByRole("complementary", { name: "Primary navigation" });
     const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
@@ -59,15 +75,15 @@ describe("AppSidebar", () => {
     expect(props.setSidebarOpen).toHaveBeenCalledWith(false);
   });
 
-  it("renders the version label in the 2.0 build format", () => {
-    renderSidebar();
+  it("renders the version label with the app version first and git metadata second", async () => {
+    const { VERSION_LABEL } = await renderSidebar();
 
-    expect(VERSION_LABEL).toMatch(/^2\.0\.[^-]+ - .+$/);
+    expect(VERSION_LABEL).toBe("9.8.7 (123 - deadbee)");
     expect(screen.getByText(VERSION_LABEL)).toBeInTheDocument();
   });
 
-  it("includes the loadbalance strategies navigation entry", () => {
-    renderSidebar();
+  it("includes the loadbalance strategies navigation entry", async () => {
+    await renderSidebar();
 
     expect(screen.getByRole("link", { name: "Loadbalance Strategies" })).toBeInTheDocument();
   });
