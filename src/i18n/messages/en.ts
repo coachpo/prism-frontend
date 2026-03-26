@@ -350,6 +350,8 @@ export interface Messages {
     baseUrl: string;
     auditCapture: string;
     auditCaptureUnavailable: string;
+    auditCaptureDisabledForVendor: string;
+    auditLoadFailed: string;
     noAuditRecords: string;
     timeRange: string;
     tokenRange: string;
@@ -889,6 +891,8 @@ export const enMessages: Messages = {
     baseUrl: "Base URL",
     auditCapture: "Audit capture",
     auditCaptureUnavailable: "Audit capture unavailable",
+    auditCaptureDisabledForVendor: "Audit logging may be disabled for this vendor.",
+    auditLoadFailed: "Failed to load audit details after multiple attempts.",
     noAuditRecords: "No audit records found for this request.",
     timeRange: "Time range",
     tokenRange: "Token range",

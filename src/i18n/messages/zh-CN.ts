@@ -355,6 +355,8 @@ export const zhCNMessages: Messages = {
     baseUrl: "基础 URL",
     auditCapture: "审计捕获",
     auditCaptureUnavailable: "审计捕获不可用",
+    auditCaptureDisabledForVendor: "此供应商可能未启用审计日志。",
+    auditLoadFailed: "多次尝试后仍无法加载审计详情。",
     noAuditRecords: "此请求未找到审计记录。",
     timeRange: "时间范围",
     tokenRange: "令牌范围",
