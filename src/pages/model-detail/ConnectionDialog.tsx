@@ -144,7 +144,7 @@ export function ConnectionDialog({
                 <div className="space-y-2">
                   <Label>Base URL</Label>
                   <Input
-                    placeholder="https://api.openai.com/v1"
+                    placeholder="https://api.openai.com"
                     value={newEndpointForm.base_url}
                     onChange={(e) => setNewEndpointForm({ ...newEndpointForm, base_url: e.target.value })}
                     required={createMode === "new"}

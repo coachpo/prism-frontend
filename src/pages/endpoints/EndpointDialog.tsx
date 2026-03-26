@@ -113,7 +113,7 @@ export function EndpointDialog({
                 <FormItem>
                   <FormLabel>{locale === "zh-CN" ? "基础 URL" : "Base URL"}</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://api.openai.com/v1" {...field} />
+                    <Input placeholder="https://api.openai.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
