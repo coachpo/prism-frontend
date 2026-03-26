@@ -14,7 +14,7 @@ components/
 ├── MetricCard.tsx
 ├── StatusBadge.tsx
 ├── WebSocketStatusIndicator.tsx
-├── ProviderIcon.tsx / ProviderSelect.tsx
+├── ApiFamilyIcon.tsx / ApiFamilySelect.tsx / VendorSelect.tsx
 └── ThemeToggle.tsx / LanguageSwitcher.tsx / GlobalPreferencesControls.tsx / CopyButton.tsx / EmptyState.tsx / SwitchController.tsx / AnimatedListItem.tsx
 ```
 
@@ -23,7 +23,7 @@ components/
 - Shell handoff and layout chrome: `layout/AppLayout.tsx`
 - Shell state, profile UX, and dialog flow: `layout/app-layout/useAppLayoutState.ts`, `layout/app-layout/AppHeader.tsx`, `layout/app-layout/AppSidebar.tsx`, `layout/app-layout/ProfileSwitcherPopover.tsx`, `layout/app-layout/ProfileDialogs.tsx`
 - Sidebar links, profile-scoped prefixes, profile cap, version label: `layout/app-layout/navigationProfileConfig.ts`
-- Realtime status and small cross-route widgets: `WebSocketStatusIndicator.tsx`, `PageHeader.tsx`, `MetricCard.tsx`, `StatusBadge.tsx`, `ProviderIcon.tsx`, `ProviderSelect.tsx`
+- Realtime status and small cross-route widgets: `WebSocketStatusIndicator.tsx`, `PageHeader.tsx`, `MetricCard.tsx`, `StatusBadge.tsx`, `ApiFamilyIcon.tsx`, `ApiFamilySelect.tsx`, `VendorSelect.tsx`
 - Shared loadbalance rendering: `loadbalance/LoadbalanceBadges.tsx`, `loadbalance/LoadbalanceEventsTable.tsx`, `loadbalance/LoadbalanceEventDetailSheet.tsx`
 - Shared statistics rendering: `statistics/TopSpendingCard.tsx`, `statistics/SpecialTokenSummaryCard.tsx`, `statistics/SpecialTokenCoverageStrip.tsx`, `statistics/TokenMetricCell.tsx`
 - Design-system wrappers: `ui/`, especially `ui/chart.tsx`, `ui/topography.tsx`, `ui/sonner.tsx`

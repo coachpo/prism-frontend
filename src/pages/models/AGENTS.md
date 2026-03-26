@@ -1,7 +1,7 @@
 # FRONTEND MODELS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/models/` owns the models list search and row-card presentation, dialog state, native-vs-proxy form logic, ordered proxy-target editing for proxy models, native strategy attachment during create or edit, and separate 24-hour metric hydration behind `../ModelsPage.tsx`.
+`pages/models/` owns the models list search and row-card presentation, dialog state, vendor and `api_family` form logic, ordered proxy-target editing for proxy models, native strategy attachment during create or edit, and separate 24-hour metric hydration behind `../ModelsPage.tsx`.
 
 ## STRUCTURE
 ```
@@ -18,16 +18,16 @@ models/
 
 ## WHERE TO LOOK
 
-- Shared model/provider bootstrap and mutation patching: `useModelsPageData.ts`
-- Proxy/native form behavior, strategy attachment rules, ordered proxy-target normalization, and payload transforms: `modelFormState.ts`
+- Shared model/vendor bootstrap and mutation patching: `useModelsPageData.ts`
+- Proxy/native form behavior, strategy attachment rules, ordered proxy-target normalization, vendor selection, and payload transforms that carry `vendor_id` plus fixed `api_family`: `modelFormState.ts`
 - 24h metrics and spend overlays: `useModelMetrics24h.ts`
 - Search toolbar: `ModelsToolbar.tsx`
 - Row rendering, navigation, and row actions: `ModelsTable.tsx`
 
 ## CONVENTIONS
 
-- Bootstrap models and providers from `@/lib/referenceData`, then patch the local list with `setSharedModels()` after mutations.
-- Keep proxy/native validation, strategy attachment rules, and provider-target selection in `modelFormState.ts` instead of scattering them across dialog components.
+- Bootstrap models and vendors from `@/lib/referenceData`, then patch the local list with `setSharedModels()` after mutations.
+- Keep proxy/native validation, strategy attachment rules, vendor selection, and `api_family` handling in `modelFormState.ts` instead of scattering them across dialog components.
 - Keep ordered proxy-target add/remove/reorder state in `modelFormState.ts`; `ModelDialog.tsx` should stay a thin rendering layer over that logic.
 - Hydrate 24h metrics separately from the base model list so CRUD flows do not own observability queries.
 

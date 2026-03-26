@@ -8,7 +8,7 @@
 sections/
 ├── AuthenticationSection.tsx
 ├── AuditConfigurationSection.tsx
-├── AuditConfigurationProviderToggles.tsx
+├── AuditConfigurationVendorToggles.tsx
 ├── AuditConfigurationRuleActions.tsx
 ├── AuditConfigurationRuleSection.tsx
 ├── AuditConfigurationRuleTable.tsx
@@ -23,7 +23,7 @@ sections/
 ## WHERE TO LOOK
 
 - Auth setup, verified-email prerequisites, and passkey UX: `AuthenticationSection.tsx`, `authentication/`
-- Audit and privacy toggles, rule actions, and rule table rendering: `AuditConfigurationSection.tsx`, `AuditConfigurationProviderToggles.tsx`, `AuditConfigurationRuleActions.tsx`, `AuditConfigurationRuleSection.tsx`, `AuditConfigurationRuleTable.tsx`
+- Audit and privacy toggles, rule actions, and rule table rendering remain vendor-based in this plan, even though request logs and statistics now filter by `api_family`: `AuditConfigurationSection.tsx`, `AuditConfigurationVendorToggles.tsx`, `AuditConfigurationRuleActions.tsx`, `AuditConfigurationRuleSection.tsx`, `AuditConfigurationRuleTable.tsx`
 - Billing and currency section shell that renders reporting currency and FX mapping UI, while staying separate from costing state: `BillingCurrencySection.tsx`, `billing-currency/`
 - Backup and config import or export section: `BackupSection.tsx`
 - Retention and deletion section: `RetentionDeletionSection.tsx`

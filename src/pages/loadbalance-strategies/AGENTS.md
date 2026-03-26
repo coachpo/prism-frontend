@@ -1,7 +1,7 @@
 # FRONTEND LOADBALANCE STRATEGIES DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/loadbalance-strategies/` owns the dedicated strategy-management route behind `../LoadbalanceStrategiesPage.tsx`. It covers the profile-scoped strategy list, create or edit dialog flows, delete confirmation, and the form normalization that mirrors the backend strategy contract, including ban-escalation policy fields on failover strategies.
+`pages/loadbalance-strategies/` owns the dedicated strategy-management route behind `../LoadbalanceStrategiesPage.tsx`. It covers the profile-scoped strategy list, create or edit dialog flows, delete confirmation, and the form normalization that mirrors the backend strategy contract, including `single`, `fill-first`, and `failover` semantics plus ban-escalation policy fields on failover strategies.
 
 ## STRUCTURE
 ```
@@ -26,6 +26,7 @@ loadbalance-strategies/
 - Keep strategy form normalization and request shaping in `loadbalanceStrategyFormState.ts` rather than scattering the rules across dialogs.
 - Match the CRUD/page shell pattern used by other profile-scoped management pages such as pricing templates.
 - Keep persisted failover policy editing on the existing strategy dialog; model pages still only attach one reusable strategy.
+- Keep `fill-first` and `failover` on the existing strategy dialog, with `fill-first` treated as strict priority spillover and `failover` treated as health-aware recovery.
 - Keep ban-escalation defaults, validation, and payload normalization in `loadbalanceStrategyFormState.ts`; the dialog should only render and mutate those fields.
 - Keep compact strategy-summary wording in `LoadbalanceStrategiesTable.tsx`; do not duplicate failover or ban summary formatting elsewhere.
 

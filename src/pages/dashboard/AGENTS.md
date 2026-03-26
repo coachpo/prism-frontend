@@ -10,7 +10,7 @@ dashboard/
 ├── useDashboardBootstrapData.ts    # Parallel bootstrap fetches and routing payload load
 ├── useDashboardRealtime.ts         # Realtime subscription and coalesced reconciliation
 ├── DashboardMetricsGrid.tsx        # KPI grid and highlighted metrics
-├── DashboardHighlightsGrid.tsx     # Summary and provider highlights
+├── DashboardHighlightsGrid.tsx     # Summary and api-family highlights
 ├── RecentActivityCard.tsx          # Recent requests list with insert highlighting
 ├── TopSpendingModelsCard.tsx       # Top-spend summary card
 ├── RoutingDiagramCard.tsx          # Routing diagram shell and drill-down entry points

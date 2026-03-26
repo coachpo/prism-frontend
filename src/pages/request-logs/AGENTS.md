@@ -11,7 +11,7 @@ request-logs/
 ├── useRequestLogsPageData.ts    # Server fetches and filter-option bootstrap
 ├── useAuditDetail.ts            # Lazy audit detail lookup and retry behavior
 ├── clientFilters.ts             # Local triage/search refinement over fetched rows
-├── FiltersBar.tsx               # UI for search, status, and provider filters
+├── FiltersBar.tsx               # UI for search, status, and api_family filters
 ├── RequestLogsTable.tsx         # Paginated and virtualized log list
 ├── RequestLogDetailSheet.tsx    # Detailed request/audit payload view
 ├── RequestFocusBanner.tsx       # Exact-request mode banner and exit action
@@ -21,7 +21,7 @@ request-logs/
 
 ## WHERE TO LOOK
 - Investigation flow and state, including URL-state and exact-request mode: `useRequestLogsPageData.ts`, `useRequestLogPageState.ts`
-- Filter contract and defaults: `queryParams.ts`
+- Filter contract and defaults, including `api_family`: `queryParams.ts`
 - Client-side refinement and triage: `clientFilters.ts`
 - Payload inspection and lazy audit fetch: `RequestLogDetailSheet.tsx`, `useAuditDetail.ts`
 - Parent-covered detail cluster helpers: `detail/RequestLogOverviewTab.tsx`, `detail/RequestLogAuditTab.tsx`, `detail/RequestLogPayloadBlock.tsx`, `detail/requestLogDetailShared.tsx`, `detail/requestLogDetailUtils.ts`
@@ -31,6 +31,7 @@ request-logs/
 - Use client-side filters for rapid refinement over the current fetched page.
 - Keep audit payload fetching lazy and isolated from the main request-list fetch lifecycle.
 - Use exact-request mode (`request_id`) to switch from paginated browsing to a single-request investigation workflow, and keep that mode local to the request-logs page.
+- Treat `api_family` as the server-backed family filter and keep vendor identity out of request-log filtering.
 - Keep `detail/` parent-covered here. Those helpers support the request-log sheet only and should not get a separate AGENTS file.
 
 ## ANTI-PATTERNS

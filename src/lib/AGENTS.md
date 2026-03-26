@@ -1,7 +1,7 @@
 # FRONTEND LIB KNOWLEDGE BASE
 
 ## OVERVIEW
-`src/lib/` is the frontend boundary to backend contracts and browser integrations. Keep the shared hotspots here: `api/core.ts`, `websocket.ts`, `referenceData.ts`, `configImportValidation.ts`, and `webauthn.ts`.
+`src/lib/` is the frontend boundary to backend contracts and browser integrations. Keep the shared hotspots here: `api/core.ts`, `websocket.ts`, `referenceData.ts`, `configImportValidation.ts`, `appVersion.ts`, and `webauthn.ts`.
 
 ## STRUCTURE
 ```
@@ -10,14 +10,15 @@ lib/
 ├── api/
 │   ├── core.ts                   # API base, X-Profile-Id injection, auth refresh, query builder
 │   ├── authSettings.ts           # Auth bootstrap, proxy keys, WebAuthn methods
-│   ├── management.ts             # Profiles, providers, models, endpoints, connections, pricing templates
-│   └── observability.ts          # Stats, spending, metrics, timezone, config, audit, loadbalance
+│   ├── management.ts             # Profiles, vendors, models, endpoints, connections, pricing templates
+│   └── observability.ts          # Stats, spending, metrics, timezone, config v6, audit, loadbalance
 ├── websocket.ts                  # Singleton WebSocket client with channel ref-counts and reconnects
 ├── websocket/                    # Protocol parsing, subscription bookkeeping, transport/reconnect helpers
 ├── referenceData.ts              # Shared reference-data cache keyed by profile revision
 ├── referenceDataRegistry.ts      # Registry of shared reference-data datasets
 ├── configImportValidation.ts     # Frontend-side config import validation mirrored from backend contracts
 ├── configImportValidationReferences.ts
+├── appVersion.ts                 # Browser-facing app version helper built from Vite-injected package metadata
 ├── webauthn.ts                   # Browser passkey ceremony helpers
 ├── types.ts + types/             # Backend-aligned payload and domain types
 ├── costing.ts
@@ -33,8 +34,9 @@ lib/
 - Operator auth, public bootstrap, proxy keys, and passkeys: `api/authSettings.ts`
 - Management CRUD clients: `api/management.ts`
 - Stats, spending, metrics, timezone, config, audit, and loadbalance clients: `api/observability.ts`
-- Shared reference-data cache, request dedupe, and dataset registry: `referenceData.ts`, `referenceDataRegistry.ts`
+- Shared vendor cache, request dedupe, and dataset registry: `referenceData.ts`, `referenceDataRegistry.ts`
 - Frontend-side config import reference validation: `configImportValidation.ts`, `configImportValidationReferences.ts`
+- Browser app version label formatting and Vite-injected package metadata: `appVersion.ts`
 - WebSocket connection state, reconnects, channel ref-counts, protocol parsing, and profile switching: `websocket.ts`, `websocket/`
 - Browser passkey helpers and support checks: `webauthn.ts`
 - Backend-aligned payload types: `types.ts`, `types/`
@@ -46,9 +48,10 @@ lib/
 - `request()` handles cookie credentials, `ApiError`, and one refresh retry for eligible `/api/*` paths.
 - `referenceData.ts` and `referenceDataRegistry.ts` own shared cache reuse, request dedupe, and revision-keyed invalidation for lookup datasets.
 - `configImportValidation.ts` owns frontend-side validation of import payload shape and cross-reference rules instead of leaving that logic in page components.
+- `appVersion.ts` owns the browser-facing frontend version contract so shell chrome reads the synced `frontend/package.json` version through Vite instead of hard-coded literals.
 - `websocket.ts` owns the singleton client, while `websocket/` owns protocol parsing, subscription bookkeeping, and reconnect transport helpers. Consumers should use `useRealtimeData()` instead of creating clients directly.
 - Keep browser WebAuthn ceremony code in `webauthn.ts`.
-- Keep backend payload naming aligned with server schemas.
+- Keep backend payload naming aligned with server schemas, including `vendor_id`, `vendor_key`, and fixed `api_family` fields.
 
 ## ANTI-PATTERNS
 
