@@ -36,7 +36,7 @@ function makeRequestLog(overrides: Partial<RequestLogEntry> = {}): RequestLogEnt
     provider_type: "openai",
     endpoint_id: 2,
     connection_id: 3,
-    endpoint_base_url: "https://api.openai.com/v1",
+    endpoint_base_url: "https://api.openai.com",
     endpoint_description: "Primary endpoint",
     status_code: 200,
     response_time_ms: 120,

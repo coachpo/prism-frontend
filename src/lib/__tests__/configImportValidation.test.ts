@@ -9,7 +9,7 @@ function buildImportPayload(): ConfigImportRequest {
     endpoints: [
       {
         name: "openai-main",
-        base_url: "https://api.openai.com/v1",
+        base_url: "https://api.openai.com",
         api_key: "sk-test",
         position: 0,
       },
