@@ -20,6 +20,7 @@
 ## WHERE TO LOOK
 
 - Mounted route list, public auth split, and protected shell boundary: `../App.tsx`
+- Frontend locale boundary for route-shell copy and formatting: `../i18n/AGENTS.md`, `../i18n/useLocale.ts`
 - Dashboard bootstrap, realtime refresh, and parent-covered `dashboard/routing-diagram/` cluster: `DashboardPage.tsx`, `dashboard/AGENTS.md`
 - Model detail bootstrap, current-state helpers, connection flows, and parent-covered `model-detail/connections-list/` cluster: `ModelDetailPage.tsx`, `model-detail/AGENTS.md`
 - Statistics tab shell, shared URL state, polling, and parent-covered `statistics/operations/` and `statistics/spending/` clusters: `StatisticsPage.tsx`, `statistics/AGENTS.md`
@@ -47,6 +48,7 @@
 ## CONVENTIONS
 
 - Keep backend access on `api.*` through the shared frontend client boundary. Page helpers can shape params and UI state, but they should not invent parallel fetch layers.
+- Keep route-shell copy on the shared frontend locale boundary through `useLocale()` and the `src/i18n/` catalogs instead of page-local string stores.
 - Let route files own bookmarkable query or hash state, route-entry redirects, and the first handoff into local hooks.
 - Refresh profile-scoped page data from `ProfileContext.revision` instead of bolting on unrelated cache invalidation paths.
 - Parent-cover local route clusters that do not need their own AGENTS file, including `dashboard/routing-diagram/`, `model-detail/connections-list/`, `statistics/operations/`, `statistics/spending/`, and request-log detail behavior under `request-logs/`.

@@ -25,6 +25,7 @@ statistics/
 ## WHERE TO LOOK
 
 - Thin route shell and top-level tab orchestration: `../StatisticsPage.tsx`
+- Route-shell copy and tab labels: `../StatisticsPage.tsx`, `@/i18n/useLocale`, `@/i18n/AGENTS.md`
 - Shared query-param contract and defaults: `queryParams.ts`
 - Page bootstrap, filter options, polling, and refresh orchestration: `useStatisticsPageData.ts`, `useStatisticsFilterOptions.ts`, `useStatisticsPageState.ts`, `useStatisticsReports.ts`
 - Operations rendering and local cluster: `OperationsTab.tsx`, `OperationsTabFilters.tsx`, `operations/`
@@ -39,6 +40,7 @@ statistics/
 - Keep operations-specific async and presentation logic inside `operations/`, and spending-specific logic inside `spending/`, instead of bloating the top-level tab files.
 - Preserve the split between operations telemetry filters, throughput views, and spending aggregation even when labels overlap. Request-log oriented statistics filters should use `api_family`, not vendor.
 - Statistics polling belongs in `useStatisticsPageData.ts`. Tabs consume refreshed state, they do not own their own polling loops.
+- Keep route-shell and tab copy on the shared locale boundary through `useLocale()`, and keep locale-aware formatting on the shared helpers rather than page-local string logic.
 - The dense `operations/` and `spending/` subfolders stay parent-covered. Do not add extra AGENTS files for them.
 - Keep null-vs-zero rendering differences visible in helpers and copy, so missing data stays distinct from a true zero value.
 
