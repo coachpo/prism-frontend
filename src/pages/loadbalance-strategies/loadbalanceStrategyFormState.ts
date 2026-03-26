@@ -1,4 +1,4 @@
-import type { LoadbalanceStrategy } from "@/lib/types";
+import type { LoadbalanceBanMode, LoadbalanceStrategy } from "@/lib/types";
 import { getCurrentLocale } from "@/i18n/format";
 
 export type LoadbalanceStrategyFormState = {
@@ -11,6 +11,9 @@ export type LoadbalanceStrategyFormState = {
   failover_max_cooldown_seconds: number;
   failover_jitter_ratio: number;
   failover_auth_error_cooldown_seconds: number;
+  failover_ban_mode: LoadbalanceBanMode;
+  failover_max_cooldown_strikes_before_ban: number;
+  failover_ban_duration_seconds: number;
 };
 
 export const DEFAULT_LOADBALANCE_STRATEGY_FORM: LoadbalanceStrategyFormState = {
@@ -23,6 +26,9 @@ export const DEFAULT_LOADBALANCE_STRATEGY_FORM: LoadbalanceStrategyFormState = {
   failover_max_cooldown_seconds: 900,
   failover_jitter_ratio: 0.2,
   failover_auth_error_cooldown_seconds: 1800,
+  failover_ban_mode: "off",
+  failover_max_cooldown_strikes_before_ban: 0,
+  failover_ban_duration_seconds: 0,
 };
 
 export function loadbalanceStrategyFormStateFromStrategy(
@@ -38,6 +44,10 @@ export function loadbalanceStrategyFormStateFromStrategy(
     failover_max_cooldown_seconds: strategy.failover_max_cooldown_seconds,
     failover_jitter_ratio: strategy.failover_jitter_ratio,
     failover_auth_error_cooldown_seconds: strategy.failover_auth_error_cooldown_seconds,
+    failover_ban_mode: strategy.failover_ban_mode,
+    failover_max_cooldown_strikes_before_ban:
+      strategy.failover_max_cooldown_strikes_before_ban,
+    failover_ban_duration_seconds: strategy.failover_ban_duration_seconds,
   };
 }
 
@@ -59,6 +69,11 @@ export function toLoadbalanceStrategyPayload(
     failover_auth_error_cooldown_seconds: normalizeInteger(
       formState.failover_auth_error_cooldown_seconds,
     ),
+    failover_ban_mode: formState.failover_ban_mode,
+    failover_max_cooldown_strikes_before_ban: normalizeInteger(
+      formState.failover_max_cooldown_strikes_before_ban,
+    ),
+    failover_ban_duration_seconds: normalizeInteger(formState.failover_ban_duration_seconds),
   };
 }
 
@@ -121,6 +136,53 @@ export function getLoadbalanceStrategyFormValidationError(
     formState.failover_auth_error_cooldown_seconds > 86_400
   ) {
     return isChinese ? "认证错误冷却时间必须在 1 到 86400 秒之间" : "Auth error cooldown must be between 1 and 86400 seconds";
+  }
+
+  if (!Number.isInteger(formState.failover_max_cooldown_strikes_before_ban)) {
+    return isChinese
+      ? "封禁前最大冷却次数必须为整数"
+      : "Max-cooldown strikes before ban must be a whole number";
+  }
+
+  if (!Number.isInteger(formState.failover_ban_duration_seconds)) {
+    return isChinese
+      ? "封禁时长必须为整数秒"
+      : "Ban duration must be a whole number of seconds";
+  }
+
+  if (formState.failover_ban_mode === "off") {
+    if (
+      formState.failover_max_cooldown_strikes_before_ban !== 0 ||
+      formState.failover_ban_duration_seconds !== 0
+    ) {
+      return isChinese
+        ? "封禁模式关闭时，次数和时长都必须为 0"
+        : "Ban escalation must stay at 0 strikes and 0 seconds while ban mode is off";
+    }
+
+    return null;
+  }
+
+  if (formState.failover_max_cooldown_strikes_before_ban < 1) {
+    return isChinese
+      ? "启用封禁升级时，封禁前最大冷却次数至少为 1"
+      : "Max-cooldown strikes before ban must be at least 1 when ban escalation is enabled";
+  }
+
+  if (formState.failover_ban_mode === "temporary") {
+    if (formState.failover_ban_duration_seconds < 1) {
+      return isChinese
+        ? "临时封禁时长至少为 1 秒"
+        : "Ban duration must be at least 1 second for temporary bans";
+    }
+
+    return null;
+  }
+
+  if (formState.failover_ban_duration_seconds !== 0) {
+    return isChinese
+      ? "手动解除封禁时，封禁时长必须为 0 秒"
+      : "Ban duration must be 0 seconds for manual dismiss bans";
   }
 
   return null;

@@ -9,17 +9,50 @@ import type { EndpointFormValues } from "./EndpointDialog";
 import { useEndpointBootstrapData } from "./useEndpointBootstrapData";
 import { useEndpointReorder } from "./useEndpointReorder";
 
+type ReviewFilter = "all" | "in-use" | "unused";
+
 export function useEndpointsPageData() {
   const [isDeletingEndpoint, setIsDeletingEndpoint] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
   const [duplicatingEndpointId, setDuplicatingEndpointId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Endpoint | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const { revision } = useProfileContext();
   const { format: formatTime } = useTimezone();
   const { commitEndpoints, endpointModels, endpoints, isLoading, setEndpoints } =
     useEndpointBootstrapData(revision);
-  const reorder = useEndpointReorder({ endpoints, revision, setEndpoints });
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const hasActiveReviewFilters = normalizedSearch.length > 0 || reviewFilter !== "all";
+
+  const filteredEndpoints = useMemo(() => {
+    return endpoints.filter((endpoint) => {
+      const models = endpointModels[endpoint.id] ?? [];
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        endpoint.name.toLowerCase().includes(normalizedSearch) ||
+        endpoint.base_url.toLowerCase().includes(normalizedSearch);
+      const matchesUsage =
+        reviewFilter === "all" ||
+        (reviewFilter === "in-use" ? models.length > 0 : models.length === 0);
+
+      return matchesSearch && matchesUsage;
+    });
+  }, [endpointModels, endpoints, normalizedSearch, reviewFilter]);
+
+  const visibleEndpointIds = useMemo(
+    () => filteredEndpoints.map((endpoint) => endpoint.id),
+    [filteredEndpoints],
+  );
+
+  const reorder = useEndpointReorder({
+    endpoints,
+    revision,
+    setEndpoints,
+    filtersActive: hasActiveReviewFilters,
+  });
 
   const handleCreate = async (values: EndpointFormValues) => {
     const isChinese = getCurrentLocale() === "zh-CN";
@@ -112,26 +145,6 @@ export function useEndpointsPageData() {
     }
   };
 
-  const totalAttachedModels = useMemo(
-    () => Object.values(endpointModels).reduce((sum, models) => sum + models.length, 0),
-    [endpointModels]
-  );
-
-  const uniqueAttachedModels = useMemo(() => {
-    const ids = new Set<string>();
-    Object.values(endpointModels).forEach((models) => {
-      models.forEach((model) => {
-        ids.add(model.model_id);
-      });
-    });
-    return ids.size;
-  }, [endpointModels]);
-
-  const endpointsInUse = useMemo(
-    () => endpoints.filter((endpoint) => (endpointModels[endpoint.id] ?? []).length > 0).length,
-    [endpoints, endpointModels]
-  );
-
   const handleDeleteDialogOpenChange = (open: boolean) => {
     if (!open && !isDeletingEndpoint) {
       setDeleteTarget(null);
@@ -144,8 +157,9 @@ export function useEndpointsPageData() {
     editingEndpoint,
     endpointModels,
     endpoints,
-    endpointsInUse,
+    filteredEndpoints,
     formatTime,
+    hasActiveReviewFilters,
     handleCreate,
     handleDelete,
     handleDeleteDialogOpenChange,
@@ -154,11 +168,14 @@ export function useEndpointsPageData() {
     isCreateOpen,
     isDeletingEndpoint,
     isLoading,
+    reviewFilter,
+    searchQuery,
     setDeleteTarget,
     setEditingEndpoint,
     setIsCreateOpen,
+    setReviewFilter,
+    setSearchQuery,
     ...reorder,
-    totalAttachedModels,
-    uniqueAttachedModels,
+    visibleEndpointIds,
   };
 }

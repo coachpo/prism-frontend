@@ -14,6 +14,14 @@ const EVENT_TYPE_CONFIG = {
     label: "Extended",
     intent: "warning" as const,
   },
+  max_cooldown_strike: {
+    label: "Max Cooldown Strike",
+    intent: "warning" as const,
+  },
+  banned: {
+    label: "Banned",
+    intent: "danger" as const,
+  },
   probe_eligible: {
     label: "Probe Eligible",
     intent: "info" as const,

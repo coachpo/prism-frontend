@@ -50,6 +50,62 @@ export interface WebSocketClientOptions {
   heartbeatInterval?: number;
 }
 
+function shouldScheduleReconnect({
+  isIntentionallyClosed,
+  reconnectAttempts,
+  maxReconnectAttempts,
+}: {
+  isIntentionallyClosed: boolean;
+  reconnectAttempts: number;
+  maxReconnectAttempts: number;
+}) {
+  return !isIntentionallyClosed && reconnectAttempts < maxReconnectAttempts;
+}
+
+function sendProfileSubscriptions({
+  profileId,
+  channelRefCounts,
+  send,
+}: {
+  profileId: number | null;
+  channelRefCounts: ReadonlyMap<RealtimeChannel, number>;
+  send: (data: Record<string, unknown>) => void;
+}) {
+  if (profileId === null) {
+    return;
+  }
+
+  for (const channel of channelRefCounts.keys()) {
+    send(buildSubscribeMessage(profileId, channel));
+  }
+}
+
+function sendProfileSwitchMessages({
+  previousProfileId,
+  nextProfileId,
+  channelRefCounts,
+  send,
+}: {
+  previousProfileId: number | null;
+  nextProfileId: number;
+  channelRefCounts: ReadonlyMap<RealtimeChannel, number>;
+  send: (data: Record<string, unknown>) => void;
+}) {
+  if (previousProfileId === null || previousProfileId === nextProfileId) {
+    return;
+  }
+
+  for (const channel of channelRefCounts.keys()) {
+    send(buildUnsubscribeChannelMessage(channel));
+  }
+
+  sendProfileSubscriptions({
+    profileId: nextProfileId,
+    channelRefCounts,
+    send,
+  });
+}
+
 export class WebSocketClient {
   private ws: WebSocket | null = null;
   private readonly url: string;
@@ -143,8 +199,11 @@ export class WebSocketClient {
         this.ws = null;
 
         if (
-          !this.isIntentionallyClosed &&
-          this.reconnectAttempts < this.maxReconnectAttempts
+          shouldScheduleReconnect({
+            isIntentionallyClosed: this.isIntentionallyClosed,
+            reconnectAttempts: this.reconnectAttempts,
+            maxReconnectAttempts: this.maxReconnectAttempts,
+          })
         ) {
           this.shouldEmitReconnect = this.hasConnectedOnce;
           this.setConnectionState("reconnecting");
@@ -156,9 +215,19 @@ export class WebSocketClient {
       };
     } catch (error) {
       console.error("[WebSocket] Connection failed:", error);
-      this.shouldEmitReconnect = this.hasConnectedOnce;
-      this.setConnectionState("reconnecting");
-      this.scheduleReconnect();
+      if (
+        shouldScheduleReconnect({
+          isIntentionallyClosed: this.isIntentionallyClosed,
+          reconnectAttempts: this.reconnectAttempts,
+          maxReconnectAttempts: this.maxReconnectAttempts,
+        })
+      ) {
+        this.shouldEmitReconnect = this.hasConnectedOnce;
+        this.setConnectionState("reconnecting");
+        this.scheduleReconnect();
+      } else {
+        this.setConnectionState("disconnected");
+      }
     }
   }
 
@@ -229,7 +298,6 @@ export class WebSocketClient {
       return;
     }
 
-    const channels = [...this.channelRefCounts.keys()];
     const previousProfileId = this.currentProfileId;
     this.currentProfileId = profileId;
 
@@ -237,11 +305,12 @@ export class WebSocketClient {
       return;
     }
 
-    for (const channel of channels) {
-      this.send(buildUnsubscribeChannelMessage(channel));
-    }
-
-    this.resubscribeAll();
+    sendProfileSwitchMessages({
+      previousProfileId,
+      nextProfileId: profileId,
+      channelRefCounts: this.channelRefCounts,
+      send: this.send.bind(this),
+    });
   }
 
   on(handler: RealtimeEventHandler): () => void {
@@ -290,13 +359,15 @@ export class WebSocketClient {
   }
 
   private resubscribeAll(): void {
-    if (this.currentProfileId === null || this.ws?.readyState !== WebSocket.OPEN) {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
       return;
     }
 
-    for (const channel of this.channelRefCounts.keys()) {
-      this.send(buildSubscribeMessage(this.currentProfileId, channel));
-    }
+    sendProfileSubscriptions({
+      profileId: this.currentProfileId,
+      channelRefCounts: this.channelRefCounts,
+      send: this.send.bind(this),
+    });
   }
 
   private scheduleReconnect(): void {

@@ -53,7 +53,7 @@ export function useModelLoadbalanceCurrentState({
       }
 
       toast.error(
-        error instanceof Error ? error.message : "Failed to load cooldown state"
+        error instanceof Error ? error.message : "Failed to load recovery state"
       );
       console.error("Failed to load model loadbalance current state", error);
     }
@@ -80,7 +80,7 @@ export function useModelLoadbalanceCurrentState({
       });
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to reset cooldown state"
+        error instanceof Error ? error.message : "Failed to reset recovery state"
       );
     } finally {
       setResettingConnectionIds((current) => {

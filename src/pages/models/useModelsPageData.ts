@@ -116,11 +116,11 @@ export function useModelsPageData(revision: number) {
       toast.error(isChinese ? "请选择提供商" : "Please select a provider");
       return;
     }
-    if (formData.model_type === "proxy" && !formData.redirect_to) {
+    if (formData.model_type === "proxy" && (formData.proxy_targets?.length ?? 0) === 0) {
       toast.error(
         isChinese
-          ? "请选择代理类型的原生目标模型"
-          : "Please select a native target model for proxy type",
+          ? "请至少添加一个代理目标模型"
+          : "Please add at least one proxy target model",
       );
       return;
     }

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
-import type { LoginSessionDuration, SessionResponse } from "@/lib/types";
+import type { SessionResponse } from "@/lib/types";
 import {
   createAuthBootstrapLoader,
   type AuthBootstrapMode,
   type AuthBootstrapState,
 } from "./auth/bootstrap";
+import { createAuthMutations } from "./auth/mutations";
 import {
   PROACTIVE_REFRESH_MS,
   runPassiveSessionRefresh as runPassiveSessionRefreshHelper,
@@ -77,6 +78,15 @@ export function AuthProvider({
     }
   }, []);
 
+  const beginAuthMutation = useCallback(() => {
+    authMutationInFlightRef.current = true;
+    authStateVersionRef.current += 1;
+  }, []);
+
+  const endAuthMutation = useCallback(() => {
+    authMutationInFlightRef.current = false;
+  }, []);
+
   const runAuthBootstrap = useCallback(async (reuseInFlight = false) => {
     const requestVersion = ++authStateVersionRef.current;
     setLoading(true);
@@ -128,6 +138,19 @@ export function AuthProvider({
     void runAuthBootstrap(true);
   }, [runAuthBootstrap]);
 
+  const authMutations = useMemo(
+    () =>
+      createAuthMutations({
+        loginRequest: api.auth.login,
+        logoutRequest: api.auth.logout,
+        setLoading,
+        applySessionState,
+        beginMutation: beginAuthMutation,
+        endMutation: endAuthMutation,
+      }),
+    [applySessionState, beginAuthMutation, endAuthMutation]
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       authEnabled,
@@ -135,38 +158,10 @@ export function AuthProvider({
       loading,
       username,
       refreshAuth,
-      login: async (
-        nextUsername: string,
-        password: string,
-        sessionDuration: LoginSessionDuration
-      ) => {
-        authMutationInFlightRef.current = true;
-        authStateVersionRef.current += 1;
-        try {
-          const session = await api.auth.login({
-            username: nextUsername,
-            password,
-            session_duration: sessionDuration,
-          });
-          setLoading(false);
-          applySessionState(session);
-        } finally {
-          authMutationInFlightRef.current = false;
-        }
-      },
-      logout: async () => {
-        authMutationInFlightRef.current = true;
-        authStateVersionRef.current += 1;
-        try {
-          const session = await api.auth.logout();
-          setLoading(false);
-          applySessionState(session);
-        } finally {
-          authMutationInFlightRef.current = false;
-        }
-      },
+      login: authMutations.login,
+      logout: authMutations.logout,
     }),
-    [authEnabled, authenticated, loading, username, refreshAuth, applySessionState]
+    [authEnabled, authenticated, loading, username, refreshAuth, authMutations]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

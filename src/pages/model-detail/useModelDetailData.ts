@@ -7,10 +7,12 @@ import type {
   Connection,
   Endpoint,
   LoadbalanceStrategy,
+  ProxyTarget,
   SpendingSummary,
   StatsSummary,
   PricingTemplate,
 } from "@/lib/types";
+import { buildProxyTargetSummary } from "./useModelDetailDataSupport";
 import type { ConnectionDerivedMetrics } from "./modelDetailMetricsAndPaths";
 import { useConnectionFocus } from "./useConnectionFocus";
 import { useModelDetailBootstrap } from "./useModelDetailBootstrap";
@@ -42,6 +44,7 @@ export function useModelDetailData(id: string | undefined) {
   const [connectionMetricsEnabled, setConnectionMetricsEnabled] = useState(false);
   const [connectionMetricsLoading, setConnectionMetricsLoading] = useState(false);
   const [editLoadbalanceStrategyId, setEditLoadbalanceStrategyId] = useState("");
+  const [editProxyTargets, setEditProxyTargets] = useState<ProxyTarget[]>([]);
 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [connectionSearch, setConnectionSearch] = useState("");
@@ -56,8 +59,6 @@ export function useModelDetailData(id: string | undefined) {
   const {
     isEditModelDialogOpen,
     setIsEditModelDialogOpen,
-    editRedirectTo,
-    setEditRedirectTo,
     isConnectionDialogOpen,
     setIsConnectionDialogOpen,
     editingConnection,
@@ -149,19 +150,24 @@ export function useModelDetailData(id: string | undefined) {
     setModel,
   });
 
-  const { redirectTargetOptions, handleEditModelSubmit } = useModelDetailModelForm({
+  const { proxyTargetOptions, handleEditModelSubmit, handleSaveProxyTargets } = useModelDetailModelForm({
     editLoadbalanceStrategyId,
+    editProxyTargets,
     model,
     allModels,
     isEditModelDialogOpen,
     revision,
-    editRedirectTo,
     setEditLoadbalanceStrategyId,
-    setEditRedirectTo,
+    setEditProxyTargets,
     setIsEditModelDialogOpen,
     setAllModels,
     setModel,
   });
+
+  const proxyTargetSummary = useMemo(
+    () => buildProxyTargetSummary(model, allModels),
+    [allModels, model],
+  );
 
   useConnectionFocus({
     model,
@@ -200,8 +206,8 @@ export function useModelDetailData(id: string | undefined) {
     setIsEditModelDialogOpen,
     editLoadbalanceStrategyId,
     setEditLoadbalanceStrategyId,
-    editRedirectTo,
-    setEditRedirectTo,
+    editProxyTargets,
+    setEditProxyTargets,
     spending,
     spendingLoading,
     spendingCurrencySymbol,
@@ -238,7 +244,8 @@ export function useModelDetailData(id: string | undefined) {
     headerRows,
     setHeaderRows,
     modelKpis,
-    redirectTargetOptions,
+    proxyTargetOptions,
+    proxyTargetSummary,
     endpointSourceDefaultName,
     openConnectionDialog,
     handleConnectionSubmit,
@@ -248,6 +255,7 @@ export function useModelDetailData(id: string | undefined) {
     handleDialogTestConnection,
     handleToggleActive,
     handleEditModelSubmit,
+    handleSaveProxyTargets,
     pricingTemplates,
     reorderInFlight,
     handleReorderConnections,

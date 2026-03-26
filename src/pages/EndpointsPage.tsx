@@ -4,17 +4,23 @@ import { EmptyState } from "@/components/EmptyState";
 import { useLocale } from "@/i18n/useLocale";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plug, Plus } from "lucide-react";
+import { Plug, Plus, Search } from "lucide-react";
 import { EndpointDialog } from "./endpoints/EndpointDialog";
 import { EndpointCardView, SortableEndpointCard } from "./endpoints/EndpointCard";
 import { DeleteEndpointDialog } from "./endpoints/DeleteEndpointDialog";
-import { EndpointsSummaryCards } from "./endpoints/EndpointsSummaryCards";
 import { useEndpointsPageData } from "./endpoints/useEndpointsPageData";
 
 export function EndpointsPage() {
   const { locale } = useLocale();
   const data = useEndpointsPageData();
+  const showReviewToolbar = data.endpoints.length > 3 || data.hasActiveReviewFilters;
+  const reviewFilterOptions = [
+    { value: "all", label: locale === "zh-CN" ? "全部" : "All" },
+    { value: "in-use", label: locale === "zh-CN" ? "使用中" : "In Use" },
+    { value: "unused", label: locale === "zh-CN" ? "未使用" : "Unused" },
+  ] as const;
 
   return (
     <div className="space-y-[var(--density-page-gap)]">
@@ -32,13 +38,34 @@ export function EndpointsPage() {
         </Button>
       </PageHeader>
 
-      {!data.isLoading ? (
-        <EndpointsSummaryCards
-          endpointsCount={data.endpoints.length}
-          totalAttachedModels={data.totalAttachedModels}
-          uniqueAttachedModels={data.uniqueAttachedModels}
-          endpointsInUse={data.endpointsInUse}
-        />
+      {!data.isLoading && showReviewToolbar ? (
+        <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full xl:max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={locale === "zh-CN" ? "搜索端点..." : "Search endpoints..."}
+              value={data.searchQuery}
+              onChange={(event) => data.setSearchQuery(event.target.value)}
+              className="h-9 pl-9"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {reviewFilterOptions.map(({ value, label }) => (
+              <Button
+                key={value}
+                type="button"
+                size="sm"
+                variant={data.reviewFilter === value ? "default" : "outline"}
+                aria-pressed={data.reviewFilter === value}
+                onClick={() => data.setReviewFilter(value)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </div>
       ) : null}
 
       {data.isLoading ? (
@@ -63,6 +90,16 @@ export function EndpointsPage() {
             </Button>
           }
         />
+      ) : data.endpoints.length > 0 && data.filteredEndpoints.length === 0 ? (
+        <EmptyState
+          icon={<Plug className="h-6 w-6" />}
+          title={locale === "zh-CN" ? "没有端点符合当前筛选条件" : "No endpoints match your filters"}
+          description={
+            locale === "zh-CN"
+              ? "请尝试其他搜索词或清除筛选条件。"
+              : "Try a different search or clear the review filters."
+          }
+        />
       ) : (
         <DndContext
           sensors={data.sensors}
@@ -73,9 +110,17 @@ export function EndpointsPage() {
             void data.handleDragEnd(event);
           }}
         >
-          <SortableContext items={data.endpointIds} strategy={verticalListSortingStrategy}>
+          <SortableContext items={data.visibleEndpointIds} strategy={verticalListSortingStrategy}>
             <div className="flex flex-col gap-3">
-              {data.endpoints.map((endpoint) => (
+              {data.hasActiveReviewFilters ? (
+                <p className="text-xs text-muted-foreground">
+                  {locale === "zh-CN"
+                    ? "筛选开启时暂时无法拖动排序。"
+                    : "Reordering is disabled while review filters are active."}
+                </p>
+              ) : null}
+
+              {data.filteredEndpoints.map((endpoint) => (
                 <SortableEndpointCard
                   key={endpoint.id}
                   endpoint={endpoint}

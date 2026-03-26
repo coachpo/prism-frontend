@@ -1,4 +1,11 @@
 import { z } from "zod";
+import {
+  addCustomIssue,
+  collectNamedReferences,
+  normalizeReferenceName,
+  resolveOptionalReferenceName,
+  resolveRequiredReferenceName,
+} from "./configImportValidationReferences";
 
 const EndpointImportSchema = z.strictObject({
   name: z.string(),
@@ -41,6 +48,14 @@ const ConnectionImportSchema = z.strictObject({
   name: z.string().nullable(),
   auth_type: z.string().nullable(),
   custom_headers: z.record(z.string(), z.string()).nullable(),
+  qps_limit: z.number().int().min(1).nullable().optional(),
+  max_in_flight_non_stream: z.number().int().min(1).nullable().optional(),
+  max_in_flight_stream: z.number().int().min(1).nullable().optional(),
+});
+
+const ProxyTargetImportSchema = z.strictObject({
+  target_model_id: z.string(),
+  position: z.number().int().min(0),
 });
 
 const ModelImportSchema = z.strictObject({
@@ -48,7 +63,7 @@ const ModelImportSchema = z.strictObject({
   model_id: z.string(),
   display_name: z.string().nullable(),
   model_type: z.enum(["native", "proxy"]),
-  redirect_to: z.string().nullable(),
+  proxy_targets: z.array(ProxyTargetImportSchema),
   loadbalance_strategy_name: z.string().nullable(),
   is_enabled: z.boolean(),
   connections: z.array(ConnectionImportSchema),
@@ -74,17 +89,9 @@ const UserSettingsImportSchema = z.strictObject({
   timezone_preference: z.string().nullable().optional(),
 });
 
-const normalizeReferenceName = (value: string | null | undefined): string | null => {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
 export const ConfigImportSchema = z
   .strictObject({
-    version: z.literal(3),
+    version: z.literal(5),
     exported_at: z.string().optional(),
     endpoints: z.array(EndpointImportSchema),
     pricing_templates: z.array(PricingTemplateImportSchema),
@@ -94,179 +101,157 @@ export const ConfigImportSchema = z
     header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),
   })
   .superRefine((data, ctx) => {
-    const endpointNames = new Set<string>();
-    data.endpoints.forEach((endpoint, index) => {
-      const normalizedName = endpoint.name.trim();
-      endpointNames.add(normalizedName);
-      if (!normalizedName) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["endpoints", index, "name"],
-          message: "Endpoint name must not be empty",
-        });
-      }
+    const endpointNames = collectNamedReferences({
+      items: data.endpoints,
+      ctx,
+      collectionPath: "endpoints",
+      referenceLabel: "endpoint",
     });
 
-    const templateNames = new Set<string>();
-    data.pricing_templates.forEach((template, index) => {
-      const normalizedName = template.name.trim();
-      templateNames.add(normalizedName);
-      if (!normalizedName) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["pricing_templates", index, "name"],
-          message: "Pricing template name must not be empty",
-        });
-      }
+    const templateNames = collectNamedReferences({
+      items: data.pricing_templates,
+      ctx,
+      collectionPath: "pricing_templates",
+      referenceLabel: "pricing template",
     });
 
-    const strategyNames = new Set<string>();
+    const strategyNames = collectNamedReferences({
+      items: data.loadbalance_strategies,
+      ctx,
+      collectionPath: "loadbalance_strategies",
+      referenceLabel: "loadbalance strategy",
+    });
+
     data.loadbalance_strategies.forEach((strategy, index) => {
-      const normalizedName = strategy.name.trim();
-      if (!normalizedName) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["loadbalance_strategies", index, "name"],
-          message: "Loadbalance strategy name must not be empty",
-        });
-        return;
-      }
-      if (strategyNames.has(normalizedName)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["loadbalance_strategies", index, "name"],
-          message: `Duplicate loadbalance strategy name '${normalizedName}'`,
-        });
-      }
       if (strategy.strategy_type === "single" && strategy.failover_recovery_enabled) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["loadbalance_strategies", index, "failover_recovery_enabled"],
-          message: "Single strategies must not enable failover recovery",
-        });
+        addCustomIssue(
+          ctx,
+          ["loadbalance_strategies", index, "failover_recovery_enabled"],
+          "Single strategies must not enable failover recovery",
+        );
       }
-      strategyNames.add(normalizedName);
     });
-
-    const resolveEndpointName = (
-      endpointName: string | null | undefined,
-      path: (string | number)[]
-    ): string | null => {
-      const normalizedEndpointName = normalizeReferenceName(endpointName);
-      if (normalizedEndpointName === null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path,
-          message: "Must include endpoint_name",
-        });
-        return null;
-      }
-
-      if (!endpointNames.has(normalizedEndpointName)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path,
-          message: `Unknown endpoint_name '${normalizedEndpointName}' in import payload`,
-        });
-        return null;
-      }
-
-      return normalizedEndpointName;
-    };
-
-    const resolveTemplateName = (
-      pricingTemplateName: string | null | undefined,
-      path: (string | number)[]
-    ): string | null => {
-      const normalizedTemplateName = normalizeReferenceName(pricingTemplateName);
-      if (normalizedTemplateName === null) {
-        return null;
-      }
-
-      if (!templateNames.has(normalizedTemplateName)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path,
-          message: `Unknown pricing_template_name '${normalizedTemplateName}' in import payload`,
-        });
-        return null;
-      }
-
-      return normalizedTemplateName;
-    };
 
     const connectionPairs = new Set<string>();
     data.models.forEach((model, modelIndex) => {
       const normalizedStrategyName = normalizeReferenceName(model.loadbalance_strategy_name);
       if (model.model_type === "native") {
-        if (normalizedStrategyName === null) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["models", modelIndex, "loadbalance_strategy_name"],
-            message: `Native model '${model.model_id}' must include loadbalance_strategy_name`,
-          });
-        } else if (!strategyNames.has(normalizedStrategyName)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["models", modelIndex, "loadbalance_strategy_name"],
-            message: `Unknown loadbalance strategy '${normalizedStrategyName}' in import payload`,
-          });
-        }
-      }
-
-      if (model.model_type === "proxy" && normalizedStrategyName !== null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+        resolveRequiredReferenceName({
+          value: model.loadbalance_strategy_name,
+          ctx,
+          knownNames: strategyNames,
           path: ["models", modelIndex, "loadbalance_strategy_name"],
-          message: `Proxy model '${model.model_id}' must not include loadbalance_strategy_name`,
+          missingMessage: `Native model '${model.model_id}' must include loadbalance_strategy_name`,
+          unknownMessage: (strategyName) =>
+            `Unknown loadbalance strategy '${strategyName}' in import payload`,
         });
       }
 
+      if (model.model_type === "proxy" && normalizedStrategyName !== null) {
+        addCustomIssue(
+          ctx,
+          ["models", modelIndex, "loadbalance_strategy_name"],
+          `Proxy model '${model.model_id}' must not include loadbalance_strategy_name`,
+        );
+      }
+
+      if (model.model_type === "proxy" && model.proxy_targets.length === 0) {
+        addCustomIssue(
+          ctx,
+          ["models", modelIndex, "proxy_targets"],
+          `Proxy model '${model.model_id}' must include at least one proxy target`,
+        );
+      }
+
+      if (model.model_type === "native" && model.proxy_targets.length > 0) {
+        addCustomIssue(
+          ctx,
+          ["models", modelIndex, "proxy_targets"],
+          `Native model '${model.model_id}' must not include proxy_targets`,
+        );
+      }
+
+      const seenProxyTargets = new Set<string>();
+      model.proxy_targets.forEach((target, targetIndex) => {
+        if (target.position !== targetIndex) {
+          addCustomIssue(
+            ctx,
+            ["models", modelIndex, "proxy_targets", targetIndex, "position"],
+            `Proxy targets for '${model.model_id}' must use contiguous positions starting at 0`,
+          );
+        }
+
+        if (seenProxyTargets.has(target.target_model_id)) {
+          addCustomIssue(
+            ctx,
+            ["models", modelIndex, "proxy_targets", targetIndex, "target_model_id"],
+            `Duplicate proxy target '${target.target_model_id}' for model '${model.model_id}'`,
+          );
+          return;
+        }
+
+        seenProxyTargets.add(target.target_model_id);
+      });
+
       model.connections.forEach((connection, connectionIndex) => {
         const referencePath = ["models", modelIndex, "connections", connectionIndex];
-        const endpointName = resolveEndpointName(
-          connection.endpoint_name,
-          referencePath
-        );
+        const endpointName = resolveRequiredReferenceName({
+          value: connection.endpoint_name,
+          ctx,
+          knownNames: endpointNames,
+          path: referencePath,
+          missingMessage: "Must include endpoint_name",
+          unknownMessage: (endpointName) =>
+            `Unknown endpoint_name '${endpointName}' in import payload`,
+        });
         if (endpointName !== null) {
           connectionPairs.add(`${model.model_id}::${endpointName}`);
         }
 
-        resolveTemplateName(
-          connection.pricing_template_name,
-          [...referencePath, "pricing_template_name"]
-        );
+        resolveOptionalReferenceName({
+          value: connection.pricing_template_name,
+          ctx,
+          knownNames: templateNames,
+          path: [...referencePath, "pricing_template_name"],
+          unknownMessage: (templateName) =>
+            `Unknown pricing_template_name '${templateName}' in import payload`,
+        });
       });
     });
 
     const seenFxMappings = new Set<string>();
     data.user_settings?.endpoint_fx_mappings.forEach((mapping, mappingIndex) => {
       const referencePath = ["user_settings", "endpoint_fx_mappings", mappingIndex];
-      const endpointName = resolveEndpointName(
-        mapping.endpoint_name,
-        referencePath
-      );
+      const endpointName = resolveRequiredReferenceName({
+        value: mapping.endpoint_name,
+        ctx,
+        knownNames: endpointNames,
+        path: referencePath,
+        missingMessage: "Must include endpoint_name",
+        unknownMessage: (endpointName) =>
+          `Unknown endpoint_name '${endpointName}' in import payload`,
+      });
       if (endpointName === null) {
         return;
       }
 
       const key = `${mapping.model_id}::${endpointName}`;
       if (seenFxMappings.has(key)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: referencePath,
-          message: `Duplicate FX mapping for model_id='${mapping.model_id}', endpoint_name='${endpointName}'`,
-        });
+        addCustomIssue(
+          ctx,
+          referencePath,
+          `Duplicate FX mapping for model_id='${mapping.model_id}', endpoint_name='${endpointName}'`,
+        );
         return;
       }
       seenFxMappings.add(key);
 
       if (!connectionPairs.has(key)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: referencePath,
-          message: `FX mapping must reference an imported model/endpoint pair: model_id='${mapping.model_id}', endpoint_name='${endpointName}'`,
-        });
+        addCustomIssue(
+          ctx,
+          referencePath,
+          `FX mapping must reference an imported model/endpoint pair: model_id='${mapping.model_id}', endpoint_name='${endpointName}'`,
+        );
       }
     });
   });

@@ -26,7 +26,7 @@ function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigLi
     model_id: "gpt-4o-mini",
     display_name: "GPT-4o Mini",
     model_type: "native",
-    redirect_to: null,
+    proxy_targets: [],
     loadbalance_strategy_id: 100,
     loadbalance_strategy: {
       id: 100,
@@ -39,6 +39,9 @@ function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigLi
       failover_max_cooldown_seconds: 900,
       failover_jitter_ratio: 0.2,
       failover_auth_error_cooldown_seconds: 1800,
+      failover_ban_mode: "off",
+      failover_max_cooldown_strikes_before_ban: 0,
+      failover_ban_duration_seconds: 0,
     },
     is_enabled: true,
     connection_count: 1,

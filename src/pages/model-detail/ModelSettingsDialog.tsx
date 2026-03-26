@@ -24,11 +24,8 @@ interface ModelSettingsDialogProps {
   loadbalanceStrategies: LoadbalanceStrategy[];
   onOpenChange: (open: boolean) => void;
   model: ModelConfig | null;
-  editRedirectTo: string;
   setEditLoadbalanceStrategyId: (value: string) => void;
-  setEditRedirectTo: (value: string) => void;
   handleEditModelSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
-  redirectTargetOptions: { modelId: string; label: string }[];
 }
 
 export function ModelSettingsDialog({
@@ -37,11 +34,8 @@ export function ModelSettingsDialog({
   loadbalanceStrategies,
   onOpenChange,
   model,
-  editRedirectTo,
   setEditLoadbalanceStrategyId,
-  setEditRedirectTo,
   handleEditModelSubmit,
-  redirectTargetOptions,
 }: ModelSettingsDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -75,25 +69,10 @@ export function ModelSettingsDialog({
               </div>
               {model.model_type === "proxy" && (
                 <div className="space-y-2">
-                  <Label htmlFor="edit-redirect-to">Redirect To</Label>
-                  {redirectTargetOptions.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No native models available for this provider. Create a native model first.
-                    </p>
-                  ) : (
-                    <Select value={editRedirectTo || undefined} onValueChange={setEditRedirectTo}>
-                      <SelectTrigger id="edit-redirect-to">
-                        <SelectValue placeholder="Select target model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {redirectTargetOptions.map((target) => (
-                          <SelectItem key={target.modelId} value={target.modelId}>
-                            {target.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <Label>Proxy Targets</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Manage ordered proxy targets from the dedicated card on this page. The model settings dialog only edits identity fields for proxy models.
+                  </p>
                 </div>
               )}
               {model.model_type === "native" && (

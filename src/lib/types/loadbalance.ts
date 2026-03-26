@@ -1,9 +1,13 @@
 export type LoadbalanceEventType =
   | "opened"
   | "extended"
+  | "max_cooldown_strike"
+  | "banned"
   | "probe_eligible"
   | "recovered"
   | "not_opened";
+
+export type LoadbalanceBanMode = "off" | "temporary" | "manual";
 
 export type LoadbalanceFailureKind =
   | "transient_http"
@@ -14,7 +18,8 @@ export type LoadbalanceFailureKind =
 export type LoadbalanceCurrentStateValue =
   | "counting"
   | "blocked"
-  | "probe_eligible";
+  | "probe_eligible"
+  | "banned";
 
 export interface LoadbalanceCurrentStateItem {
   connection_id: number;
@@ -23,6 +28,9 @@ export interface LoadbalanceCurrentStateItem {
   last_cooldown_seconds: number;
   blocked_until_at: string | null;
   probe_eligible_logged: boolean;
+  max_cooldown_strikes: number;
+  ban_mode: LoadbalanceBanMode;
+  banned_until_at: string | null;
   state: LoadbalanceCurrentStateValue;
   created_at: string;
   updated_at: string;
@@ -64,6 +72,9 @@ export interface LoadbalanceEventDetail extends LoadbalanceEvent {
   failure_threshold: number | null;
   backoff_multiplier: number | null;
   max_cooldown_seconds: number | null;
+  max_cooldown_strikes: number | null;
+  ban_mode: LoadbalanceBanMode | null;
+  banned_until_at: string | null;
 }
 
 export interface LoadbalanceEventListResponse {

@@ -1,4 +1,4 @@
-import type { LoadBalancingStrategy, ModelType } from "./model-stats";
+import type { LoadBalancingStrategy, ModelType, ProxyTarget } from "./model-stats";
 
 export interface ConfigEndpointExport {
   name: string;
@@ -57,6 +57,9 @@ export interface ConfigConnectionExport {
   name: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
+  qps_limit: number | null;
+  max_in_flight_non_stream: number | null;
+  max_in_flight_stream: number | null;
 }
 
 export interface ConfigConnectionImport {
@@ -67,6 +70,9 @@ export interface ConfigConnectionImport {
   name: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
+  qps_limit?: number | null;
+  max_in_flight_non_stream?: number | null;
+  max_in_flight_stream?: number | null;
 }
 
 export interface ConfigModelExport {
@@ -74,7 +80,7 @@ export interface ConfigModelExport {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
-  redirect_to: string | null;
+  proxy_targets: ProxyTarget[];
   loadbalance_strategy_name: string | null;
   is_enabled: boolean;
   connections: ConfigConnectionExport[];
@@ -85,7 +91,7 @@ export interface ConfigModelImport {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
-  redirect_to: string | null;
+  proxy_targets: ProxyTarget[];
   loadbalance_strategy_name: string | null;
   is_enabled: boolean;
   connections: ConfigConnectionImport[];
@@ -118,7 +124,7 @@ export interface ConfigUserSettingsImport {
 }
 
 export interface ConfigExportResponse {
-  version: 3;
+  version: 5;
   exported_at: string;
   endpoints: ConfigEndpointExport[];
   pricing_templates: ConfigPricingTemplateExport[];
@@ -129,7 +135,7 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 3;
+  version: 5;
   exported_at?: string;
   endpoints: ConfigEndpointImport[];
   pricing_templates: ConfigPricingTemplateImport[];

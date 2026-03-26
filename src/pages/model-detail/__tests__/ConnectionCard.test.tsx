@@ -32,7 +32,7 @@ function buildModel(): ModelConfig {
     model_id: "gpt-5.4",
     display_name: "GPT-5.4",
     model_type: "native",
-    redirect_to: null,
+    proxy_targets: [],
     loadbalance_strategy_id: 101,
     loadbalance_strategy: {
       id: 101,
@@ -45,6 +45,9 @@ function buildModel(): ModelConfig {
       failover_max_cooldown_seconds: 720,
       failover_jitter_ratio: 0.35,
       failover_auth_error_cooldown_seconds: 2400,
+      failover_ban_mode: "temporary",
+      failover_max_cooldown_strikes_before_ban: 3,
+      failover_ban_duration_seconds: 1800,
     },
     is_enabled: true,
     connections: [],
@@ -74,6 +77,9 @@ function buildConnection(): Connection {
     auth_type: null,
     custom_headers: null,
     pricing_template_id: null,
+    qps_limit: null,
+    max_in_flight_non_stream: null,
+    max_in_flight_stream: null,
     pricing_template: null,
     health_status: "healthy",
     health_detail: null,
@@ -95,17 +101,21 @@ function buildCurrentState(
     blocked_until_at: "2026-03-23T10:05:00Z",
     probe_eligible_logged: state === "probe_eligible",
     state,
+    max_cooldown_strikes: state === "banned" ? 3 : 0,
+    ban_mode: state === "banned" ? "temporary" : "off",
+    banned_until_at: state === "banned" ? "2026-03-23T10:10:00Z" : null,
     created_at: "2026-03-23T10:00:00Z",
     updated_at: "2026-03-23T10:01:00Z",
     ...overrides,
-  };
+  } as LoadbalanceCurrentStateItem;
 }
 
 describe("ConnectionCard cooldown state", () => {
   it.each([
-    ["blocked", "Cooling Down"],
+    ["blocked", "Recovery Blocked"],
     ["probe_eligible", "Probe Eligible"],
-    ["counting", "Failure Counting"],
+    ["counting", "Recovery Counting"],
+    ["banned", "Banned"],
   ] as const)("renders the %s cooldown signal", (state, badgeLabel) => {
     render(
       <ConnectionCard
@@ -127,7 +137,65 @@ describe("ConnectionCard cooldown state", () => {
     );
 
     expect(screen.getByText(badgeLabel)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reset Cooldown" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Reset Recovery State" })).toBeEnabled();
+  });
+
+  it("renders temporary ban copy with the ban expiry time", () => {
+    render(
+      <ConnectionCard
+        connection={buildConnection()}
+        model={buildModel()}
+        metrics24h={undefined}
+        loadbalanceCurrentState={buildCurrentState("banned", {
+          ban_mode: "temporary" as LoadbalanceCurrentStateItem["ban_mode"],
+          banned_until_at: "2026-03-23T10:10:00Z",
+          max_cooldown_strikes: 3,
+        })}
+        isChecking={false}
+        isResettingCooldown={false}
+        isFocused={false}
+        formatTime={(value) => `formatted:${value}`}
+        reorderDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onHealthCheck={vi.fn()}
+        onResetCooldown={vi.fn()}
+        onToggleActive={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText(/This connection is banned until formatted:2026-03-23T10:10:00Z/i)
+    ).toBeInTheDocument();
+  });
+
+  it("renders manual ban copy with dismiss wording", () => {
+    render(
+      <ConnectionCard
+        connection={buildConnection()}
+        model={buildModel()}
+        metrics24h={undefined}
+        loadbalanceCurrentState={buildCurrentState("banned", {
+          ban_mode: "manual" as LoadbalanceCurrentStateItem["ban_mode"],
+          banned_until_at: null,
+          max_cooldown_strikes: 4,
+        })}
+        isChecking={false}
+        isResettingCooldown={false}
+        isFocused={false}
+        formatTime={(value) => `formatted:${value}`}
+        reorderDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onHealthCheck={vi.fn()}
+        onResetCooldown={vi.fn()}
+        onToggleActive={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText(/This connection is banned until the operator dismisses it/i)
+    ).toBeInTheDocument();
   });
 
   it("calls reset and shows loading state without affecting the rest of the card", () => {
@@ -152,7 +220,7 @@ describe("ConnectionCard cooldown state", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Reset Cooldown" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reset Recovery State" }));
 
     expect(handleResetCooldown).toHaveBeenCalledWith(11);
     expect(screen.getByRole("switch")).toBeEnabled();
@@ -176,7 +244,7 @@ describe("ConnectionCard cooldown state", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Reset Cooldown" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset Recovery State" })).toBeDisabled();
     expect(screen.getByRole("switch")).toBeEnabled();
   });
 
@@ -200,8 +268,8 @@ describe("ConnectionCard cooldown state", () => {
       />
     );
 
-    expect(screen.queryByRole("button", { name: "Reset Cooldown" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Cooling Down")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset Recovery State" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Recovery Blocked")).not.toBeInTheDocument();
   });
 
   it("renders header pricing and inactive badges from the extracted header component", () => {

@@ -2,6 +2,7 @@ import { ProviderSelect } from "@/components/ProviderSelect";
 import { SwitchController } from "@/components/SwitchController";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/useLocale";
+import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,12 @@ import type {
   Provider,
 } from "@/lib/types";
 import type { SubmitEventLike } from "./modelFormState";
+import {
+  appendProxyTarget,
+  moveProxyTarget,
+  normalizeProxyTargets,
+  removeProxyTarget,
+} from "./modelFormState";
 
 type Props = {
   editingModel: ModelConfigListItem | null;
@@ -51,6 +58,23 @@ export function ModelDialog({
   onSubmit,
 }: Props) {
   const { locale } = useLocale();
+  const normalizedProxyTargets = normalizeProxyTargets(formData.proxy_targets);
+  const selectedProxyTargetIds = new Set(normalizedProxyTargets.map((target) => target.target_model_id));
+  const remainingProxyTargets = nativeModelsForProvider.filter(
+    (model) => !selectedProxyTargetIds.has(model.model_id),
+  );
+
+  const resolveTargetLabel = (targetModelId: string) => {
+    const matchedModel = nativeModelsForProvider.find((model) => model.model_id === targetModelId);
+    if (!matchedModel) {
+      return targetModelId;
+    }
+
+    return matchedModel.display_name
+      ? `${matchedModel.display_name} (${matchedModel.model_id})`
+      : matchedModel.model_id;
+  };
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="sm:max-w-md">
@@ -73,10 +97,10 @@ export function ModelDialog({
                   return {
                     ...prev,
                     provider_id: nextProviderId,
-                    redirect_to:
+                    proxy_targets:
                       prev.model_type === "proxy" && nextProviderId !== prev.provider_id
-                        ? null
-                        : prev.redirect_to,
+                        ? []
+                        : normalizeProxyTargets(prev.proxy_targets),
                   };
                 })
               }
@@ -123,7 +147,12 @@ export function ModelDialog({
 
           {formData.model_type === "proxy" && (
             <div className="space-y-2">
-              <Label>{locale === "zh-CN" ? "重定向到" : "Redirect To"}</Label>
+              <Label>{locale === "zh-CN" ? "代理目标" : "Proxy Targets"}</Label>
+              <p className="text-xs text-muted-foreground">
+                {locale === "zh-CN"
+                  ? "请求会按顺序尝试这些原生目标，找到第一个可用目标后停止。"
+                  : "Requests try these native targets in order and stop at the first available target."}
+              </p>
               {nativeModelsForProvider.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {locale === "zh-CN"
@@ -131,22 +160,109 @@ export function ModelDialog({
                     : `No native models available for ${selectedProvider?.name || "this provider"}. Create a native model first.`}
                 </p>
               ) : (
-                <Select
-                  value={formData.redirect_to || ""}
-                  onValueChange={(val) => setFormData({ ...formData, redirect_to: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={locale === "zh-CN" ? "选择目标模型" : "Select target model"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {nativeModelsForProvider.map((m) => (
-                      <SelectItem key={m.model_id} value={m.model_id}>
-                        {m.display_name || m.model_id}
-                        {m.display_name && ` (${m.model_id})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  {normalizedProxyTargets.length === 0 ? (
+                    <p className="rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
+                      {locale === "zh-CN" ? "尚未选择代理目标。" : "No proxy targets selected yet."}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {normalizedProxyTargets.map((target, index) => (
+                        <div
+                          key={target.target_model_id}
+                          className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{resolveTargetLabel(target.target_model_id)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {locale === "zh-CN" ? `优先级 ${index + 1}` : `Priority ${index + 1}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={`Move target ${target.target_model_id} up`}
+                              disabled={index === 0}
+                              onClick={() =>
+                                setFormData({
+                                  ...formData,
+                                  proxy_targets: moveProxyTarget(normalizedProxyTargets, index, index - 1),
+                                })
+                              }
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={`Move target ${target.target_model_id} down`}
+                              disabled={index === normalizedProxyTargets.length - 1}
+                              onClick={() =>
+                                setFormData({
+                                  ...formData,
+                                  proxy_targets: moveProxyTarget(normalizedProxyTargets, index, index + 1),
+                                })
+                              }
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={`Remove target ${target.target_model_id}`}
+                              onClick={() =>
+                                setFormData({
+                                  ...formData,
+                                  proxy_targets: removeProxyTarget(normalizedProxyTargets, target.target_model_id),
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">
+                      {remainingProxyTargets.length === 0
+                        ? locale === "zh-CN"
+                          ? "当前提供商下的原生模型都已加入。"
+                          : "All native models for this provider are already included."
+                        : locale === "zh-CN"
+                          ? `还可添加 ${remainingProxyTargets.length} 个原生模型。`
+                          : `${remainingProxyTargets.length} more native targets available.`}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={remainingProxyTargets.length === 0}
+                      onClick={() => {
+                        const nextTarget = remainingProxyTargets[0];
+                        if (!nextTarget) {
+                          return;
+                        }
+
+                        setFormData({
+                          ...formData,
+                          proxy_targets: appendProxyTarget(normalizedProxyTargets, nextTarget.model_id),
+                        });
+                      }}
+                    >
+                      {locale === "zh-CN" ? "添加目标" : "Add Target"}
+                    </Button>
+                  </div>
+                </div>
               )}
             </div>
           )}

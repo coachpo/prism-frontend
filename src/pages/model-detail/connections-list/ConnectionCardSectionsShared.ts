@@ -55,6 +55,22 @@ export function buildCurrentStateCopy(
         hour12: true,
       })
     : null;
+  const bannedUntilLabel = currentState.banned_until_at
+    ? formatTime(currentState.banned_until_at, {
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+        hour12: true,
+      })
+    : null;
+
+  if (currentState.state === "banned") {
+    if (currentState.ban_mode === "temporary") {
+      return `This connection is banned until ${bannedUntilLabel ?? "the temporary ban expires"}.`;
+    }
+
+    return "This connection is banned until the operator dismisses it.";
+  }
 
   if (currentState.state === "blocked") {
     return `${failureSummary} triggered a ${cooldown} cooldown after ${failureKindLabel}. Routing stays paused until ${blockedUntilLabel ?? "the cooldown expires"}.`;

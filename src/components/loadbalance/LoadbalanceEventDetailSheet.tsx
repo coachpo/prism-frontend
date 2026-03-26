@@ -159,6 +159,28 @@ export function LoadbalanceEventDetailSheet({
                     }
                   />
                   <DetailRow label="Max Cooldown (seconds)" value={event.max_cooldown_seconds} />
+                  {event.max_cooldown_strikes !== null ? (
+                    <DetailRow
+                      label="Max Cooldown Strikes"
+                      value={event.max_cooldown_strikes}
+                    />
+                  ) : null}
+                  {event.ban_mode !== null ? (
+                    <DetailRow label="Ban Mode" value={event.ban_mode} />
+                  ) : null}
+                  {event.banned_until_at ? (
+                    <DetailRow
+                      label="Banned Until"
+                      value={formatTime(event.banned_until_at, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    />
+                  ) : null}
                 </div>
               </section>
             </>

@@ -86,7 +86,9 @@ export function LoadbalanceStrategyDialog({
       | "failover_backoff_multiplier"
       | "failover_max_cooldown_seconds"
       | "failover_jitter_ratio"
-      | "failover_auth_error_cooldown_seconds",
+      | "failover_auth_error_cooldown_seconds"
+      | "failover_max_cooldown_strikes_before_ban"
+      | "failover_ban_duration_seconds",
     nextValue: number,
   ) => {
     setLoadbalanceStrategyForm((prev) => ({
@@ -326,6 +328,110 @@ export function LoadbalanceStrategyDialog({
                       )
                     }
                   />
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-md border bg-muted/20 p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{dialogMessages.banEscalationLabel}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {dialogMessages.banEscalationDescription}
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <FailoverFieldLabel
+                      htmlFor="failover-ban-mode"
+                      helpAriaLabel={dialogMessages.explainField(dialogMessages.banModeLabel)}
+                      label={dialogMessages.banModeLabel}
+                      description={dialogMessages.banModeDescription}
+                    />
+                    <Select
+                      value={loadbalanceStrategyForm.failover_ban_mode}
+                      onValueChange={(value: "off" | "temporary" | "manual") =>
+                        setLoadbalanceStrategyForm((prev) => ({
+                          ...prev,
+                          failover_ban_mode: value,
+                          failover_max_cooldown_strikes_before_ban:
+                            value === "off"
+                              ? 0
+                              : Math.max(prev.failover_max_cooldown_strikes_before_ban, 1),
+                          failover_ban_duration_seconds:
+                            value === "temporary"
+                              ? Math.max(prev.failover_ban_duration_seconds, 1)
+                              : 0,
+                        }))
+                      }
+                    >
+                      <SelectTrigger id="failover-ban-mode">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="off">{dialogMessages.banModeOffOption}</SelectItem>
+                        <SelectItem value="temporary">
+                          {dialogMessages.banModeTemporaryOption}
+                        </SelectItem>
+                        <SelectItem value="manual">{dialogMessages.banModeManualOption}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <FailoverFieldLabel
+                      htmlFor="failover-max-cooldown-strikes-before-ban"
+                      helpAriaLabel={dialogMessages.explainField(
+                        dialogMessages.maxCooldownStrikesBeforeBanLabel,
+                      )}
+                      label={dialogMessages.maxCooldownStrikesBeforeBanLabel}
+                      description={dialogMessages.maxCooldownStrikesBeforeBanDescription}
+                    />
+                    <Input
+                      id="failover-max-cooldown-strikes-before-ban"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={loadbalanceStrategyForm.failover_max_cooldown_strikes_before_ban}
+                      onChange={(event) =>
+                        setNumericField(
+                          "failover_max_cooldown_strikes_before_ban",
+                          parseIntegerInput(
+                            event.target.value,
+                            loadbalanceStrategyForm.failover_max_cooldown_strikes_before_ban,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+
+                  {loadbalanceStrategyForm.failover_ban_mode === "temporary" ? (
+                    <div className="space-y-2 sm:col-span-2">
+                      <FailoverFieldLabel
+                        htmlFor="failover-ban-duration-seconds"
+                        helpAriaLabel={dialogMessages.explainField(
+                          dialogMessages.banDurationLabel,
+                        )}
+                        label={dialogMessages.banDurationLabel}
+                        description={dialogMessages.banDurationDescription}
+                      />
+                      <Input
+                        id="failover-ban-duration-seconds"
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={loadbalanceStrategyForm.failover_ban_duration_seconds}
+                        onChange={(event) =>
+                          setNumericField(
+                            "failover_ban_duration_seconds",
+                            parseIntegerInput(
+                              event.target.value,
+                              loadbalanceStrategyForm.failover_ban_duration_seconds,
+                            ),
+                          )
+                        }
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </>

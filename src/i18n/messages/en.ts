@@ -129,6 +129,15 @@ export interface Messages {
     authErrorCooldownLabel: string;
     autoRecoveryDescription: string;
     autoRecoveryLabel: string;
+    banDurationDescription: string;
+    banDurationLabel: string;
+    banEscalationDescription: string;
+    banEscalationLabel: string;
+    banModeDescription: string;
+    banModeLabel: string;
+    banModeManualOption: string;
+    banModeOffOption: string;
+    banModeTemporaryOption: string;
     backoffMultiplierDescription: string;
     backoffMultiplierLabel: string;
     baseCooldownDescription: string;
@@ -142,6 +151,8 @@ export interface Messages {
     failureThresholdLabel: string;
     jitterRatioDescription: string;
     jitterRatioLabel: string;
+    maxCooldownStrikesBeforeBanDescription: string;
+    maxCooldownStrikesBeforeBanLabel: string;
     maxCooldownDescription: string;
     maxCooldownLabel: string;
     nameLabel: string;
@@ -302,11 +313,16 @@ export interface Messages {
     technicalInspection: string;
     tokens: string;
     requestDetails: string;
+    requestedModel: string;
+    resolvedTarget: string;
     time: string;
     totalCost: string;
     totalTokens: string;
     timestamp: string;
     errorDetail: string;
+    ingressRequestId: string;
+    attemptNumber: string;
+    providerCorrelationId: string;
     formattedForReadability: string;
     capturedFailureDetail: string;
     copy: string;
@@ -630,6 +646,18 @@ export const enMessages: Messages = {
     autoRecoveryDescription:
       "Allow failed endpoints in this strategy to recover automatically after backend-managed cooldown windows.",
     autoRecoveryLabel: "Auto-Recovery",
+    banDurationDescription:
+      "How long a temporary ban lasts before the connection becomes probe-eligible again.",
+    banDurationLabel: "Ban Duration (seconds)",
+    banEscalationDescription:
+      "Escalate repeated max-cooldown strikes into a temporary or manual-dismiss ban without replacing the existing cooldown policy.",
+    banEscalationLabel: "Ban escalation",
+    banModeDescription:
+      "Choose whether repeated max-cooldown strikes stay off, expire automatically, or wait for a manual dismiss.",
+    banModeLabel: "Ban Mode",
+    banModeManualOption: "Manual dismiss",
+    banModeOffOption: "Off",
+    banModeTemporaryOption: "Temporary",
     backoffMultiplierDescription:
       "Multiplier applied to the cooldown after each failure beyond the threshold.",
     backoffMultiplierLabel: "Backoff Multiplier",
@@ -647,6 +675,9 @@ export const enMessages: Messages = {
     jitterRatioDescription:
       "Random spread applied to the cooldown so retries do not all happen at the same instant.",
     jitterRatioLabel: "Jitter Ratio",
+    maxCooldownStrikesBeforeBanDescription:
+      "Number of max-cooldown strike events required before this connection is marked as banned.",
+    maxCooldownStrikesBeforeBanLabel: "Max-cooldown Strikes Before Ban",
     maxCooldownDescription:
       "Upper limit for the computed cooldown, even after repeated failures.",
     maxCooldownLabel: "Max Cooldown (seconds)",
@@ -813,11 +844,16 @@ export const enMessages: Messages = {
     streaming: "Streaming",
     technicalInspection: "Technical inspection",
     requestDetails: "Request details",
+    requestedModel: "Requested model",
+    resolvedTarget: "Resolved target",
     time: "Time",
     totalCost: "Total cost",
     totalTokens: "Total tokens",
     timestamp: "Timestamp",
     errorDetail: "Error detail",
+    ingressRequestId: "Ingress request ID",
+    attemptNumber: "Attempt number",
+    providerCorrelationId: "Provider correlation ID",
     formattedForReadability: "Captured upstream failure detail, formatted for readability.",
     capturedFailureDetail: "Captured upstream failure detail.",
     copy: "Copy",

@@ -2,21 +2,22 @@ import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { clearSharedReferenceData } from "@/lib/referenceData";
-import type { ModelConfig, ModelConfigListItem, ModelConfigUpdate } from "@/lib/types";
+import type { ModelConfig, ModelConfigListItem, ModelConfigUpdate, ProxyTarget } from "@/lib/types";
 import {
-  buildRedirectTargetOptions,
+  buildProxyTargetOptions,
   patchModelListItemFromDetail,
 } from "./useModelDetailDataSupport";
+import { normalizeProxyTargets } from "../models/modelFormState";
 
 interface UseModelDetailModelFormInput {
   editLoadbalanceStrategyId: string;
+  editProxyTargets: ProxyTarget[];
   model: ModelConfig | null;
   allModels: ModelConfigListItem[];
   isEditModelDialogOpen: boolean;
   revision: number;
-  editRedirectTo: string;
   setEditLoadbalanceStrategyId: (value: string) => void;
-  setEditRedirectTo: (value: string) => void;
+  setEditProxyTargets: React.Dispatch<React.SetStateAction<ProxyTarget[]>>;
   setIsEditModelDialogOpen: (open: boolean) => void;
   setAllModels: React.Dispatch<React.SetStateAction<ModelConfigListItem[]>>;
   setModel: React.Dispatch<React.SetStateAction<ModelConfig | null>>;
@@ -24,13 +25,13 @@ interface UseModelDetailModelFormInput {
 
 export function useModelDetailModelForm({
   editLoadbalanceStrategyId,
+  editProxyTargets,
   model,
   allModels,
   isEditModelDialogOpen,
   revision,
-  editRedirectTo,
   setEditLoadbalanceStrategyId,
-  setEditRedirectTo,
+  setEditProxyTargets,
   setIsEditModelDialogOpen,
   setAllModels,
   setModel,
@@ -41,7 +42,7 @@ export function useModelDetailModelForm({
     }
 
     if (model.model_type === "proxy") {
-      setEditRedirectTo(model.redirect_to || "");
+      setEditProxyTargets(normalizeProxyTargets(model.proxy_targets));
       return;
     }
 
@@ -50,12 +51,23 @@ export function useModelDetailModelForm({
     isEditModelDialogOpen,
     model,
     setEditLoadbalanceStrategyId,
-    setEditRedirectTo,
+    setEditProxyTargets,
   ]);
 
-  const redirectTargetOptions = useMemo(
-    () => buildRedirectTargetOptions(model, allModels),
+  const proxyTargetOptions = useMemo(
+    () => buildProxyTargetOptions(model, allModels),
     [allModels, model],
+  );
+
+  const applyUpdatedModel = useCallback(
+    (updatedModel: ModelConfig) => {
+      clearSharedReferenceData(undefined, revision);
+      setModel(updatedModel);
+      setAllModels((currentModels) => patchModelListItemFromDetail(currentModels, updatedModel));
+      setEditLoadbalanceStrategyId(updatedModel.loadbalance_strategy_id ? String(updatedModel.loadbalance_strategy_id) : "");
+      setEditProxyTargets(normalizeProxyTargets(updatedModel.proxy_targets));
+    },
+    [revision, setAllModels, setEditLoadbalanceStrategyId, setEditProxyTargets, setModel],
   );
 
   const handleEditModelSubmit = useCallback(
@@ -70,24 +82,20 @@ export function useModelDetailModelForm({
         return;
       }
 
-      const formData = new FormData(event.currentTarget);
-      const updateData: ModelConfigUpdate = {
-        display_name: (formData.get("display_name") as string) || null,
-        model_id: formData.get("model_id") as string,
-        redirect_to: model.model_type === "proxy" ? editRedirectTo || null : null,
-        loadbalance_strategy_id:
-          model.model_type === "native"
-            ? Number.parseInt(editLoadbalanceStrategyId, 10) || null
+        const formData = new FormData(event.currentTarget);
+        const updateData: ModelConfigUpdate = {
+          display_name: (formData.get("display_name") as string) || null,
+          model_id: formData.get("model_id") as string,
+          proxy_targets: model.model_type === "proxy" ? normalizeProxyTargets(editProxyTargets) : [],
+          loadbalance_strategy_id:
+            model.model_type === "native"
+              ? Number.parseInt(editLoadbalanceStrategyId, 10) || null
             : null,
       };
 
       try {
         const updatedModel = await api.models.update(model.id, updateData);
-        clearSharedReferenceData(undefined, revision);
-        setModel(updatedModel);
-        setAllModels((currentModels) => patchModelListItemFromDetail(currentModels, updatedModel));
-        setEditLoadbalanceStrategyId(updatedModel.loadbalance_strategy_id ? String(updatedModel.loadbalance_strategy_id) : "");
-        setEditRedirectTo(updatedModel.redirect_to || "");
+        applyUpdatedModel(updatedModel);
         toast.success("Model updated");
         setIsEditModelDialogOpen(false);
       } catch (error) {
@@ -95,20 +103,36 @@ export function useModelDetailModelForm({
       }
     },
     [
+      applyUpdatedModel,
       editLoadbalanceStrategyId,
-      editRedirectTo,
+      editProxyTargets,
       model,
-      revision,
-      setAllModels,
-      setEditLoadbalanceStrategyId,
-      setEditRedirectTo,
       setIsEditModelDialogOpen,
-      setModel,
     ],
   );
 
+  const handleSaveProxyTargets = useCallback(
+    async (proxyTargets: ProxyTarget[]) => {
+      if (!model || model.model_type !== "proxy") {
+        return;
+      }
+
+      try {
+        const updatedModel = await api.models.update(model.id, {
+          proxy_targets: normalizeProxyTargets(proxyTargets),
+        });
+        applyUpdatedModel(updatedModel);
+        toast.success("Proxy targets updated");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to update proxy targets");
+      }
+    },
+    [applyUpdatedModel, model],
+  );
+
   return {
-    redirectTargetOptions,
+    proxyTargetOptions,
     handleEditModelSubmit,
+    handleSaveProxyTargets,
   };
 }

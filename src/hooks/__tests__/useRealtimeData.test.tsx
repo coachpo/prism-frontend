@@ -55,18 +55,24 @@ vi.mock("@/lib/websocket", async () => {
 
 function emit(message: RealtimeMessage) {
   act(() => {
-    handlers.forEach((handler) => handler(message));
+    handlers.forEach((handler) => {
+      handler(message);
+    });
   });
 }
 
 function makeRequestLog(overrides: Partial<RequestLogEntry> = {}): RequestLogEntry {
-  return {
+  const request: RequestLogEntry = {
     id: 101,
     model_id: "gpt-4o-mini",
+    resolved_target_model_id: null,
     profile_id: 1,
     provider_type: "openai",
     endpoint_id: 2,
     connection_id: 3,
+    ingress_request_id: null,
+    attempt_number: null,
+    provider_correlation_id: null,
     endpoint_base_url: "https://api.openai.com",
     endpoint_description: "Primary endpoint",
     status_code: 200,
@@ -106,6 +112,14 @@ function makeRequestLog(overrides: Partial<RequestLogEntry> = {}): RequestLogEnt
     error_detail: null,
     created_at: "2026-03-13T12:00:00Z",
     ...overrides,
+  };
+
+  return {
+    ...request,
+    resolved_target_model_id: request.resolved_target_model_id ?? null,
+    ingress_request_id: request.ingress_request_id ?? null,
+    attempt_number: request.attempt_number ?? null,
+    provider_correlation_id: request.provider_correlation_id ?? null,
   };
 }
 

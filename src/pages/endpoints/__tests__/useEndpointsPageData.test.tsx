@@ -65,6 +65,33 @@ function buildEndpoint(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function buildModel(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 1,
+    provider_id: 10,
+    provider: { id: 10, provider_type: "openai", audit_enabled: false, created_at: "", updated_at: "" },
+    model_id: "gpt-5.4",
+    display_name: "GPT-5.4",
+    model_type: "native",
+    redirect_to: null,
+    loadbalance_strategy_id: 100,
+    loadbalance_strategy: {
+      id: 100,
+      name: "single-primary",
+      strategy_type: "single",
+      failover_recovery_enabled: false,
+    },
+    is_enabled: true,
+    connection_count: 1,
+    active_connection_count: 1,
+    health_success_rate: 100,
+    health_total_requests: 10,
+    created_at: "",
+    updated_at: "",
+    ...overrides,
+  };
+}
+
 function createDragEndEvent(activeId: number, overId: number): DragEndEvent {
   return {
     activatorEvent: new Event("pointerdown"),
@@ -95,31 +122,7 @@ describe("useEndpointsPageData", () => {
       items: [
         {
           endpoint_id: 10,
-          models: [
-            {
-              id: 1,
-              provider_id: 10,
-               provider: { id: 10, provider_type: "openai", audit_enabled: false, created_at: "", updated_at: "" },
-               model_id: "gpt-5.4",
-               display_name: "GPT-5.4",
-               model_type: "native",
-               redirect_to: null,
-               loadbalance_strategy_id: 100,
-               loadbalance_strategy: {
-                 id: 100,
-                 name: "single-primary",
-                 strategy_type: "single",
-                 failover_recovery_enabled: false,
-               },
-               is_enabled: true,
-               connection_count: 1,
-               active_connection_count: 1,
-              health_success_rate: 100,
-              health_total_requests: 10,
-              created_at: "",
-              updated_at: "",
-            },
-          ],
+          models: [buildModel()],
         },
       ],
     });
@@ -146,8 +149,11 @@ describe("useEndpointsPageData", () => {
     expect(api.models.byEndpoints).toHaveBeenCalledWith({ endpoint_ids: [10] });
     expect(result.current.endpoints).toHaveLength(1);
     expect(result.current.endpointModels[10]).toHaveLength(1);
-    expect(result.current.totalAttachedModels).toBe(1);
-    expect(result.current.endpointsInUse).toBe(1);
+    expect(result.current.searchQuery).toBe("");
+    expect(result.current.reviewFilter).toBe("all");
+    expect(result.current.filteredEndpoints.map((endpoint) => endpoint.id)).toEqual([10]);
+    expect(result.current.visibleEndpointIds).toEqual([10]);
+    expect(result.current.hasActiveReviewFilters).toBe(false);
   });
 
   it("ignores stale in-flight bootstrap results after revision changes", async () => {
@@ -252,9 +258,75 @@ describe("useEndpointsPageData", () => {
       expect(result.current.isLoading).toBe(false);
       expect(result.current.endpoints[0]?.id).toBe(20);
       expect(result.current.endpointModels[20]).toBeUndefined();
-      expect(result.current.totalAttachedModels).toBe(0);
-      expect(result.current.endpointsInUse).toBe(0);
+      expect(result.current.filteredEndpoints.map((endpoint) => endpoint.id)).toEqual([20]);
+      expect(result.current.visibleEndpointIds).toEqual([20]);
     });
+  });
+
+  it("filters endpoints for review mode and disables reorder while a search is active", async () => {
+    api.endpoints.list.mockResolvedValueOnce([
+      buildEndpoint({ id: 10, name: "OpenAI Primary", position: 0 }),
+      buildEndpoint({
+        id: 20,
+        name: "Anthropic Backup",
+        base_url: "https://api.anthropic.com/v1",
+        position: 1,
+      }),
+    ]);
+    api.models.byEndpoints.mockResolvedValueOnce({
+      items: [
+        { endpoint_id: 10, models: [buildModel()] },
+        { endpoint_id: 20, models: [] },
+      ],
+    });
+
+    const { result } = renderHook(() => useEndpointsPageData(), { wrapper: StrictWrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.setSearchQuery("anthropic");
+    });
+
+    expect(result.current.filteredEndpoints.map((endpoint) => endpoint.id)).toEqual([20]);
+    expect(result.current.visibleEndpointIds).toEqual([20]);
+    expect(result.current.hasActiveReviewFilters).toBe(true);
+    expect(result.current.canReorder).toBe(false);
+  });
+
+  it("filters endpoints by usage state for review mode", async () => {
+    api.endpoints.list.mockResolvedValueOnce([
+      buildEndpoint({ id: 10, name: "OpenAI Primary", position: 0 }),
+      buildEndpoint({ id: 20, name: "Anthropic Backup", position: 1 }),
+      buildEndpoint({ id: 30, name: "Gemini Sandbox", position: 2 }),
+    ]);
+    api.models.byEndpoints.mockResolvedValueOnce({
+      items: [
+        { endpoint_id: 10, models: [buildModel()] },
+        { endpoint_id: 20, models: [] },
+        { endpoint_id: 30, models: [] },
+      ],
+    });
+
+    const { result } = renderHook(() => useEndpointsPageData(), { wrapper: StrictWrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.setReviewFilter("unused");
+    });
+
+    expect(result.current.filteredEndpoints.map((endpoint) => endpoint.id)).toEqual([20, 30]);
+    expect(result.current.visibleEndpointIds).toEqual([20, 30]);
+    expect(result.current.hasActiveReviewFilters).toBe(true);
+    expect(result.current.canReorder).toBe(false);
+
+    act(() => {
+      result.current.setReviewFilter("in-use");
+    });
+
+    expect(result.current.filteredEndpoints.map((endpoint) => endpoint.id)).toEqual([10]);
+    expect(result.current.visibleEndpointIds).toEqual([10]);
   });
 
   it("duplicates and deletes endpoints while keeping local state in sync", async () => {

@@ -52,7 +52,7 @@ export function ConnectionCardCooldownState({
           ) : (
             <RotateCcw className="h-3 w-3" />
           )}
-          Reset Cooldown
+          Reset Recovery State
         </Button>
       </div>
     </div>
@@ -68,7 +68,15 @@ function getCurrentStateTone(
 } {
   if (state === "blocked") {
     return {
-      label: "Cooling Down",
+      label: "Recovery Blocked",
+      intent: "danger",
+      panelClassName: "border-red-500/20 bg-red-500/5",
+    };
+  }
+
+  if (state === "banned") {
+    return {
+      label: "Banned",
       intent: "danger",
       panelClassName: "border-red-500/20 bg-red-500/5",
     };
@@ -83,7 +91,7 @@ function getCurrentStateTone(
   }
 
   return {
-    label: "Failure Counting",
+    label: "Recovery Counting",
     intent: "warning",
     panelClassName: "border-amber-500/20 bg-amber-500/5",
   };

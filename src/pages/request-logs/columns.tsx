@@ -72,9 +72,23 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       label: messages.model,
       width: view === "all" ? 210 : 180,
       grow: 2,
-      render: (row, _formatTimestamp, resolveModelLabel) => (
-        <span className="truncate text-xs font-medium">{resolveModelLabel(row.model_id)}</span>
-      ),
+      render: (row, _formatTimestamp, resolveModelLabel) => {
+        const requestedModelLabel = resolveModelLabel(row.model_id);
+        const resolvedTargetLabel = row.resolved_target_model_id
+          ? resolveModelLabel(row.resolved_target_model_id)
+          : null;
+
+        return (
+          <div className="min-w-0">
+            <span className="block truncate text-xs font-medium">{requestedModelLabel}</span>
+            {resolvedTargetLabel && row.resolved_target_model_id !== row.model_id ? (
+              <span className="block truncate text-[11px] text-muted-foreground">
+                {messages.resolvedTarget} → {resolvedTargetLabel}
+              </span>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       key: "provider_type",

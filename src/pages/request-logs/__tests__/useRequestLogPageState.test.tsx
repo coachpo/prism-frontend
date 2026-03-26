@@ -98,4 +98,24 @@ describe("useRequestLogPageState", () => {
     expect(result.current.state.request_id).toBe("123");
     expect(result.current.state.detail_tab).toBe("audit");
   });
+
+  it("parses ingress_request_id from the URL and preserves it across state serialization", async () => {
+    const { result } = renderHook(() => useRequestLogPageState(), {
+      wrapper: createWrapper("/request-logs?ingress_request_id=ingress_req_42&offset=50"),
+    });
+
+    expect(result.current.state.ingress_request_id).toBe("ingress_req_42");
+    expect(result.current.state.request_id).toBe("");
+
+    act(() => {
+      result.current.setModelId("gpt-5.4");
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.model_id).toBe("gpt-5.4");
+    });
+
+    expect(result.current.state.ingress_request_id).toBe("ingress_req_42");
+    expect(result.current.state.offset).toBe(0);
+  });
 });

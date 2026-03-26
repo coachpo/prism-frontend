@@ -12,6 +12,7 @@ import { api, setApiProfileId } from "@/lib/api";
 import { useLocale } from "@/i18n/useLocale";
 import type { Profile, ProfileCreate, ProfileUpdate } from "@/lib/types";
 import { createProfileBootstrapLoader } from "./profile/bootstrap";
+import { createProfileActions } from "./profile/actions";
 import { parseStoredProfileId, PROFILE_STORAGE_KEY, writeStoredProfileId } from "./profile/persistence";
 import { resolveSelectedProfile } from "./profile/selection";
 
@@ -47,6 +48,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
+  const profilesRef = useRef<Profile[]>([]);
+  const activeProfileRef = useRef<Profile | null>(null);
   const selectedProfileIdRef = useRef<number | null>(null);
 
   const selectedProfile = useMemo(
@@ -56,6 +59,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const bumpRevision = useCallback(() => {
     setRevision((previous) => previous + 1);
+  }, []);
+
+  const applyProfiles = useCallback((nextProfiles: Profile[]) => {
+    profilesRef.current = nextProfiles;
+    setProfiles(nextProfiles);
+  }, []);
+
+  const applyActiveProfile = useCallback((nextActiveProfile: Profile | null) => {
+    activeProfileRef.current = nextActiveProfile;
+    setActiveProfile(nextActiveProfile);
   }, []);
 
   const commitSelectedProfileId = useCallback(
@@ -109,16 +122,19 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     [commitSelectedProfileId]
   );
 
-  const refreshProfiles = useCallback(async () => {
-    const data = await api.profiles.list();
-    setProfiles(data);
-    const nextActiveProfile = data.find((profile) => profile.is_active) ?? null;
-    setActiveProfile(nextActiveProfile);
-    syncSelectedProfile(data, nextActiveProfile?.id ?? null, {
-      bumpRevisionOnChange: true,
-    });
-    return data;
-  }, [syncSelectedProfile]);
+  const profileActions = useMemo(
+    () =>
+      createProfileActions({
+        profilesApi: api.profiles,
+        getActiveProfile: () => activeProfileRef.current,
+        getProfiles: () => profilesRef.current,
+        getSelectedProfileId: () => selectedProfileIdRef.current,
+        setProfiles: applyProfiles,
+        setActiveProfile: applyActiveProfile,
+        syncSelectedProfile,
+      }),
+    [applyActiveProfile, applyProfiles, syncSelectedProfile]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -132,8 +148,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           await loadProfileBootstrapState(true);
         if (!mounted) return;
 
-        setProfiles(fetchedProfiles);
-        setActiveProfile(fetchedActiveProfile);
+        applyProfiles(fetchedProfiles);
+        applyActiveProfile(fetchedActiveProfile);
 
         const persistedId = parseStoredProfileId(
           localStorage.getItem(PROFILE_STORAGE_KEY)
@@ -160,80 +176,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [syncSelectedProfile]);
-
-  const createProfile = useCallback(
-    async (data: ProfileCreate) => {
-      try {
-        const createdProfile = await api.profiles.create(data);
-        await refreshProfiles();
-        return createdProfile;
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("409")) {
-          throw new Error(
-            "Maximum 10 profiles reached. Delete a profile to create a new one."
-          );
-        }
-        throw err;
-      }
-    },
-    [refreshProfiles]
-  );
-
-  const updateProfile = useCallback(
-    async (id: number, data: ProfileUpdate) => {
-      const updatedProfile = await api.profiles.update(id, data);
-      await refreshProfiles();
-      return updatedProfile;
-    },
-    [refreshProfiles]
-  );
-
-  const activateProfile = useCallback(
-    async (id: number) => {
-      if (!activeProfile) {
-        throw new Error("No active profile snapshot available");
-      }
-
-      try {
-        const updatedProfile = await api.profiles.activate(id, {
-          expected_active_profile_id: activeProfile.id,
-        });
-        await refreshProfiles();
-        return updatedProfile;
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("409")) {
-          await refreshProfiles();
-        }
-        throw err;
-      }
-    },
-    [activeProfile, refreshProfiles]
-  );
-
-  const deleteProfile = useCallback(
-    async (id: number) => {
-      await api.profiles.delete(id);
-
-      if (selectedProfileId === id) {
-        const remainingProfiles = profiles.filter((profile) => profile.id !== id);
-        const remainingActiveProfileId =
-          activeProfile?.id === id ? null : activeProfile?.id ?? null;
-        syncSelectedProfile(remainingProfiles, remainingActiveProfileId, {
-          bumpRevisionOnChange: true,
-        });
-      }
-
-      await refreshProfiles();
-    },
-    [
-      activeProfile?.id,
-      profiles,
-      refreshProfiles,
-      selectedProfileId,
-      syncSelectedProfile,
-    ]
-  );
+  }, [applyActiveProfile, applyProfiles, syncSelectedProfile]);
 
   if (isLoading) {
     return (
@@ -257,11 +200,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         error,
         revision,
         selectProfile,
-        refreshProfiles,
-        createProfile,
-        updateProfile,
-        activateProfile,
-        deleteProfile,
+        refreshProfiles: profileActions.refreshProfiles,
+        createProfile: profileActions.createProfile,
+        updateProfile: profileActions.updateProfile,
+        activateProfile: profileActions.activateProfile,
+        deleteProfile: profileActions.deleteProfile,
         bumpRevision,
       }}
     >

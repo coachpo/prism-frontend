@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useTimezone } from "@/hooks/useTimezone";
 import { useLocale } from "@/i18n/useLocale";
-import { useConnectionNavigation } from "@/hooks/useConnectionNavigation";
 import { useRequestLogPageState } from "./request-logs/useRequestLogPageState";
 import { useRequestLogsPageData } from "./request-logs/useRequestLogsPageData";
 import { applyClientFilters } from "./request-logs/clientFilters";
+import { createConnectionNavigator } from "./request-logs/connectionNavigation";
 import { RequestFocusBanner } from "./request-logs/RequestFocusBanner";
 import { FiltersBar } from "./request-logs/FiltersBar";
 import { RequestLogsTable } from "./request-logs/RequestLogsTable";
@@ -17,14 +18,18 @@ import { Button } from "@/components/ui/button";
 import type { DetailTab } from "./request-logs/queryParams";
 
 export function RequestLogsPage() {
-  const { revision } = useProfileContext();
+  const navigate = useNavigate();
+  const { revision, selectedProfileId } = useProfileContext();
   const { format } = useTimezone();
   const { messages } = useLocale();
-  const { navigateToConnection } = useConnectionNavigation();
   const [tableSelectedRequestId, setTableSelectedRequestId] = useState<number | null>(null);
   const [tableSelectedTab, setTableSelectedTab] = useState<DetailTab>("overview");
   const actions = useRequestLogPageState();
   const { state, isExactMode } = actions;
+  const navigateToConnection = useMemo(
+    () => createConnectionNavigator({ navigate, selectedProfileId }),
+    [navigate, selectedProfileId]
+  );
 
   const { items, total, loading, error, filterOptions, filterOptionsLoaded, refresh } =
     useRequestLogsPageData({ revision, state });

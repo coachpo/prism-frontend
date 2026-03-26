@@ -38,6 +38,7 @@ export const DEFAULTS = {
 
 export interface RequestLogPageState {
   // Server filters
+  ingress_request_id: string;
   model_id: string;
   provider_type: string;
   connection_id: string;
@@ -78,6 +79,7 @@ function parseIntParam(value: string | null, fallback: number): number {
 
 export function parsePageState(params: URLSearchParams): RequestLogPageState {
   return {
+    ingress_request_id: params.get("ingress_request_id") ?? "",
     model_id: params.get("model_id") ?? "",
     provider_type: params.get("provider_type") ?? "",
     connection_id: params.get("connection_id") ?? "",
@@ -104,6 +106,7 @@ export function parsePageState(params: URLSearchParams): RequestLogPageState {
 
 export function stateToParams(state: RequestLogPageState): URLSearchParams {
   const p = new URLSearchParams();
+  if (state.ingress_request_id) p.set("ingress_request_id", state.ingress_request_id);
   if (state.model_id) p.set("model_id", state.model_id);
   if (state.provider_type) p.set("provider_type", state.provider_type);
   if (state.connection_id) p.set("connection_id", state.connection_id);

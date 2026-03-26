@@ -208,6 +208,9 @@ function buildConnectionPayload({
     name: resolvedConnectionName,
     custom_headers: customHeaders,
     pricing_template_id: connectionForm.pricing_template_id,
+    qps_limit: normalizeLimiterField(connectionForm.qps_limit),
+    max_in_flight_non_stream: normalizeLimiterField(connectionForm.max_in_flight_non_stream),
+    max_in_flight_stream: normalizeLimiterField(connectionForm.max_in_flight_stream),
   };
 
   if (createMode === "select") {
@@ -228,4 +231,12 @@ function buildConnectionPayload({
   payload.endpoint_create = newEndpointForm;
   delete payload.endpoint_id;
   return payload;
+}
+
+function normalizeLimiterField(value: number | null | undefined): number | null {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+
+  return value;
 }

@@ -23,6 +23,7 @@ vi.mock("@/lib/api", () => ({ api }));
 
 function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPageState {
   return {
+    ingress_request_id: "",
     model_id: "",
     provider_type: "",
     connection_id: "",
@@ -97,5 +98,45 @@ describe("useRequestLogsPageData", () => {
     });
 
     expect(api.stats.requests).toHaveBeenCalledWith({ request_id: 123, limit: 1 });
+  });
+
+  it("propagates ingress_request_id alongside other server-backed filters", async () => {
+    renderHook(() =>
+      useRequestLogsPageData({
+        revision: 1,
+        state: createState({
+          ingress_request_id: "ingress_req_42",
+          model_id: "gpt-5.4",
+          provider_type: "openai",
+          connection_id: "42",
+          endpoint_id: "99",
+          status_family: "5xx",
+          limit: 25,
+          offset: 50,
+        }),
+      })
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(0);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+      await Promise.resolve();
+    });
+
+    expect(api.stats.requests).toHaveBeenCalledWith({
+      ingress_request_id: "ingress_req_42",
+      model_id: "gpt-5.4",
+      provider_type: "openai",
+      status_family: "5xx",
+      connection_id: 42,
+      endpoint_id: 99,
+      from_time: expect.any(String),
+      limit: 25,
+      offset: 50,
+    });
   });
 });

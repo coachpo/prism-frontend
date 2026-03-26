@@ -91,6 +91,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     const params = isExact
       ? { request_id: parseInt(state.request_id, 10), limit: 1 }
       : {
+          ingress_request_id: state.ingress_request_id || undefined,
           model_id: state.model_id || undefined,
           provider_type: state.provider_type || undefined,
           status_family: state.status_family === "all" ? undefined : state.status_family,
@@ -120,6 +121,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
       });
   }, [
     state.request_id,
+    state.ingress_request_id,
     state.model_id,
     state.provider_type,
     state.status_family,

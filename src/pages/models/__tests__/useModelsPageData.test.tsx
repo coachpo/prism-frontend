@@ -81,7 +81,7 @@ function buildModelListItem(overrides: Record<string, unknown> = {}) {
     model_id: "gpt-5.4",
     display_name: "GPT-5.4",
     model_type: "native",
-    redirect_to: null,
+    proxy_targets: [],
     loadbalance_strategy_id: 100,
     loadbalance_strategy: buildLoadbalanceStrategySummary(),
     is_enabled: true,
@@ -103,7 +103,7 @@ function buildModelConfig(overrides: Record<string, unknown> = {}) {
     model_id: "gpt-5.4",
     display_name: "GPT-5.4",
     model_type: "native",
-    redirect_to: null,
+    proxy_targets: [],
     loadbalance_strategy_id: 100,
     loadbalance_strategy: buildLoadbalanceStrategySummary(),
     is_enabled: true,
@@ -250,7 +250,7 @@ describe("useModelsPageData", () => {
         model_id: "friendly-proxy",
         display_name: "Friendly Proxy",
         model_type: "proxy",
-        redirect_to: "gpt-5.4",
+        proxy_targets: [{ target_model_id: "gpt-5.4", position: 0 }],
         loadbalance_strategy_id: null,
         loadbalance_strategy: null,
       })
@@ -264,15 +264,18 @@ describe("useModelsPageData", () => {
 
     act(() => {
       result.current.handleOpenDialog();
-      result.current.setFormData((current) => ({
-        ...current,
-        provider_id: 10,
-        model_id: "friendly-proxy",
-        display_name: "Friendly Proxy",
-        model_type: "proxy",
-        redirect_to: "gpt-5.4",
-        loadbalance_strategy_id: 100,
-      }));
+      result.current.setFormData(
+        (current) =>
+          ({
+            ...current,
+            provider_id: 10,
+            model_id: "friendly-proxy",
+            display_name: "Friendly Proxy",
+            model_type: "proxy",
+            proxy_targets: [{ target_model_id: "gpt-5.4", position: 0 }],
+            loadbalance_strategy_id: 100,
+          }) as unknown as typeof current,
+      );
     });
 
     const submitEvent = createSubmitEvent();
@@ -281,15 +284,18 @@ describe("useModelsPageData", () => {
     });
 
     expect(submitEvent.preventDefault).toHaveBeenCalledTimes(1);
-    expect(api.models.create).toHaveBeenCalledWith({
+    const createPayload = api.models.create.mock.calls[0]?.[0];
+
+    expect(createPayload).toMatchObject({
       provider_id: 10,
       model_id: "friendly-proxy",
       display_name: "Friendly Proxy",
       model_type: "proxy",
-      redirect_to: "gpt-5.4",
+      proxy_targets: [{ target_model_id: "gpt-5.4", position: 0 }],
       loadbalance_strategy_id: null,
       is_enabled: true,
     });
+    expect(createPayload).not.toHaveProperty("redirect_to");
     expect(result.current.models.some((model) => model.id === 3)).toBe(true);
   });
 
@@ -357,7 +363,7 @@ describe("useModelsPageData", () => {
       provider_id: 10,
       display_name: null,
       model_type: "native",
-      redirect_to: null,
+      proxy_targets: [],
       loadbalance_strategy_id: 100,
       is_enabled: true,
     });

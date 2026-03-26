@@ -17,6 +17,9 @@ function buildStrategy(overrides: Partial<LoadbalanceStrategy> = {}): Loadbalanc
     failover_max_cooldown_seconds: 720,
     failover_jitter_ratio: 0.35,
     failover_auth_error_cooldown_seconds: 2400,
+    failover_ban_mode: "temporary",
+    failover_max_cooldown_strikes_before_ban: 3,
+    failover_ban_duration_seconds: 1800,
     attached_model_count: 4,
     created_at: "2026-03-25T08:00:00Z",
     updated_at: "2026-03-25T08:00:00Z",
@@ -102,6 +105,9 @@ describe("LoadbalanceStrategiesTable", () => {
 
     expect(screen.getByText("Threshold 4 • Base 45s • Max 720s")).toBeInTheDocument();
     expect(screen.getByText("Backoff ×3.5 • Jitter 0.35 • Auth 2400s")).toBeInTheDocument();
+    expect(
+      screen.getByText("Ban temporary • 3 max-cooldown strikes • 1800s")
+    ).toBeInTheDocument();
   });
 
   it("renders localized table copy when the saved locale is Chinese", () => {

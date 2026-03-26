@@ -33,7 +33,7 @@ frontend/
 - Mounted routes, auth/public split, protected shell mounts: `src/App.tsx`
 - Shell chrome, sidebar entries, profile-prefixed navigation, visible version label: `src/components/layout/AppLayout.tsx`, `src/components/layout/app-layout/navigationProfileConfig.ts`
 - Selected-profile state, revision bumps, and `X-Profile-Id` management scoping: `src/context/ProfileContext.tsx`, `src/lib/api/core.ts`
-- Typed API boundary and shared request plumbing: `src/lib/api.ts`, `src/lib/api/core.ts`
+- Typed API boundary and shared request plumbing: `src/lib/api.ts`, `src/lib/api/core.ts` (including ordered `proxy_targets`, resolved-target request-log context, and config import validation mirrored from the backend contract)
 - Realtime websocket ownership and consumers: `src/lib/websocket.ts`, `src/hooks/useRealtimeData.ts`
 - Shared reference data and profile-revision keyed cache invalidation: `src/lib/referenceData.ts`
 - Frontend locale state and shared formatting: `src/i18n/LocaleProvider.tsx`, `src/i18n/format.ts`

@@ -1,7 +1,7 @@
 # FRONTEND MODEL DETAIL DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/model-detail/` owns the heavy route logic behind `../ModelDetailPage.tsx`: bootstrap and redirect handling, model data shaping, strategy summary display, connection mutation flows, manual health checks, 24-hour KPIs, model-scoped loadbalance events, current cooldown state, and the parent-covered `connections-list/` UI cluster.
+`pages/model-detail/` owns the heavy route logic behind `../ModelDetailPage.tsx`: bootstrap and redirect handling, model data shaping, strategy summary display, ordered proxy-target summary/editing for proxy models, connection mutation flows, manual health checks, 24-hour KPIs, model-scoped loadbalance events, current recovery state (cooldown plus ban state), and the parent-covered `connections-list/` UI cluster.
 
 ## STRUCTURE
 ```
@@ -34,10 +34,10 @@ model-detail/
 - Bootstrap fetches, focus handoff, and redirect handling: `useModelDetailBootstrap.ts`, `useConnectionFocus.ts`
 - Connection create, edit, delete, and reorder flows: `useModelDetailConnectionFlows.ts`, `useModelDetailConnectionMutations.ts`, `useModelDetailDialogState.ts`
 - Health checks and 24-hour KPI loading: `useConnectionHealthChecks.ts`, `useModelDetailMetrics24h.ts`, `OverviewCards.tsx`
-- Default forms, redirect-target options, strategy summary helpers, and optimistic helpers: `useModelDetailDataSupport.ts`, `useModelDetailModelForm.ts`, `ModelSettingsDialog.tsx`
+- Default forms, ordered proxy-target options, strategy summary helpers, and optimistic helpers: `useModelDetailDataSupport.ts`, `useModelDetailModelForm.ts`, `ModelSettingsDialog.tsx`
 - Connection list shell plus local cluster: `ConnectionsList.tsx`, `connections-list/`
 - Model-scoped loadbalance event refresh, paging, and detail wiring: `LoadbalanceEventsTab.tsx`, `useModelLoadbalanceEvents.ts`, `../../components/AGENTS.md`
-- Current cooldown-state fetch and reset actions: `useModelLoadbalanceCurrentState.ts`
+- Current recovery-state fetch and reset actions: `useModelLoadbalanceCurrentState.ts`
 - Shared latency and connection-label formatting: `modelDetailMetricsAndPaths.ts`
 
 ## CONVENTIONS
@@ -45,8 +45,11 @@ model-detail/
 - Keep `ModelDetailPage.tsx` thin. `useModelDetailData.ts` owns bootstrap, dialog state, and the cross-hook composition layer.
 - Fetch model, endpoints, model list, and pricing templates in parallel during bootstrap.
 - Use `Promise.allSettled` for health-check batches so one failing connection does not collapse the page.
-- Keep model loadbalance current state in `useModelLoadbalanceCurrentState.ts`, including refresh and reset actions, instead of scattering cooldown state inside cards or tabs.
+- Keep model loadbalance current state in `useModelLoadbalanceCurrentState.ts`, including refresh and reset actions, instead of scattering cooldown/ban state inside cards or tabs.
 - Keep optimistic priority reordering in the hook layer plus the connection-list helpers, and revert UI order if the backend PATCH fails.
+- Keep connection-card recovery copy in `connections-list/ConnectionCardSectionsShared.ts`; tone labels and reset wording in `ConnectionCardCooldownState.tsx` should stay presentation-only.
+- Keep loadbalance event badge/detail rendering in the shared `src/components/loadbalance/` components; `LoadbalanceEventsTab.tsx` should remain a thin page shell.
+- Keep proxy-target option building and update payload shaping in `useModelDetailDataSupport.ts` / `useModelDetailModelForm.ts`; proxy-target card/dialog rendering should stay presentation-focused.
 - Treat `connections-list/` as a local cluster that stays documented here. It supports the parent route and should not get its own AGENTS file.
 
 ## ANTI-PATTERNS
@@ -54,4 +57,5 @@ model-detail/
 - Do not move orchestration state back into `ModelDetailPage.tsx`.
 - Do not duplicate default form factories or redirect-target logic outside `useModelDetailDataSupport.ts`.
 - Do not manage routing priority from `ConnectionDialog.tsx`. Ordering belongs to the connection-list flow.
+- Do not leave ban-aware wording trapped only in one connection-card component; shared current-state copy must stay centralized.
 - Do not split `connections-list/` into a separate AGENTS file. This parent doc owns that cluster.

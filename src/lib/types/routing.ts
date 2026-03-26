@@ -117,6 +117,9 @@ export interface Connection {
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
   pricing_template_id: number | null;
+  qps_limit: number | null;
+  max_in_flight_non_stream: number | null;
+  max_in_flight_stream: number | null;
   pricing_template: ConnectionPricingTemplateSummary | null;
   health_status: string;
   health_detail: string | null;
@@ -133,6 +136,9 @@ export interface ConnectionCreate {
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_template_id?: number | null;
+  qps_limit?: number | null;
+  max_in_flight_non_stream?: number | null;
+  max_in_flight_stream?: number | null;
 }
 
 export interface ConnectionUpdate {
@@ -143,6 +149,9 @@ export interface ConnectionUpdate {
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_template_id?: number | null;
+  qps_limit?: number | null;
+  max_in_flight_non_stream?: number | null;
+  max_in_flight_stream?: number | null;
 }
 
 export interface HealthCheckResponse {

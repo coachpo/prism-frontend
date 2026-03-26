@@ -219,4 +219,60 @@ describe("AuthProvider", () => {
 
     expect(applySessionState).not.toHaveBeenCalled();
   });
+
+  it("runs the extracted login mutation workflow with the existing session payload", async () => {
+    const { createAuthMutations } = await import("../auth/mutations");
+    const setLoading = vi.fn();
+    const applySessionState = vi.fn();
+    const mutationSteps: string[] = [];
+    const mutations = createAuthMutations({
+      loginRequest: api.auth.login,
+      logoutRequest: api.auth.logout,
+      setLoading,
+      applySessionState,
+      beginMutation: () => mutationSteps.push("begin"),
+      endMutation: () => mutationSteps.push("end"),
+    });
+
+    await mutations.login("alice", "secret", "session");
+
+    expect(api.auth.login).toHaveBeenCalledWith({
+      username: "alice",
+      password: "secret",
+      session_duration: "session",
+    });
+    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(applySessionState).toHaveBeenCalledWith({
+      auth_enabled: true,
+      authenticated: true,
+      username: "alice",
+    });
+    expect(mutationSteps).toEqual(["begin", "end"]);
+  });
+
+  it("runs the extracted logout mutation workflow with the existing session payload", async () => {
+    const { createAuthMutations } = await import("../auth/mutations");
+    const setLoading = vi.fn();
+    const applySessionState = vi.fn();
+    const mutationSteps: string[] = [];
+    const mutations = createAuthMutations({
+      loginRequest: api.auth.login,
+      logoutRequest: api.auth.logout,
+      setLoading,
+      applySessionState,
+      beginMutation: () => mutationSteps.push("begin"),
+      endMutation: () => mutationSteps.push("end"),
+    });
+
+    await mutations.logout();
+
+    expect(api.auth.logout).toHaveBeenCalledTimes(1);
+    expect(setLoading).toHaveBeenCalledWith(false);
+    expect(applySessionState).toHaveBeenCalledWith({
+      auth_enabled: true,
+      authenticated: false,
+      username: null,
+    });
+    expect(mutationSteps).toEqual(["begin", "end"]);
+  });
 });

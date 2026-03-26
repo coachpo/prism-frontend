@@ -26,10 +26,13 @@ function buildCurrentStateItem(
     blocked_until_at: "2026-03-23T10:05:00Z",
     probe_eligible_logged: false,
     state: "blocked",
+    max_cooldown_strikes: 0,
+    ban_mode: "off",
+    banned_until_at: null,
     created_at: "2026-03-23T10:00:00Z",
     updated_at: "2026-03-23T10:01:00Z",
     ...overrides,
-  };
+  } as LoadbalanceCurrentStateItem;
 }
 
 const api = vi.hoisted(() => ({
@@ -114,7 +117,14 @@ describe("useModelLoadbalanceCurrentState", () => {
 
   it("clears the local cooldown signal immediately after a reset succeeds", async () => {
     api.loadbalance.listCurrentState.mockResolvedValue({
-      items: [buildCurrentStateItem({ connection_id: 7, state: "blocked" })],
+      items: [
+        buildCurrentStateItem({
+          connection_id: 7,
+          state: "banned" as LoadbalanceCurrentStateItem["state"],
+          ban_mode: "manual" as LoadbalanceCurrentStateItem["ban_mode"],
+          max_cooldown_strikes: 3,
+        }),
+      ],
     });
 
     const resetResponse = createDeferred<{ connection_id: number; cleared: boolean }>();
@@ -126,6 +136,7 @@ describe("useModelLoadbalanceCurrentState", () => {
 
     await waitFor(() => {
       expect(result.current.currentStateByConnectionId.has(7)).toBe(true);
+      expect(result.current.currentStateByConnectionId.get(7)?.state).toBe("banned");
     });
 
     act(() => {

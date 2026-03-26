@@ -28,7 +28,7 @@ describe("model dialogs i18n", () => {
             model_id: "",
             display_name: null,
             model_type: "native",
-            redirect_to: null,
+            proxy_targets: [],
             loadbalance_strategy_id: null,
             is_enabled: true,
           }}
@@ -72,7 +72,7 @@ describe("model dialogs i18n", () => {
             model_id: "gpt-4o",
             display_name: "GPT 4O",
             model_type: "native",
-            redirect_to: null,
+            proxy_targets: [],
             loadbalance_strategy_id: null,
             loadbalance_strategy: null,
             is_enabled: true,

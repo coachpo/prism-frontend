@@ -67,6 +67,9 @@ export function useModelDetailDialogState({
         is_active: connection.is_active,
         custom_headers: connection.custom_headers,
         pricing_template_id: connection.pricing_template_id,
+        qps_limit: connection.qps_limit,
+        max_in_flight_non_stream: connection.max_in_flight_non_stream,
+        max_in_flight_stream: connection.max_in_flight_stream,
       });
       setNewEndpointForm({ ...createDefaultEndpointForm() });
       setCreateMode("select");

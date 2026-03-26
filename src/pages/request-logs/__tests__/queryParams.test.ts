@@ -9,6 +9,7 @@ import {
 
 function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPageState {
   return {
+    ingress_request_id: "",
     model_id: "",
     provider_type: "",
     connection_id: "",
@@ -38,6 +39,7 @@ describe("request log query params", () => {
   it("round-trips non-default state, including new filter controls", () => {
     const state = createState({
       model_id: "gpt-5.4",
+      ingress_request_id: "ingress_req_42",
       provider_type: "openai",
       connection_id: "42",
       endpoint_id: "99",

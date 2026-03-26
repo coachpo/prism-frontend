@@ -18,6 +18,9 @@ describe("loadbalanceStrategyFormState", () => {
       failover_max_cooldown_seconds: 900,
       failover_jitter_ratio: 0.2,
       failover_auth_error_cooldown_seconds: 1800,
+      failover_ban_mode: "off",
+      failover_max_cooldown_strikes_before_ban: 0,
+      failover_ban_duration_seconds: 0,
     });
   });
 
@@ -34,10 +37,13 @@ describe("loadbalanceStrategyFormState", () => {
       failover_max_cooldown_seconds: 720,
       failover_jitter_ratio: 0.35,
       failover_auth_error_cooldown_seconds: 2400,
+      failover_ban_mode: "temporary",
+      failover_max_cooldown_strikes_before_ban: 3,
+      failover_ban_duration_seconds: 1800,
       attached_model_count: 4,
       created_at: "2026-03-25T08:00:00Z",
       updated_at: "2026-03-25T08:00:00Z",
-    };
+    } as const;
 
     expect(loadbalanceStrategyFormStateFromStrategy(strategy)).toMatchObject({
       name: "Primary failover",
@@ -49,6 +55,9 @@ describe("loadbalanceStrategyFormState", () => {
       failover_max_cooldown_seconds: 720,
       failover_jitter_ratio: 0.35,
       failover_auth_error_cooldown_seconds: 2400,
+      failover_ban_mode: "temporary",
+      failover_max_cooldown_strikes_before_ban: 3,
+      failover_ban_duration_seconds: 1800,
     });
   });
 
@@ -64,6 +73,9 @@ describe("loadbalanceStrategyFormState", () => {
       failover_max_cooldown_seconds: 1800.6,
       failover_jitter_ratio: 0.4,
       failover_auth_error_cooldown_seconds: 3600.8,
+      failover_ban_mode: "manual" as const,
+      failover_max_cooldown_strikes_before_ban: 4.7,
+      failover_ban_duration_seconds: 12.4,
     };
 
     expect(toLoadbalanceStrategyPayload(failoverFormState)).toMatchObject({
@@ -76,6 +88,9 @@ describe("loadbalanceStrategyFormState", () => {
       failover_max_cooldown_seconds: 1800,
       failover_jitter_ratio: 0.4,
       failover_auth_error_cooldown_seconds: 3600,
+      failover_ban_mode: "manual",
+      failover_max_cooldown_strikes_before_ban: 4,
+      failover_ban_duration_seconds: 12,
     });
 
     expect(
@@ -92,6 +107,9 @@ describe("loadbalanceStrategyFormState", () => {
       failover_max_cooldown_seconds: 1800,
       failover_jitter_ratio: 0.4,
       failover_auth_error_cooldown_seconds: 3600,
+      failover_ban_mode: "manual",
+      failover_max_cooldown_strikes_before_ban: 4,
+      failover_ban_duration_seconds: 12,
     });
   });
 
@@ -149,6 +167,48 @@ describe("loadbalanceStrategyFormState", () => {
         failover_auth_error_cooldown_seconds: 1.25,
       }),
     ).toBe("Auth error cooldown must be a whole number of seconds");
+
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+        name: "Failover",
+        strategy_type: "failover",
+        failover_ban_mode: "temporary",
+        failover_max_cooldown_strikes_before_ban: 0,
+      }),
+    ).toBe("Max-cooldown strikes before ban must be at least 1 when ban escalation is enabled");
+
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+        name: "Failover",
+        strategy_type: "failover",
+        failover_ban_mode: "temporary",
+        failover_max_cooldown_strikes_before_ban: 2,
+        failover_ban_duration_seconds: 0,
+      }),
+    ).toBe("Ban duration must be at least 1 second for temporary bans");
+
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+        name: "Failover",
+        strategy_type: "failover",
+        failover_ban_mode: "manual",
+        failover_max_cooldown_strikes_before_ban: 2,
+        failover_ban_duration_seconds: 30,
+      }),
+    ).toBe("Ban duration must be 0 seconds for manual dismiss bans");
+
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+        name: "Failover",
+        strategy_type: "failover",
+        failover_ban_mode: "off",
+        failover_max_cooldown_strikes_before_ban: 1,
+      }),
+    ).toBe("Ban escalation must stay at 0 strikes and 0 seconds while ban mode is off");
   });
 
   it("returns localized validation errors when the active locale is Chinese", () => {

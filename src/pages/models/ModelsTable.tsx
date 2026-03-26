@@ -129,6 +129,19 @@ function InlineMetaDivider() {
   );
 }
 
+function getProxyTargetSummary(model: ModelConfigListItem, locale: "en" | "zh-CN") {
+  const proxyTargets = model.proxy_targets ?? [];
+  const firstTarget = proxyTargets[0]?.target_model_id;
+
+  if (!firstTarget) {
+    return locale === "zh-CN" ? "未配置代理目标" : "No proxy targets";
+  }
+
+  return locale === "zh-CN"
+    ? `${proxyTargets.length} 个目标 · 首选 ${firstTarget}`
+    : `${proxyTargets.length} targets · ${firstTarget} first`;
+}
+
 function ModelRow({
   metricsLoading,
   model,
@@ -144,6 +157,7 @@ function ModelRow({
   const p95LatencyMs = metrics24h?.p95_latency_ms ?? null;
   const spend30dMicros = modelSpend30dMicros[model.id] ?? 0;
   const title = model.display_name || model.model_id;
+  const proxyTargetSummary = getProxyTargetSummary(model, locale as "en" | "zh-CN");
   const typeLabel = model.model_type === "proxy" ? (locale === "zh-CN" ? "代理" : "Proxy") : locale === "zh-CN" ? "原生" : "Native";
   const typeIntent = model.model_type === "proxy" ? "accent" : "info";
   const statusLabel = model.is_enabled ? (locale === "zh-CN" ? "已启用" : "Enabled") : locale === "zh-CN" ? "已禁用" : "Disabled";
@@ -217,8 +231,8 @@ function ModelRow({
 
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {model.model_type === "proxy" && model.redirect_to ? (
-              <CompactMetaBadge>{locale === "zh-CN" ? `目标 ${model.redirect_to}` : `Target ${model.redirect_to}`}</CompactMetaBadge>
+            {model.model_type === "proxy" ? (
+              <CompactMetaBadge>{proxyTargetSummary}</CompactMetaBadge>
             ) : null}
 
             {model.model_type === "native" ? <CompactMetaBadge>{strategySummary}</CompactMetaBadge> : null}

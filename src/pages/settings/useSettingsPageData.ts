@@ -56,3 +56,5 @@ export function useSettingsPageData() {
     ...retention,
   };
 }
+
+export type SettingsPageData = ReturnType<typeof useSettingsPageData>;

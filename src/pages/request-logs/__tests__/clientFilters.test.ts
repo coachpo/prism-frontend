@@ -3,13 +3,17 @@ import type { RequestLogEntry } from "@/lib/types";
 import { applyClientFilters } from "../clientFilters";
 
 function createRequest(overrides: Partial<RequestLogEntry> = {}): RequestLogEntry {
-  return {
+  const request: RequestLogEntry = {
     id: 1,
     model_id: "gpt-5.4",
+    resolved_target_model_id: null,
     profile_id: 7,
     provider_type: "openai",
     endpoint_id: 10,
     connection_id: 22,
+    ingress_request_id: null,
+    attempt_number: null,
+    provider_correlation_id: null,
     endpoint_base_url: "https://api.example.com/v1",
     endpoint_description: "Primary",
     status_code: 200,
@@ -49,6 +53,14 @@ function createRequest(overrides: Partial<RequestLogEntry> = {}): RequestLogEntr
     error_detail: null,
     created_at: "2026-03-15T00:00:00.000Z",
     ...overrides,
+  };
+
+  return {
+    ...request,
+    resolved_target_model_id: request.resolved_target_model_id ?? null,
+    ingress_request_id: request.ingress_request_id ?? null,
+    attempt_number: request.attempt_number ?? null,
+    provider_correlation_id: request.provider_correlation_id ?? null,
   };
 }
 

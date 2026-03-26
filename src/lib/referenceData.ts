@@ -1,181 +1,91 @@
-import { api } from "@/lib/api";
-import type {
-  ConnectionDropdownItem,
-  Endpoint,
-  LoadbalanceStrategy,
-  ModelConfigListItem,
-  PricingTemplate,
-  Provider,
-} from "@/lib/types";
+import {
+  createReferenceDataStore,
+  referenceDataRegistry,
+  type ReferenceDataKind,
+} from "./referenceDataRegistry";
 
-type ReferenceDataKind =
-  | "connections"
-  | "endpoints"
-  | "loadbalanceStrategies"
-  | "models"
-  | "pricingTemplates"
-  | "providers";
+const sharedReferenceDataStore = createReferenceDataStore(referenceDataRegistry);
 
-const dataCache = new Map<string, unknown>();
-const requestCache = new Map<string, Promise<unknown>>();
+type ReferenceDataValue<K extends ReferenceDataKind> = Awaited<
+  ReturnType<(typeof referenceDataRegistry)[K]["load"]>
+>;
 
-function buildKey(kind: ReferenceDataKind, revision: number) {
-  return `${kind}:${revision}`;
+function createSharedReferenceDataAccessors<K extends ReferenceDataKind>(kind: K) {
+  return {
+    get: (revision: number, forceRefresh = false) =>
+      sharedReferenceDataStore.get<K>(kind, revision, forceRefresh),
+    set: (revision: number, data: ReferenceDataValue<K>) => {
+      sharedReferenceDataStore.set<K>(kind, revision, data);
+    },
+  };
 }
 
-function pruneKind(kind: ReferenceDataKind, revision: number) {
-  const prefix = `${kind}:`;
-  const activeKey = buildKey(kind, revision);
-
-  for (const key of dataCache.keys()) {
-    if (key.startsWith(prefix) && key !== activeKey) {
-      dataCache.delete(key);
-    }
-  }
-
-  for (const key of requestCache.keys()) {
-    if (key.startsWith(prefix) && key !== activeKey) {
-      requestCache.delete(key);
-    }
-  }
-}
-
-async function loadReferenceData<T>(
-  kind: ReferenceDataKind,
-  revision: number,
-  loader: () => Promise<T>,
-  forceRefresh = false,
-): Promise<T> {
-  const key = buildKey(kind, revision);
-
-  if (forceRefresh) {
-    dataCache.delete(key);
-    requestCache.delete(key);
-  }
-
-  if (dataCache.has(key)) {
-    return dataCache.get(key) as T;
-  }
-
-  const inFlight = requestCache.get(key);
-  if (inFlight) {
-    return inFlight as Promise<T>;
-  }
-
-  const request = loader()
-    .then((data) => {
-      pruneKind(kind, revision);
-      dataCache.set(key, data);
-      return data;
-    })
-    .finally(() => {
-      if (requestCache.get(key) === request) {
-        requestCache.delete(key);
-      }
-    });
-
-  requestCache.set(key, request);
-  return request;
-}
-
-function setReferenceData<T>(kind: ReferenceDataKind, revision: number, data: T) {
-  pruneKind(kind, revision);
-  dataCache.set(buildKey(kind, revision), data);
-}
+const sharedModels = createSharedReferenceDataAccessors("models");
+const sharedProviders = createSharedReferenceDataAccessors("providers");
+const sharedEndpoints = createSharedReferenceDataAccessors("endpoints");
+const sharedConnections = createSharedReferenceDataAccessors("connections");
+const sharedPricingTemplates = createSharedReferenceDataAccessors("pricingTemplates");
+const sharedLoadbalanceStrategies = createSharedReferenceDataAccessors(
+  "loadbalanceStrategies",
+);
 
 export function clearSharedReferenceData(kind?: ReferenceDataKind, revision?: number) {
-  if (kind === undefined && revision === undefined) {
-    dataCache.clear();
-    requestCache.clear();
-    return;
-  }
-
-  for (const key of dataCache.keys()) {
-    const [entryKind, entryRevision] = key.split(":");
-    const kindMatches = kind === undefined || entryKind === kind;
-    const revisionMatches = revision === undefined || entryRevision === String(revision);
-
-    if (kindMatches && revisionMatches) {
-      dataCache.delete(key);
-    }
-  }
-
-  for (const key of requestCache.keys()) {
-    const [entryKind, entryRevision] = key.split(":");
-    const kindMatches = kind === undefined || entryKind === kind;
-    const revisionMatches = revision === undefined || entryRevision === String(revision);
-
-    if (kindMatches && revisionMatches) {
-      requestCache.delete(key);
-    }
-  }
+  sharedReferenceDataStore.clear(kind, revision);
 }
 
 export function getSharedModels(revision: number, forceRefresh = false) {
-  return loadReferenceData("models", revision, () => api.models.list(), forceRefresh);
+  return sharedModels.get(revision, forceRefresh);
 }
 
-export function setSharedModels(revision: number, data: ModelConfigListItem[]) {
-  setReferenceData("models", revision, data);
+export function setSharedModels(revision: number, data: ReferenceDataValue<"models">) {
+  sharedModels.set(revision, data);
 }
 
 export function getSharedProviders(revision: number, forceRefresh = false) {
-  return loadReferenceData("providers", revision, () => api.providers.list(), forceRefresh);
+  return sharedProviders.get(revision, forceRefresh);
 }
 
-export function setSharedProviders(revision: number, data: Provider[]) {
-  setReferenceData("providers", revision, data);
+export function setSharedProviders(revision: number, data: ReferenceDataValue<"providers">) {
+  sharedProviders.set(revision, data);
 }
 
 export function getSharedEndpoints(revision: number, forceRefresh = false) {
-  return loadReferenceData("endpoints", revision, () => api.endpoints.list(), forceRefresh);
+  return sharedEndpoints.get(revision, forceRefresh);
 }
 
-export function setSharedEndpoints(revision: number, data: Endpoint[]) {
-  setReferenceData("endpoints", revision, data);
+export function setSharedEndpoints(revision: number, data: ReferenceDataValue<"endpoints">) {
+  sharedEndpoints.set(revision, data);
 }
 
 export function getSharedConnectionOptions(revision: number, forceRefresh = false) {
-  return loadReferenceData(
-    "connections",
-    revision,
-    async () => {
-      const response = await api.endpoints.connections();
-      return response.items;
-    },
-    forceRefresh,
-  );
+  return sharedConnections.get(revision, forceRefresh);
 }
 
 export function setSharedConnectionOptions(
   revision: number,
-  data: ConnectionDropdownItem[],
+  data: ReferenceDataValue<"connections">,
 ) {
-  setReferenceData("connections", revision, data);
+  sharedConnections.set(revision, data);
 }
 
 export function getSharedPricingTemplates(revision: number, forceRefresh = false) {
-  return loadReferenceData(
-    "pricingTemplates",
-    revision,
-    () => api.pricingTemplates.list(),
-    forceRefresh,
-  );
+  return sharedPricingTemplates.get(revision, forceRefresh);
 }
 
-export function setSharedPricingTemplates(revision: number, data: PricingTemplate[]) {
-  setReferenceData("pricingTemplates", revision, data);
+export function setSharedPricingTemplates(
+  revision: number,
+  data: ReferenceDataValue<"pricingTemplates">,
+) {
+  sharedPricingTemplates.set(revision, data);
 }
 
 export function getSharedLoadbalanceStrategies(revision: number, forceRefresh = false) {
-  return loadReferenceData(
-    "loadbalanceStrategies",
-    revision,
-    () => api.loadbalanceStrategies.list(),
-    forceRefresh,
-  );
+  return sharedLoadbalanceStrategies.get(revision, forceRefresh);
 }
 
-export function setSharedLoadbalanceStrategies(revision: number, data: LoadbalanceStrategy[]) {
-  setReferenceData("loadbalanceStrategies", revision, data);
+export function setSharedLoadbalanceStrategies(
+  revision: number,
+  data: ReferenceDataValue<"loadbalanceStrategies">,
+) {
+  sharedLoadbalanceStrategies.set(revision, data);
 }

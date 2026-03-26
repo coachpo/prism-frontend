@@ -1,10 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LoadbalanceStrategyDialog } from "../LoadbalanceStrategyDialog";
 
 describe("LoadbalanceStrategyDialog", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("shows tooltip help for every failover policy field", async () => {
     vi.stubGlobal(
       "ResizeObserver",
@@ -30,6 +34,9 @@ describe("LoadbalanceStrategyDialog", () => {
               failover_max_cooldown_seconds: 900,
               failover_jitter_ratio: 0.2,
               failover_auth_error_cooldown_seconds: 1800,
+              failover_ban_mode: "temporary",
+              failover_max_cooldown_strikes_before_ban: 3,
+              failover_ban_duration_seconds: 1200,
             }}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
@@ -67,6 +74,18 @@ describe("LoadbalanceStrategyDialog", () => {
         label: "Explain Auth Error Cooldown",
         text: "Cooldown used for auth-like failures such as invalid keys or permission errors.",
       },
+      {
+        label: "Explain Ban Mode",
+        text: "Choose whether repeated max-cooldown strikes stay off, expire automatically, or wait for a manual dismiss.",
+      },
+      {
+        label: "Explain Max-cooldown Strikes Before Ban",
+        text: "Number of max-cooldown strike events required before this connection is marked as banned.",
+      },
+      {
+        label: "Explain Ban Duration (seconds)",
+        text: "How long a temporary ban lasts before the connection becomes probe-eligible again.",
+      },
     ];
 
     for (const { label, text } of helpButtons) {
@@ -97,6 +116,9 @@ describe("LoadbalanceStrategyDialog", () => {
               failover_max_cooldown_seconds: 900,
               failover_jitter_ratio: 0.2,
               failover_auth_error_cooldown_seconds: 1800,
+              failover_ban_mode: "off",
+              failover_max_cooldown_strikes_before_ban: 0,
+              failover_ban_duration_seconds: 0,
             }}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
@@ -139,6 +161,9 @@ describe("LoadbalanceStrategyDialog", () => {
               failover_max_cooldown_seconds: 900,
               failover_jitter_ratio: 0.2,
               failover_auth_error_cooldown_seconds: 1800,
+              failover_ban_mode: "temporary",
+              failover_max_cooldown_strikes_before_ban: 3,
+              failover_ban_duration_seconds: 1200,
             }}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
@@ -154,6 +179,7 @@ describe("LoadbalanceStrategyDialog", () => {
     expect(screen.getByLabelText("名称")).toBeInTheDocument();
     expect(screen.getByText("策略类型")).toBeInTheDocument();
     expect(screen.getByText("自动恢复")).toBeInTheDocument();
+    expect(screen.getByText("封禁升级")).toBeInTheDocument();
     expect(
       screen.getByText("允许此策略中的失败端点在后端管理的冷却窗口后自动恢复。"),
     ).toBeInTheDocument();
@@ -167,5 +193,73 @@ describe("LoadbalanceStrategyDialog", () => {
     ).toBeInTheDocument();
 
     vi.unstubAllGlobals();
+  });
+
+  it("shows the ban duration field only for temporary ban mode", () => {
+    const setLoadbalanceStrategyForm = vi.fn();
+
+    const { rerender } = render(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={{
+              name: "failover-primary",
+              strategy_type: "failover",
+              failover_recovery_enabled: true,
+              failover_cooldown_seconds: 60,
+              failover_failure_threshold: 2,
+              failover_backoff_multiplier: 2,
+              failover_max_cooldown_seconds: 900,
+              failover_jitter_ratio: 0.2,
+              failover_auth_error_cooldown_seconds: 1800,
+              failover_ban_mode: "temporary",
+              failover_max_cooldown_strikes_before_ban: 3,
+              failover_ban_duration_seconds: 1200,
+            }}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={setLoadbalanceStrategyForm}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByLabelText("Ban Duration (seconds)")).toBeInTheDocument();
+
+    rerender(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={{
+              name: "failover-primary",
+              strategy_type: "failover",
+              failover_recovery_enabled: true,
+              failover_cooldown_seconds: 60,
+              failover_failure_threshold: 2,
+              failover_backoff_multiplier: 2,
+              failover_max_cooldown_seconds: 900,
+              failover_jitter_ratio: 0.2,
+              failover_auth_error_cooldown_seconds: 1800,
+              failover_ban_mode: "manual",
+              failover_max_cooldown_strikes_before_ban: 3,
+              failover_ban_duration_seconds: 0,
+            }}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={setLoadbalanceStrategyForm}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.queryByLabelText("Ban Duration (seconds)")).not.toBeInTheDocument();
   });
 });

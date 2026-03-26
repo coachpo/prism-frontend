@@ -14,6 +14,22 @@ import {
 } from "@/components/ui/table";
 import type { LoadbalanceStrategy } from "@/lib/types";
 
+function getBanSummary(strategy: LoadbalanceStrategy, locale: "en" | "zh-CN") {
+  if (strategy.failover_ban_mode === "off") {
+    return locale === "zh-CN" ? "封禁 关闭" : "Ban off";
+  }
+
+  if (strategy.failover_ban_mode === "temporary") {
+    return locale === "zh-CN"
+      ? `封禁 临时 • 最大冷却 ${strategy.failover_max_cooldown_strikes_before_ban} 次 • ${strategy.failover_ban_duration_seconds}秒`
+      : `Ban temporary • ${strategy.failover_max_cooldown_strikes_before_ban} max-cooldown strikes • ${strategy.failover_ban_duration_seconds}s`;
+  }
+
+  return locale === "zh-CN"
+    ? `封禁 手动解除 • 最大冷却 ${strategy.failover_max_cooldown_strikes_before_ban} 次`
+    : `Ban manual dismiss • ${strategy.failover_max_cooldown_strikes_before_ban} max-cooldown strikes`;
+}
+
 interface LoadbalanceStrategiesTableProps {
   loadbalanceStrategies: LoadbalanceStrategy[];
   loadbalanceStrategiesLoading: boolean;
@@ -109,6 +125,9 @@ export function LoadbalanceStrategiesTable({
                                 {locale === "zh-CN"
                                   ? `退避 ×${strategy.failover_backoff_multiplier} • 抖动 ${strategy.failover_jitter_ratio} • 认证 ${strategy.failover_auth_error_cooldown_seconds}秒`
                                   : `Backoff ×${strategy.failover_backoff_multiplier} • Jitter ${strategy.failover_jitter_ratio} • Auth ${strategy.failover_auth_error_cooldown_seconds}s`}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {getBanSummary(strategy, locale)}
                               </span>
                             </>
                           ) : null}

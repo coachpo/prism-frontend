@@ -27,7 +27,7 @@ function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigLi
     model_id: "gpt-4o-mini",
     display_name: "GPT-4o Mini",
     model_type: "native",
-    redirect_to: null,
+    proxy_targets: [],
     loadbalance_strategy_id: 100,
     loadbalance_strategy: {
       id: 100,
@@ -40,6 +40,9 @@ function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigLi
       failover_max_cooldown_seconds: 900,
       failover_jitter_ratio: 0.2,
       failover_auth_error_cooldown_seconds: 1800,
+      failover_ban_mode: "off",
+      failover_max_cooldown_strikes_before_ban: 0,
+      failover_ban_duration_seconds: 0,
     },
     is_enabled: true,
     connection_count: 1,
@@ -207,7 +210,10 @@ describe("ModelsTable", () => {
           provider_id: 20,
           provider: buildProvider({ id: 20, name: "Anthropic", provider_type: "anthropic" }),
           model_type: "proxy",
-          redirect_to: "gpt-4o-mini",
+          proxy_targets: [
+            { target_model_id: "claude-sonnet-4-5-20250929", position: 0 },
+            { target_model_id: "claude-sonnet-4-5-20250701", position: 1 },
+          ],
           loadbalance_strategy_id: null,
           loadbalance_strategy: null,
         }),
@@ -311,6 +317,30 @@ describe("ModelsTable", () => {
     expect(metricsCluster).not.toBeNull();
     expect(metricsCluster).toContainElement(screen.getByText("single-primary · Single"));
     expect(screen.getAllByText("|")).toHaveLength(5);
+  });
+
+  it("renders proxy target summaries without singular target wording", () => {
+    renderTable({
+      filtered: [
+        buildModel({
+          id: 13,
+          model_id: "claude-sonnet-4-6",
+          display_name: "Claude Sonnet 4.6",
+          provider_id: 20,
+          provider: buildProvider({ id: 20, name: "Anthropic", provider_type: "anthropic" }),
+          model_type: "proxy",
+          proxy_targets: [
+            { target_model_id: "claude-sonnet-4-5-20250929", position: 0 },
+            { target_model_id: "claude-sonnet-4-5-20250701", position: 1 },
+          ],
+          loadbalance_strategy_id: null,
+          loadbalance_strategy: null,
+        }),
+      ],
+    });
+
+    expect(screen.getByText("2 targets · claude-sonnet-4-5-20250929 first")).toBeInTheDocument();
+    expect(screen.queryByText(/Target claude-sonnet-4-5-20250929/i)).not.toBeInTheDocument();
   });
 
   it("renders a smaller copy button next to the model id", () => {

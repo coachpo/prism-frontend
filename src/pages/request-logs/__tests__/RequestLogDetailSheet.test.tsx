@@ -9,13 +9,17 @@ vi.mock("../useAuditDetail", () => ({
   useAuditDetail: vi.fn(),
 }));
 
-const baseRequest: RequestLogEntry = {
+const baseRequest = {
   id: 42,
   model_id: "gpt-5.4",
+  resolved_target_model_id: null,
   profile_id: 7,
   provider_type: "openai",
   endpoint_id: 12,
   connection_id: 34,
+  ingress_request_id: null,
+  attempt_number: null,
+  provider_correlation_id: null,
   endpoint_base_url: "https://api.example.com/v1",
   endpoint_description: "Primary endpoint",
   status_code: 200,
@@ -54,7 +58,7 @@ const baseRequest: RequestLogEntry = {
   request_path: "/v1/chat/completions",
   error_detail: null,
   created_at: "2026-03-16T00:00:00.000Z",
-};
+} as unknown as RequestLogEntry;
 
 const baseAudit: AuditLogDetail = {
   id: 9,
@@ -135,6 +139,37 @@ describe("RequestLogDetailSheet", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows requested and resolved model context side by side", () => {
+    render(
+      <LocaleProvider>
+        <RequestLogDetailSheet
+          request={{
+            ...baseRequest,
+            model_id: "claude-sonnet-4-5",
+            resolved_target_model_id: "claude-sonnet-4-5-20250929",
+          } as RequestLogEntry}
+          open
+          activeTab="overview"
+          onTabChange={vi.fn()}
+          onClose={vi.fn()}
+          onNavigateToConnection={vi.fn()}
+          formatTimestamp={(iso) => `formatted:${iso}`}
+          resolveModelLabel={(modelId) =>
+            ({
+              "claude-sonnet-4-5": "Claude Sonnet 4.5 Proxy",
+              "claude-sonnet-4-5-20250929": "Claude Sonnet 4.5 (20250929)",
+            })[modelId] ?? modelId
+          }
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("Requested model")).toBeInTheDocument();
+    expect(screen.getByText("Resolved target")).toBeInTheDocument();
+    expect(screen.getAllByText("Claude Sonnet 4.5 Proxy").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Claude Sonnet 4.5 (20250929)").length).toBeGreaterThan(0);
   });
 
   it("renders the loading audit state", () => {

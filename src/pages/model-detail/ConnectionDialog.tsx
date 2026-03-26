@@ -72,6 +72,17 @@ export function ConnectionDialog({
     (endpoint) => endpoint.id === Number.parseInt(selectedEndpointId, 10)
   );
 
+  const handleLimiterChange = (
+    field: "qps_limit" | "max_in_flight_non_stream" | "max_in_flight_stream",
+    rawValue: string,
+  ) => {
+    const nextValue = rawValue === "" ? null : Number.parseInt(rawValue, 10);
+    setConnectionForm({
+      ...connectionForm,
+      [field]: Number.isNaN(nextValue) ? null : nextValue,
+    });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -217,6 +228,44 @@ export function ConnectionDialog({
             </p>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="conn-qps-limit">QPS Limit</Label>
+              <Input
+                id="conn-qps-limit"
+                type="number"
+                min="0"
+                value={connectionForm.qps_limit ?? ""}
+                onChange={(e) => handleLimiterChange("qps_limit", e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">Leave blank for unlimited.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="conn-max-in-flight-non-stream">Max In-Flight (Non-Stream)</Label>
+              <Input
+                id="conn-max-in-flight-non-stream"
+                type="number"
+                min="0"
+                value={connectionForm.max_in_flight_non_stream ?? ""}
+                onChange={(e) => handleLimiterChange("max_in_flight_non_stream", e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">Leave blank for unlimited.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="conn-max-in-flight-stream">Max In-Flight (Stream)</Label>
+              <Input
+                id="conn-max-in-flight-stream"
+                type="number"
+                min="0"
+                value={connectionForm.max_in_flight_stream ?? ""}
+                onChange={(e) => handleLimiterChange("max_in_flight_stream", e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">Leave blank for unlimited.</p>
+            </div>
+          </div>
+
           {/* Custom Headers */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -236,7 +285,7 @@ export function ConnectionDialog({
             )}
             <div className="space-y-2">
               {headerRows.map((row, index) => (
-                <div key={index} className="flex items-center gap-2">
+                <div key={`${row.key}:${row.value}`} className="flex items-center gap-2">
                   <Input
                     placeholder="Header Key"
                     value={row.key}

@@ -90,6 +90,7 @@ export function useRequestLogPageState() {
   const isExactMode = state.request_id !== "";
 
   const hasActiveFilters = !!(
+    state.ingress_request_id ||
     state.model_id ||
     state.provider_type ||
     state.connection_id ||

@@ -310,4 +310,115 @@ describe("ProfileProvider", () => {
 
     expect(screen.getByText("正在加载配置档案...")).toBeInTheDocument();
   });
+
+  it("refreshes profile snapshots through the extracted action helper", async () => {
+    const { createProfileActions } = await import("../profile/actions");
+    const refreshedProfiles = [
+      {
+        id: 1,
+        name: "Default",
+        description: null,
+        is_active: false,
+        is_default: true,
+        is_editable: true,
+        version: 1,
+        created_at: "",
+        deleted_at: null,
+        updated_at: "",
+      },
+      {
+        id: 2,
+        name: "Secondary",
+        description: null,
+        is_active: true,
+        is_default: false,
+        is_editable: true,
+        version: 1,
+        created_at: "",
+        deleted_at: null,
+        updated_at: "",
+      },
+    ];
+    const setProfiles = vi.fn();
+    const setActiveProfile = vi.fn();
+    const syncSelectedProfile = vi.fn();
+    const actions = createProfileActions({
+      profilesApi: {
+        list: vi.fn().mockResolvedValue(refreshedProfiles),
+        create: vi.fn(),
+        update: vi.fn(),
+        activate: vi.fn(),
+        delete: vi.fn(),
+      },
+      getActiveProfile: () => refreshedProfiles[0],
+      getProfiles: () => refreshedProfiles,
+      getSelectedProfileId: () => 1,
+      setProfiles,
+      setActiveProfile,
+      syncSelectedProfile,
+    });
+
+    await expect(actions.refreshProfiles()).resolves.toEqual(refreshedProfiles);
+
+    expect(setProfiles).toHaveBeenCalledWith(refreshedProfiles);
+    expect(setActiveProfile).toHaveBeenCalledWith(refreshedProfiles[1]);
+    expect(syncSelectedProfile).toHaveBeenCalledWith(refreshedProfiles, 2, {
+      bumpRevisionOnChange: true,
+    });
+  });
+
+  it("reselects a remaining profile before refreshing after deleting the current selection", async () => {
+    const { createProfileActions } = await import("../profile/actions");
+    const profiles = [
+      {
+        id: 1,
+        name: "Default",
+        description: null,
+        is_active: true,
+        is_default: true,
+        is_editable: true,
+        version: 1,
+        created_at: "",
+        deleted_at: null,
+        updated_at: "",
+      },
+      {
+        id: 2,
+        name: "Secondary",
+        description: null,
+        is_active: false,
+        is_default: false,
+        is_editable: true,
+        version: 1,
+        created_at: "",
+        deleted_at: null,
+        updated_at: "",
+      },
+    ];
+    const syncSelectedProfile = vi.fn();
+    const profilesApi = {
+      list: vi.fn().mockResolvedValue([profiles[0]]),
+      create: vi.fn(),
+      update: vi.fn(),
+      activate: vi.fn(),
+      delete: vi.fn().mockResolvedValue(undefined),
+    };
+    const actions = createProfileActions({
+      profilesApi,
+      getActiveProfile: () => profiles[0],
+      getProfiles: () => profiles,
+      getSelectedProfileId: () => 2,
+      setProfiles: vi.fn(),
+      setActiveProfile: vi.fn(),
+      syncSelectedProfile,
+    });
+
+    await actions.deleteProfile(2);
+
+    expect(profilesApi.delete).toHaveBeenCalledWith(2);
+    expect(syncSelectedProfile).toHaveBeenCalledWith([profiles[0]], 1, {
+      bumpRevisionOnChange: true,
+    });
+    expect(profilesApi.list).toHaveBeenCalledTimes(1);
+  });
 });

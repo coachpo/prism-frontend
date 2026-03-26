@@ -45,7 +45,10 @@ export function RequestLogOverviewTab({
   const { formatNumber, messages } = useLocale();
   const tone = getStatusTone(request.status_code);
   const connectionId = request.connection_id;
-  const modelLabel = resolveModelLabel(request.model_id);
+  const requestedModelLabel = resolveModelLabel(request.model_id);
+  const resolvedTargetLabel = request.resolved_target_model_id
+    ? resolveModelLabel(request.resolved_target_model_id)
+    : null;
   const formattedErrorDetail = request.error_detail ? formatErrorDetail(request.error_detail) : null;
   const hasFormattedErrorDetail = formattedErrorDetail !== null && formattedErrorDetail !== request.error_detail;
 
@@ -61,12 +64,17 @@ export function RequestLogOverviewTab({
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold tracking-tight">{modelLabel}</h3>
-              {modelLabel !== request.model_id && (
+              <h3 className="text-lg font-semibold tracking-tight">{requestedModelLabel}</h3>
+              {requestedModelLabel !== request.model_id && (
                 <p className="mt-1 font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                   {request.model_id}
                 </p>
               )}
+              {resolvedTargetLabel && request.resolved_target_model_id !== request.model_id ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {messages.requestLogs.resolvedTarget}: {resolvedTargetLabel}
+                </p>
+              ) : null}
               <p className="mt-1 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                 {request.request_path}
               </p>
@@ -122,20 +130,51 @@ export function RequestLogOverviewTab({
       <div className="space-y-4">
         <SectionCard icon={FileText} title={messages.requestLogs.requestDetails}>
           <DetailRow label="Request ID"><span className="font-mono">#{request.id}</span></DetailRow>
+          {request.ingress_request_id && (
+            <DetailRow label={messages.requestLogs.ingressRequestId}>
+              <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                {request.ingress_request_id}
+              </span>
+            </DetailRow>
+          )}
+          {request.attempt_number !== null && (
+            <DetailRow label={messages.requestLogs.attemptNumber}>
+              <span className="font-mono">{formatNumber(request.attempt_number)}</span>
+            </DetailRow>
+          )}
+          {request.provider_correlation_id && (
+            <DetailRow label={messages.requestLogs.providerCorrelationId}>
+              <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                {request.provider_correlation_id}
+              </span>
+            </DetailRow>
+          )}
           <DetailRow label={messages.requestLogs.time}><span className="font-mono text-xs">{formatTimestamp(request.created_at)}</span></DetailRow>
-          <DetailRow label={messages.requestLogs.model}>
+          <DetailRow label={messages.requestLogs.requestedModel}>
             <div className="space-y-1">
-              <p>{modelLabel}</p>
-               {modelLabel !== request.model_id && (
-                 <p className="font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                   {request.model_id}
-                 </p>
-               )}
-             </div>
-           </DetailRow>
-           <DetailRow label={messages.requestLogs.provider}>
-            <span className="flex items-center gap-2">
-              <ProviderIcon providerType={request.provider_type} size={16} />
+              <p>{requestedModelLabel}</p>
+               {requestedModelLabel !== request.model_id && (
+                  <p className="font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                    {request.model_id}
+                  </p>
+                )}
+              </div>
+            </DetailRow>
+            {resolvedTargetLabel && request.resolved_target_model_id !== request.model_id ? (
+              <DetailRow label={messages.requestLogs.resolvedTarget}>
+                <div className="space-y-1">
+                  <p>{resolvedTargetLabel}</p>
+                  {resolvedTargetLabel !== request.resolved_target_model_id ? (
+                    <p className="font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                      {request.resolved_target_model_id}
+                    </p>
+                  ) : null}
+                </div>
+              </DetailRow>
+            ) : null}
+            <DetailRow label={messages.requestLogs.provider}>
+             <span className="flex items-center gap-2">
+               <ProviderIcon providerType={request.provider_type} size={16} />
               {formatProviderType(request.provider_type)}
             </span>
           </DetailRow>

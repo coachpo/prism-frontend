@@ -40,6 +40,9 @@ export function RequestLogDetailSheet({
     requestLogId: request?.id ?? null,
     enabled: open && activeTab === "audit",
   });
+  const hasResolvedTargetContext = Boolean(
+    request?.resolved_target_model_id && request.resolved_target_model_id !== request.model_id,
+  );
 
   return (
     <Sheet open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
@@ -55,6 +58,7 @@ export function RequestLogDetailSheet({
             </SheetTitle>
             <SheetDescription className="text-sm text-muted-foreground">
               {messages.requestLogs.detailDescription}
+              {hasResolvedTargetContext ? ` ${messages.requestLogs.requestedModel} / ${messages.requestLogs.resolvedTarget}.` : ""}
             </SheetDescription>
           </SheetHeader>
 

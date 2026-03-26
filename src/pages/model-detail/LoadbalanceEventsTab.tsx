@@ -44,7 +44,7 @@ function LoadbalanceEventsTabContent({ modelId, revision }: LoadbalanceEventsTab
               <span className="ml-2 text-xs font-normal text-muted-foreground">({total})</span>
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Recent failover and recovery activity for this model.
+              Recent failover, recovery, and ban activity for this model.
             </p>
           </div>
 

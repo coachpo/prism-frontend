@@ -5,7 +5,7 @@ import { ProviderIcon } from "@/components/ProviderIcon";
 import { formatProviderType, formatLabel } from "@/lib/utils";
 import { formatMoneyMicros } from "@/lib/costing";
 import { useTimezone } from "@/hooks/useTimezone";
-import { ChevronRight, Coins, Gauge, FileText } from "lucide-react";
+import { Coins, Gauge, FileText } from "lucide-react";
 import { formatLatencyForDisplay } from "./modelDetailMetricsAndPaths";
 import type { ModelConfig, SpendingSummary } from "@/lib/types";
 
@@ -22,6 +22,12 @@ interface OverviewCardsProps {
     requestCount24h: number;
     spend24hMicros: number | null;
   };
+  proxyTargetSummary?: {
+    targetCount: number;
+    firstTargetId: string | null;
+    firstTargetLabel: string | null;
+    routePolicyLabel: string;
+  };
   onViewRequestLogs?: () => void;
 }
 
@@ -33,6 +39,7 @@ export function OverviewCards({
   spendingCurrencyCode,
   metrics24hLoading,
   modelKpis,
+  proxyTargetSummary,
   onViewRequestLogs,
 }: OverviewCardsProps) {
   const { format: formatTime } = useTimezone();
@@ -53,14 +60,19 @@ export function OverviewCards({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">
-                  {model.model_type === "proxy" ? "Redirects To" : "Loadbalance Strategy"}
+                  {model.model_type === "proxy" ? "Proxy Routing" : "Loadbalance Strategy"}
                 </p>
                 <div className="text-sm font-medium">
                   {model.model_type === "proxy" ? (
-                    <span className="flex items-center gap-1">
-                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-mono text-xs">{model.redirect_to}</span>
-                    </span>
+                    <div className="space-y-0.5">
+                      <div>{proxyTargetSummary?.routePolicyLabel ?? "Ordered priority routing"}</div>
+                      <div className="text-xs font-normal text-muted-foreground">
+                        {proxyTargetSummary?.targetCount ?? 0} targets
+                        {proxyTargetSummary?.firstTargetId
+                          ? ` · First ${proxyTargetSummary.firstTargetId}`
+                          : ""}
+                      </div>
+                    </div>
                   ) : model.loadbalance_strategy ? (
                     <div className="space-y-0.5">
                       <div>{model.loadbalance_strategy.name}</div>

@@ -1,8 +1,14 @@
 import type { Provider } from "./profile-provider";
 import type { Connection } from "./routing";
+import type { LoadbalanceBanMode } from "./loadbalance";
 
 export type ModelType = "native" | "proxy";
 export type LoadBalancingStrategy = "single" | "failover";
+
+export interface ProxyTarget {
+  target_model_id: string;
+  position: number;
+}
 
 export interface LoadbalanceStrategySummary {
   id: number;
@@ -15,6 +21,9 @@ export interface LoadbalanceStrategySummary {
   failover_max_cooldown_seconds: number;
   failover_jitter_ratio: number;
   failover_auth_error_cooldown_seconds: number;
+  failover_ban_mode: LoadbalanceBanMode;
+  failover_max_cooldown_strikes_before_ban: number;
+  failover_ban_duration_seconds: number;
 }
 
 export interface LoadbalanceStrategy {
@@ -29,6 +38,9 @@ export interface LoadbalanceStrategy {
   failover_max_cooldown_seconds: number;
   failover_jitter_ratio: number;
   failover_auth_error_cooldown_seconds: number;
+  failover_ban_mode: LoadbalanceBanMode;
+  failover_max_cooldown_strikes_before_ban: number;
+  failover_ban_duration_seconds: number;
   attached_model_count: number;
   created_at: string;
   updated_at: string;
@@ -44,6 +56,9 @@ export interface LoadbalanceStrategyCreate {
   failover_max_cooldown_seconds?: number;
   failover_jitter_ratio?: number;
   failover_auth_error_cooldown_seconds?: number;
+  failover_ban_mode?: LoadbalanceBanMode;
+  failover_max_cooldown_strikes_before_ban?: number;
+  failover_ban_duration_seconds?: number;
 }
 
 export interface LoadbalanceStrategyUpdate {
@@ -56,6 +71,9 @@ export interface LoadbalanceStrategyUpdate {
   failover_max_cooldown_seconds?: number;
   failover_jitter_ratio?: number;
   failover_auth_error_cooldown_seconds?: number;
+  failover_ban_mode?: LoadbalanceBanMode;
+  failover_max_cooldown_strikes_before_ban?: number;
+  failover_ban_duration_seconds?: number;
 }
 
 export interface ModelConfig {
@@ -65,7 +83,7 @@ export interface ModelConfig {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
-  redirect_to: string | null;
+  proxy_targets: ProxyTarget[];
   loadbalance_strategy_id: number | null;
   loadbalance_strategy: LoadbalanceStrategySummary | null;
   is_enabled: boolean;
@@ -81,7 +99,7 @@ export interface ModelConfigListItem {
   model_id: string;
   display_name: string | null;
   model_type: ModelType;
-  redirect_to: string | null;
+  proxy_targets: ProxyTarget[];
   loadbalance_strategy_id: number | null;
   loadbalance_strategy: LoadbalanceStrategySummary | null;
   is_enabled: boolean;
@@ -98,7 +116,7 @@ export interface ModelConfigCreate {
   model_id: string;
   display_name?: string | null;
   model_type?: ModelType;
-  redirect_to?: string | null;
+  proxy_targets?: ProxyTarget[];
   loadbalance_strategy_id?: number | null;
   is_enabled?: boolean;
 }
@@ -108,7 +126,7 @@ export interface ModelConfigUpdate {
   model_id?: string;
   display_name?: string | null;
   model_type?: ModelType;
-  redirect_to?: string | null;
+  proxy_targets?: ProxyTarget[];
   loadbalance_strategy_id?: number | null;
   is_enabled?: boolean;
 }
@@ -116,10 +134,14 @@ export interface ModelConfigUpdate {
 export interface RequestLogEntry {
   id: number;
   model_id: string;
+  resolved_target_model_id: string | null;
   profile_id: number;
   provider_type: string;
   endpoint_id: number | null;
   connection_id: number | null;
+  ingress_request_id: string | null;
+  attempt_number: number | null;
+  provider_correlation_id: string | null;
   endpoint_base_url: string | null;
   endpoint_description: string | null;
   status_code: number;
@@ -218,6 +240,7 @@ export type RequestStatusFamily = "4xx" | "5xx";
 
 export interface StatsRequestParams {
   request_id?: number;
+  ingress_request_id?: string;
   model_id?: string;
   provider_type?: string;
   status_family?: RequestStatusFamily;

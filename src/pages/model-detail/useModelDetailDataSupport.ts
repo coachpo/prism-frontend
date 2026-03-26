@@ -7,6 +7,7 @@ import type {
   ModelConfig,
   ModelConfigListItem,
 } from "@/lib/types";
+import { normalizeProxyTargets } from "../models/modelFormState";
 
 export const createDefaultEndpointForm = (): EndpointCreate => ({
   name: "",
@@ -19,6 +20,9 @@ export const createDefaultConnectionForm = (): ConnectionCreate => ({
   is_active: true,
   custom_headers: null,
   pricing_template_id: null,
+  qps_limit: null,
+  max_in_flight_non_stream: null,
+  max_in_flight_stream: null,
 });
 
 export function resequenceConnections(connections: Connection[]): Connection[] {
@@ -163,7 +167,7 @@ export function patchModelListItemFromDetail(
       model_id: model.model_id,
       display_name: model.display_name,
       model_type: model.model_type,
-      redirect_to: model.redirect_to,
+      proxy_targets: normalizeProxyTargets(model.proxy_targets),
       loadbalance_strategy_id: model.loadbalance_strategy_id,
       loadbalance_strategy: model.loadbalance_strategy,
       is_enabled: model.is_enabled,
@@ -174,7 +178,13 @@ export function patchModelListItemFromDetail(
   });
 }
 
-export function buildRedirectTargetOptions(
+function formatTargetLabel(candidate: ModelConfigListItem) {
+  return candidate.display_name
+    ? `${candidate.display_name} (${candidate.model_id})`
+    : candidate.model_id;
+}
+
+export function buildProxyTargetOptions(
   model: ModelConfig | null,
   allModels: ModelConfigListItem[]
 ): { modelId: string; label: string }[] {
@@ -183,24 +193,43 @@ export function buildRedirectTargetOptions(
   const nativeTargets = allModels
     .filter((candidate) => (
       candidate.provider_id === model.provider_id &&
-      candidate.model_type === "native"
+      candidate.model_type === "native" &&
+      candidate.id !== model.id
     ))
     .map((candidate) => ({
       modelId: candidate.model_id,
-      label: candidate.display_name
-        ? `${candidate.display_name} (${candidate.model_id})`
-        : candidate.model_id,
+      label: formatTargetLabel(candidate),
     }));
 
-  if (
-    model.redirect_to &&
-    !nativeTargets.some((target) => target.modelId === model.redirect_to)
-  ) {
-    return [
-      { modelId: model.redirect_to, label: `${model.redirect_to} (current target)` },
-      ...nativeTargets,
-    ];
-  }
+  const currentTargets = normalizeProxyTargets(model.proxy_targets)
+    .filter((target) => !nativeTargets.some((candidate) => candidate.modelId === target.target_model_id))
+    .map((target) => ({
+      modelId: target.target_model_id,
+      label: `${target.target_model_id} (current target)`,
+    }));
 
-  return nativeTargets;
+  return [...currentTargets, ...nativeTargets];
+}
+
+export function resolveProxyTargetLabel(
+  targetModelId: string,
+  targetOptions: { modelId: string; label: string }[],
+) {
+  return targetOptions.find((target) => target.modelId === targetModelId)?.label ?? targetModelId;
+}
+
+export function buildProxyTargetSummary(
+  model: ModelConfig | null,
+  allModels: ModelConfigListItem[],
+) {
+  const proxyTargets = normalizeProxyTargets(model?.proxy_targets);
+  const targetOptions = buildProxyTargetOptions(model, allModels);
+  const firstTargetId = proxyTargets[0]?.target_model_id ?? null;
+
+  return {
+    targetCount: proxyTargets.length,
+    firstTargetId,
+    firstTargetLabel: firstTargetId ? resolveProxyTargetLabel(firstTargetId, targetOptions) : null,
+    routePolicyLabel: "Ordered priority routing",
+  };
 }

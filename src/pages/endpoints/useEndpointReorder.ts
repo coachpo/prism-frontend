@@ -21,9 +21,15 @@ interface UseEndpointReorderOptions {
   endpoints: Endpoint[];
   revision: number;
   setEndpoints: Dispatch<SetStateAction<Endpoint[]>>;
+  filtersActive: boolean;
 }
 
-export function useEndpointReorder({ endpoints, revision, setEndpoints }: UseEndpointReorderOptions) {
+export function useEndpointReorder({
+  endpoints,
+  revision,
+  setEndpoints,
+  filtersActive,
+}: UseEndpointReorderOptions) {
   const [activeDragId, setActiveDragId] = useState<UniqueIdentifier | null>(null);
   const [reorderInFlight, setReorderInFlight] = useState(false);
 
@@ -47,7 +53,7 @@ export function useEndpointReorder({ endpoints, revision, setEndpoints }: UseEnd
     [activeDragId, endpoints],
   );
 
-  const canReorder = endpoints.length > 1 && !reorderInFlight;
+  const canReorder = endpoints.length > 1 && !reorderInFlight && !filtersActive;
 
   const handleDragStart = (event: DragStartEvent) => {
     if (!canReorder) {

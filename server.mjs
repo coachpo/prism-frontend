@@ -1,3 +1,5 @@
+// Production container server for the built frontend. It serves static files
+// from dist/ and exposes /health for probes; local development should use Vite.
 import { createServer } from "node:http"
 import { createReadStream } from "node:fs"
 import { stat } from "node:fs/promises"
