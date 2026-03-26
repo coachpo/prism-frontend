@@ -1,5 +1,5 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuditDetail } from "../useAuditDetail";
 import type { AuditLogDetail, AuditLogListItem, AuditLogListResponse } from "@/lib/types";
 
@@ -71,6 +71,10 @@ function createAuditListItem(id: number, requestLogId: number): AuditLogListItem
 describe("useAuditDetail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("ignores stale results when the selected request changes mid-load", async () => {
@@ -219,5 +223,46 @@ describe("useAuditDetail", () => {
     expect(result.current.audits).toEqual([]);
     expect(result.current.error).toBeNull();
     expect(result.current.loading).toBe(false);
+  });
+
+  it("returns a structured capture_unavailable error after retries exhaust without audit rows", async () => {
+    vi.useFakeTimers();
+    api.audit.list.mockResolvedValue({
+      items: [],
+      total: 0,
+      limit: 20,
+      offset: 0,
+    });
+
+    const { result } = renderHook(() =>
+      useAuditDetail({ requestLogId: 42, enabled: true }),
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBe("capture_unavailable");
+    expect(result.current.audits).toEqual([]);
+    expect(api.audit.list).toHaveBeenCalledTimes(5);
+  });
+
+  it("returns a structured load_failed error after repeated audit fetch failures", async () => {
+    vi.useFakeTimers();
+    api.audit.list.mockRejectedValue(new Error("network down"));
+
+    const { result } = renderHook(() =>
+      useAuditDetail({ requestLogId: 43, enabled: true }),
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBe("load_failed");
+    expect(result.current.audits).toEqual([]);
+    expect(api.audit.list).toHaveBeenCalledTimes(5);
   });
 });

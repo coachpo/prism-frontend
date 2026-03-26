@@ -304,14 +304,14 @@ describe("RequestLogDetailSheet", () => {
   it("renders the error audit state", () => {
     useAuditDetailMock.mockReturnValue({
       audits: [],
-      error: "Audit temporarily unavailable",
+      error: "capture_unavailable",
       loading: false,
     });
 
     renderSheet({ activeTab: "audit" });
 
     expect(screen.getByText("Audit capture unavailable")).toBeInTheDocument();
-    expect(screen.getByText("Audit temporarily unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Audit logging may be disabled for this vendor.")).toBeInTheDocument();
   });
 
   it("renders the empty audit state", () => {

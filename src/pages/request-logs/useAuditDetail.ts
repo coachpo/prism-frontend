@@ -5,6 +5,8 @@ import type { AuditLogDetail } from "@/lib/types";
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 1000;
 
+export type AuditDetailErrorKind = "capture_unavailable" | "load_failed";
+
 interface UseAuditDetailParams {
   requestLogId: number | null;
   enabled: boolean;
@@ -13,7 +15,7 @@ interface UseAuditDetailParams {
 export function useAuditDetail({ requestLogId, enabled }: UseAuditDetailParams) {
   const [audits, setAudits] = useState<AuditLogDetail[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AuditDetailErrorKind | null>(null);
   const [loadedRequestLogId, setLoadedRequestLogId] = useState<number | null>(null);
   const activeLogIdRef = useRef<number | null>(null);
   const isActive = enabled && requestLogId !== null;
@@ -42,7 +44,7 @@ export function useAuditDetail({ requestLogId, enabled }: UseAuditDetailParams) 
             await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
             continue;
           }
-          setError("No audit capture found for this request. Audit logging may be disabled for this vendor.");
+          setError("capture_unavailable");
           setLoading(false);
           return;
         }
@@ -66,7 +68,7 @@ export function useAuditDetail({ requestLogId, enabled }: UseAuditDetailParams) 
           await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
           continue;
         }
-        setError("Failed to load audit details after multiple attempts.");
+        setError("load_failed");
         setLoading(false);
         return;
       }
