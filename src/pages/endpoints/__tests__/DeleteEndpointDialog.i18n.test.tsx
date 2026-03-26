@@ -17,7 +17,7 @@ describe("DeleteEndpointDialog i18n", () => {
             id: 1,
             profile_id: 1,
             name: "Primary OpenAI",
-            base_url: "https://api.openai.com/v1",
+            base_url: "https://api.openai.com",
             has_api_key: true,
             masked_api_key: "sk-***",
             position: 0,

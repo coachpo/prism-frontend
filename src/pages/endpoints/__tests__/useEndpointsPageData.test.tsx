@@ -55,7 +55,7 @@ function buildEndpoint(overrides: Record<string, unknown> = {}) {
     id: 10,
     profile_id: 1,
     name: "Primary",
-    base_url: "https://api.openai.com/v1",
+    base_url: "https://api.openai.com",
     has_api_key: true,
     masked_api_key: "sk-***",
     position: 0,

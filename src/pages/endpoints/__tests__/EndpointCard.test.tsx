@@ -56,7 +56,7 @@ function buildEndpoint(overrides: Partial<Endpoint> = {}): Endpoint {
     id: 5,
     profile_id: 2,
     name: "Primary OpenAI",
-    base_url: "https://api.openai.com/v1",
+    base_url: "https://api.openai.com",
     has_api_key: true,
     masked_api_key: "sk-••••1234",
     position: 0,
