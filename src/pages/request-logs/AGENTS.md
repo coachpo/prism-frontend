@@ -11,12 +11,17 @@ request-logs/
 ├── useRequestLogsPageData.ts    # Server fetches and filter-option bootstrap
 ├── useAuditDetail.ts            # Lazy audit detail lookup and retry behavior
 ├── clientFilters.ts             # Local triage/search refinement over fetched rows
+├── columns.tsx                  # Table column definitions and detail entry affordances
 ├── FiltersBar.tsx               # UI for search, status, and api_family filters
+├── FiltersBar.constants.ts      # Filter option constants and shared filter presentation helpers
+├── FiltersBarPrimaryFilters.tsx # Primary filter row composition
+├── FiltersBarSecondaryFilters.tsx # Secondary filter row composition
 ├── RequestLogsTable.tsx         # Paginated and virtualized log list
 ├── RequestLogDetailSheet.tsx    # Detailed request/audit payload view
 ├── RequestFocusBanner.tsx       # Exact-request mode banner and exit action
+├── connectionNavigation.ts      # Connection-jump helpers for request-log detail context
 ├── detail/                      # Parent-covered overview, audit, payload, and shared detail helpers
-└── __tests__/                   # Query-param, filter, and audit-detail coverage
+└── __tests__/                   # Query-param, filter, table, and audit-detail coverage
 ```
 
 ## WHERE TO LOOK
@@ -24,7 +29,10 @@ request-logs/
 - Route-shell copy, empty-state messaging, and locale-aware detail labels: `../RequestLogsPage.tsx`, `@/i18n/useLocale`, `@/i18n/AGENTS.md`
 - Filter contract and defaults, including `api_family`: `queryParams.ts`
 - Client-side refinement and triage: `clientFilters.ts`
+- Table columns, row actions, and detail-entry affordances: `columns.tsx`, `RequestLogsTable.tsx`
+- Split filter-row composition and shared filter constants: `FiltersBar.constants.ts`, `FiltersBarPrimaryFilters.tsx`, `FiltersBarSecondaryFilters.tsx`, `FiltersBar.tsx`
 - Payload inspection and lazy audit fetch: `RequestLogDetailSheet.tsx`, `useAuditDetail.ts`
+- Connection navigation helpers for request-log detail context: `connectionNavigation.ts`
 - Parent-covered detail cluster helpers: `detail/RequestLogOverviewTab.tsx`, `detail/RequestLogAuditTab.tsx`, `detail/RequestLogPayloadBlock.tsx`, `detail/requestLogDetailShared.tsx`, `detail/requestLogDetailUtils.ts`
 
 ## CONVENTIONS
