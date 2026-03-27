@@ -85,6 +85,8 @@ type ModelSettingsFormProps = {
     fillFirstSummary: string;
     failoverLabel: string;
     failoverSummary: string;
+    roundRobinLabel: string;
+    roundRobinSummary: string;
     singleLabel: string;
   };
   vendors: Vendor[];
@@ -115,6 +117,10 @@ function ModelSettingsForm({
   const getStrategyOptionText = (strategy: LoadbalanceStrategy) => {
     if (strategy.strategy_type === "fill-first") {
       return `${strategy.name} (${strategyCopy.fillFirstLabel} · ${strategyCopy.fillFirstSummary})`;
+    }
+
+    if (strategy.strategy_type === "round-robin") {
+      return `${strategy.name} (${strategyCopy.roundRobinLabel} · ${strategyCopy.roundRobinSummary})`;
     }
 
     if (strategy.strategy_type === "failover") {

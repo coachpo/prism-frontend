@@ -335,4 +335,66 @@ describe("LoadbalanceStrategyDialog", () => {
     vi.unstubAllGlobals();
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   });
+
+  it("shows round-robin in the strategy selector and treats it like another non-single strategy", () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class ResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+
+    const setLoadbalanceStrategyForm = vi.fn();
+    const currentForm = {
+      name: "single-primary",
+      strategy_type: "single" as const,
+      failover_recovery_enabled: false,
+      failover_cooldown_seconds: 60,
+      failover_failure_threshold: 2,
+      failover_backoff_multiplier: 2,
+      failover_max_cooldown_seconds: 900,
+      failover_jitter_ratio: 0.2,
+      failover_auth_error_cooldown_seconds: 1800,
+      failover_ban_mode: "off" as const,
+      failover_max_cooldown_strikes_before_ban: 0,
+      failover_ban_duration_seconds: 0,
+    };
+
+    render(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={currentForm}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={setLoadbalanceStrategyForm}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    const strategyTypeSelect = screen.getAllByRole("combobox")[0];
+    fireEvent.click(strategyTypeSelect);
+    expect(screen.getAllByText("Round-robin").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByText("Round-robin"));
+    const switchToRoundRobin = setLoadbalanceStrategyForm.mock.calls.at(-1)?.[0] as
+      | ((state: typeof currentForm) => typeof currentForm)
+      | undefined;
+    expect(switchToRoundRobin?.(currentForm)).toMatchObject({
+      strategy_type: "round-robin",
+      failover_recovery_enabled: false,
+    });
+
+    vi.unstubAllGlobals();
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
 });

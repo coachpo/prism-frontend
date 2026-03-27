@@ -30,7 +30,7 @@ const PricingTemplateImportSchema = z.strictObject({
 
 const LoadbalanceStrategyImportSchema = z.strictObject({
   name: z.string(),
-  strategy_type: z.enum(["single", "fill-first", "failover"]),
+  strategy_type: z.enum(["single", "fill-first", "round-robin", "failover"]),
   failover_recovery_enabled: z.boolean(),
   failover_cooldown_seconds: z.number().int().min(0).optional(),
   failover_failure_threshold: z.number().int().min(1).max(10).optional(),

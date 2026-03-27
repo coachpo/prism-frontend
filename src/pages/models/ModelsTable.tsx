@@ -176,6 +176,8 @@ function ModelRow({
   const strategySummary = model.loadbalance_strategy
     ? model.loadbalance_strategy.strategy_type === "fill-first"
       ? `${model.loadbalance_strategy.name} · ${strategyCopy.fillFirstSummary}`
+      : model.loadbalance_strategy.strategy_type === "round-robin"
+        ? `${model.loadbalance_strategy.name} · ${strategyCopy.roundRobinSummary}`
       : model.loadbalance_strategy.strategy_type === "failover"
         ? `${model.loadbalance_strategy.name} · ${strategyCopy.failoverSummary}`
         : `${model.loadbalance_strategy.name} · ${strategyCopy.singleLabel}`

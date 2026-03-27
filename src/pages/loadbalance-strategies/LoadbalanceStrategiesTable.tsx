@@ -35,6 +35,10 @@ function getStrategyLabel(strategyType: LoadbalanceStrategy["strategy_type"], lo
     return locale === "zh-CN" ? "优先填充" : "Fill-first";
   }
 
+   if (strategyType === "round-robin") {
+    return locale === "zh-CN" ? "轮询" : "Round-robin";
+  }
+
   if (strategyType === "failover") {
     return locale === "zh-CN" ? "故障转移" : "Failover";
   }
@@ -45,6 +49,12 @@ function getStrategyLabel(strategyType: LoadbalanceStrategy["strategy_type"], lo
 function getStrategySummary(strategyType: LoadbalanceStrategy["strategy_type"], locale: "en" | "zh-CN") {
   if (strategyType === "fill-first") {
     return locale === "zh-CN" ? "严格优先级溢出，可选恢复" : "Strict priority spillover with optional recovery";
+  }
+
+  if (strategyType === "round-robin") {
+    return locale === "zh-CN"
+      ? "轮询活动连接，可选恢复"
+      : "Rotate active connections with optional recovery";
   }
 
   if (strategyType === "failover") {

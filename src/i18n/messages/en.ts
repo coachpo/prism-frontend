@@ -150,6 +150,7 @@ export interface Messages {
     explainField: (label: string) => string;
     failoverOption: string;
     fillFirstOption: string;
+    roundRobinOption: string;
     failureThresholdDescription: string;
     failureThresholdLabel: string;
     jitterRatioDescription: string;
@@ -171,6 +172,8 @@ export interface Messages {
     failoverSummary: string;
     fillFirstLabel: string;
     fillFirstSummary: string;
+    roundRobinLabel: string;
+    roundRobinSummary: string;
     singleLabel: string;
     singleSummary: string;
   };
@@ -790,6 +793,7 @@ export const enMessages: Messages = {
     explainField: (label) => `Explain ${label}`,
     failoverOption: "Failover",
     fillFirstOption: "Fill-first",
+    roundRobinOption: "Round-robin",
     failureThresholdDescription:
       "Number of consecutive failures required before the cooldown window opens.",
     failureThresholdLabel: "Failure Threshold",
@@ -816,6 +820,8 @@ export const enMessages: Messages = {
     failoverSummary: "Health-aware failover",
     fillFirstLabel: "Fill-first",
     fillFirstSummary: "Priority spillover",
+    roundRobinLabel: "Round-robin",
+    roundRobinSummary: "Rotating active connections",
     singleLabel: "Single",
     singleSummary: "Single active connection",
   },

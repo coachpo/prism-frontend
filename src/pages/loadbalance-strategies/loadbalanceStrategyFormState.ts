@@ -3,7 +3,7 @@ import { getCurrentLocale } from "@/i18n/format";
 
 export type LoadbalanceStrategyFormState = {
   name: string;
-  strategy_type: "single" | "fill-first" | "failover";
+  strategy_type: "single" | "fill-first" | "round-robin" | "failover";
   failover_recovery_enabled: boolean;
   failover_cooldown_seconds: number;
   failover_failure_threshold: number;

@@ -3,7 +3,7 @@ import type { Connection } from "./routing";
 import type { LoadbalanceBanMode } from "./loadbalance";
 
 export type ModelType = "native" | "proxy";
-export type LoadBalancingStrategy = "single" | "fill-first" | "failover";
+export type LoadBalancingStrategy = "single" | "fill-first" | "round-robin" | "failover";
 
 export interface ProxyTarget {
   target_model_id: string;

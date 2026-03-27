@@ -162,6 +162,33 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts round-robin strategies in version 6 imports", () => {
+    const result = ConfigImportSchema.safeParse({
+      ...buildImportPayload(),
+      loadbalance_strategies: [
+        {
+          name: "round-robin-primary",
+          strategy_type: "round-robin",
+          failover_recovery_enabled: true,
+          failover_cooldown_seconds: 45,
+          failover_failure_threshold: 4,
+          failover_backoff_multiplier: 3.5,
+          failover_max_cooldown_seconds: 720,
+          failover_jitter_ratio: 0.35,
+          failover_auth_error_cooldown_seconds: 2400,
+        },
+      ],
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          loadbalance_strategy_name: "round-robin-primary",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("reports duplicate strategy names by exact issue path and message", () => {
     const payload: ConfigImportRequest = {
       ...buildImportPayload(),

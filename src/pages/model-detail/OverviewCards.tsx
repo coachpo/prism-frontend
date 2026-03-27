@@ -91,6 +91,8 @@ export function OverviewCards({
                       <div className="text-xs font-normal text-muted-foreground">
                         {model.loadbalance_strategy.strategy_type === "fill-first"
                           ? strategyCopy.fillFirstSummary
+                          : model.loadbalance_strategy.strategy_type === "round-robin"
+                            ? strategyCopy.roundRobinSummary
                           : model.loadbalance_strategy.strategy_type === "failover"
                             ? strategyCopy.failoverSummary
                             : strategyCopy.singleLabel}

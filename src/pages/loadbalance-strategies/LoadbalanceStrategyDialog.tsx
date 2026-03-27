@@ -146,7 +146,7 @@ export function LoadbalanceStrategyDialog({
               <Label>{dialogMessages.strategyTypeLabel}</Label>
               <Select
                 value={loadbalanceStrategyForm.strategy_type}
-                onValueChange={(value: "single" | "fill-first" | "failover") =>
+                onValueChange={(value: "single" | "fill-first" | "round-robin" | "failover") =>
                   setLoadbalanceStrategyForm((prev) => ({
                     ...prev,
                     strategy_type: value,
@@ -160,6 +160,7 @@ export function LoadbalanceStrategyDialog({
                 <SelectContent>
                   <SelectItem value="single">{dialogMessages.singleOption}</SelectItem>
                   <SelectItem value="fill-first">{dialogMessages.fillFirstOption}</SelectItem>
+                  <SelectItem value="round-robin">{dialogMessages.roundRobinOption}</SelectItem>
                   <SelectItem value="failover">{dialogMessages.failoverOption}</SelectItem>
                 </SelectContent>
               </Select>

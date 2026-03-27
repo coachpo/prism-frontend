@@ -81,6 +81,10 @@ export function ModelDialog({
       return `${strategy.name} (${strategyCopy.fillFirstLabel} · ${strategyCopy.fillFirstSummary})`;
     }
 
+    if (strategy.strategy_type === "round-robin") {
+      return `${strategy.name} (${strategyCopy.roundRobinLabel} · ${strategyCopy.roundRobinSummary})`;
+    }
+
     if (strategy.strategy_type === "failover") {
       return `${strategy.name} (${strategyCopy.failoverLabel} · ${strategyCopy.failoverSummary})`;
     }
