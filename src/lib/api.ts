@@ -19,6 +19,7 @@ import {
 } from "./api/management";
 
 export { ApiError, getApiProfileId, setApiProfileId };
+export { stats } from "./api/observability";
 
 export const api = {
   audit,

@@ -531,6 +531,8 @@ export interface Messages {
     viewing: string;
   };
   statistics: {
+    addLine: string;
+    apiKeyPrefix: string;
     averageRpm: string;
     adjustFiltersOrTimeRange: string;
     aggregation: string;
@@ -539,11 +541,15 @@ export interface Messages {
     allModels: string;
     allRows: string;
     anyError: string;
+    availability: string;
+    byDay: string;
+    byHour: string;
     billableOnlyRequests?: string;
     cacheHitRate: string;
     cachedRows: (count: string) => string;
     clearFilters: string;
     connection: string;
+    costOverviewTitle: string;
     costByBucket: string;
     costComponentsBy: (groupBy: string) => string;
     costEfficiencyScatter: string;
@@ -587,8 +593,11 @@ export interface Messages {
     refreshThroughputStatistics: string;
     refreshOperationsStatistics: string;
     refreshSpendingStatistics: string;
+    refreshUsageStatistics: string;
     reset: string;
     customRange: string;
+    last7Hours: string;
+    last24Hours: string;
     last7Days: string;
     last30Days: string;
     allTime: string;
@@ -597,13 +606,40 @@ export interface Messages {
     week: string;
     month: string;
     endpointGroup: string;
+    endpointStatisticsTitle: string;
+    exportRequestEventsCsv: string;
+    exportRequestEventsJson: string;
+    exportSnapshotJson: string;
     modelGroup: string;
+    lineLimitReached: string;
+    linesSelected: (count: string, max: string) => string;
+    linesToDisplay: string;
     modelEndpointGroup: string;
+    modelStatisticsTitle: string;
+    noEndpointStatisticsDescription: string;
+    noEndpointStatisticsTitle: string;
+    noModelStatisticsDescription: string;
+    noModelStatisticsTitle: string;
     requestsInWindow: (count: string) => string;
+    noProxyApiKeyUsageDescription: string;
+    noProxyApiKeyUsageTitle: string;
+    noRequestEventsDescription: string;
+    noRequestEventsTitle: string;
+    openPricingTemplates: string;
+    overviewTitle: string;
+    pricingDataMissingDescription: string;
+    pricingDataMissingTitle: string;
+    proxyApiKey: string;
+    proxyApiKeyStatisticsTitle: string;
+    removeLine: (label: string) => string;
+    requestEventsTitle: string;
+    requestTrendsTitle: string;
     requestsTab: string;
     requests: string;
     requestsPerMinuteOverTime: string;
     rows: string;
+    selectModelLinePlaceholder: string;
+    serviceHealthTitle: string;
     slow: string;
     slowestRequests: string;
     rowsPerPage?: string;
@@ -611,6 +647,8 @@ export interface Messages {
     spendingDescription: string;
     spendingTab: string;
     spendingBreakdown: string;
+    tokenTypeBreakdownTitle: string;
+    tokenUsageTrendsTitle: string;
     specialTokenCoverageVisibleRows: string;
     cachedCaptured: string;
     cachedPrefix: string;
@@ -1219,6 +1257,8 @@ export const enMessages: Messages = {
     viewing: "Viewing",
   },
   statistics: {
+    addLine: "Add Line",
+    apiKeyPrefix: "Key Prefix",
     averageRpm: "Average RPM",
     adjustFiltersOrTimeRange: "Try adjusting your filters or time range.",
     aggregation: "Aggregation",
@@ -1227,10 +1267,14 @@ export const enMessages: Messages = {
     allModels: "All Models",
     allRows: "All rows",
     anyError: "Any error",
+    availability: "Availability",
+    byDay: "By Day",
+    byHour: "By Hour",
     cacheHitRate: "Cache Hit Rate",
     cachedRows: (count) => `${count} cached rows`,
     clearFilters: "Clear Filters",
     connection: "Connection",
+    costOverviewTitle: "Cost Overview",
     costByBucket: "Cost by Bucket",
     costComponentsBy: (groupBy) => `Cost Components by ${groupBy}`,
     costEfficiencyScatter: "Cost Efficiency Scatter",
@@ -1274,8 +1318,11 @@ export const enMessages: Messages = {
     refreshThroughputStatistics: "Refresh throughput statistics",
     refreshOperationsStatistics: "Refresh operations statistics",
     refreshSpendingStatistics: "Refresh spending statistics",
+    refreshUsageStatistics: "Refresh usage statistics",
     reset: "Reset",
     customRange: "Custom Range",
+    last7Hours: "Last 7 Hours",
+    last24Hours: "Last 24 Hours",
     last7Days: "Last 7 Days",
     last30Days: "Last 30 Days",
     allTime: "All Time",
@@ -1284,13 +1331,40 @@ export const enMessages: Messages = {
     week: "Week",
     month: "Month",
     endpointGroup: "Endpoint",
+    endpointStatisticsTitle: "Endpoint Statistics",
+    exportRequestEventsCsv: "Export request events CSV",
+    exportRequestEventsJson: "Export request events JSON",
+    exportSnapshotJson: "Export snapshot JSON",
+    lineLimitReached: "You can compare up to 9 model lines at once.",
+    linesSelected: (count, max) => `${count} / ${max}`,
+    linesToDisplay: "Lines to Display",
     modelGroup: "Model",
+    modelStatisticsTitle: "Model Statistics",
     modelEndpointGroup: "Model + Endpoint",
+    noEndpointStatisticsDescription: "Endpoint rollups will appear here after traffic is processed.",
+    noEndpointStatisticsTitle: "No endpoint statistics in this time range",
+    noModelStatisticsDescription: "Model rollups will appear here after traffic is processed.",
+    noModelStatisticsTitle: "No model statistics in this time range",
+    noProxyApiKeyUsageDescription: "Runtime-auth usage will appear here after proxy API keys are used.",
+    noProxyApiKeyUsageTitle: "No proxy API key usage in this time range",
+    noRequestEventsDescription: "Final request events will appear here after the gateway processes traffic.",
+    noRequestEventsTitle: "No request events in this time range",
+    openPricingTemplates: "Open Pricing Templates",
+    overviewTitle: "Overview",
+    pricingDataMissingDescription: "Attach pricing templates to connections to unlock cost coverage on the statistics page.",
+    pricingDataMissingTitle: "Pricing data is missing for this time range",
+    proxyApiKey: "Proxy API Key",
+    proxyApiKeyStatisticsTitle: "Proxy API Key Statistics",
+    removeLine: (label) => `Remove line ${label}`,
+    requestEventsTitle: "Request Events",
+    requestTrendsTitle: "Request Trends",
     requestsInWindow: (count) => `${count} reqs in window`,
     requestsTab: "Requests",
     requests: "Requests",
     requestsPerMinuteOverTime: "Requests Per Minute (RPM) Over Time",
     rows: "Rows",
+    selectModelLinePlaceholder: "Choose a model line",
+    serviceHealthTitle: "Service Health",
     slow: "Slow",
     slowestRequests: "Slowest requests by latency in current filtered slice.",
     spend: "Spend",
@@ -1314,8 +1388,10 @@ export const enMessages: Messages = {
     successOnly: "Successful only",
     successRate: "Success Rate",
     specialTokens: "Special Tokens",
-    statisticsDescription: "Operational metrics and spending analytics",
-    statisticsTitle: "Statistics",
+    statisticsDescription: "One request-based usage snapshot across requests, tokens, cost, endpoints, models, and proxy API keys.",
+    statisticsTitle: "Usage Statistics",
+    tokenTypeBreakdownTitle: "Token Type Breakdown",
+    tokenUsageTrendsTitle: "Token Usage Trends",
     topHttpErrors: "Top HTTP Errors",
     timeWindow: "Time Window",
     timeWindowTotal: (seconds) => `${seconds}s total`,

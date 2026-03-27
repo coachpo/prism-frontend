@@ -24,7 +24,8 @@ import type {
   RequestLogListResponse,
   SpendingReportParams,
   SpendingReportResponse,
-  StatisticsRequestLogListResponse,
+  UsageSnapshotPreset,
+  UsageSnapshotResponse,
   StatsRequestParams,
   StatsSummary,
   ModelMetricsBatchParams,
@@ -45,11 +46,9 @@ export const stats = {
     const query = buildStatsQuery(params);
     return request<RequestLogListResponse>(`/api/stats/requests${query ? `?${query}` : ""}`);
   },
-  operationsRequests: (params?: StatsRequestParams) => {
-    const query = buildStatsQuery(params);
-    return request<StatisticsRequestLogListResponse>(
-      `/api/stats/requests/operations${query ? `?${query}` : ""}`
-    );
+  usageSnapshot: (params?: { preset?: UsageSnapshotPreset }) => {
+    const query = buildQuery(params);
+    return request<UsageSnapshotResponse>(`/api/stats/usage-snapshot${query ? `?${query}` : ""}`);
   },
   summary: (params?: StatsSummaryParams) => {
     const query = buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);

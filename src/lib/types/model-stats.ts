@@ -196,31 +196,6 @@ export interface RequestLogListResponse {
   offset: number;
 }
 
-export type StatisticsRequestLogEntry = Pick<
-  RequestLogEntry,
-  | "id"
-  | "model_id"
-  | "api_family"
-  | "status_code"
-  | "response_time_ms"
-  | "input_tokens"
-  | "output_tokens"
-  | "total_tokens"
-  | "cache_read_input_tokens"
-  | "cache_creation_input_tokens"
-  | "reasoning_tokens"
-  | "total_cost_user_currency_micros"
-  | "error_detail"
-  | "created_at"
->;
-
-export interface StatisticsRequestLogListResponse {
-  items: StatisticsRequestLogEntry[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
 export interface StatGroup {
   key: string;
   total_requests: number;
