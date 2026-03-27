@@ -9,6 +9,7 @@ import { useAuthenticationSettingsData } from "./useAuthenticationSettingsData";
 import { useConfigBackupData } from "./useConfigBackupData";
 import { useCostingSettingsData } from "./useCostingSettingsData";
 import { useRetentionDeletionData } from "./useRetentionDeletionData";
+import { useVendorManagementData } from "./useVendorManagementData";
 
 export function useSettingsPageData() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export function useSettingsPageData() {
   const costing = useCostingSettingsData({ revision, setRecentlySavedSection });
   const audit = useAuditConfigurationData({ revision });
   const retention = useRetentionDeletionData();
+  const vendorManagement = useVendorManagementData({ revision });
 
   useEffect(() => {
     if (!recentlySavedSection) {
@@ -54,6 +56,7 @@ export function useSettingsPageData() {
     ...costing,
     ...audit,
     ...retention,
+    ...vendorManagement,
   };
 }
 

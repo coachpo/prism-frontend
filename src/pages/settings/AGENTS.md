@@ -11,7 +11,7 @@ settings/
 ├── dialogs/                       # Delete confirmation and audit-rule dialogs
 ├── SettingsSectionsNav.tsx         # Sticky section navigation for profile-tab sections
 ├── SettingsProfileTab.tsx          # Profile-tab body and section layout
-├── SettingsGlobalTab.tsx           # Global-tab body for authentication settings
+├── SettingsGlobalTab.tsx           # Global-tab body for auth + shared vendor management
 ├── useSettingsPageData.ts          # Top-level page composition across backup, auth, costing, audit, retention
 ├── useSettingsPageSectionState.ts  # Active tab, hash, scroll focus, and section jumps
 ├── useAuthenticationSettingsData.ts
@@ -19,6 +19,8 @@ settings/
 ├── useAuditConfigurationData.ts
 ├── useConfigBackupData.ts
 ├── useRetentionDeletionData.ts
+├── useVendorManagementData.ts      # Shared-vendor CRUD bootstrap and delete-safety flow
+├── vendorManagementFormState.ts    # Vendor form normalization and delete-conflict parsing
 ├── sectionSaveState.tsx           # Shared dirty, saving, and recently-saved rendering
 ├── settingsPageHelpers.ts         # Tab ids, section ids, default costing form, shared validation helpers
 └── settingsSaveTypes.ts
@@ -28,7 +30,7 @@ settings/
 
 - `SettingsPage.tsx` renders two tabs: `Profile` and `Global`.
 - The Profile tab owns section navigation and mounts backup, billing and currency, timezone, audit and privacy, and retention and deletion.
-- The Global tab currently mounts authentication settings only.
+- The Global tab mounts instance-wide authentication plus the shared vendor-management section and its dialogs.
 - `settingsPageHelpers.ts` is the source of truth for tab ids, profile section ids, instance-only section handling, delete keywords, and shared costing and auth validation helpers.
 
 ## WHERE TO LOOK
@@ -40,7 +42,8 @@ settings/
 - Shared save-state badges and render helpers: `sectionSaveState.tsx`, `settingsSaveTypes.ts`
 - Section implementation boundary: `sections/AGENTS.md`
 - Costing bootstrap, derived state, FX mapping CRUD, and save boundary: `costing/AGENTS.md`
-- Local dialogs for destructive actions and audit rule editing: `dialogs/`, `useAuditConfigurationData.ts`, `useRetentionDeletionData.ts`, `useConfigBackupData.ts`
+- Global vendor CRUD, usage prefetch, shared-cache patching, and delete-conflict parsing: `useVendorManagementData.ts`, `vendorManagementFormState.ts`
+- Local dialogs for destructive actions and audit rule editing: `dialogs/`, `useAuditConfigurationData.ts`, `useRetentionDeletionData.ts`, `useConfigBackupData.ts`, `dialogs/VendorDialog.tsx`, `dialogs/DeleteVendorDialog.tsx`
 
 ## CHILD DOCS
 
@@ -54,6 +57,7 @@ settings/
 - Hash navigation is part of the settings UX contract. New profile-tab sections need stable ids and must participate in jump and active-section logic.
 - Save-state feedback belongs in `sectionSaveState.tsx` and related helper types, not in ad hoc spinners or toast-only status.
 - Keep the scope split clear in copy and behavior: authentication is global, while backup, billing and currency, timezone, audit and privacy, and retention stay profile-scoped.
+- Keep shared vendor catalog CRUD on the Global tab and continue to let the Profile-tab audit defaults consume that same shared vendor catalog.
 - `SettingsProfileTab.tsx` and `SettingsGlobalTab.tsx` own the tab bodies, while the shell hook keeps their section state synchronized.
 - Billing, reporting currency, timezone preference, and FX mappings cross the `sections/` and `costing/` boundary. Let this parent doc describe the split, then send readers down instead of repeating local details.
 - Keep dialogs local to `pages/settings/dialogs/` when they support audit-rule edits or destructive confirmation flows.

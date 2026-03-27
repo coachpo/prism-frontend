@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { ApiFamily, ConfigImportRequest, Vendor } from "../types";
+import type { ApiFamily, Vendor } from "../types";
 import { ConfigImportSchema } from "../configImportValidation";
 
-function buildImportPayload(): ConfigImportRequest {
+function buildImportPayload() {
   return {
-    version: 6,
+    version: 7,
     exported_at: "2026-03-25T08:00:00Z",
     vendors: [
       {
@@ -29,6 +29,7 @@ function buildImportPayload(): ConfigImportRequest {
         name: "failover-primary",
         strategy_type: "failover",
         failover_recovery_enabled: true,
+        failover_status_codes: [503, 429],
       },
     ],
     models: [
@@ -57,7 +58,7 @@ function buildImportPayload(): ConfigImportRequest {
   };
 }
 
-function getIssuePairs(payload: ConfigImportRequest) {
+function getIssuePairs(payload: unknown) {
   const result = ConfigImportSchema.safeParse(payload);
 
   expect(result.success).toBe(false);
@@ -69,7 +70,7 @@ function getIssuePairs(payload: ConfigImportRequest) {
 }
 
 describe("ConfigImportSchema", () => {
-  it("accepts version 6 imports and exposes vendor/api-family shared types", () => {
+  it("accepts version 7 imports and exposes vendor/api-family shared types", () => {
     const vendor: Vendor = {
       id: 1,
       key: "openai",
@@ -98,7 +99,7 @@ describe("ConfigImportSchema", () => {
   });
 
   it("accepts explicit failover policy fields on imported strategies", () => {
-    const explicitPayload: ConfigImportRequest = {
+    const explicitPayload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
@@ -110,7 +111,7 @@ describe("ConfigImportSchema", () => {
           failover_backoff_multiplier: 3.5,
           failover_max_cooldown_seconds: 720,
           failover_jitter_ratio: 0.35,
-          failover_auth_error_cooldown_seconds: 2400,
+          failover_status_codes: [504, 429, 503],
         },
       ],
     };
@@ -118,24 +119,57 @@ describe("ConfigImportSchema", () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.loadbalance_strategies[0]).toMatchObject({
-        failover_cooldown_seconds: 45,
-        failover_failure_threshold: 4,
-        failover_backoff_multiplier: 3.5,
-        failover_max_cooldown_seconds: 720,
-        failover_jitter_ratio: 0.35,
-        failover_auth_error_cooldown_seconds: 2400,
-      });
-    }
+        expect(result.data.loadbalance_strategies[0]).toMatchObject({
+          failover_cooldown_seconds: 45,
+          failover_failure_threshold: 4,
+          failover_backoff_multiplier: 3.5,
+          failover_max_cooldown_seconds: 720,
+          failover_jitter_ratio: 0.35,
+          failover_status_codes: [429, 503, 504],
+        });
+      }
   });
 
-  it("keeps version 6 strategy payloads valid when the new fields are omitted", () => {
-    const result = ConfigImportSchema.safeParse(buildImportPayload());
+  it("requires explicit failover status codes on version 7 strategies", () => {
+    const payload = {
+      ...buildImportPayload(),
+      loadbalance_strategies: [
+        {
+          name: "failover-primary",
+          strategy_type: "failover",
+          failover_recovery_enabled: true,
+        },
+      ],
+    };
 
-    expect(result.success).toBe(true);
+    expect(getIssuePairs(payload)).toEqual([
+      {
+        path: ["loadbalance_strategies", 0, "failover_status_codes"],
+        message: "Invalid input: expected array, received undefined",
+      },
+    ]);
   });
 
-  it("accepts fill-first strategies in version 6 imports", () => {
+  it("rejects the removed auth cooldown field in strategy imports", () => {
+    const payload = {
+      ...buildImportPayload(),
+      loadbalance_strategies: [
+        {
+          ...buildImportPayload().loadbalance_strategies[0],
+          failover_auth_error_cooldown_seconds: 2400,
+        },
+      ],
+    };
+
+    expect(getIssuePairs(payload)).toEqual([
+      {
+        path: ["loadbalance_strategies", 0],
+        message: 'Unrecognized key: "failover_auth_error_cooldown_seconds"',
+      },
+    ]);
+  });
+
+  it("accepts fill-first strategies in version 7 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
@@ -148,7 +182,7 @@ describe("ConfigImportSchema", () => {
           failover_backoff_multiplier: 3.5,
           failover_max_cooldown_seconds: 720,
           failover_jitter_ratio: 0.35,
-          failover_auth_error_cooldown_seconds: 2400,
+          failover_status_codes: [503, 429],
         },
       ],
       models: [
@@ -162,7 +196,7 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts round-robin strategies in version 6 imports", () => {
+  it("accepts round-robin strategies in version 7 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
@@ -175,7 +209,7 @@ describe("ConfigImportSchema", () => {
           failover_backoff_multiplier: 3.5,
           failover_max_cooldown_seconds: 720,
           failover_jitter_ratio: 0.35,
-          failover_auth_error_cooldown_seconds: 2400,
+          failover_status_codes: [503, 429],
         },
       ],
       models: [
@@ -190,18 +224,20 @@ describe("ConfigImportSchema", () => {
   });
 
   it("reports duplicate strategy names by exact issue path and message", () => {
-    const payload: ConfigImportRequest = {
+    const payload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
           name: "failover-primary",
           strategy_type: "failover",
           failover_recovery_enabled: true,
+          failover_status_codes: [503, 429],
         },
         {
           name: "  failover-primary  ",
           strategy_type: "single",
           failover_recovery_enabled: false,
+          failover_status_codes: [503, 429],
         },
       ],
     };
@@ -215,7 +251,7 @@ describe("ConfigImportSchema", () => {
   });
 
   it("reports unknown references by exact issue path and message", () => {
-    const payload: ConfigImportRequest = {
+    const payload = {
       ...buildImportPayload(),
       pricing_templates: [
         {
@@ -259,7 +295,7 @@ describe("ConfigImportSchema", () => {
   });
 
   it("reports FX mapping errors by exact issue path and message", () => {
-    const payload: ConfigImportRequest = {
+    const payload = {
       ...buildImportPayload(),
       user_settings: {
         endpoint_fx_mappings: [

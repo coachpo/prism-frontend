@@ -11,7 +11,6 @@ export type LoadbalanceBanMode = "off" | "temporary" | "manual";
 
 export type LoadbalanceFailureKind =
   | "transient_http"
-  | "auth_like"
   | "connect_error"
   | "timeout";
 

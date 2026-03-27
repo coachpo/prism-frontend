@@ -35,7 +35,7 @@ export interface ConfigLoadbalanceStrategyExport {
   failover_backoff_multiplier: number;
   failover_max_cooldown_seconds: number;
   failover_jitter_ratio: number;
-  failover_auth_error_cooldown_seconds: number;
+  failover_status_codes: number[];
 }
 
 export interface ConfigLoadbalanceStrategyImport {
@@ -47,7 +47,7 @@ export interface ConfigLoadbalanceStrategyImport {
   failover_backoff_multiplier?: number;
   failover_max_cooldown_seconds?: number;
   failover_jitter_ratio?: number;
-  failover_auth_error_cooldown_seconds?: number;
+  failover_status_codes: number[];
 }
 
 export interface ConfigConnectionExport {
@@ -137,7 +137,7 @@ export interface ConfigVendorExport {
 export type ConfigVendorImport = ConfigVendorExport;
 
 export interface ConfigExportResponse {
-  version: 6;
+  version: 7;
   exported_at: string;
   vendors: ConfigVendorExport[];
   endpoints: ConfigEndpointExport[];
@@ -149,7 +149,7 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 6;
+  version: 7;
   exported_at?: string;
   vendors: ConfigVendorImport[];
   endpoints: ConfigEndpointImport[];

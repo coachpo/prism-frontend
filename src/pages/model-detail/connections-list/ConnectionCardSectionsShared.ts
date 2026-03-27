@@ -24,7 +24,6 @@ export type ConnectionCardCurrentStateCopy = {
     failureKind: string,
   ) => string;
   currentStateTemporaryBan: (until: string | null) => string;
-  failureKindAuthLike: string;
   failureKindConnectError: string;
   failureKindTimeout: string;
   failureKindTransientHttp: string;
@@ -137,9 +136,6 @@ function getFailureKindLabel(
 ): string {
   if (failureKind === "transient_http") {
     return copy.failureKindTransientHttp;
-  }
-  if (failureKind === "auth_like") {
-    return copy.failureKindAuthLike;
   }
   if (failureKind === "connect_error") {
     return copy.failureKindConnectError;

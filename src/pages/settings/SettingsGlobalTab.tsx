@@ -1,7 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { useLocale } from "@/i18n/useLocale";
 import type { SettingsPageData } from "./useSettingsPageData";
+import { DeleteVendorDialog } from "./dialogs/DeleteVendorDialog";
+import { VendorDialog } from "./dialogs/VendorDialog";
 import { AuthenticationSection } from "./sections/AuthenticationSection";
+import { VendorManagementSection } from "./sections/VendorManagementSection";
 
 interface SettingsGlobalTabProps {
   data: SettingsPageData;
@@ -47,6 +50,34 @@ export function SettingsGlobalTab({ data }: SettingsGlobalTabProps) {
         onConfirmEmailVerification={data.handleConfirmEmailVerification}
         authSaving={data.authSaving}
         onSaveAuthSettings={data.handleSaveAuthSettings}
+      />
+
+      <VendorManagementSection
+        vendors={data.vendors}
+        vendorsLoading={data.vendorsLoading}
+        onCreateVendor={data.openCreateVendorDialog}
+        onEditVendor={data.handleEditVendor}
+        onDeleteVendor={data.handleDeleteVendorClick}
+      />
+
+      <VendorDialog
+        open={data.vendorDialogOpen}
+        onClose={data.closeVendorDialog}
+        editingVendor={data.editingVendor}
+        vendorForm={data.vendorForm}
+        setVendorForm={data.setVendorForm}
+        onSave={data.handleSaveVendor}
+        vendorSaving={data.vendorSaving}
+      />
+
+      <DeleteVendorDialog
+        deleteVendorConfirm={data.deleteVendorConfirm}
+        deleteVendorConflict={data.deleteVendorConflict}
+        onClose={data.closeDeleteVendorDialog}
+        onDelete={data.handleDeleteVendor}
+        vendorDeleting={data.vendorDeleting}
+        vendorUsageLoading={data.vendorUsageLoading}
+        vendorUsageRows={data.vendorUsageRows}
       />
     </div>
   );

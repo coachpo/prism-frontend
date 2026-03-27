@@ -11,7 +11,7 @@ lib/
 │   ├── core.ts                   # API base, X-Profile-Id injection, auth refresh, query builder
 │   ├── authSettings.ts           # Auth bootstrap, proxy keys, WebAuthn methods
 │   ├── management.ts             # Profiles, vendors, models, endpoints, connections, pricing templates
-│   └── observability.ts          # Stats, spending, metrics, timezone, config v6, audit, loadbalance
+│   └── observability.ts          # Stats, spending, metrics, timezone, config v7, audit, loadbalance
 ├── websocket.ts                  # Singleton WebSocket client with channel ref-counts and reconnects
 ├── websocket/                    # Protocol parsing, subscription bookkeeping, transport/reconnect helpers
 ├── referenceData.ts              # Shared reference-data cache keyed by profile revision
@@ -33,7 +33,7 @@ lib/
 - API base URL, `X-Profile-Id` injection, auth refresh retry, and query building: `api/core.ts`
 - Operator auth, public bootstrap, proxy keys, and passkeys: `api/authSettings.ts`
 - Management CRUD clients: `api/management.ts`
-- Stats, spending, metrics, timezone, config, audit, and loadbalance clients: `api/observability.ts`
+- Stats, spending, metrics, timezone, config v7, audit, and loadbalance clients: `api/observability.ts`
 - Shared vendor cache, request dedupe, and dataset registry: `referenceData.ts`, `referenceDataRegistry.ts`
 - Frontend-side config import reference validation: `configImportValidation.ts`, `configImportValidationReferences.ts`
 - Browser app version label formatting and Vite-injected package metadata: `appVersion.ts`
@@ -47,7 +47,7 @@ lib/
 - `setApiProfileId()` is fed by `ProfileContext`, and `api/core.ts` is the only place that injects `X-Profile-Id` into `/api/*` requests.
 - `request()` handles cookie credentials, `ApiError`, and one refresh retry for eligible `/api/*` paths.
 - `referenceData.ts` and `referenceDataRegistry.ts` own shared cache reuse, request dedupe, and revision-keyed invalidation for lookup datasets.
-- `configImportValidation.ts` owns frontend-side validation of import payload shape and cross-reference rules instead of leaving that logic in page components.
+- `configImportValidation.ts` owns frontend-side validation of the version-7 import payload shape, including explicit `failover_status_codes`, instead of leaving that logic in page components.
 - `appVersion.ts` owns the browser-facing frontend version contract so shell chrome reads the synced `frontend/package.json` version through Vite instead of hard-coded literals.
 - `websocket.ts` owns the singleton client, while `websocket/` owns protocol parsing, subscription bookkeeping, and reconnect transport helpers. Consumers should use `useRealtimeData()` instead of creating clients directly.
 - Keep browser WebAuthn ceremony code in `webauthn.ts`.

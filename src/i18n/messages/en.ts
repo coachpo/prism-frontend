@@ -127,8 +127,7 @@ export interface Messages {
   };
   loadbalanceStrategyDialog: {
     addTitle: string;
-    authErrorCooldownDescription: string;
-    authErrorCooldownLabel: string;
+    addStatusCode: string;
     autoRecoveryDescription: string;
     autoRecoveryLabel: string;
     banDurationDescription: string;
@@ -153,6 +152,8 @@ export interface Messages {
     roundRobinOption: string;
     failureThresholdDescription: string;
     failureThresholdLabel: string;
+    failoverStatusCodesDescription: string;
+    failoverStatusCodesLabel: string;
     jitterRatioDescription: string;
     jitterRatioLabel: string;
     maxCooldownStrikesBeforeBanDescription: string;
@@ -161,6 +162,7 @@ export interface Messages {
     maxCooldownLabel: string;
     nameLabel: string;
     namePlaceholder: string;
+    removeStatusCode: (code: number) => string;
     save: string;
     saving: string;
     singleOption: string;
@@ -199,6 +201,40 @@ export interface Messages {
     save: string;
     saving: string;
     zeroCost: string;
+  };
+  vendorManagement: {
+    actions: string;
+    addVendor: string;
+    cancel: string;
+    createVendor: string;
+    delete: string;
+    deleteDescription: (name: string) => string;
+    deleteInUse: (count: string) => string;
+    deleteTitle: string;
+    dependencyApiFamily: string;
+    dependencyModelId: string;
+    dependencyModelType: string;
+    dependencyProfile: string;
+    descriptionLabel: string;
+    descriptionPlaceholder: string;
+    edit: string;
+    editVendor: string;
+    emptyDescription: string;
+    emptyTitle: string;
+    keyLabel: string;
+    keyPlaceholder: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    noDescription: string;
+    saveCreate: string;
+    saveEdit: string;
+    saving: string;
+    sectionDescription: string;
+    sectionTitle: string;
+    tableDescription: string;
+    tableKey: string;
+    tableName: string;
+    thisActionCannotBeUndone: string;
   };
   settingsPage: {
     auditPrivacy: string;
@@ -325,7 +361,6 @@ export interface Messages {
     failoverLast: (value: string) => string;
     failoverSignals: string;
     failureCount: (count: number) => string;
-    failureKindAuthLike: string;
     failureKindConnectError: string;
     failureKindTimeout: string;
     failureKindTransientHttp: string;
@@ -763,9 +798,7 @@ export const enMessages: Messages = {
   },
   loadbalanceStrategyDialog: {
     addTitle: "Add Loadbalance Strategy",
-    authErrorCooldownDescription:
-      "Cooldown used for auth-like failures such as invalid keys or permission errors.",
-    authErrorCooldownLabel: "Auth Error Cooldown",
+    addStatusCode: "Add Status Code",
     autoRecoveryDescription:
       "Allow failed endpoints in this strategy to recover automatically after backend-managed cooldown windows.",
     autoRecoveryLabel: "Auto-Recovery",
@@ -797,6 +830,9 @@ export const enMessages: Messages = {
     failureThresholdDescription:
       "Number of consecutive failures required before the cooldown window opens.",
     failureThresholdLabel: "Failure Threshold",
+    failoverStatusCodesDescription:
+      "HTTP status codes that should trigger failover for non-single strategies.",
+    failoverStatusCodesLabel: "Failover Status Codes",
     jitterRatioDescription:
       "Random spread applied to the cooldown so retries do not all happen at the same instant.",
     jitterRatioLabel: "Jitter Ratio",
@@ -808,6 +844,7 @@ export const enMessages: Messages = {
     maxCooldownLabel: "Max Cooldown (seconds)",
     nameLabel: "Name",
     namePlaceholder: "e.g. failover-primary",
+    removeStatusCode: (code) => `Remove status code ${code}`,
     save: "Save Strategy",
     saving: "Saving...",
     singleOption: "Single",
@@ -848,6 +885,40 @@ export const enMessages: Messages = {
     save: "Save Template",
     saving: "Saving...",
     zeroCost: "Zero Cost",
+  },
+  vendorManagement: {
+    actions: "Actions",
+    addVendor: "Add Vendor",
+    cancel: "Cancel",
+    createVendor: "Add Vendor",
+    delete: "Delete",
+    deleteDescription: (name) => `Are you sure you want to delete the vendor "${name}"?`,
+    deleteInUse: (count) => `This vendor is referenced by ${count} model${count === "1" ? "" : "s"} and cannot be deleted yet.`,
+    deleteTitle: "Delete Vendor",
+    dependencyApiFamily: "API Family",
+    dependencyModelId: "Model ID",
+    dependencyModelType: "Model Type",
+    dependencyProfile: "Profile",
+    descriptionLabel: "Description (Optional)",
+    descriptionPlaceholder: "Optional details about this vendor",
+    edit: "Edit",
+    editVendor: "Edit Vendor",
+    emptyDescription: "Create a shared vendor entry here to make it available across profiles.",
+    emptyTitle: "No vendors configured",
+    keyLabel: "Vendor Key",
+    keyPlaceholder: "e.g. openai",
+    nameLabel: "Vendor Name",
+    namePlaceholder: "e.g. OpenAI",
+    noDescription: "No description",
+    saveCreate: "Create Vendor",
+    saveEdit: "Save Vendor",
+    saving: "Saving...",
+    sectionDescription: "Manage the shared vendor catalog used by models and audit defaults across all profiles.",
+    sectionTitle: "Vendor Management",
+    tableDescription: "Description",
+    tableKey: "Key",
+    tableName: "Name",
+    thisActionCannotBeUndone: "This action cannot be undone.",
   },
   settingsPage: {
     auditPrivacy: "Audit & Privacy",
@@ -974,7 +1045,6 @@ export const enMessages: Messages = {
     failoverLast: (value) => `Last: ${value}`,
     failoverSignals: "Failover-like signals (derived from 5xx)",
     failureCount: (count) => `${count} failure${count === 1 ? "" : "s"}`,
-    failureKindAuthLike: "an auth-like failure",
     failureKindConnectError: "a connection error",
     failureKindTimeout: "a timeout",
     failureKindTransientHttp: "a transient HTTP failure",

@@ -1,7 +1,7 @@
 # FRONTEND LOADBALANCE STRATEGIES DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/loadbalance-strategies/` owns the dedicated strategy-management route behind `../LoadbalanceStrategiesPage.tsx`. It covers the profile-scoped strategy list, create or edit dialog flows, delete confirmation, and the form normalization that mirrors the backend strategy contract, including `single`, `fill-first`, and `failover` semantics plus ban-escalation policy fields on failover strategies.
+`pages/loadbalance-strategies/` owns the dedicated strategy-management route behind `../LoadbalanceStrategiesPage.tsx`. It covers the profile-scoped strategy list, create or edit dialog flows, delete confirmation, and the form normalization that mirrors the backend strategy contract, including `single`, `fill-first`, and `failover` semantics plus explicit `failover_status_codes` and ban-escalation policy fields on failover strategies.
 
 ## STRUCTURE
 ```
@@ -17,7 +17,7 @@ loadbalance-strategies/
 
 - Route shell and page composition: `../LoadbalanceStrategiesPage.tsx`
 - Strategy bootstrap, mutation orchestration, and optimistic patching: `useLoadbalanceStrategiesPageData.ts`
-- Form defaults, validation, and request payload shaping for cooldown plus ban policy: `loadbalanceStrategyFormState.ts`
+- Form defaults, validation, and request payload shaping for explicit status-code policy plus ban policy: `loadbalanceStrategyFormState.ts`
 - Table rendering and destructive flow entrypoints: `LoadbalanceStrategiesTable.tsx`, `DeleteLoadbalanceStrategyDialog.tsx`
 
 ## CONVENTIONS
@@ -27,6 +27,7 @@ loadbalance-strategies/
 - Match the CRUD/page shell pattern used by other profile-scoped management pages such as pricing templates.
 - Keep persisted failover policy editing on the existing strategy dialog; model pages still only attach one reusable strategy.
 - Keep `fill-first` and `failover` on the existing strategy dialog, with `fill-first` treated as strict priority spillover and `failover` treated as health-aware recovery.
+- Keep explicit `failover_status_codes` editing inside the existing non-single strategy section; do not reintroduce the removed auth-cooldown field.
 - Keep ban-escalation defaults, validation, and payload normalization in `loadbalanceStrategyFormState.ts`; the dialog should only render and mutate those fields.
 - Keep compact strategy-summary wording in `LoadbalanceStrategiesTable.tsx`; do not duplicate failover or ban summary formatting elsewhere.
 

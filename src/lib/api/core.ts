@@ -134,7 +134,17 @@ export async function request<T>(
     }
     throw new ApiError(extractErrorMessage(body), res.status, body);
   }
-  return res.json();
+
+  if (res.status === 204 || res.status === 205) {
+    return undefined as T;
+  }
+
+  const text = await res.text();
+  if (text.length === 0) {
+    return undefined as T;
+  }
+
+  return JSON.parse(text) as T;
 }
 
 export function buildQuery(

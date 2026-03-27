@@ -3,6 +3,8 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { SettingsGlobalTab } from "../SettingsGlobalTab";
+import type { SettingsPageData } from "../useSettingsPageData";
 
 vi.mock("../useSettingsPageData", () => ({
   useSettingsPageData: () => ({
@@ -125,10 +127,13 @@ vi.mock("../sections/BillingCurrencySection", () => ({ BillingCurrencySection: (
 vi.mock("../sections/TimezoneSection", () => ({ TimezoneSection: () => <div>timezone section</div> }));
 vi.mock("../sections/AuditConfigurationSection", () => ({ AuditConfigurationSection: () => <div>audit section</div> }));
 vi.mock("../sections/AuthenticationSection", () => ({ AuthenticationSection: () => <div>auth section</div> }));
+vi.mock("../sections/VendorManagementSection", () => ({ VendorManagementSection: () => <div>vendor section</div> }));
 vi.mock("../sections/RetentionDeletionSection", () => ({ RetentionDeletionSection: () => <div>retention section</div> }));
 vi.mock("../dialogs/DeleteConfirmDialog", () => ({ DeleteConfirmDialog: () => null }));
 vi.mock("../dialogs/RuleDialog", () => ({ RuleDialog: () => null }));
 vi.mock("../dialogs/DeleteRuleConfirmDialog", () => ({ DeleteRuleConfirmDialog: () => null }));
+vi.mock("../dialogs/VendorDialog", () => ({ VendorDialog: () => null }));
+vi.mock("../dialogs/DeleteVendorDialog", () => ({ DeleteVendorDialog: () => null }));
 
 describe("SettingsPage shell i18n", () => {
   beforeEach(() => {
@@ -152,5 +157,59 @@ describe("SettingsPage shell i18n", () => {
     expect(screen.getByText("配置档案作用域设置")).toBeInTheDocument();
     expect(screen.getByText("设置分区")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "审计与隐私" })).toBeInTheDocument();
+  });
+
+  it("renders authentication before vendor management in the global tab", () => {
+    const data = {
+      authSettings: null,
+      authEnabledInput: false,
+      authUsername: "admin",
+      setAuthUsername: vi.fn(),
+      authEmail: "",
+      setAuthEmail: vi.fn(),
+      authPassword: "",
+      authPasswordError: null,
+      setAuthPassword: vi.fn(),
+      authPasswordConfirm: "",
+      authPasswordMismatch: false,
+      setAuthPasswordConfirm: vi.fn(),
+      emailVerificationOtp: "",
+      setEmailVerificationOtp: vi.fn(),
+      sendingEmailVerification: false,
+      confirmingEmailVerification: false,
+      handleRequestEmailVerification: vi.fn(),
+      handleConfirmEmailVerification: vi.fn(),
+      authSaving: false,
+      handleSaveAuthSettings: vi.fn(),
+      vendors: [],
+      vendorsLoading: false,
+      openCreateVendorDialog: vi.fn(),
+      handleEditVendor: vi.fn(),
+      handleDeleteVendorClick: vi.fn(),
+      vendorDialogOpen: false,
+      closeVendorDialog: vi.fn(),
+      editingVendor: null,
+      vendorForm: { key: "", name: "", description: "" },
+      setVendorForm: vi.fn(),
+      handleSaveVendor: vi.fn(),
+      vendorSaving: false,
+      deleteVendorConfirm: null,
+      closeDeleteVendorDialog: vi.fn(),
+      setDeleteVendorConfirm: vi.fn(),
+      handleDeleteVendor: vi.fn(),
+      vendorDeleting: false,
+      vendorUsageLoading: false,
+      vendorUsageRows: [],
+      deleteVendorConflict: null,
+    } as unknown as SettingsPageData;
+
+    render(
+      <LocaleProvider>
+        <SettingsGlobalTab data={data} />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("auth section")).toBeInTheDocument();
+    expect(screen.getByText("vendor section")).toBeInTheDocument();
   });
 });

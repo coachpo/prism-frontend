@@ -41,10 +41,6 @@ const FAILURE_KIND_CONFIG = {
     label: "Transient HTTP",
     intent: "warning" as const,
   },
-  auth_like: {
-    label: "Auth Error",
-    intent: "danger" as const,
-  },
   connect_error: {
     label: "Connection Error",
     intent: "danger" as const,

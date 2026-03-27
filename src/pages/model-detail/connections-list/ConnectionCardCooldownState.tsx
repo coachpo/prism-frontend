@@ -47,7 +47,6 @@ export function ConnectionCardCooldownState({
               currentStateManualBan: copy.currentStateManualBan,
               currentStateProbeEligible: copy.currentStateProbeEligible,
               currentStateTemporaryBan: copy.currentStateTemporaryBan,
-              failureKindAuthLike: copy.failureKindAuthLike,
               failureKindConnectError: copy.failureKindConnectError,
               failureKindTimeout: copy.failureKindTimeout,
               failureKindTransientHttp: copy.failureKindTransientHttp,

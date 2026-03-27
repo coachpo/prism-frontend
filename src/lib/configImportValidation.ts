@@ -28,6 +28,19 @@ const PricingTemplateImportSchema = z.strictObject({
   version: z.number().int().min(1),
 });
 
+const FailoverStatusCodesImportSchema = z
+  .array(z.number().int().min(100).max(599))
+  .min(1)
+  .superRefine((codes, ctx) => {
+    if (new Set(codes).size !== codes.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Failover status codes must be unique",
+      });
+    }
+  })
+  .transform((codes) => [...codes].sort((left, right) => left - right));
+
 const LoadbalanceStrategyImportSchema = z.strictObject({
   name: z.string(),
   strategy_type: z.enum(["single", "fill-first", "round-robin", "failover"]),
@@ -37,7 +50,7 @@ const LoadbalanceStrategyImportSchema = z.strictObject({
   failover_backoff_multiplier: z.number().min(1).max(10).optional(),
   failover_max_cooldown_seconds: z.number().int().min(1).max(86_400).optional(),
   failover_jitter_ratio: z.number().min(0).max(1).optional(),
-  failover_auth_error_cooldown_seconds: z.number().int().min(1).max(86_400).optional(),
+  failover_status_codes: FailoverStatusCodesImportSchema,
   failover_ban_mode: z.enum(["off", "temporary", "manual"]).optional(),
   failover_max_cooldown_strikes_before_ban: z.number().int().min(0).max(100).optional(),
   failover_ban_duration_seconds: z.number().int().min(0).max(86_400).optional(),
@@ -103,7 +116,7 @@ const UserSettingsImportSchema = z.strictObject({
 
 export const ConfigImportSchema = z
   .strictObject({
-    version: z.literal(6),
+    version: z.literal(7),
     exported_at: z.string().optional(),
     vendors: z.array(VendorImportSchema),
     endpoints: z.array(EndpointImportSchema),

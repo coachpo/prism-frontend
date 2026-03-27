@@ -33,7 +33,8 @@ describe("LoadbalanceStrategyDialog", () => {
               failover_backoff_multiplier: 2,
               failover_max_cooldown_seconds: 900,
               failover_jitter_ratio: 0.2,
-              failover_auth_error_cooldown_seconds: 1800,
+              failover_status_codes: [429, 503],
+              failover_status_code_input: "",
               failover_ban_mode: "temporary",
               failover_max_cooldown_strikes_before_ban: 3,
               failover_ban_duration_seconds: 1200,
@@ -71,8 +72,8 @@ describe("LoadbalanceStrategyDialog", () => {
         text: "Random spread applied to the cooldown so retries do not all happen at the same instant.",
       },
       {
-        label: "Explain Auth Error Cooldown",
-        text: "Cooldown used for auth-like failures such as invalid keys or permission errors.",
+        label: "Explain Failover Status Codes",
+        text: "HTTP status codes that should trigger failover for non-single strategies.",
       },
       {
         label: "Explain Ban Mode",
@@ -115,7 +116,8 @@ describe("LoadbalanceStrategyDialog", () => {
               failover_backoff_multiplier: 2,
               failover_max_cooldown_seconds: 900,
               failover_jitter_ratio: 0.2,
-              failover_auth_error_cooldown_seconds: 1800,
+              failover_status_codes: [429, 503],
+              failover_status_code_input: "",
               failover_ban_mode: "off",
               failover_max_cooldown_strikes_before_ban: 0,
               failover_ban_duration_seconds: 0,
@@ -160,7 +162,8 @@ describe("LoadbalanceStrategyDialog", () => {
               failover_backoff_multiplier: 2,
               failover_max_cooldown_seconds: 900,
               failover_jitter_ratio: 0.2,
-              failover_auth_error_cooldown_seconds: 1800,
+              failover_status_codes: [429, 503],
+              failover_status_code_input: "",
               failover_ban_mode: "temporary",
               failover_max_cooldown_strikes_before_ban: 3,
               failover_ban_duration_seconds: 1200,
@@ -212,7 +215,8 @@ describe("LoadbalanceStrategyDialog", () => {
               failover_backoff_multiplier: 2,
               failover_max_cooldown_seconds: 900,
               failover_jitter_ratio: 0.2,
-              failover_auth_error_cooldown_seconds: 1800,
+              failover_status_codes: [429, 503],
+              failover_status_code_input: "",
               failover_ban_mode: "temporary",
               failover_max_cooldown_strikes_before_ban: 3,
               failover_ban_duration_seconds: 1200,
@@ -244,7 +248,8 @@ describe("LoadbalanceStrategyDialog", () => {
               failover_backoff_multiplier: 2,
               failover_max_cooldown_seconds: 900,
               failover_jitter_ratio: 0.2,
-              failover_auth_error_cooldown_seconds: 1800,
+              failover_status_codes: [429, 503],
+              failover_status_code_input: "",
               failover_ban_mode: "manual",
               failover_max_cooldown_strikes_before_ban: 3,
               failover_ban_duration_seconds: 0,
@@ -261,6 +266,46 @@ describe("LoadbalanceStrategyDialog", () => {
     );
 
     expect(screen.queryByLabelText("Ban Duration (seconds)")).not.toBeInTheDocument();
+  });
+
+  it("shows failover status code editing controls for non-single strategies", () => {
+    const setLoadbalanceStrategyForm = vi.fn();
+
+    render(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={{
+              name: "fill-first-primary",
+              strategy_type: "fill-first",
+              failover_recovery_enabled: true,
+              failover_cooldown_seconds: 60,
+              failover_failure_threshold: 2,
+              failover_backoff_multiplier: 2,
+              failover_max_cooldown_seconds: 900,
+              failover_jitter_ratio: 0.2,
+              failover_status_codes: [429, 503],
+              failover_status_code_input: "",
+              failover_ban_mode: "off",
+              failover_max_cooldown_strikes_before_ban: 0,
+              failover_ban_duration_seconds: 0,
+            }}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={setLoadbalanceStrategyForm}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByLabelText("Failover Status Codes")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Status Code" })).toBeInTheDocument();
+    expect(screen.getByText("429")).toBeInTheDocument();
+    expect(screen.getByText("503")).toBeInTheDocument();
   });
 
   it("shows fill-first in the strategy selector and treats it like another non-single strategy", () => {
@@ -285,7 +330,8 @@ describe("LoadbalanceStrategyDialog", () => {
       failover_backoff_multiplier: 2,
       failover_max_cooldown_seconds: 900,
       failover_jitter_ratio: 0.2,
-      failover_auth_error_cooldown_seconds: 1800,
+      failover_status_codes: [429, 503],
+      failover_status_code_input: "",
       failover_ban_mode: "off" as const,
       failover_max_cooldown_strikes_before_ban: 0,
       failover_ban_duration_seconds: 0,
@@ -358,7 +404,8 @@ describe("LoadbalanceStrategyDialog", () => {
       failover_backoff_multiplier: 2,
       failover_max_cooldown_seconds: 900,
       failover_jitter_ratio: 0.2,
-      failover_auth_error_cooldown_seconds: 1800,
+      failover_status_codes: [429, 503],
+      failover_status_code_input: "",
       failover_ban_mode: "off" as const,
       failover_max_cooldown_strikes_before_ban: 0,
       failover_ban_duration_seconds: 0,

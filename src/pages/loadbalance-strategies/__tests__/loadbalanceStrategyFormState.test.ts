@@ -18,7 +18,7 @@ describe("loadbalanceStrategyFormState", () => {
       failover_backoff_multiplier: 2,
       failover_max_cooldown_seconds: 900,
       failover_jitter_ratio: 0.2,
-      failover_auth_error_cooldown_seconds: 1800,
+      failover_status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
       failover_ban_mode: "off",
       failover_max_cooldown_strikes_before_ban: 0,
       failover_ban_duration_seconds: 0,
@@ -37,7 +37,7 @@ describe("loadbalanceStrategyFormState", () => {
       failover_backoff_multiplier: 3.5,
       failover_max_cooldown_seconds: 720,
       failover_jitter_ratio: 0.35,
-      failover_auth_error_cooldown_seconds: 2400,
+      failover_status_codes: [403, 429, 503],
       failover_ban_mode: "temporary",
       failover_max_cooldown_strikes_before_ban: 3,
       failover_ban_duration_seconds: 1800,
@@ -55,7 +55,7 @@ describe("loadbalanceStrategyFormState", () => {
       failover_backoff_multiplier: 3.5,
       failover_max_cooldown_seconds: 720,
       failover_jitter_ratio: 0.35,
-      failover_auth_error_cooldown_seconds: 2400,
+      failover_status_codes: [403, 429, 503],
       failover_ban_mode: "temporary",
       failover_max_cooldown_strikes_before_ban: 3,
       failover_ban_duration_seconds: 1800,
@@ -74,7 +74,7 @@ describe("loadbalanceStrategyFormState", () => {
       failover_backoff_multiplier: 3.5,
       failover_max_cooldown_seconds: 720,
       failover_jitter_ratio: 0.35,
-      failover_auth_error_cooldown_seconds: 2400,
+      failover_status_codes: [403, 429, 503],
       failover_ban_mode: "temporary",
       failover_max_cooldown_strikes_before_ban: 3,
       failover_ban_duration_seconds: 1800,
@@ -102,7 +102,7 @@ describe("loadbalanceStrategyFormState", () => {
     });
   });
 
-  it("trims the name, preserves numeric policy values, and only disables recovery for single strategies", () => {
+  it("trims the name, sorts status codes uniquely, preserves numeric policy values, and only disables recovery for single strategies", () => {
     const failoverFormState = {
       ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
       name: "  Primary failover  ",
@@ -113,7 +113,7 @@ describe("loadbalanceStrategyFormState", () => {
       failover_backoff_multiplier: 4,
       failover_max_cooldown_seconds: 1800.6,
       failover_jitter_ratio: 0.4,
-      failover_auth_error_cooldown_seconds: 3600.8,
+      failover_status_codes: [503, 429, 503, 504],
       failover_ban_mode: "manual" as const,
       failover_max_cooldown_strikes_before_ban: 4.7,
       failover_ban_duration_seconds: 12.4,
@@ -128,7 +128,7 @@ describe("loadbalanceStrategyFormState", () => {
       failover_backoff_multiplier: 4,
       failover_max_cooldown_seconds: 1800,
       failover_jitter_ratio: 0.4,
-      failover_auth_error_cooldown_seconds: 3600,
+      failover_status_codes: [429, 503, 504],
       failover_ban_mode: "manual",
       failover_max_cooldown_strikes_before_ban: 4,
       failover_ban_duration_seconds: 12,
@@ -147,14 +147,41 @@ describe("loadbalanceStrategyFormState", () => {
       failover_backoff_multiplier: 4,
       failover_max_cooldown_seconds: 1800,
       failover_jitter_ratio: 0.4,
-      failover_auth_error_cooldown_seconds: 3600,
+      failover_status_codes: [429, 503, 504],
       failover_ban_mode: "manual",
       failover_max_cooldown_strikes_before_ban: 4,
       failover_ban_duration_seconds: 12,
     });
   });
 
-  it("rejects non-integer and out-of-range failover policy values before save", () => {
+  it("rejects invalid failover status code lists and out-of-range failover policy values before save", () => {
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+        name: "Failover",
+        strategy_type: "failover",
+        failover_status_codes: [],
+      }),
+    ).toBe("Add at least one failover status code");
+
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+        name: "Failover",
+        strategy_type: "failover",
+        failover_status_codes: [429, 429],
+      }),
+    ).toBe("Failover status codes must be unique");
+
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+        name: "Failover",
+        strategy_type: "failover",
+        failover_status_codes: [99, 429],
+      }),
+    ).toBe("Failover status codes must be valid HTTP status codes between 100 and 599");
+
     expect(
       getLoadbalanceStrategyFormValidationError({
         ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
@@ -199,15 +226,6 @@ describe("loadbalanceStrategyFormState", () => {
         failover_jitter_ratio: 1.5,
       }),
     ).toBe("Jitter ratio must be between 0 and 1");
-
-    expect(
-      getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        failover_auth_error_cooldown_seconds: 1.25,
-      }),
-    ).toBe("Auth error cooldown must be a whole number of seconds");
 
     expect(
       getLoadbalanceStrategyFormValidationError({

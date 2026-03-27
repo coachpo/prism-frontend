@@ -1,4 +1,4 @@
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, Plus, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useLocale } from "@/i18n/useLocale";
 import { SwitchController } from "@/components/SwitchController";
@@ -22,7 +22,12 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { LoadbalanceStrategy } from "@/lib/types";
-import type { LoadbalanceStrategyFormState } from "./loadbalanceStrategyFormState";
+import {
+  addFailoverStatusCode,
+  getFailoverStatusCodeInputError,
+  removeFailoverStatusCode,
+  type LoadbalanceStrategyFormState,
+} from "./loadbalanceStrategyFormState";
 
 function FailoverFieldLabel({
   htmlFor,
@@ -86,7 +91,6 @@ export function LoadbalanceStrategyDialog({
       | "failover_backoff_multiplier"
       | "failover_max_cooldown_seconds"
       | "failover_jitter_ratio"
-      | "failover_auth_error_cooldown_seconds"
       | "failover_max_cooldown_strikes_before_ban"
       | "failover_ban_duration_seconds",
     nextValue: number,
@@ -109,6 +113,8 @@ export function LoadbalanceStrategyDialog({
     const parsed = Number(value);
     return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
   };
+
+  const failoverStatusCodeInputError = getFailoverStatusCodeInputError(loadbalanceStrategyForm);
 
   return (
     <Dialog
@@ -305,30 +311,80 @@ export function LoadbalanceStrategyDialog({
                     }
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 sm:col-span-2">
                   <FailoverFieldLabel
-                    htmlFor="failover-auth-error-cooldown-seconds"
-                    helpAriaLabel={dialogMessages.explainField(dialogMessages.authErrorCooldownLabel)}
-                    label={dialogMessages.authErrorCooldownLabel}
-                    description={dialogMessages.authErrorCooldownDescription}
+                    htmlFor="failover-status-code-input"
+                    helpAriaLabel={dialogMessages.explainField(dialogMessages.failoverStatusCodesLabel)}
+                    label={dialogMessages.failoverStatusCodesLabel}
+                    description={dialogMessages.failoverStatusCodesDescription}
                   />
-                  <Input
-                    id="failover-auth-error-cooldown-seconds"
-                    type="number"
-                    min={1}
-                    max={86400}
-                    step={1}
-                    value={loadbalanceStrategyForm.failover_auth_error_cooldown_seconds}
-                    onChange={(event) =>
-                      setNumericField(
-                        "failover_auth_error_cooldown_seconds",
-                        parseIntegerInput(
-                          event.target.value,
-                          loadbalanceStrategyForm.failover_auth_error_cooldown_seconds,
-                        ),
-                      )
-                    }
-                  />
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        id="failover-status-code-input"
+                        aria-invalid={Boolean(failoverStatusCodeInputError)}
+                        aria-describedby={
+                          failoverStatusCodeInputError ? "failover-status-code-input-error" : undefined
+                        }
+                        type="number"
+                        min={100}
+                        max={599}
+                        step={1}
+                        value={loadbalanceStrategyForm.failover_status_code_input}
+                        onChange={(event) =>
+                          setLoadbalanceStrategyForm((prev) => ({
+                            ...prev,
+                            failover_status_code_input: event.target.value,
+                          }))
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="sm:self-start"
+                        disabled={
+                          !loadbalanceStrategyForm.failover_status_code_input.trim() ||
+                          Boolean(failoverStatusCodeInputError)
+                        }
+                        onClick={() =>
+                          setLoadbalanceStrategyForm((prev) => addFailoverStatusCode(prev))
+                        }
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        {dialogMessages.addStatusCode}
+                      </Button>
+                    </div>
+                    {failoverStatusCodeInputError ? (
+                      <p
+                        id="failover-status-code-input-error"
+                        className="text-xs text-destructive"
+                      >
+                        {failoverStatusCodeInputError}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      {loadbalanceStrategyForm.failover_status_codes.map((statusCode) => (
+                        <Button
+                          key={statusCode}
+                          type="button"
+                          variant="outline"
+                          size="xs"
+                          onClick={() =>
+                            setLoadbalanceStrategyForm((prev) =>
+                              removeFailoverStatusCode(prev, statusCode),
+                            )
+                          }
+                        >
+                          {statusCode}
+                          <X className="h-3 w-3" />
+                          <span className="sr-only">
+                            {dialogMessages.removeStatusCode(statusCode)}
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 

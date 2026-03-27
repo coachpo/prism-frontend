@@ -20,7 +20,7 @@ export interface LoadbalanceStrategySummary {
   failover_backoff_multiplier: number;
   failover_max_cooldown_seconds: number;
   failover_jitter_ratio: number;
-  failover_auth_error_cooldown_seconds: number;
+  failover_status_codes: number[];
   failover_ban_mode: LoadbalanceBanMode;
   failover_max_cooldown_strikes_before_ban: number;
   failover_ban_duration_seconds: number;
@@ -37,7 +37,7 @@ export interface LoadbalanceStrategy {
   failover_backoff_multiplier: number;
   failover_max_cooldown_seconds: number;
   failover_jitter_ratio: number;
-  failover_auth_error_cooldown_seconds: number;
+  failover_status_codes: number[];
   failover_ban_mode: LoadbalanceBanMode;
   failover_max_cooldown_strikes_before_ban: number;
   failover_ban_duration_seconds: number;
@@ -55,7 +55,7 @@ export interface LoadbalanceStrategyCreate {
   failover_backoff_multiplier?: number;
   failover_max_cooldown_seconds?: number;
   failover_jitter_ratio?: number;
-  failover_auth_error_cooldown_seconds?: number;
+  failover_status_codes?: number[];
   failover_ban_mode?: LoadbalanceBanMode;
   failover_max_cooldown_strikes_before_ban?: number;
   failover_ban_duration_seconds?: number;
@@ -70,7 +70,7 @@ export interface LoadbalanceStrategyUpdate {
   failover_backoff_multiplier?: number;
   failover_max_cooldown_seconds?: number;
   failover_jitter_ratio?: number;
-  failover_auth_error_cooldown_seconds?: number;
+  failover_status_codes?: number[];
   failover_ban_mode?: LoadbalanceBanMode;
   failover_max_cooldown_strikes_before_ban?: number;
   failover_ban_duration_seconds?: number;

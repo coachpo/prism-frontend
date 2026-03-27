@@ -46,6 +46,13 @@ function getStrategyLabel(strategyType: LoadbalanceStrategy["strategy_type"], lo
   return locale === "zh-CN" ? "单连接" : "Single";
 }
 
+function getStatusCodeSummary(statusCodes: number[], locale: "en" | "zh-CN") {
+  const sortedCodes = [...statusCodes].sort((left, right) => left - right);
+  return locale === "zh-CN"
+    ? `状态码 ${sortedCodes.join("、")}`
+    : `Status codes ${sortedCodes.join(", ")}`;
+}
+
 function getStrategySummary(strategyType: LoadbalanceStrategy["strategy_type"], locale: "en" | "zh-CN") {
   if (strategyType === "fill-first") {
     return locale === "zh-CN" ? "严格优先级溢出，可选恢复" : "Strict priority spillover with optional recovery";
@@ -150,8 +157,8 @@ export function LoadbalanceStrategiesTable({
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {locale === "zh-CN"
-                                  ? `退避 ×${strategy.failover_backoff_multiplier} • 抖动 ${strategy.failover_jitter_ratio} • 认证 ${strategy.failover_auth_error_cooldown_seconds}秒`
-                                  : `Backoff ×${strategy.failover_backoff_multiplier} • Jitter ${strategy.failover_jitter_ratio} • Auth ${strategy.failover_auth_error_cooldown_seconds}s`}
+                                  ? `退避 ×${strategy.failover_backoff_multiplier} • 抖动 ${strategy.failover_jitter_ratio} • ${getStatusCodeSummary(strategy.failover_status_codes, locale)}`
+                                  : `Backoff ×${strategy.failover_backoff_multiplier} • Jitter ${strategy.failover_jitter_ratio} • ${getStatusCodeSummary(strategy.failover_status_codes, locale)}`}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {getBanSummary(strategy, locale)}

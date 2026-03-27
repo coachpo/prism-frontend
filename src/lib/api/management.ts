@@ -28,6 +28,7 @@ import type {
   ProfileActivateRequest,
   ProfileCreate,
   ProfileUpdate,
+  VendorModelUsageItem,
   Vendor,
   VendorCreate,
   VendorUpdate,
@@ -68,6 +69,7 @@ export const vendors = {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+  models: (id: number) => request<VendorModelUsageItem[]>(`/api/vendors/${id}/models`),
   delete: (id: number) => request<void>(`/api/vendors/${id}`, { method: "DELETE" }),
 };
 
