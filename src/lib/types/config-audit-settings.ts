@@ -130,6 +130,7 @@ export interface ConfigVendorExport {
   key: string;
   name: string;
   description: string | null;
+  icon_key: string | null;
   audit_enabled: boolean;
   audit_capture_bodies: boolean;
 }
@@ -137,7 +138,7 @@ export interface ConfigVendorExport {
 export type ConfigVendorImport = ConfigVendorExport;
 
 export interface ConfigExportResponse {
-  version: 7;
+  version: 8;
   exported_at: string;
   vendors: ConfigVendorExport[];
   endpoints: ConfigEndpointExport[];
@@ -149,7 +150,7 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 7;
+  version: 8;
   exported_at?: string;
   vendors: ConfigVendorImport[];
   endpoints: ConfigEndpointImport[];

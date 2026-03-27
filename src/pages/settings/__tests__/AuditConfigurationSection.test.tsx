@@ -55,6 +55,7 @@ const vendor: Vendor = {
   key: "openai",
   name: "OpenAI",
   description: null,
+  icon_key: "openai",
   audit_enabled: true,
   audit_capture_bodies: false,
   created_at: "",
@@ -145,6 +146,7 @@ describe("AuditConfigurationSection", () => {
 
     expect(screen.getByText("Configure vendor-level audit capture and privacy defaults.")).toBeInTheDocument();
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
+    expect(screen.getByLabelText("Vendor icon OpenAI")).toBeInTheDocument();
     expect(screen.getByText("header-blocklist-card:1:1")).toBeInTheDocument();
 
     const [auditSwitch, bodiesSwitch] = screen.getAllByRole("switch");

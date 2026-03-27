@@ -1,3 +1,4 @@
+import { VendorIcon } from "@/components/VendorIcon";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useLocale } from "@/i18n/useLocale";
@@ -25,7 +26,10 @@ export function AuditConfigurationVendorToggles({
           <div key={vendor.id} className="rounded-lg border p-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 text-sm font-medium">{vendor.name}</div>
+                <div className="inline-flex items-center gap-2 text-sm font-medium">
+                  <VendorIcon vendor={vendor} size={18} />
+                  <span>{vendor.name}</span>
+                </div>
               </div>
 
               <div className="flex flex-col items-start gap-2 md:items-end">

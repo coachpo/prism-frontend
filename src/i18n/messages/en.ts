@@ -221,6 +221,12 @@ export interface Messages {
     editVendor: string;
     emptyDescription: string;
     emptyTitle: string;
+    currentIconPreviewLabel: string;
+    fallbackPreviewDescription: string;
+    iconPresetFallbackOption: string;
+    iconPresetHelp: string;
+    iconPresetLabel: string;
+    iconPresetPlaceholder: string;
     keyLabel: string;
     keyPlaceholder: string;
     nameLabel: string;
@@ -943,6 +949,12 @@ export const enMessages: Messages = {
     editVendor: "Edit Vendor",
     emptyDescription: "Create a shared vendor entry here to make it available across profiles.",
     emptyTitle: "No vendors configured",
+    currentIconPreviewLabel: "Current icon preview",
+    fallbackPreviewDescription: "If no preset fits, Prism falls back to a letter monogram.",
+    iconPresetFallbackOption: "No preset (use fallback)",
+    iconPresetHelp: "Choose a bundled vendor mark when one fits this vendor.",
+    iconPresetLabel: "Icon preset",
+    iconPresetPlaceholder: "Select an icon preset",
     keyLabel: "Vendor Key",
     keyPlaceholder: "e.g. openai",
     nameLabel: "Vendor Name",

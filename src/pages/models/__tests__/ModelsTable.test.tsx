@@ -11,6 +11,7 @@ function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
     key: "openai",
     name: "OpenAI",
     description: null,
+    icon_key: "openai",
     audit_enabled: false,
     audit_capture_bodies: false,
     created_at: "2026-03-20T10:00:00Z",
@@ -195,50 +196,79 @@ describe("ModelsTable", () => {
     }
   });
 
-  it("renders api-family sections while keeping vendor labels on the individual rows", () => {
+  it("groups models by vendor while keeping api family visible on each row", () => {
     renderTable({
       filtered: [
         buildModel({
           vendor_id: 30,
-          vendor: buildVendor({ id: 30, key: "together-ai", name: "Together AI" }),
+          vendor: buildVendor({ id: 30, key: "zai", name: "Z.ai", icon_key: "zhipu" }),
           api_family: "openai",
         }),
         buildModel({
           id: 12,
-          model_id: "gpt-4.1-mini",
-          display_name: "GPT-4.1 Mini",
-          vendor_id: 7,
-          vendor: buildVendor({ id: 7, key: "openai", name: "OpenAI" }),
-          api_family: "openai",
+          vendor_id: 30,
+          vendor: buildVendor({ id: 30, key: "zai", name: "Z.ai", icon_key: "zhipu" }),
+          model_id: "glm-4.6",
+          display_name: "GLM 4.6",
+          api_family: "anthropic",
         }),
         buildModel({
           id: 13,
-          model_id: "claude-sonnet-4-6",
-          display_name: "Claude Sonnet 4.6",
-          vendor_id: 20,
-          vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
-          api_family: "anthropic",
-          model_type: "proxy",
-          proxy_targets: [
-            { target_model_id: "claude-sonnet-4-5-20250929", position: 0 },
-            { target_model_id: "claude-sonnet-4-5-20250701", position: 1 },
-          ],
-          loadbalance_strategy_id: null,
-          loadbalance_strategy: null,
+          model_id: "gpt-4.1-mini",
+          display_name: "GPT-4.1 Mini",
+          vendor_id: 7,
+          vendor: buildVendor({ id: 7, key: "openai", name: "OpenAI", icon_key: "openai" }),
+          api_family: "openai",
         }),
       ],
     });
 
-    expect(screen.getByRole("button", { name: /openai/i })).toHaveTextContent("2 models");
-    expect(screen.getByRole("button", { name: /anthropic/i })).toHaveTextContent("1 model");
-    expect(screen.getByText("Together AI")).toBeInTheDocument();
-    expect(screen.getAllByText("OpenAI").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /z.ai/i })).toHaveTextContent("2 models");
+    expect(screen.getByRole("button", { name: /^OpenAI 1 model$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /z.ai/i }).querySelector('img[src*="zhipu.svg"]')).not.toBeNull();
+    expect(screen.getByRole("button", { name: /^OpenAI 1 model$/i }).querySelector('img[src*="openai.svg"]')).not.toBeNull();
     expect(screen.getByText("GPT-4o Mini")).toBeInTheDocument();
-    expect(screen.getByText("GPT-4.1 Mini")).toBeInTheDocument();
-    expect(screen.getByText("Claude Sonnet 4.6")).toBeInTheDocument();
+    expect(screen.getByText("GLM 4.6")).toBeInTheDocument();
+    expect(screen.getAllByText("OpenAI").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Anthropic").length).toBeGreaterThan(0);
   });
 
-  it("collapses and re-expands an API family group without affecting other groups", () => {
+  it("sorts vendor groups predictably with Unknown vendor last", () => {
+    renderTable({
+      filtered: [
+        buildModel({
+          id: 12,
+          vendor_id: 30,
+          vendor: buildVendor({ id: 30, key: "zai", name: "Z.ai", icon_key: "zhipu" }),
+          display_name: "GLM 4.6",
+        }),
+        buildModel({
+          id: 13,
+          vendor_id: 0,
+          vendor: undefined,
+          display_name: "Mystery Model",
+          model_id: "mystery-model",
+        }),
+        buildModel({
+          id: 14,
+          vendor_id: 7,
+          vendor: buildVendor({ id: 7, key: "openai", name: "OpenAI", icon_key: "openai" }),
+          display_name: "GPT-4.1 Mini",
+          model_id: "gpt-4.1-mini",
+        }),
+      ],
+    });
+
+    const openAiGroup = screen.getByRole("button", { name: /^OpenAI 1 model$/i });
+    const zaiGroup = screen.getByRole("button", { name: /^Z.ai 1 model$/i });
+    const unknownGroup = screen.getByRole("button", { name: /^Unknown vendor 1 model$/i });
+
+    expect(openAiGroup.compareDocumentPosition(zaiGroup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(zaiGroup.compareDocumentPosition(unknownGroup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(unknownGroup.querySelector("img")).toBeNull();
+  });
+
+  it("collapses and re-expands a vendor group without affecting other groups", () => {
     renderTable({
       filtered: [
         buildModel(),
@@ -249,22 +279,21 @@ describe("ModelsTable", () => {
         }),
         buildModel({
           id: 13,
-          model_id: "claude-sonnet-4-6",
-          display_name: "Claude Sonnet 4.6",
-          vendor_id: 20,
-          vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
-          api_family: "anthropic",
+          model_id: "glm-4.6",
+          display_name: "GLM 4.6",
+          vendor_id: 30,
+          vendor: buildVendor({ id: 30, key: "zai", name: "Z.ai", icon_key: "zhipu" }),
         }),
       ],
     });
 
-    const openAiToggle = screen.getByRole("button", { name: /openai/i });
+    const openAiToggle = screen.getByRole("button", { name: /^OpenAI 2 models$/i });
 
     fireEvent.click(openAiToggle);
 
     expect(screen.queryByText("GPT-4o Mini")).not.toBeInTheDocument();
     expect(screen.queryByText("GPT-4.1 Mini")).not.toBeInTheDocument();
-    expect(screen.getByText("Claude Sonnet 4.6")).toBeInTheDocument();
+    expect(screen.getByText("GLM 4.6")).toBeInTheDocument();
 
     fireEvent.click(openAiToggle);
 
@@ -272,7 +301,7 @@ describe("ModelsTable", () => {
     expect(screen.getByText("GPT-4.1 Mini")).toBeInTheDocument();
   });
 
-  it("keeps matching API family rows visible while search is active even after the group was collapsed", () => {
+  it("keeps matching vendor groups visible while search is active even after the group was collapsed", () => {
     const allModels = [
       buildModel(),
       buildModel({
@@ -282,16 +311,15 @@ describe("ModelsTable", () => {
       }),
       buildModel({
         id: 13,
-        model_id: "claude-sonnet-4-6",
-        display_name: "Claude Sonnet 4.6",
-        vendor_id: 20,
-        vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
-        api_family: "anthropic",
+        model_id: "glm-4.6",
+        display_name: "GLM 4.6",
+        vendor_id: 30,
+        vendor: buildVendor({ id: 30, key: "zai", name: "Z.ai", icon_key: "zhipu" }),
       }),
     ];
     const { rerender } = renderTable({ filtered: allModels });
 
-    fireEvent.click(screen.getByRole("button", { name: /openai/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^OpenAI 2 models$/i }));
     expect(screen.queryByText("GPT-4o Mini")).not.toBeInTheDocument();
 
     rerender(
@@ -302,7 +330,7 @@ describe("ModelsTable", () => {
               path="/models"
               element={
                 <ModelsTable
-                  filtered={allModels.filter((model) => model.api_family === "openai")}
+                  filtered={allModels.filter((model) => model.vendor?.key === "openai")}
                   handleOpenDialog={vi.fn()}
                   metricsLoading={false}
                   modelMetrics24h={{}}

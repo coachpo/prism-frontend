@@ -10,12 +10,14 @@ export interface VendorFormState {
   key: string;
   name: string;
   description: string;
+  icon_key: string | null;
 }
 
 export const DEFAULT_VENDOR_FORM: VendorFormState = {
   key: "",
   name: "",
   description: "",
+  icon_key: null,
 };
 
 export function vendorFormStateFromVendor(vendor: Vendor): VendorFormState {
@@ -23,6 +25,7 @@ export function vendorFormStateFromVendor(vendor: Vendor): VendorFormState {
     key: vendor.key,
     name: vendor.name,
     description: vendor.description ?? "",
+    icon_key: vendor.icon_key,
   };
 }
 
@@ -30,11 +33,13 @@ export function normalizeVendorPayload(
   form: VendorFormState,
 ): VendorCreate & VendorUpdate {
   const description = form.description.trim();
+  const iconKey = form.icon_key?.trim().toLowerCase() ?? "";
 
   return {
     key: form.key.trim(),
     name: form.name.trim(),
     description: description ? description : null,
+    icon_key: iconKey ? iconKey : null,
   };
 }
 

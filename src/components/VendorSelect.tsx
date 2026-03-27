@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VendorIcon } from "@/components/VendorIcon";
 import type { Vendor } from "@/lib/types";
 
 interface VendorSelectProps {
@@ -30,17 +31,31 @@ export function VendorSelect({
 }: VendorSelectProps) {
   const itemValue = (vendor: Vendor) =>
     valueType === "vendor_id" ? String(vendor.id) : vendor.key;
+  const selectedVendor = vendors.find((vendor) => itemValue(vendor) === value);
+  const isAllSelected = showAll && value === "all";
 
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder} />
+        {selectedVendor ? (
+          <span className="flex items-center gap-2">
+            <VendorIcon vendor={selectedVendor} size={16} />
+            <span>{selectedVendor.name}</span>
+          </span>
+        ) : isAllSelected ? (
+          <span>{allLabel}</span>
+        ) : (
+          <SelectValue placeholder={placeholder} />
+        )}
       </SelectTrigger>
       <SelectContent>
         {showAll ? <SelectItem value="all">{allLabel}</SelectItem> : null}
         {vendors.map((vendor) => (
           <SelectItem key={vendor.id} value={itemValue(vendor)}>
-            <span className="flex items-center gap-2">{vendor.name}</span>
+            <span className="flex items-center gap-2">
+              <VendorIcon vendor={vendor} size={14} />
+              <span>{vendor.name}</span>
+            </span>
           </SelectItem>
         ))}
       </SelectContent>

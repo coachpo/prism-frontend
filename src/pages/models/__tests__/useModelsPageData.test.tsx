@@ -48,6 +48,7 @@ function buildVendor(overrides: Record<string, unknown> = {}) {
     key: "openai",
     name: "OpenAI",
     description: null,
+    icon_key: "openai",
     audit_enabled: false,
     audit_capture_bodies: false,
     created_at: "",
@@ -249,12 +250,12 @@ describe("useModelsPageData", () => {
     });
   });
 
-  it("creates proxy models with separate vendor and api family fields", async () => {
+  it("creates proxy models with separate vendor and api family fields and a neutral fallback vendor", async () => {
     api.models.create.mockResolvedValue(
       buildModelConfig({
         id: 3,
         vendor_id: 30,
-        vendor: buildVendor({ id: 30, key: "together-ai", name: "Together AI" }),
+        vendor: undefined,
         api_family: "openai",
         model_id: "friendly-proxy",
         display_name: "Friendly Proxy",
@@ -307,7 +308,14 @@ describe("useModelsPageData", () => {
       is_enabled: true,
     });
     expect(createPayload).not.toHaveProperty("redirect_to");
-    expect(result.current.models.some((model) => model.id === 3)).toBe(true);
+    const createdModel = result.current.models.find((model) => model.id === 3);
+
+    expect(createdModel).toBeDefined();
+    expect(createdModel?.vendor).toMatchObject({
+      name: "Unknown vendor",
+      icon_key: null,
+    });
+    expect(createdModel?.vendor?.name).not.toBe("OpenAI");
   });
 
   it("builds proxy target options from api family compatibility instead of vendor identity", async () => {

@@ -23,7 +23,7 @@ components/
 - Shell handoff and layout chrome: `layout/AppLayout.tsx`
 - App-layout helper cluster, including shell state, profile UX, and dialog flow: `layout/app-layout/AppHeader.tsx`, `layout/app-layout/AppSidebar.tsx`, `layout/app-layout/useAppLayoutState.ts`, `layout/app-layout/useProfileDialogState.ts`, `layout/app-layout/useProfileSwitcherState.ts`, `layout/app-layout/profileConflictMessageParser.ts`, `layout/app-layout/ProfileSwitcherPopover.tsx`, `layout/app-layout/ProfileDialogs.tsx`
 - Sidebar links, profile-scoped prefixes, profile cap, version label: `layout/app-layout/navigationProfileConfig.ts`
-- Realtime status and small cross-route widgets: `WebSocketStatusIndicator.tsx`, `PageHeader.tsx`, `MetricCard.tsx`, `StatusBadge.tsx`, `ApiFamilyIcon.tsx`, `ApiFamilySelect.tsx`, `VendorSelect.tsx`
+- Realtime status and small cross-route widgets: `WebSocketStatusIndicator.tsx`, `PageHeader.tsx`, `MetricCard.tsx`, `StatusBadge.tsx`, `ApiFamilyIcon.tsx`, `ApiFamilySelect.tsx`, `VendorSelect.tsx`, `VendorIcon.tsx`, `vendorIconRegistry.tsx`
 - Shared loadbalance rendering: `loadbalance/LoadbalanceBadges.tsx`, `loadbalance/LoadbalanceEventsTable.tsx`, `loadbalance/LoadbalanceEventDetailSheet.tsx`
 - Shared statistics rendering: `statistics/TopSpendingCard.tsx`, `statistics/TokenMetricCell.tsx`
 - Design-system wrappers: `ui/`, especially `ui/chart.tsx`, `ui/topography.tsx`, `ui/sonner.tsx`
@@ -35,6 +35,7 @@ components/
 - Reuse `ui/` primitives before adding one-off markup.
 - Keep locale-sensitive shell controls wired through `src/i18n/` instead of hard-coded labels.
 - Keep loadbalance and statistics components fed by shaped props, not their own API calls.
+- Keep vendor icon rendering on the shared `VendorIcon.tsx` plus the local vendored registry, and fall back to a monogram or placeholder when icon data is missing or unknown.
 
 ## ANTI-PATTERNS
 

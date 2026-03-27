@@ -1,4 +1,5 @@
 import { Building2 } from "lucide-react";
+import { VendorIcon } from "@/components/VendorIcon";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -80,7 +81,12 @@ export function VendorManagementSection({
                 <TableBody>
                   {vendors.map((vendor) => (
                     <TableRow key={vendor.id}>
-                      <TableCell className="font-medium">{vendor.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <VendorIcon vendor={vendor} size={18} />
+                          <span>{vendor.name}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>{vendor.key}</TableCell>
                       <TableCell className="max-w-[24rem] whitespace-normal text-muted-foreground">
                         {vendor.description || messages.vendorManagement.noDescription}

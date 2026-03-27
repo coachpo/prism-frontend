@@ -60,6 +60,7 @@ const VendorImportSchema = z.strictObject({
   key: z.string(),
   name: z.string(),
   description: z.string().nullable(),
+  icon_key: z.string().nullable(),
   audit_enabled: z.boolean(),
   audit_capture_bodies: z.boolean(),
 });
@@ -116,7 +117,7 @@ const UserSettingsImportSchema = z.strictObject({
 
 export const ConfigImportSchema = z
   .strictObject({
-    version: z.literal(7),
+    version: z.literal(8),
     exported_at: z.string().optional(),
     vendors: z.array(VendorImportSchema),
     endpoints: z.array(EndpointImportSchema),

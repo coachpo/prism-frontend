@@ -46,6 +46,7 @@ sections/
 - Keep these files focused on section rendering, local field composition, and section-specific copy.
 - Let `authentication/` own browser passkey ceremony and credential presentation details.
 - Let `VendorManagementSection.tsx` stay rendering-focused; bootstrap, cache patching, and delete-conflict logic belong to the parent settings hooks and dialogs.
+- Let `VendorManagementSection.tsx` stay rendering-focused and show vendor icon metadata from the shared catalog, with fallback monogram or placeholder rendering handled by the shared icon component layer.
 - Let `billing-currency/` own the reporting-currency card and FX mapping presentation widgets.
 - Pull bootstrap, dirty-state derivation, and save orchestration from the parent settings hooks instead of rebuilding that logic inside section components.
 - Keep section IDs and save-state wiring aligned with the parent settings helpers.

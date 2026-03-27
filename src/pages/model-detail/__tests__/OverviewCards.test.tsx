@@ -25,6 +25,7 @@ describe("OverviewCards", () => {
               key: "together-ai",
               name: "Together AI",
               description: null,
+              icon_key: null,
               audit_enabled: false,
               audit_capture_bodies: false,
               created_at: "2026-03-20T10:00:00Z",

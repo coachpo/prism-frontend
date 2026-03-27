@@ -5,6 +5,8 @@ import type { Vendor, VendorModelUsageItem } from "@/lib/types";
 import { DeleteVendorDialog } from "../dialogs/DeleteVendorDialog";
 
 function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
+  const { icon_key = null, ...rest } = overrides;
+
   return {
     id: 1,
     key: "openai",
@@ -14,7 +16,8 @@ function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
     audit_capture_bodies: false,
     created_at: "",
     updated_at: "",
-    ...overrides,
+    ...rest,
+    icon_key,
   };
 }
 

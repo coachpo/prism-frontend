@@ -21,6 +21,7 @@ const model: ModelConfig = {
     key: "openai",
     name: "OpenAI",
     description: null,
+    icon_key: null,
     audit_enabled: false,
     audit_capture_bodies: false,
     created_at: "",

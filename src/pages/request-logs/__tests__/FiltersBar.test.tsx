@@ -146,6 +146,7 @@ describe("request log filter split components", () => {
                 key: "openai",
                 name: "OpenAI",
                 description: null,
+                icon_key: null,
                 audit_enabled: false,
                 audit_capture_bodies: false,
                 created_at: "2026-01-01T00:00:00Z",

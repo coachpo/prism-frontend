@@ -3,12 +3,12 @@ import { ChevronDown, Eye, Plus, Server, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { CopyButton } from "@/components/CopyButton";
 import { EmptyState } from "@/components/EmptyState";
+import { VendorIcon } from "@/components/VendorIcon";
 import { useLocale } from "@/i18n/useLocale";
 import {
   IconActionButton,
   IconActionGroup,
 } from "@/components/IconActionGroup";
-import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { StatusBadge, TypeBadge } from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,8 @@ import { cn, formatApiFamily } from "@/lib/utils";
 import { formatLatencyForDisplay } from "../model-detail/modelDetailMetricsAndPaths";
 import type { ModelDerivedMetric } from "./modelTableContracts";
 
-const API_FAMILY_ORDER = ["openai", "anthropic", "gemini"] as const;
 const TYPE_ORDER: ModelConfigListItem["model_type"][] = ["native", "proxy"];
+const UNKNOWN_VENDOR_KEY = "unknown-vendor";
 const STATUS_ORDER = [
   {
     key: "enabled",
@@ -57,52 +57,90 @@ type SharedRenderProps = Pick<
   onNavigate: (modelId: number) => void;
 };
 
-type ApiFamilyGroup = {
+type VendorGroup = {
+  groupKey: string;
   models: ModelConfigListItem[];
-  apiFamilyLabel: string;
-  apiFamily: string;
+  vendor: {
+    key?: string | null;
+    name?: string | null;
+    icon_key?: string | null;
+  };
+  vendorLabel: string;
+  isUnknown: boolean;
 };
 
 function resolveApiFamily(model: ModelConfigListItem) {
   return model.api_family ?? "openai";
 }
 
-function resolveVendorName(model: ModelConfigListItem) {
-  return model.vendor?.name?.trim() || formatApiFamily(resolveApiFamily(model));
+function getUnknownVendorLabel(locale: "en" | "zh-CN") {
+  return locale === "zh-CN" ? "未知供应商" : "Unknown vendor";
 }
 
-function getApiFamilySortIndex(apiFamily: string) {
-  const index = API_FAMILY_ORDER.indexOf(apiFamily as (typeof API_FAMILY_ORDER)[number]);
-  return index === -1 ? API_FAMILY_ORDER.length : index;
+function isUnknownVendor(model: ModelConfigListItem) {
+  return !model.vendor || model.vendor.key === UNKNOWN_VENDOR_KEY || model.vendor.name === "Unknown vendor";
 }
 
-function orderApiFamilyModels(models: ModelConfigListItem[]) {
+function resolveVendorName(model: ModelConfigListItem, locale: "en" | "zh-CN") {
+  if (isUnknownVendor(model)) {
+    return getUnknownVendorLabel(locale);
+  }
+
+  return model.vendor?.name?.trim() || model.vendor?.key?.trim() || getUnknownVendorLabel(locale);
+}
+
+function orderVendorModels(models: ModelConfigListItem[]) {
   return TYPE_ORDER.flatMap((modelType) =>
     STATUS_ORDER.flatMap(({ matches }) => models.filter((model) => model.model_type === modelType && matches(model)))
   );
 }
 
-function groupModels(filtered: ModelConfigListItem[]): ApiFamilyGroup[] {
-  const apiFamilies = [...new Set(filtered.map((model) => resolveApiFamily(model)))].sort((left, right) => {
-    const leftIndex = getApiFamilySortIndex(left);
-    const rightIndex = getApiFamilySortIndex(right);
+function groupModels(filtered: ModelConfigListItem[], locale: "en" | "zh-CN"): VendorGroup[] {
+  const groups = new Map<string, VendorGroup>();
 
-    if (leftIndex !== rightIndex) {
-      return leftIndex - rightIndex;
+  filtered.forEach((model) => {
+    const unknown = isUnknownVendor(model);
+    const vendorLabel = resolveVendorName(model, locale);
+    const vendor = unknown
+      ? { key: UNKNOWN_VENDOR_KEY, name: vendorLabel, icon_key: null }
+      : {
+          key: model.vendor?.key,
+          name: model.vendor?.name,
+          icon_key: model.vendor?.icon_key,
+        };
+    const vendorIdentity = unknown
+      ? UNKNOWN_VENDOR_KEY
+      : model.vendor?.id
+        ? `vendor:${model.vendor.id}`
+        : `vendor:${model.vendor?.key ?? model.vendor?.name ?? vendorLabel}`;
+
+    const existingGroup = groups.get(vendorIdentity);
+    if (existingGroup) {
+      existingGroup.models.push(model);
+      return;
     }
 
-    return left.localeCompare(right);
+    groups.set(vendorIdentity, {
+      groupKey: vendorIdentity,
+      models: [model],
+      vendor,
+      vendorLabel,
+      isUnknown: unknown,
+    });
   });
 
-  return apiFamilies.map((apiFamily) => {
-    const apiFamilyModels = filtered.filter((model) => resolveApiFamily(model) === apiFamily);
+  return [...groups.values()]
+    .sort((left, right) => {
+      if (left.isUnknown !== right.isUnknown) {
+        return left.isUnknown ? 1 : -1;
+      }
 
-    return {
-      models: orderApiFamilyModels(apiFamilyModels),
-      apiFamilyLabel: formatApiFamily(apiFamily),
-      apiFamily,
-    };
-  });
+      return left.vendorLabel.localeCompare(right.vendorLabel);
+    })
+    .map((group) => ({
+      ...group,
+      models: orderVendorModels(group.models),
+    }));
 }
 
 function getSuccessRateClass(successRate: number | null) {
@@ -167,7 +205,7 @@ function ModelRow({
   const title = model.display_name || model.model_id;
   const proxyTargetSummary = getProxyTargetSummary(model, locale as "en" | "zh-CN");
   const apiFamilyLabel = formatApiFamily(resolveApiFamily(model));
-  const vendorLabel = resolveVendorName(model);
+  const vendorLabel = resolveVendorName(model, locale as "en" | "zh-CN");
   const typeLabel = model.model_type === "proxy" ? (locale === "zh-CN" ? "代理" : "Proxy") : locale === "zh-CN" ? "原生" : "Native";
   const typeIntent = model.model_type === "proxy" ? "accent" : "info";
   const statusLabel = model.is_enabled ? (locale === "zh-CN" ? "已启用" : "Enabled") : locale === "zh-CN" ? "已禁用" : "Disabled";
@@ -303,7 +341,7 @@ function ModelRow({
   );
 }
 
-function ApiFamilySection({
+function VendorSection({
   group,
   isExpanded,
   metricsLoading,
@@ -314,7 +352,7 @@ function ApiFamilySection({
   search,
   setDeleteTarget,
 }: SharedRenderProps & {
-  group: ApiFamilyGroup;
+  group: VendorGroup;
   isExpanded: boolean;
   onOpenChange: (isOpen: boolean) => void;
   search: string;
@@ -338,12 +376,12 @@ function ApiFamilySection({
           >
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/35 text-foreground">
-                <ApiFamilyIcon apiFamily={group.apiFamily} size={16} />
+                <VendorIcon vendor={group.vendor} size={18} decorative />
               </div>
 
               <div className="min-w-0 text-left">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-foreground">{group.apiFamilyLabel}</span>
+                  <span className="text-sm font-semibold text-foreground">{group.vendorLabel}</span>
                   <Badge
                     variant="outline"
                     className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] text-muted-foreground"
@@ -394,8 +432,8 @@ export function ModelsTable({
 }: Props) {
   const { locale } = useLocale();
   const navigate = useNavigate();
-  const apiFamilyGroups = useMemo(() => groupModels(filtered), [filtered]);
-  const [expandedApiFamilies, setExpandedApiFamilies] = useState<Record<string, boolean>>({});
+  const vendorGroups = useMemo(() => groupModels(filtered, locale as "en" | "zh-CN"), [filtered, locale]);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   if (filtered.length === 0) {
     return (
@@ -433,19 +471,19 @@ export function ModelsTable({
 
   return (
     <div className="grid gap-3 p-4">
-      {apiFamilyGroups.map((group) => (
-          <ApiFamilySection
-          key={group.apiFamily}
+      {vendorGroups.map((group) => (
+        <VendorSection
+          key={group.groupKey}
           group={group}
-          isExpanded={search.trim().length > 0 || (expandedApiFamilies[group.apiFamily] ?? true)}
+          isExpanded={search.trim().length > 0 || (expandedGroups[group.groupKey] ?? true)}
           metricsLoading={metricsLoading}
           modelMetrics24h={modelMetrics24h}
           modelSpend30dMicros={modelSpend30dMicros}
           onNavigate={(modelId) => navigate(`/models/${modelId}`)}
           onOpenChange={(isOpen) =>
-            setExpandedApiFamilies((currentState) => ({
+            setExpandedGroups((currentState) => ({
               ...currentState,
-              [group.apiFamily]: isOpen,
+              [group.groupKey]: isOpen,
             }))
           }
           search={search}

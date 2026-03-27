@@ -6,6 +6,8 @@ import type { LoadbalanceStrategy, ModelConfigCreate, ModelConfigListItem, Vendo
 import { ModelDialog } from "../ModelDialog";
 
 function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
+  const { icon_key = null, ...rest } = overrides;
+
   return {
     id: 7,
     key: "openai",
@@ -15,7 +17,8 @@ function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
     audit_capture_bodies: false,
     created_at: "2026-03-20T10:00:00Z",
     updated_at: "2026-03-20T10:00:00Z",
-    ...overrides,
+    ...rest,
+    icon_key,
   };
 }
 

@@ -1,10 +1,12 @@
 export type ApiFamily = "openai" | "anthropic" | "gemini";
+export type VendorIconKey = string;
 
 export interface Vendor {
   id: number;
   key: string;
   name: string;
   description: string | null;
+  icon_key: VendorIconKey | null;
   audit_enabled: boolean;
   audit_capture_bodies: boolean;
   created_at: string;
@@ -15,12 +17,14 @@ export interface VendorCreate {
   key: string;
   name: string;
   description?: string | null;
+  icon_key?: VendorIconKey | null;
 }
 
 export interface VendorUpdate {
   key?: string;
   name?: string;
   description?: string | null;
+  icon_key?: VendorIconKey | null;
   audit_enabled?: boolean;
   audit_capture_bodies?: boolean;
 }

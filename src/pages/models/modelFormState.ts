@@ -40,7 +40,6 @@ function resolveModelVendorId(
 function resolveModelVendor(
   model: Pick<ModelConfigListItem, "vendor"> | Pick<ModelConfig, "vendor">,
   vendorId: number,
-  apiFamily: ApiFamily,
   existing?: Pick<ModelConfigListItem, "vendor">,
 ) {
   if (model.vendor) {
@@ -53,9 +52,10 @@ function resolveModelVendor(
 
   return {
     id: vendorId,
-    key: apiFamily === "gemini" ? "google" : apiFamily,
-    name: apiFamily,
+    key: "unknown-vendor",
+    name: "Unknown vendor",
     description: null,
+    icon_key: null,
     audit_enabled: false,
     audit_capture_bodies: false,
     created_at: "",
@@ -226,7 +226,7 @@ export function toModelListItem(
 ): ModelConfigListItem {
   const vendorId = resolveModelVendorId(model, existing);
   const apiFamily = resolveModelApiFamily(model);
-  const vendor = resolveModelVendor(model, vendorId, apiFamily, existing);
+  const vendor = resolveModelVendor(model, vendorId, existing);
 
   return {
     id: model.id,

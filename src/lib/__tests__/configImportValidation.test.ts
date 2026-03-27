@@ -4,13 +4,14 @@ import { ConfigImportSchema } from "../configImportValidation";
 
 function buildImportPayload() {
   return {
-    version: 7,
+    version: 8,
     exported_at: "2026-03-25T08:00:00Z",
     vendors: [
       {
         key: "openai",
         name: "OpenAI",
         description: "OpenAI vendor",
+        icon_key: "openai",
         audit_enabled: true,
         audit_capture_bodies: false,
       },
@@ -70,12 +71,13 @@ function getIssuePairs(payload: unknown) {
 }
 
 describe("ConfigImportSchema", () => {
-  it("accepts version 7 imports and exposes vendor/api-family shared types", () => {
+  it("accepts version 8 imports and exposes vendor/api-family shared types", () => {
     const vendor: Vendor = {
       id: 1,
       key: "openai",
       name: "OpenAI",
       description: "OpenAI vendor",
+      icon_key: "openai",
       audit_enabled: true,
       audit_capture_bodies: false,
       created_at: "2026-03-25T08:00:00Z",
@@ -87,7 +89,38 @@ describe("ConfigImportSchema", () => {
 
     expect(vendor.key).toBe("openai");
     expect(apiFamily).toBe("openai");
+    expect(result.success && result.data.vendors[0]?.icon_key).toBe("openai");
     expect(result.success).toBe(true);
+  });
+
+  it("accepts explicit null vendor icon keys in version 8 imports", () => {
+    const payload = {
+      ...buildImportPayload(),
+      vendors: [
+        {
+          ...buildImportPayload().vendors[0],
+          key: "groq",
+          name: "Groq",
+          icon_key: null,
+        },
+      ],
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          vendor_key: "groq",
+        },
+      ],
+    };
+
+    const result = ConfigImportSchema.safeParse(payload);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.vendors[0]).toMatchObject({
+        key: "groq",
+        icon_key: null,
+      });
+    }
   });
 
   it("normalizes reference names through the extracted helper module", async () => {
@@ -130,7 +163,43 @@ describe("ConfigImportSchema", () => {
       }
   });
 
-  it("requires explicit failover status codes on version 7 strategies", () => {
+  it("requires explicit vendor icon_key fields on version 8 imports", () => {
+    const payload = {
+      ...buildImportPayload(),
+      vendors: [
+        {
+          key: "openai",
+          name: "OpenAI",
+          description: "OpenAI vendor",
+          audit_enabled: true,
+          audit_capture_bodies: false,
+        },
+      ],
+    };
+
+    expect(getIssuePairs(payload)).toEqual([
+      {
+        path: ["vendors", 0, "icon_key"],
+        message: "Invalid input: expected string, received undefined",
+      },
+    ]);
+  });
+
+  it("rejects legacy version 7 imports", () => {
+    const payload = {
+      ...buildImportPayload(),
+      version: 7,
+    };
+
+    expect(getIssuePairs(payload)).toEqual([
+      {
+        path: ["version"],
+        message: "Invalid input: expected 8",
+      },
+    ]);
+  });
+
+  it("requires explicit failover status codes on version 8 strategies", () => {
     const payload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
@@ -169,7 +238,7 @@ describe("ConfigImportSchema", () => {
     ]);
   });
 
-  it("accepts fill-first strategies in version 7 imports", () => {
+  it("accepts fill-first strategies in version 8 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
@@ -196,7 +265,7 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts round-robin strategies in version 7 imports", () => {
+  it("accepts round-robin strategies in version 8 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [

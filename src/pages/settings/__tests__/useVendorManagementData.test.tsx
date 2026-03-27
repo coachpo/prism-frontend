@@ -50,6 +50,7 @@ function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
     key: "openai",
     name: "OpenAI",
     description: "Primary OpenAI vendor",
+    icon_key: "openai",
     audit_enabled: false,
     audit_capture_bodies: false,
     created_at: "2026-03-27T00:00:00Z",
@@ -110,6 +111,7 @@ describe("useVendorManagementData", () => {
     expect(result.current.editingVendor).toBeNull();
     expect(result.current.vendorForm).toEqual({
       description: "",
+      icon_key: null,
       key: "",
       name: "",
     });
@@ -122,6 +124,7 @@ describe("useVendorManagementData", () => {
     expect(result.current.editingVendor).toEqual(vendor);
     expect(result.current.vendorForm).toEqual({
       description: "",
+      icon_key: "openai",
       key: "anthropic",
       name: "Anthropic",
     });
@@ -188,6 +191,7 @@ describe("useVendorManagementData", () => {
       key: "anthropic",
       name: "Anthropic",
       description: "Claude models",
+      icon_key: "anthropic",
     });
     const updatedVendor = buildVendor({
       id: 2,
@@ -214,6 +218,7 @@ describe("useVendorManagementData", () => {
         key: "anthropic",
         name: "Anthropic",
         description: "Claude models",
+        icon_key: "anthropic",
       });
     });
 
@@ -225,6 +230,7 @@ describe("useVendorManagementData", () => {
       key: "anthropic",
       name: "Anthropic",
       description: "Claude models",
+      icon_key: "anthropic",
     });
     expect(referenceData.setSharedVendors).toHaveBeenNthCalledWith(1, 7, [createdVendor, originalVendor]);
 
@@ -234,6 +240,7 @@ describe("useVendorManagementData", () => {
         key: "anthropic-enterprise",
         name: "Anthropic Enterprise",
         description: "Enterprise Claude models",
+        icon_key: null,
       });
     });
 
@@ -245,6 +252,7 @@ describe("useVendorManagementData", () => {
       key: "anthropic-enterprise",
       name: "Anthropic Enterprise",
       description: "Enterprise Claude models",
+      icon_key: null,
     });
     expect(referenceData.setSharedVendors).toHaveBeenNthCalledWith(2, 7, [updatedVendor, originalVendor]);
 
