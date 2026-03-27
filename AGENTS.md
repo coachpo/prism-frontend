@@ -1,13 +1,14 @@
 # FRONTEND KNOWLEDGE BASE
 
 ## OVERVIEW
-`frontend/` is Prism's management dashboard. Keep this doc as the router for the frontend submodule, not a deep implementation guide. The important shared boundaries are the app shell, selected-profile management scope, typed API entrypoint, realtime channel ownership, and locale formatting.
+`frontend/` is Prism's management dashboard. Keep this doc as the router for the frontend submodule, not a deep implementation guide. The important shared boundaries are the app shell, `src/main.tsx` provider mount, selected-profile management scope, typed API entrypoint, realtime channel ownership, and locale formatting.
 
 ## STRUCTURE
 ```
 frontend/
 └── src/
     ├── App.tsx              # Mounted routes, auth/public split, protected shell
+    ├── main.tsx             # Browser mount and top-level provider wiring
     ├── components/AGENTS.md # Shell chrome, shared widgets, navigation config
     ├── context/AGENTS.md    # Auth bootstrap, selected-profile state, revision flow
     ├── hooks/AGENTS.md      # Realtime hook, polling, timezone helpers
@@ -24,6 +25,7 @@ frontend/
 
 ## HIERARCHY
 
+- `src/main.tsx` owns browser mounting and top-level provider composition.
 - `src/App.tsx` owns the mounted route surface and auth-shell split.
 - `src/pages/AGENTS.md` owns route-domain handoff for mounted pages and their local leaf docs.
 - `src/components/AGENTS.md`, `src/context/AGENTS.md`, `src/hooks/AGENTS.md`, `src/i18n/AGENTS.md`, and `src/lib/AGENTS.md` own shared shell, state, realtime, locale, and transport boundaries.
@@ -31,7 +33,7 @@ frontend/
 ## WHERE TO LOOK
 
 - Mounted routes, auth/public split, protected shell mounts: `src/App.tsx`
-- Shell chrome, sidebar entries, profile-prefixed navigation, visible version label: `src/components/layout/AppLayout.tsx`, `src/components/layout/app-layout/navigationProfileConfig.ts`
+- Shell chrome, sidebar entries, profile-prefixed navigation, visible version label, and the app-layout helper cluster: `src/components/layout/AppLayout.tsx`, `src/components/layout/app-layout/AppHeader.tsx`, `src/components/layout/app-layout/AppSidebar.tsx`, `src/components/layout/app-layout/ProfileDialogs.tsx`, `src/components/layout/app-layout/ProfileSwitcherPopover.tsx`, `src/components/layout/app-layout/useAppLayoutState.ts`, `src/components/layout/app-layout/useProfileDialogState.ts`, `src/components/layout/app-layout/useProfileSwitcherState.ts`, `src/components/layout/app-layout/profileConflictMessageParser.ts`, `src/components/layout/app-layout/navigationProfileConfig.ts`
 - Selected-profile state, revision bumps, and `X-Profile-Id` management scoping: `src/context/ProfileContext.tsx`, `src/lib/api/core.ts`
 - Typed API boundary and shared request plumbing: `src/lib/api.ts`, `src/lib/api/core.ts` (including ordered `proxy_targets`, resolved-target request-log context, vendor and `api_family` payloads, and config import validation mirrored from the backend contract)
 - Realtime websocket ownership and consumers: `src/lib/websocket.ts`, `src/hooks/useRealtimeData.ts`

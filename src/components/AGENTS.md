@@ -21,7 +21,7 @@ components/
 ## WHERE TO LOOK
 
 - Shell handoff and layout chrome: `layout/AppLayout.tsx`
-- Shell state, profile UX, and dialog flow: `layout/app-layout/useAppLayoutState.ts`, `layout/app-layout/AppHeader.tsx`, `layout/app-layout/AppSidebar.tsx`, `layout/app-layout/ProfileSwitcherPopover.tsx`, `layout/app-layout/ProfileDialogs.tsx`
+- App-layout helper cluster, including shell state, profile UX, and dialog flow: `layout/app-layout/AppHeader.tsx`, `layout/app-layout/AppSidebar.tsx`, `layout/app-layout/useAppLayoutState.ts`, `layout/app-layout/useProfileDialogState.ts`, `layout/app-layout/useProfileSwitcherState.ts`, `layout/app-layout/profileConflictMessageParser.ts`, `layout/app-layout/ProfileSwitcherPopover.tsx`, `layout/app-layout/ProfileDialogs.tsx`
 - Sidebar links, profile-scoped prefixes, profile cap, version label: `layout/app-layout/navigationProfileConfig.ts`
 - Realtime status and small cross-route widgets: `WebSocketStatusIndicator.tsx`, `PageHeader.tsx`, `MetricCard.tsx`, `StatusBadge.tsx`, `ApiFamilyIcon.tsx`, `ApiFamilySelect.tsx`, `VendorSelect.tsx`
 - Shared loadbalance rendering: `loadbalance/LoadbalanceBadges.tsx`, `loadbalance/LoadbalanceEventsTable.tsx`, `loadbalance/LoadbalanceEventDetailSheet.tsx`
