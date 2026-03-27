@@ -11,6 +11,7 @@ import type {
 } from "@/lib/types";
 import type { UsageStatisticsRequestEventRow } from "../useUsageStatisticsPageData";
 import { StatisticsPage } from "@/pages/StatisticsPage";
+import { installLocalStorageMock } from "./storage";
 
 vi.mock("recharts", async () => {
   const actual = await vi.importActual<typeof import("recharts")>("recharts");
@@ -67,6 +68,12 @@ vi.mock("@/context/ProfileContext", () => ({
   useProfileContext: () => ({
     revision: 1,
     selectedProfile: { id: 1 },
+  }),
+}));
+
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => ({
+    authEnabled: true,
   }),
 }));
 
@@ -376,6 +383,7 @@ function renderPage() {
 
 describe("StatisticsPage shell i18n", () => {
   beforeEach(() => {
+    installLocalStorageMock();
     localStorage.clear();
     localStorage.setItem("prism.locale", "zh-CN");
     Object.defineProperty(globalThis, "ResizeObserver", {

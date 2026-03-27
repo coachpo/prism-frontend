@@ -633,6 +633,7 @@ export const zhCNMessages: Messages = {
     pricingDataMissingDescription: "为连接绑定价格模板后，即可在统计页解锁成本覆盖情况。",
     pricingDataMissingTitle: "当前时间范围内缺少定价数据",
     proxyApiKey: "代理 API 密钥",
+    proxyApiKeyNotApplicableAuthDisabledTooltip: "由于“设置”中已禁用代理认证，此项不适用。",
     proxyApiKeyStatisticsTitle: "代理 API 密钥统计",
     removeLine: (label) => `移除线路 ${label}`,
     requestEventsTitle: "请求事件",

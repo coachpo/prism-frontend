@@ -636,6 +636,7 @@ export interface Messages {
     pricingDataMissingDescription: string;
     pricingDataMissingTitle: string;
     proxyApiKey: string;
+    proxyApiKeyNotApplicableAuthDisabledTooltip: string;
     proxyApiKeyStatisticsTitle: string;
     removeLine: (label: string) => string;
     requestEventsTitle: string;
@@ -1366,6 +1367,8 @@ export const enMessages: Messages = {
     pricingDataMissingDescription: "Attach pricing templates to connections to unlock cost coverage on the statistics page.",
     pricingDataMissingTitle: "Pricing data is missing for this time range",
     proxyApiKey: "Proxy API Key",
+    proxyApiKeyNotApplicableAuthDisabledTooltip:
+      "Not applicable because proxy authentication is disabled in Settings.",
     proxyApiKeyStatisticsTitle: "Proxy API Key Statistics",
     removeLine: (label) => `Remove line ${label}`,
     requestEventsTitle: "Request Events",

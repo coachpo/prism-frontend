@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { UsageSnapshotResponse } from "@/lib/types";
 import { StatisticsPage } from "@/pages/StatisticsPage";
+import { installLocalStorageMock } from "./storage";
 
 const mockUsageState = {
   setChartGranularity: vi.fn(),
@@ -40,6 +41,12 @@ vi.mock("@/context/ProfileContext", () => ({
   useProfileContext: () => ({
     revision: 1,
     selectedProfile: { id: 1 },
+  }),
+}));
+
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => ({
+    authEnabled: true,
   }),
 }));
 
@@ -100,6 +107,7 @@ function createEmptySnapshot(): UsageSnapshotResponse {
 
 describe("StatisticsPage empty states", () => {
   beforeEach(() => {
+    installLocalStorageMock();
     localStorage.clear();
     mockUsageData = {
       availableModelLineIds: [],

@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/EmptyState";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
@@ -13,11 +14,13 @@ import { formatMoneyMicros } from "@/lib/costing";
 import type { UsageProxyApiKeyStatistic, UsageSnapshotCurrency } from "@/lib/types";
 
 interface ProxyApiKeyStatisticsTableProps {
+  authEnabled?: boolean;
   currency?: UsageSnapshotCurrency;
   items: UsageProxyApiKeyStatistic[];
 }
 
 export function ProxyApiKeyStatisticsTable({
+  authEnabled,
   currency = { code: "USD", symbol: "$" },
   items,
 }: ProxyApiKeyStatisticsTableProps) {
@@ -55,7 +58,22 @@ export function ProxyApiKeyStatisticsTable({
               <TableBody>
                 {rows.map((item) => (
                   <TableRow key={item.proxy_api_key_id ?? item.proxy_api_key_label}>
-                    <TableCell className="font-medium">{item.proxy_api_key_label}</TableCell>
+                    <TableCell className="font-medium">
+                      {authEnabled === false && item.proxy_api_key_id === null ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help text-muted-foreground/80">N/A</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs">
+                              {messages.statistics.proxyApiKeyNotApplicableAuthDisabledTooltip}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        item.proxy_api_key_label
+                      )}
+                    </TableCell>
                     <TableCell>{item.key_prefix ?? "—"}</TableCell>
                     <TableCell>{formatNumber(item.request_count)}</TableCell>
                     <TableCell>{item.success_rate.toFixed(1)}%</TableCell>

@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { UsageSnapshotResponse } from "@/lib/types";
 import { StatisticsPage } from "@/pages/StatisticsPage";
+import { installLocalStorageMock } from "./storage";
 
 vi.mock("recharts", async () => {
   const actual = await vi.importActual<typeof import("recharts")>("recharts");
@@ -25,6 +26,12 @@ vi.mock("@/context/ProfileContext", () => ({
   useProfileContext: () => ({
     revision: 1,
     selectedProfile: { id: 1 },
+  }),
+}));
+
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => ({
+    authEnabled: true,
   }),
 }));
 
@@ -240,6 +247,7 @@ function createSnapshot(totalRequests: number, ingressRequestId: string, statusC
 
 describe("StatisticsPage refresh flow", () => {
   beforeEach(() => {
+    installLocalStorageMock();
     localStorage.clear();
     vi.clearAllMocks();
     Object.defineProperty(globalThis, "ResizeObserver", {

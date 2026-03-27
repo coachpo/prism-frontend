@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/PageHeader";
+import { useAuth } from "@/context/useAuth";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useLocale } from "@/i18n/useLocale";
 import { UsageStatisticsPageSkeleton } from "./statistics/UsageStatisticsPageSkeleton";
@@ -27,6 +28,7 @@ function downloadSnapshotJson(snapshot: unknown) {
 }
 
 export function StatisticsPage() {
+  const { authEnabled } = useAuth();
   const { revision, selectedProfile } = useProfileContext();
   const { messages } = useLocale();
   const state = useUsageStatisticsPageState();
@@ -117,7 +119,11 @@ export function StatisticsPage() {
             items={data.requestEvents}
             total={snapshot.request_events.total}
           />
-          <ProxyApiKeyStatisticsTable currency={snapshot.currency} items={snapshot.proxy_api_key_statistics} />
+          <ProxyApiKeyStatisticsTable
+            authEnabled={authEnabled}
+            currency={snapshot.currency}
+            items={snapshot.proxy_api_key_statistics}
+          />
         </div>
       ) : null}
     </div>
