@@ -27,6 +27,7 @@ export function useSettingsPageData() {
   const audit = useAuditConfigurationData({ revision });
   const retention = useRetentionDeletionData();
   const vendorManagement = useVendorManagementData({ revision });
+  const { vendors: auditVendors, ...auditData } = audit;
 
   useEffect(() => {
     if (!recentlySavedSection) {
@@ -54,7 +55,8 @@ export function useSettingsPageData() {
     ...backup,
     ...auth,
     ...costing,
-    ...audit,
+    ...auditData,
+    auditVendors,
     ...retention,
     ...vendorManagement,
   };
