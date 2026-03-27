@@ -120,6 +120,15 @@ describe("useSettingsPageSectionState", () => {
     mockUseSettingsPageData.mockReset();
   });
 
+  it("starts on the global tab without a profile section when the authentication hash is present", () => {
+    window.history.replaceState(null, "", "/settings#authentication");
+
+    const { result } = renderHook(() => useSettingsPageSectionState());
+
+    expect(result.current.activeTab).toBe("global");
+    expect(result.current.activeSectionId).toBeNull();
+  });
+
   it("activates the profile tab and writes the section hash when jumping to a profile section", () => {
     const { result } = renderHook(() => useSettingsPageSectionState());
 
@@ -149,6 +158,16 @@ describe("SettingsPage shell", () => {
   beforeEach(() => {
     mockUseSettingsPageData.mockReturnValue(buildSettingsPageData());
     window.history.replaceState(null, "", "/settings");
+  });
+
+  it("opens the global settings tab immediately for the authentication hash route", async () => {
+    window.history.replaceState(null, "", "/settings#authentication");
+
+    const { SettingsPage } = await import("../../SettingsPage");
+
+    render(<SettingsPage />);
+
+    expect(screen.getByText("global-tab:Primary profile (#1)")).toBeInTheDocument();
   });
 
   it("mounts extracted profile and global tab bodies while keeping tab state and dialogs in the shell", async () => {

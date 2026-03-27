@@ -15,7 +15,10 @@ function resolveInitialTab(hash: string): SettingsTab {
   return INSTANCE_SECTION_IDS.has(hash) ? SETTINGS_TABS.global : SETTINGS_TABS.profile;
 }
 
-function resolveInitialSectionId(hash: string): string {
+function resolveInitialSectionId(hash: string): string | null {
+  if (INSTANCE_SECTION_IDS.has(hash)) {
+    return null;
+  }
   return SETTINGS_SECTION_IDS.has(hash) ? hash : SETTINGS_SECTIONS[0].id;
 }
 
