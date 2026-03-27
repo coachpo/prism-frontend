@@ -1,52 +1,45 @@
 # FRONTEND STATISTICS DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/statistics/` owns the analytics route behind `../StatisticsPage.tsx`: operations, throughput, and spending views, all driven by shared URL-state and page-level polling and report orchestration. Keep null-vs-zero semantics explicit here, especially for usage and cost triage, and keep request-telemetry filters aligned to `api_family`.
+`pages/statistics/` owns the unified `/statistics` route behind `../StatisticsPage.tsx`. The live page is snapshot-driven, not tab-driven, and it is coordinated by `useUsageStatisticsPageState.ts` for local persisted presentation state plus `useUsageStatisticsPageData.ts` for snapshot orchestration. Keep request-event drilldown aligned to `ingress_request_id`, and keep the page split between `charts/`, `sections/`, and `tables/`.
 
 ## STRUCTURE
 ```
 statistics/
-├── queryParams.ts                 # Shared URL param parsing and defaults
-├── OperationsTab.tsx
-├── ThroughputTab.tsx
-├── SpendingTab.tsx
-├── OperationsTabFilters.tsx
-├── SpendingTabFilters.tsx
-├── StatisticsPageSkeleton.tsx
-├── useStatisticsPageData.ts       # Shared bootstrap, polling, and refresh orchestration
-├── useStatisticsFilterOptions.ts
-├── useStatisticsPageState.ts
-├── useStatisticsReports.ts
-├── utils.ts                       # Shared helpers
-├── operations/                    # Operations charts, cards, types, and async hook
-└── spending/                      # Spending summaries, tables, charts, and async hook
+├── charts/                         # Usage-snapshot charts and local chart helpers
+├── sections/                       # Page sections and snapshot summaries
+├── tables/                         # Drilldown tables and request-event views
+├── UsageStatisticsPageSkeleton.tsx # Page-level loading shell for the unified route
+├── StatisticsPageSkeleton.tsx      # Legacy skeleton still available for local fallback/test coverage
+├── useUsageStatisticsPageData.ts   # Snapshot loading and page-data orchestration
+├── useUsageStatisticsPageState.ts  # Local persisted presentation state
+├── usageStatisticsStorage.ts       # localStorage persistence helpers
+├── requestLogLinks.ts              # Request-log drilldown helpers
+└── __tests__/                      # State, data, refresh, and table coverage
 ```
 
 ## WHERE TO LOOK
 
-- Thin route shell and top-level tab orchestration: `../StatisticsPage.tsx`
-- Route-shell copy and tab labels: `../StatisticsPage.tsx`, `@/i18n/useLocale`, `@/i18n/AGENTS.md`
-- Shared query-param contract and defaults: `queryParams.ts`
-- Page bootstrap, filter options, polling, and refresh orchestration: `useStatisticsPageData.ts`, `useStatisticsFilterOptions.ts`, `useStatisticsPageState.ts`, `useStatisticsReports.ts`
-- Operations rendering and local cluster: `OperationsTab.tsx`, `OperationsTabFilters.tsx`, `operations/`
-- Throughput rendering: `ThroughputTab.tsx`
-- Spending rendering and local cluster: `SpendingTab.tsx`, `SpendingTabFilters.tsx`, `spending/`
+- Thin route shell and top-level section orchestration: `../StatisticsPage.tsx`
+- Route-shell copy and presentation labels: `../StatisticsPage.tsx`, `@/i18n/useLocale`, `@/i18n/AGENTS.md`
+- Snapshot orchestration and persisted presentation state: `useUsageStatisticsPageData.ts`, `useUsageStatisticsPageState.ts`, `usageStatisticsStorage.ts`
+- Usage-snapshot charts, sections, and tables: `charts/`, `sections/`, `tables/`
+- Request-log drilldown helpers: `requestLogLinks.ts`
+- Unified route loading shell: `UsageStatisticsPageSkeleton.tsx`
 - Shared statistics cards and chart wrappers: `../../components/AGENTS.md`
-- Shared presentation helpers and timezone-aware formatting inputs: `utils.ts`, `@/hooks/useTimezone`
+- Shared presentation helpers and timezone-aware formatting inputs: `@/hooks/useTimezone`, `@/components/ui/chart.tsx`
 
 ## CONVENTIONS
 
-- Treat URL state as the source of truth for filters, tabs, presets, and pagination. Bookmarkability is part of the contract.
-- Keep operations-specific async and presentation logic inside `operations/`, and spending-specific logic inside `spending/`, instead of bloating the top-level tab files.
-- Preserve the split between operations telemetry filters, throughput views, and spending aggregation even when labels overlap. Request-log oriented statistics filters should use `api_family`, not vendor.
-- Statistics polling belongs in `useStatisticsPageData.ts`. Tabs consume refreshed state, they do not own their own polling loops.
-- Keep route-shell and tab copy on the shared locale boundary through `useLocale()`, and keep locale-aware formatting on the shared helpers rather than page-local string logic.
-- The dense `operations/` and `spending/` subfolders stay parent-covered. Do not add extra AGENTS files for them.
+- Treat local persisted presentation state as the source of truth for page preferences that should survive reloads. The current unified statistics page does not expose a dedicated route-level query-param contract.
+- Keep unified usage-snapshot orchestration in `useUsageStatisticsPageData.ts`, not in section or table components.
+- Preserve the request-centric model. Request-event drilldown should use `ingress_request_id`, not the retired operations tab contract.
+- Keep route-shell and section copy on the shared locale boundary through `useLocale()`, and keep locale-aware formatting on the shared helpers rather than page-local string logic.
+- The dense `charts/`, `sections/`, and `tables/` subfolders stay parent-covered. Do not add extra AGENTS files for them.
 - Keep null-vs-zero rendering differences visible in helpers and copy, so missing data stays distinct from a true zero value.
 
 ## ANTI-PATTERNS
 
-- Do not duplicate filter parsing in tab components when `queryParams.ts` already owns it.
-- Do not mix spending grouping and top-N rules into operations-table or throughput logic.
+- Do not recreate the retired tab/query-param model inside section or table components.
 - Do not regress null-vs-zero rendering for usage or cost metrics. Statistics depends on that distinction for triage.
-- Do not create standalone AGENTS files for `operations/` or `spending/`. This parent doc owns both local clusters.
+- Do not create standalone AGENTS files for `charts/`, `sections/`, or `tables/`. This parent doc owns those local clusters.

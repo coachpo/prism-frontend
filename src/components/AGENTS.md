@@ -1,14 +1,14 @@
 # FRONTEND COMPONENTS KNOWLEDGE BASE
 
 ## OVERVIEW
-`src/components/` holds Prism's shared shell chrome and reusable UI. Keep it presentation-first, with navigation config, app layout, and small cross-route widgets here. Anything that fetches data, owns realtime state, or depends on route-specific query logic belongs elsewhere.
+`src/components/` holds Prism's shared shell chrome and reusable UI. Keep it presentation-first, with navigation config, app layout, and small cross-route widgets here. Anything that fetches data, owns realtime state, or depends on route-specific query logic belongs elsewhere. The old statistics tab widgets are gone; the current statistics page only reuses a small shared rendering subset from this package.
 
 ## STRUCTURE
 ```
 components/
 ├── layout/                   # AppLayout shell and app-layout helpers
 ├── loadbalance/              # Shared loadbalance badges, table, detail sheet
-├── statistics/               # Shared statistics cards and token displays
+├── statistics/               # Shared statistics cards and request-event displays
 ├── ui/                       # shadcn/ui primitives and local wrappers
 ├── PageHeader.tsx
 ├── MetricCard.tsx
@@ -25,7 +25,7 @@ components/
 - Sidebar links, profile-scoped prefixes, profile cap, version label: `layout/app-layout/navigationProfileConfig.ts`
 - Realtime status and small cross-route widgets: `WebSocketStatusIndicator.tsx`, `PageHeader.tsx`, `MetricCard.tsx`, `StatusBadge.tsx`, `ApiFamilyIcon.tsx`, `ApiFamilySelect.tsx`, `VendorSelect.tsx`
 - Shared loadbalance rendering: `loadbalance/LoadbalanceBadges.tsx`, `loadbalance/LoadbalanceEventsTable.tsx`, `loadbalance/LoadbalanceEventDetailSheet.tsx`
-- Shared statistics rendering: `statistics/TopSpendingCard.tsx`, `statistics/SpecialTokenSummaryCard.tsx`, `statistics/SpecialTokenCoverageStrip.tsx`, `statistics/TokenMetricCell.tsx`
+- Shared statistics rendering: `statistics/TopSpendingCard.tsx`, `statistics/TokenMetricCell.tsx`
 - Design-system wrappers: `ui/`, especially `ui/chart.tsx`, `ui/topography.tsx`, `ui/sonner.tsx`
 
 ## CONVENTIONS
