@@ -1,6 +1,13 @@
 import { EmptyState } from "@/components/EmptyState";
 import { useLocale } from "@/i18n/useLocale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { ProxyApiKey } from "@/lib/types";
 import { ProxyKeyCard } from "./ProxyKeyCard";
 
@@ -51,24 +58,39 @@ export function ProxyKeysListCard({
             className="rounded-md border border-dashed px-3 py-6 [&>div:first-child]:hidden"
           />
         ) : (
-          <div className="grid gap-2.5">
-            {displayedProxyKeys.map((item) => {
-              const rotating = rotatingProxyKeyId === item.id;
-              const deleting = deletingProxyKeyId === item.id;
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader className="hidden md:table-header-group">
+                <TableRow>
+                  <TableHead>{locale === "zh-CN" ? "名称 / 备注" : "Name / note"}</TableHead>
+                  <TableHead>{locale === "zh-CN" ? "预览" : "Preview"}</TableHead>
+                  <TableHead>{locale === "zh-CN" ? "创建时间" : "Created"}</TableHead>
+                  <TableHead>{locale === "zh-CN" ? "更新时间" : "Updated"}</TableHead>
+                  <TableHead>{locale === "zh-CN" ? "最后使用" : "Last used"}</TableHead>
+                  <TableHead>{locale === "zh-CN" ? "最后 IP" : "Last IP"}</TableHead>
+                  <TableHead className="text-right">{locale === "zh-CN" ? "操作" : "Operation"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayedProxyKeys.map((item) => {
+                  const rotating = rotatingProxyKeyId === item.id;
+                  const deleting = deletingProxyKeyId === item.id;
 
-              return (
-                <ProxyKeyCard
-                  key={item.id}
-                  item={item}
-                  authEnabled={authEnabled}
-                  rotating={rotating}
-                  deleting={deleting}
-                  onEdit={() => onEdit(item)}
-                  onRotate={() => onRotate(item.id)}
-                  onDelete={() => onDelete(item)}
-                />
-              );
-            })}
+                  return (
+                    <ProxyKeyCard
+                      key={item.id}
+                      item={item}
+                      authEnabled={authEnabled}
+                      rotating={rotating}
+                      deleting={deleting}
+                      onEdit={() => onEdit(item)}
+                      onRotate={() => onRotate(item.id)}
+                      onDelete={() => onDelete(item)}
+                    />
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>

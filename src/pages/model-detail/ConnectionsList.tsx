@@ -80,7 +80,8 @@ export function ConnectionsList({
   reorderInFlight,
   handleResetCooldown,
 }: ConnectionsListProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.modelDetail;
   const { format: formatTime } = useTimezone();
   const [activeDragId, setActiveDragId] = useState<UniqueIdentifier | null>(null);
 
@@ -155,13 +156,11 @@ export function ConnectionsList({
       <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-semibold">
-            {locale === "zh-CN" ? "连接" : "Connections"}
+            {copy.connections}
             <span className="ml-2 text-xs font-normal text-muted-foreground">({connections.length})</span>
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            {locale === "zh-CN"
-              ? "连接指标和健康检查按需加载，以避免页面初次打开时产生过大的请求突发。"
-              : "Connection metrics and health checks load on demand to avoid large page-open bursts."}
+            {copy.connectionsLoadOnDemandDescription}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -174,13 +173,7 @@ export function ConnectionsList({
             {connectionMetricsLoading ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
             ) : null}
-            {connectionMetricsEnabled
-              ? locale === "zh-CN"
-                ? "24 小时指标已加载"
-                : "24h Metrics Loaded"
-              : locale === "zh-CN"
-                ? "加载 24 小时指标"
-                : "Load 24h Metrics"}
+            {connectionMetricsEnabled ? copy.metricsLoaded : copy.loadMetrics}
           </Button>
           <Button
             size="sm"
@@ -193,13 +186,13 @@ export function ConnectionsList({
             ) : (
               <Activity className="mr-1.5 h-3.5 w-3.5" />
             )}
-            {locale === "zh-CN" ? "全部检查" : "Check All"}
+            {copy.checkAll}
           </Button>
           {connections.length > 3 ? (
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder={locale === "zh-CN" ? "筛选连接..." : "Filter connections..."}
+                placeholder={copy.filterConnections}
                 value={connectionSearch}
                 onChange={(event) => setConnectionSearch(event.target.value)}
                 className="h-8 w-48 pl-8 text-xs"
@@ -208,7 +201,7 @@ export function ConnectionsList({
           ) : null}
           <Button size="sm" onClick={() => openConnectionDialog()}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
-            {locale === "zh-CN" ? "新增连接" : "Add Connection"}
+            {copy.addConnection}
           </Button>
         </div>
       </div>
@@ -218,26 +211,18 @@ export function ConnectionsList({
           icon={<Shield className="h-6 w-6" />}
           title={
             connectionSearch
-              ? locale === "zh-CN"
-                ? "没有连接匹配你的筛选条件"
-                : "No connections match your filter"
-              : locale === "zh-CN"
-                ? "还没有配置连接"
-                : "No connections configured"
+              ? copy.noConnectionsMatchFilter
+              : copy.noConnectionsConfigured
           }
           description={
             connectionSearch
-              ? locale === "zh-CN"
-                ? "请尝试其他搜索词"
-                : "Try a different search term"
-              : locale === "zh-CN"
-                ? "新增一个连接以开始路由请求"
-                : "Add a connection to start routing requests"
+              ? copy.tryDifferentSearchTerm
+              : copy.addConnectionToStartRouting
           }
           action={!connectionSearch ? (
             <Button size="sm" onClick={() => openConnectionDialog()}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />
-              {locale === "zh-CN" ? "新增连接" : "Add Connection"}
+              {copy.addConnection}
             </Button>
           ) : undefined}
         />

@@ -19,6 +19,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SwitchController } from "@/components/SwitchController";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useLocale } from "@/i18n/useLocale";
 import { Loader2, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Connection, ConnectionCreate, Endpoint, EndpointCreate, PricingTemplate } from "@/lib/types";
@@ -71,6 +72,34 @@ export function ConnectionDialog({
   const selectedEndpoint = globalEndpoints.find(
     (endpoint) => endpoint.id === Number.parseInt(selectedEndpointId, 10)
   );
+  const { messages } = useLocale();
+  const copy = messages.modelDetail;
+
+  const limiterFields: Array<{
+    field: "qps_limit" | "max_in_flight_non_stream" | "max_in_flight_stream";
+    id: string;
+    label: string;
+    value: number | null | undefined;
+  }> = [
+    {
+      field: "qps_limit",
+      id: "conn-qps-limit",
+      label: copy.qpsLimit,
+      value: connectionForm.qps_limit,
+    },
+    {
+      field: "max_in_flight_non_stream",
+      id: "conn-max-in-flight-non-stream",
+      label: copy.maxInFlightNonStream,
+      value: connectionForm.max_in_flight_non_stream,
+    },
+    {
+      field: "max_in_flight_stream",
+      id: "conn-max-in-flight-stream",
+      label: copy.maxInFlightStream,
+      value: connectionForm.max_in_flight_stream,
+    },
+  ];
 
   const handleLimiterChange = (
     field: "qps_limit" | "max_in_flight_non_stream" | "max_in_flight_stream",
@@ -87,24 +116,22 @@ export function ConnectionDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingConnection ? "Edit Connection" : "Add Connection"}</DialogTitle>
-          <DialogDescription>
-            Configure endpoint source and optional pricing template for this connection. Routing priority is managed from the connection list by dragging cards.
-          </DialogDescription>
+          <DialogTitle>{editingConnection ? copy.editConnection : copy.addConnection}</DialogTitle>
+          <DialogDescription>{copy.connectionDialogDescription}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleConnectionSubmit} className="space-y-5">
           <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <Label className="text-sm font-medium">Endpoint Source</Label>
+                <Label className="text-sm font-medium">{copy.endpointSource}</Label>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {editingConnection
-                    ? "Switch this connection to another endpoint or create a new one."
-                    : "Choose an existing endpoint or create one inline for this connection."}
+                    ? copy.endpointSourceEditHint
+                    : copy.endpointSourceCreateHint}
                 </p>
               </div>
               {editingConnection && (
-                <StatusBadge label="Editable" intent="info" />
+                <StatusBadge label={copy.editable} intent="info" />
               )}
             </div>
 
@@ -114,15 +141,15 @@ export function ConnectionDialog({
               className="gap-3"
             >
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="select">Select Existing</TabsTrigger>
-                <TabsTrigger value="new">Create New</TabsTrigger>
+                <TabsTrigger value="select">{copy.selectExisting}</TabsTrigger>
+                <TabsTrigger value="new">{copy.createNew}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="select" className="space-y-2">
-                <Label>Select Endpoint</Label>
+                <Label>{copy.selectEndpoint}</Label>
                 <Select value={selectedEndpointId} onValueChange={setSelectedEndpointId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select an endpoint..." />
+                    <SelectValue placeholder={copy.selectEndpointPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {globalEndpoints.map((endpoint) => (
@@ -134,38 +161,38 @@ export function ConnectionDialog({
                 </Select>
                 {selectedEndpoint && (
                   <p className="text-[11px] text-muted-foreground">
-                    Selected: <span className="font-medium text-foreground">{selectedEndpoint.name}</span>
+                    <span className="font-medium text-foreground">{copy.selectedEndpoint(selectedEndpoint.name)}</span>
                   </p>
                 )}
                 {globalEndpoints.length === 0 && (
-                <p className="text-xs text-muted-foreground">No profile endpoints found.</p>
+                  <p className="text-xs text-muted-foreground">{copy.noProfileEndpointsFound}</p>
                 )}
               </TabsContent>
 
               <TabsContent value="new" className="space-y-3">
                 <div className="space-y-2">
-                  <Label>Name</Label>
+                  <Label>{copy.endpointName}</Label>
                   <Input
-                    placeholder="e.g. OpenAI Primary"
+                    placeholder={copy.endpointNamePlaceholder}
                     value={newEndpointForm.name}
                     onChange={(e) => setNewEndpointForm({ ...newEndpointForm, name: e.target.value })}
                     required={createMode === "new"}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Base URL</Label>
+                  <Label>{copy.endpointBaseUrl}</Label>
                   <Input
-                    placeholder="https://api.openai.com"
+                    placeholder={copy.endpointBaseUrlPlaceholder}
                     value={newEndpointForm.base_url}
                     onChange={(e) => setNewEndpointForm({ ...newEndpointForm, base_url: e.target.value })}
                     required={createMode === "new"}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>API Key</Label>
+                  <Label>{copy.endpointApiKey}</Label>
                   <Input
                     type="password"
-                    placeholder="sk-..."
+                    placeholder={copy.endpointApiKeyPlaceholder}
                     value={newEndpointForm.api_key}
                     onChange={(e) => setNewEndpointForm({ ...newEndpointForm, api_key: e.target.value })}
                     required={createMode === "new"}
@@ -177,31 +204,31 @@ export function ConnectionDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="conn-name">Name (Optional)</Label>
+              <Label htmlFor="conn-name">{copy.connectionNameOptional}</Label>
               <Input
                 id="conn-name"
-                placeholder="Connection display name"
+                placeholder={copy.connectionDisplayNamePlaceholder}
                 value={connectionForm.name || ""}
                 onChange={(e) => setConnectionForm({ ...connectionForm, name: e.target.value })}
               />
               <p className="text-[11px] text-muted-foreground">
-                Leave blank to use endpoint name{endpointSourceDefaultName ? `: ${endpointSourceDefaultName}` : ""}.
+                {copy.useEndpointNameFallback(endpointSourceDefaultName)}
               </p>
             </div>
             <div className="rounded-xl border border-dashed bg-muted/20 p-3 text-[11px] text-muted-foreground">
-              New connections are appended as fallbacks. Drag and drop cards in the Model Detail list to adjust routing priority.
+              {copy.routingPriorityHint}
             </div>
           </div>
 
           <SwitchController
-            label="Active"
-            description="Include in load balancing"
+            label={copy.active}
+            description={copy.includeInLoadBalancing}
             checked={connectionForm.is_active ?? true}
             onCheckedChange={(checked) => setConnectionForm({ ...connectionForm, is_active: checked })}
           />
 
           <div className="space-y-2">
-            <Label>Pricing Template</Label>
+            <Label>{copy.pricingTemplate}</Label>
             <Select
               value={connectionForm.pricing_template_id ? String(connectionForm.pricing_template_id) : "unpriced"}
               onValueChange={(value) => {
@@ -212,10 +239,10 @@ export function ConnectionDialog({
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select a pricing template..." />
+                <SelectValue placeholder={copy.pricingTemplatePlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="unpriced">Unpriced (No cost tracking)</SelectItem>
+                <SelectItem value="unpriced">{copy.unpricedNoCostTracking}</SelectItem>
                 {pricingTemplates.map((template) => (
                   <SelectItem key={template.id} value={String(template.id)}>
                     {template.name} v{template.version}
@@ -224,52 +251,32 @@ export function ConnectionDialog({
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
-              Assign a pricing template to track costs for this connection.
+              {copy.pricingTemplateHint}
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="conn-qps-limit">QPS Limit</Label>
-              <Input
-                id="conn-qps-limit"
-                type="number"
-                min="0"
-                value={connectionForm.qps_limit ?? ""}
-                onChange={(e) => handleLimiterChange("qps_limit", e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">Leave blank for unlimited.</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="conn-max-in-flight-non-stream">Max In-Flight (Non-Stream)</Label>
-              <Input
-                id="conn-max-in-flight-non-stream"
-                type="number"
-                min="0"
-                value={connectionForm.max_in_flight_non_stream ?? ""}
-                onChange={(e) => handleLimiterChange("max_in_flight_non_stream", e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">Leave blank for unlimited.</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="conn-max-in-flight-stream">Max In-Flight (Stream)</Label>
-              <Input
-                id="conn-max-in-flight-stream"
-                type="number"
-                min="0"
-                value={connectionForm.max_in_flight_stream ?? ""}
-                onChange={(e) => handleLimiterChange("max_in_flight_stream", e.target.value)}
-              />
-              <p className="text-[11px] text-muted-foreground">Leave blank for unlimited.</p>
-            </div>
+            {limiterFields.map((field) => (
+              <div key={field.field} className="grid content-start gap-2">
+                <div className="min-h-14 space-y-1">
+                  <Label htmlFor={field.id}>{field.label}</Label>
+                  <p className="text-[11px] text-muted-foreground">{copy.leaveBlankForUnlimited}</p>
+                </div>
+                <Input
+                  id={field.id}
+                  type="number"
+                  min="0"
+                  value={field.value ?? ""}
+                  onChange={(e) => handleLimiterChange(field.field, e.target.value)}
+                />
+              </div>
+            ))}
           </div>
 
           {/* Custom Headers */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Custom Headers</Label>
+              <Label>{copy.customHeaders}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -277,17 +284,17 @@ export function ConnectionDialog({
                 onClick={() => setHeaderRows([...headerRows, { key: "", value: "" }])}
               >
                 <Plus className="mr-1.5 h-3 w-3" />
-                Add Header
+                {copy.addHeader}
               </Button>
             </div>
             {headerRows.length === 0 && (
-              <p className="text-xs text-muted-foreground italic">No custom headers configured.</p>
+              <p className="text-xs text-muted-foreground italic">{copy.noCustomHeadersConfigured}</p>
             )}
             <div className="space-y-2">
               {headerRows.map((row, index) => (
                 <div key={`${row.key}:${row.value}`} className="flex items-center gap-2">
                   <Input
-                    placeholder="Header Key"
+                    placeholder={copy.headerKey}
                     value={row.key}
                     onChange={(e) => {
                       const newRows = [...headerRows];
@@ -297,7 +304,7 @@ export function ConnectionDialog({
                     className="flex-1"
                   />
                   <Input
-                    placeholder="Value"
+                    placeholder={copy.headerValue}
                     value={row.value}
                     onChange={(e) => {
                       const newRows = [...headerRows];
@@ -331,22 +338,22 @@ export function ConnectionDialog({
                 variant="outline"
                 onClick={handleDialogTestConnection}
                 disabled={dialogTestingConnection}
-              >
-                {dialogTestingConnection ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Testing...
-                  </>
-                ) : (
-                  "Test Connection"
-                )}
-              </Button>
-            )}
+                >
+                  {dialogTestingConnection ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {copy.testingConnection}
+                    </>
+                  ) : (
+                    copy.testConnection
+                  )}
+                </Button>
+              )}
             <div className="flex-1" />
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {copy.cancel}
             </Button>
-            <Button type="submit">Save Connection</Button>
+            <Button type="submit">{copy.saveConnection}</Button>
           </DialogFooter>
         </form>
 
@@ -357,7 +364,7 @@ export function ConnectionDialog({
             "bg-red-50 text-red-900 dark:bg-red-950/30 dark:text-red-200"
           )}>
             <p className="font-medium">
-              {dialogTestResult.status === "healthy" ? "Connection Healthy" : "Connection Unhealthy"}
+              {dialogTestResult.status === "healthy" ? copy.connectionHealthy : copy.connectionUnhealthy}
             </p>
             <p className="mt-1 text-xs opacity-90">{dialogTestResult.detail}</p>
           </div>

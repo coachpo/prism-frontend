@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { ProxyApiKey } from "@/lib/types";
@@ -22,25 +23,34 @@ function buildProxyKey(overrides: Partial<ProxyApiKey> = {}): ProxyApiKey {
   };
 }
 
+function renderProxyKeyCard(overrides: Partial<ComponentProps<typeof ProxyKeyCard>> = {}) {
+  return render(
+    <LocaleProvider>
+      <table>
+        <tbody>
+          <ProxyKeyCard
+            item={buildProxyKey()}
+            authEnabled={true}
+            rotating={false}
+            deleting={false}
+            onEdit={vi.fn()}
+            onRotate={vi.fn()}
+            onDelete={vi.fn()}
+            {...overrides}
+          />
+        </tbody>
+      </table>
+    </LocaleProvider>
+  );
+}
+
 describe("ProxyKeyCard", () => {
   it("renders accessible edit, rotate, and delete controls and wires their callbacks", () => {
     const onEdit = vi.fn();
     const onRotate = vi.fn();
     const onDelete = vi.fn();
 
-    render(
-      <LocaleProvider>
-        <ProxyKeyCard
-          item={buildProxyKey()}
-          authEnabled={true}
-          rotating={false}
-          deleting={false}
-          onEdit={onEdit}
-          onRotate={onRotate}
-          onDelete={onDelete}
-        />
-      </LocaleProvider>
-    );
+    renderProxyKeyCard({ onEdit, onRotate, onDelete });
 
     const editButton = screen.getByRole("button", { name: "Edit proxy key Primary runtime key" });
     const rotateButton = screen.getByRole("button", {
@@ -62,20 +72,24 @@ describe("ProxyKeyCard", () => {
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
+  it("renders the mobile helper with the expected proxy-key fields", () => {
+    renderProxyKeyCard({
+      item: buildProxyKey({
+        last_used_at: "2026-03-22T08:30:00Z",
+        last_used_ip: "203.0.113.10",
+      }),
+    });
+
+    expect(screen.getByText("Preview")).toBeInTheDocument();
+    expect(screen.getByText("Created")).toBeInTheDocument();
+    expect(screen.getByText("Updated")).toBeInTheDocument();
+    expect(screen.getByText("Last used")).toBeInTheDocument();
+    expect(screen.getByText("Last IP")).toBeInTheDocument();
+    expect(screen.getByText("203.0.113.10")).toBeInTheDocument();
+  });
+
   it("disables all actions and spins the rotate icon while rotation is in progress", () => {
-    render(
-      <LocaleProvider>
-        <ProxyKeyCard
-          item={buildProxyKey()}
-          authEnabled={true}
-          rotating={true}
-          deleting={false}
-          onEdit={vi.fn()}
-          onRotate={vi.fn()}
-          onDelete={vi.fn()}
-        />
-      </LocaleProvider>
-    );
+    renderProxyKeyCard({ rotating: true });
 
     const editButton = screen.getByRole("button", { name: "Edit proxy key Primary runtime key" });
     const rotateButton = screen.getByRole("button", {
@@ -93,50 +107,20 @@ describe("ProxyKeyCard", () => {
     expect(rotateIcon).toHaveClass("animate-spin");
   });
 
-  it("keeps long IPv6 last-used metadata contained inside the card rail", () => {
+  it("keeps long IPv6 last-used metadata contained inside the mobile helper", () => {
     const lastUsedIp = "2001:14bb:67c:c113:bd0f:c251:4077:e4d0";
 
-    render(
-      <LocaleProvider>
-        <ProxyKeyCard
-          item={buildProxyKey({ last_used_ip: lastUsedIp })}
-          authEnabled={true}
-          rotating={false}
-          deleting={false}
-          onEdit={vi.fn()}
-          onRotate={vi.fn()}
-          onDelete={vi.fn()}
-        />
-      </LocaleProvider>
-    );
+    renderProxyKeyCard({ item: buildProxyKey({ last_used_ip: lastUsedIp }) });
 
-    const lastIpLabel = screen.getByText("Last IP");
     const lastIpValue = screen.getByText(lastUsedIp);
-    const lastIpChip = lastIpLabel.closest("div");
-    const metadataRail = lastIpChip?.parentElement;
 
-    expect(metadataRail).toHaveClass("min-w-0");
-    expect(metadataRail).toHaveClass("sm:flex-1");
-    expect(lastIpChip).toHaveClass("min-w-0");
     expect(lastIpValue).toHaveClass("break-all", "font-mono");
   });
 
   it("renders localized proxy-key row copy when the saved locale is Chinese", () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
-    render(
-      <LocaleProvider>
-        <ProxyKeyCard
-          item={buildProxyKey()}
-          authEnabled={true}
-          rotating={false}
-          deleting={false}
-          onEdit={vi.fn()}
-          onRotate={vi.fn()}
-          onDelete={vi.fn()}
-        />
-      </LocaleProvider>
-    );
+    renderProxyKeyCard();
 
     expect(screen.getByRole("button", { name: "编辑代理密钥 Primary runtime key" })).toBeInTheDocument();
     expect(screen.getByText("预览")).toBeInTheDocument();

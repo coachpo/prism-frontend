@@ -314,6 +314,19 @@ describe("RequestLogDetailSheet", () => {
     expect(screen.getByText("Audit logging may be disabled for this vendor.")).toBeInTheDocument();
   });
 
+  it("renders the load-failed audit state with a distinct heading", () => {
+    useAuditDetailMock.mockReturnValue({
+      audits: [],
+      error: "load_failed",
+      loading: false,
+    });
+
+    renderSheet({ activeTab: "audit" });
+
+    expect(screen.getByText("Audit detail load failed")).toBeInTheDocument();
+    expect(screen.getByText("Failed to load audit details after multiple attempts.")).toBeInTheDocument();
+  });
+
   it("renders the empty audit state", () => {
     renderSheet({ activeTab: "audit" });
 

@@ -1,4 +1,5 @@
 import { StatusBadge, ValueBadge } from "@/components/StatusBadge";
+import { useLocale } from "@/i18n/useLocale";
 import type { Connection } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getHealthBadgeProps, getPriorityBadgeClasses } from "./ConnectionCardSectionsShared";
@@ -12,7 +13,14 @@ export function ConnectionCardHeader({
   connectionName: string;
   isChecking: boolean;
 }) {
-  const { healthLabel, healthIntent } = getHealthBadgeProps(connection.health_status, isChecking);
+  const { messages } = useLocale();
+  const copy = messages.modelDetail;
+  const { healthLabel, healthIntent } = getHealthBadgeProps(connection.health_status, isChecking, {
+    checking: copy.healthChecking,
+    healthy: copy.healthHealthy,
+    unhealthy: copy.healthUnhealthy,
+    unknown: copy.healthUnknown,
+  });
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -36,7 +44,7 @@ export function ConnectionCardHeader({
         className={cn("tabular-nums", getPriorityBadgeClasses(connection.priority))}
       />
       <StatusBadge
-        label={connection.pricing_template ? "Pricing On" : "Pricing Off"}
+        label={connection.pricing_template ? copy.pricingOn : copy.pricingOff}
         intent={connection.pricing_template ? "success" : "muted"}
       />
       {connection.pricing_template ? (
@@ -48,7 +56,7 @@ export function ConnectionCardHeader({
           <ValueBadge label={connection.pricing_template.pricing_currency_code} intent="accent" />
         </div>
       ) : null}
-      {!connection.is_active ? <StatusBadge label="Inactive" intent="muted" /> : null}
+      {!connection.is_active ? <StatusBadge label={copy.inactive} intent="muted" /> : null}
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type {
   Connection,
   LoadbalanceCurrentStateItem,
@@ -111,14 +112,22 @@ function buildCurrentState(
   } as LoadbalanceCurrentStateItem;
 }
 
+function renderWithLocale(ui: React.ReactElement) {
+  return render(<LocaleProvider>{ui}</LocaleProvider>);
+}
+
 describe("ConnectionCard cooldown state", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it.each([
     ["blocked", "Recovery Blocked"],
     ["probe_eligible", "Probe Eligible"],
     ["counting", "Recovery Counting"],
     ["banned", "Banned"],
   ] as const)("renders the %s cooldown signal", (state, badgeLabel) => {
-    render(
+    renderWithLocale(
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
@@ -142,7 +151,7 @@ describe("ConnectionCard cooldown state", () => {
   });
 
   it("renders temporary ban copy with the ban expiry time", () => {
-    render(
+    renderWithLocale(
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
@@ -171,7 +180,7 @@ describe("ConnectionCard cooldown state", () => {
   });
 
   it("renders manual ban copy with dismiss wording", () => {
-    render(
+    renderWithLocale(
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
@@ -202,7 +211,7 @@ describe("ConnectionCard cooldown state", () => {
   it("calls reset and shows loading state without affecting the rest of the card", () => {
     const handleResetCooldown = vi.fn();
 
-    const { rerender } = render(
+    const { rerender } = renderWithLocale(
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
@@ -227,22 +236,24 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByRole("switch")).toBeEnabled();
 
     rerender(
-      <ConnectionCard
-        connection={buildConnection()}
-        model={buildModel()}
-        metrics24h={undefined}
-        loadbalanceCurrentState={buildCurrentState("blocked")}
-        isChecking={false}
-        isResettingCooldown
-        isFocused={false}
-        formatTime={(value) => `formatted:${value}`}
-        reorderDisabled={false}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onHealthCheck={vi.fn()}
-        onResetCooldown={handleResetCooldown}
-        onToggleActive={vi.fn()}
-      />
+      <LocaleProvider>
+        <ConnectionCard
+          connection={buildConnection()}
+          model={buildModel()}
+          metrics24h={undefined}
+          loadbalanceCurrentState={buildCurrentState("blocked")}
+          isChecking={false}
+          isResettingCooldown
+          isFocused={false}
+          formatTime={(value) => `formatted:${value}`}
+          reorderDisabled={false}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onHealthCheck={vi.fn()}
+          onResetCooldown={handleResetCooldown}
+          onToggleActive={vi.fn()}
+        />
+      </LocaleProvider>
     );
 
     expect(screen.getByRole("button", { name: "Reset Recovery State" })).toBeDisabled();
@@ -250,7 +261,7 @@ describe("ConnectionCard cooldown state", () => {
   });
 
   it("shows no cooldown panel when there is no current state row", () => {
-    render(
+    renderWithLocale(
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
@@ -274,7 +285,7 @@ describe("ConnectionCard cooldown state", () => {
   });
 
   it("renders header pricing and inactive badges from the extracted header component", () => {
-    render(
+    renderWithLocale(
       <ConnectionCardHeader
         connection={{ ...buildConnection(), is_active: false }}
         connectionName="Primary"
@@ -287,7 +298,7 @@ describe("ConnectionCard cooldown state", () => {
   });
 
   it("applies muted shell styling to inactive cards while keeping actions available", () => {
-    const { container } = render(
+    const { container } = renderWithLocale(
       <ConnectionCard
         connection={{ ...buildConnection(), is_active: false }}
         model={buildModel()}
@@ -316,7 +327,7 @@ describe("ConnectionCard cooldown state", () => {
   });
 
   it("renders metrics text from the extracted metrics component", () => {
-    render(
+    renderWithLocale(
       <ConnectionCardMetrics
         formatTime={(value) => `formatted:${value}`}
         metrics24h={{
@@ -334,13 +345,13 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByText("98.5%")).toBeInTheDocument();
   });
 
-  it("wires action callbacks through the extracted actions component", () => {
+  it("wires action callbacks through the extracted actions component", async () => {
     const onEdit = vi.fn();
     const onDelete = vi.fn();
     const onHealthCheck = vi.fn();
     const onToggleActive = vi.fn();
 
-    render(
+    renderWithLocale(
       <ConnectionCardActions
         connection={buildConnection()}
         isChecking={false}
@@ -353,10 +364,58 @@ describe("ConnectionCard cooldown state", () => {
 
     fireEvent.click(screen.getByRole("switch"));
 
-    expect(screen.getByRole("button", { name: "Connection actions" })).toBeInTheDocument();
+    const actionsTrigger = screen.getByRole("button", { name: "Connection actions" });
+
+    expect(actionsTrigger).toBeInTheDocument();
     expect(onEdit).not.toHaveBeenCalled();
     expect(onHealthCheck).not.toHaveBeenCalled();
     expect(onDelete).not.toHaveBeenCalled();
     expect(onToggleActive).toHaveBeenCalledWith(expect.objectContaining({ id: 11 }));
+
+    actionsTrigger.focus();
+    fireEvent.keyDown(actionsTrigger, { key: "Enter", code: "Enter" });
+
+    await waitFor(() => {
+      expect(screen.getByRole("menuitem", { name: "Edit" })).toBeInTheDocument();
+    });
+    expect(screen.getByRole("menuitem", { name: "Health Check" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
+  });
+
+  it("renders localized connection-card copy in Chinese", () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    renderWithLocale(
+      <ConnectionCard
+        connection={{ ...buildConnection(), is_active: false }}
+        model={buildModel()}
+        metrics24h={{
+          request_count_24h: 24,
+          success_rate_24h: 98.5,
+          p95_latency_ms: 450,
+          five_xx_rate: 1.2,
+          heuristic_failover_events: 2,
+          last_failover_like_at: "2026-03-23T10:05:00Z",
+        }}
+        loadbalanceCurrentState={buildCurrentState("blocked")}
+        isChecking={false}
+        isResettingCooldown={false}
+        isFocused={false}
+        formatTime={(value) => `formatted:${value}`}
+        reorderDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onHealthCheck={vi.fn()}
+        onResetCooldown={vi.fn()}
+        onToggleActive={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("拖动以重新排序连接 Primary")).toBeInTheDocument();
+    expect(screen.getByText("未启用定价")).toBeInTheDocument();
+    expect(screen.getByText("未激活")).toBeInTheDocument();
+    expect(screen.getByText("恢复阻止中")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "重置恢复状态" })).toBeInTheDocument();
+    expect(screen.getByText("成功率（24 小时）")).toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
 import { GripVertical } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { cn } from "@/lib/utils";
 import { getConnectionName } from "../modelDetailMetricsAndPaths";
 import { ConnectionCardActions } from "./ConnectionCardActions";
@@ -30,6 +31,8 @@ export function ConnectionCard({
   onToggleActive,
 }: ConnectionCardProps) {
   const connectionName = getConnectionName(connection);
+  const { messages } = useLocale();
+  const copy = messages.modelDetail;
 
   return (
     <div
@@ -56,7 +59,7 @@ export function ConnectionCard({
               (reorderDisabled || isOverlay) && "cursor-default opacity-30",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             )}
-            aria-label={`Drag to reorder connection ${connectionName}`}
+            aria-label={copy.dragToReorderConnection(connectionName)}
             {...(dragHandleAttributes ?? {})}
             {...(dragHandleListeners ?? {})}
           >

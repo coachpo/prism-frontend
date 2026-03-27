@@ -1,6 +1,7 @@
 import { Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, ValueBadge } from "@/components/StatusBadge";
+import { useLocale } from "@/i18n/useLocale";
 import type {
   LoadbalanceCurrentStateItem,
   LoadbalanceCurrentStateValue,
@@ -20,12 +21,15 @@ export function ConnectionCardCooldownState({
   isResetting: boolean;
   onResetCooldown: (connectionId: number) => void;
 }) {
+  const { messages } = useLocale();
+  const copy = messages.modelDetail;
+
   if (!currentState) {
     return null;
   }
 
-  const tone = getCurrentStateTone(currentState.state);
-  const failureCountLabel = `${currentState.consecutive_failures} failure${currentState.consecutive_failures === 1 ? "" : "s"}`;
+  const tone = getCurrentStateTone(currentState.state, copy);
+  const failureCountLabel = copy.failureCount(currentState.consecutive_failures);
 
   return (
     <div className={cn("rounded-lg border px-3 py-2 text-xs", tone.panelClassName)}>
@@ -36,7 +40,19 @@ export function ConnectionCardCooldownState({
             <ValueBadge label={failureCountLabel} intent="default" />
           </div>
           <p className="leading-5 text-muted-foreground">
-            {buildCurrentStateCopy(currentState, formatTime)}
+            {buildCurrentStateCopy(currentState, formatTime, {
+              consecutiveFailures: copy.consecutiveFailures,
+              currentStateBlocked: copy.currentStateBlocked,
+              currentStateCounting: copy.currentStateCounting,
+              currentStateManualBan: copy.currentStateManualBan,
+              currentStateProbeEligible: copy.currentStateProbeEligible,
+              currentStateTemporaryBan: copy.currentStateTemporaryBan,
+              failureKindAuthLike: copy.failureKindAuthLike,
+              failureKindConnectError: copy.failureKindConnectError,
+              failureKindTimeout: copy.failureKindTimeout,
+              failureKindTransientHttp: copy.failureKindTransientHttp,
+              failureKindUnknown: copy.failureKindUnknown,
+            })}
           </p>
         </div>
 
@@ -52,7 +68,7 @@ export function ConnectionCardCooldownState({
           ) : (
             <RotateCcw className="h-3 w-3" />
           )}
-          Reset Recovery State
+          {copy.resetRecoveryState}
         </Button>
       </div>
     </div>
@@ -61,6 +77,12 @@ export function ConnectionCardCooldownState({
 
 function getCurrentStateTone(
   state: LoadbalanceCurrentStateValue,
+  copy: {
+    banned: string;
+    probeEligible: string;
+    recoveryBlocked: string;
+    recoveryCounting: string;
+  },
 ): {
   label: string;
   intent: "warning" | "danger" | "info";
@@ -68,7 +90,7 @@ function getCurrentStateTone(
 } {
   if (state === "blocked") {
     return {
-      label: "Recovery Blocked",
+      label: copy.recoveryBlocked,
       intent: "danger",
       panelClassName: "border-red-500/20 bg-red-500/5",
     };
@@ -76,7 +98,7 @@ function getCurrentStateTone(
 
   if (state === "banned") {
     return {
-      label: "Banned",
+      label: copy.banned,
       intent: "danger",
       panelClassName: "border-red-500/20 bg-red-500/5",
     };
@@ -84,14 +106,14 @@ function getCurrentStateTone(
 
   if (state === "probe_eligible") {
     return {
-      label: "Probe Eligible",
+      label: copy.probeEligible,
       intent: "info",
       panelClassName: "border-sky-500/20 bg-sky-500/5",
     };
   }
 
   return {
-    label: "Recovery Counting",
+    label: copy.recoveryCounting,
     intent: "warning",
     panelClassName: "border-amber-500/20 bg-amber-500/5",
   };

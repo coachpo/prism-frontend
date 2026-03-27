@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { Connection, Endpoint, ModelConfig, ModelConfigListItem } from "@/lib/types";
 import { ConnectionDialog } from "../ConnectionDialog";
 import { createDefaultConnectionForm } from "../useModelDetailDataSupport";
@@ -159,8 +160,13 @@ function ConnectionDialogHarness({
   );
 }
 
+function renderWithLocale(ui: React.ReactElement) {
+  return render(<LocaleProvider>{ui}</LocaleProvider>);
+}
+
 describe("ConnectionDialog limiter fields", () => {
   beforeEach(() => {
+    localStorage.clear();
     vi.clearAllMocks();
     api.connections.create.mockResolvedValue(buildConnection({ id: 22 }));
     api.connections.update.mockResolvedValue(buildConnection());
@@ -178,8 +184,40 @@ describe("ConnectionDialog limiter fields", () => {
     });
   });
 
+  it("renders localized add-dialog copy in English", async () => {
+    renderWithLocale(<ConnectionDialogHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
+    expect(screen.getByText("Endpoint Source")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Select Existing" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Create New" })).toBeInTheDocument();
+    expect(screen.getByLabelText("QPS Limit")).toBeInTheDocument();
+    expect(screen.getAllByText("Leave blank for unlimited.")).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "Save Connection" })).toBeInTheDocument();
+  });
+
+  it("renders localized edit-dialog copy in Chinese", async () => {
+    localStorage.setItem("prism.locale", "zh-CN");
+
+    renderWithLocale(<ConnectionDialogHarness editingConnection={buildConnection()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    expect(await screen.findByText("编辑连接")).toBeInTheDocument();
+    expect(screen.getByText("端点来源")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "选择现有端点" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "新建端点" })).toBeInTheDocument();
+    expect(screen.getByLabelText("QPS 限流")).toBeInTheDocument();
+    expect(screen.getByLabelText("最大并发（非流式）")).toBeInTheDocument();
+    expect(screen.getByLabelText("最大并发（流式）")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "测试连接" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "保存连接" })).toBeInTheDocument();
+  });
+
   it("hydrates existing limiter values when editing a connection", async () => {
-    render(
+    renderWithLocale(
       <ConnectionDialogHarness
         editingConnection={buildConnection({
           qps_limit: 30,
@@ -197,7 +235,7 @@ describe("ConnectionDialog limiter fields", () => {
   });
 
   it("includes limiter fields in the create submit payload when present", async () => {
-    render(<ConnectionDialogHarness />);
+    renderWithLocale(<ConnectionDialogHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
 
@@ -235,7 +273,7 @@ describe("ConnectionDialog limiter fields", () => {
   });
 
   it("submits null limiter values after clearing existing inputs", async () => {
-    render(
+    renderWithLocale(
       <ConnectionDialogHarness
         editingConnection={buildConnection({
           qps_limit: 20,

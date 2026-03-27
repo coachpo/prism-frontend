@@ -32,6 +32,10 @@ export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: 
   }
 
   if (error) {
+    const errorTitle =
+      error === "capture_unavailable"
+        ? messages.requestLogs.auditCaptureUnavailable
+        : messages.requestLogs.auditLoadFailedTitle;
     const errorMessage =
       error === "capture_unavailable"
         ? messages.requestLogs.auditCaptureDisabledForVendor
@@ -41,7 +45,7 @@ export function RequestLogAuditTab({ audits, loading, error, formatTimestamp }: 
       <div className="flex flex-col items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-10 text-center">
         <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
         <div className="max-w-full space-y-2">
-          <p className="text-sm font-medium">{messages.requestLogs.auditCaptureUnavailable}</p>
+          <p className="text-sm font-medium">{errorTitle}</p>
           <p className="text-sm text-muted-foreground">{errorMessage}</p>
         </div>
       </div>

@@ -5,6 +5,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,6 +32,9 @@ export function ConnectionCardActions({
   onHealthCheck: (id: number) => void;
   onToggleActive: (connection: Connection) => void;
 }) {
+  const { messages } = useLocale();
+  const copy = messages.modelDetail;
+
   return (
     <div className="flex shrink-0 items-center gap-2">
       <Switch
@@ -41,14 +45,14 @@ export function ConnectionCardActions({
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Connection actions">
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={copy.connectionActions}>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => onEdit(connection)}>
             <Pencil className="mr-2 h-3.5 w-3.5" />
-            Edit
+            {copy.edit}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onHealthCheck(connection.id)} disabled={isChecking}>
             {isChecking ? (
@@ -56,7 +60,7 @@ export function ConnectionCardActions({
             ) : (
               <Activity className="mr-2 h-3.5 w-3.5" />
             )}
-            Health Check
+            {copy.healthCheck}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -64,7 +68,7 @@ export function ConnectionCardActions({
             onClick={() => onDelete(connection.id)}
           >
             <Trash2 className="mr-2 h-3.5 w-3.5" />
-            Delete
+            {copy.delete}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

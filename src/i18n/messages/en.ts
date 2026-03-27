@@ -269,6 +269,113 @@ export interface Messages {
     tryDifferentSearchTerm: string;
     typeToConfirm: (value: string) => string;
   };
+  modelDetail: {
+    active: string;
+    addConnection: string;
+    addConnectionToStartRouting: string;
+    addHeader: string;
+    banned: string;
+    cancel: string;
+    checkAll: string;
+    checkedAt: (time: string) => string;
+    checkingNow: string;
+    connectionActions: string;
+    connectionDialogDescription: string;
+    connectionDisplayNamePlaceholder: string;
+    connectionHealthy: string;
+    connectionNameOptional: string;
+    connectionUnhealthy: string;
+    connections: string;
+    connectionsLoadOnDemandDescription: string;
+    consecutiveFailures: (count: number) => string;
+    createNew: string;
+    currentStateBlocked: (
+      failureSummary: string,
+      cooldown: string,
+      failureKind: string,
+      blockedUntil: string | null,
+    ) => string;
+    currentStateCounting: (failureSummary: string, failureKind: string) => string;
+    currentStateManualBan: string;
+    currentStateProbeEligible: (
+      cooldown: string,
+      blockedUntil: string | null,
+      failureKind: string,
+    ) => string;
+    currentStateTemporaryBan: (until: string | null) => string;
+    customHeaders: string;
+    delete: string;
+    dragToReorderConnection: (name: string) => string;
+    edit: string;
+    editable: string;
+    editConnection: string;
+    endpointApiKey: string;
+    endpointApiKeyPlaceholder: string;
+    endpointBaseUrl: string;
+    endpointBaseUrlPlaceholder: string;
+    endpointName: string;
+    endpointNamePlaceholder: string;
+    endpointSource: string;
+    endpointSourceCreateHint: string;
+    endpointSourceEditHint: string;
+    failoverEvents: (count: string) => string;
+    failoverLast: (value: string) => string;
+    failoverSignals: string;
+    failureCount: (count: number) => string;
+    failureKindAuthLike: string;
+    failureKindConnectError: string;
+    failureKindTimeout: string;
+    failureKindTransientHttp: string;
+    failureKindUnknown: string;
+    filterConnections: string;
+    healthCheck: string;
+    healthChecking: string;
+    healthHealthy: string;
+    healthUnknown: string;
+    healthUnhealthy: string;
+    headerKey: string;
+    headerValue: string;
+    includeInLoadBalancing: string;
+    inactive: string;
+    keyLabel: string;
+    leaveBlankForUnlimited: string;
+    loadMetrics: string;
+    maxInFlightNonStream: string;
+    maxInFlightStream: string;
+    metricsLoaded: string;
+    noConnectionsConfigured: string;
+    noConnectionsMatchFilter: string;
+    noCustomHeadersConfigured: string;
+    noProfileEndpointsFound: string;
+    notCheckedYet: string;
+    p95Latency24h: string;
+    pricingOff: string;
+    pricingOn: string;
+    pricingTemplate: string;
+    pricingTemplateHint: string;
+    pricingTemplatePlaceholder: string;
+    probeEligible: string;
+    qpsLimit: string;
+    recoveryBlocked: string;
+    recoveryCounting: string;
+    resetRecoveryState: string;
+    routingPriorityHint: string;
+    sampled5xxRate: string;
+    saveConnection: string;
+    selectEndpoint: string;
+    selectedEndpoint: (name: string) => string;
+    selectEndpointPlaceholder: string;
+    selectExisting: string;
+    successRate24h: string;
+    successRateSample: (count: string) => string;
+    successRateTooltip: string;
+    testConnection: string;
+    testingConnection: string;
+    tryDifferentSearchTerm: string;
+    unknownEndpoint: string;
+    unpricedNoCostTracking: string;
+    useEndpointNameFallback: (name: string | null) => string;
+  };
   requestLogs: {
     allColumns: string;
     allConnections: string;
@@ -351,6 +458,7 @@ export interface Messages {
     auditCapture: string;
     auditCaptureUnavailable: string;
     auditCaptureDisabledForVendor: string;
+    auditLoadFailedTitle: string;
     auditLoadFailed: string;
     noAuditRecords: string;
     timeRange: string;
@@ -810,6 +918,113 @@ export const enMessages: Messages = {
     tryDifferentSearchTerm: "Try a different search term.",
     typeToConfirm: (value) => `Type ${value} to confirm`,
   },
+  modelDetail: {
+    active: "Active",
+    addConnection: "Add Connection",
+    addConnectionToStartRouting: "Add a connection to start routing requests",
+    addHeader: "Add Header",
+    banned: "Banned",
+    cancel: "Cancel",
+    checkAll: "Check All",
+    checkedAt: (time) => `Checked ${time}`,
+    checkingNow: "Checking now...",
+    connectionActions: "Connection actions",
+    connectionDialogDescription:
+      "Configure endpoint source and optional pricing template for this connection. Routing priority is managed from the connection list by dragging cards.",
+    connectionDisplayNamePlaceholder: "Connection display name",
+    connectionHealthy: "Connection Healthy",
+    connectionNameOptional: "Name (Optional)",
+    connectionUnhealthy: "Connection Unhealthy",
+    connections: "Connections",
+    connectionsLoadOnDemandDescription:
+      "Connection metrics and health checks load on demand to avoid large page-open bursts.",
+    consecutiveFailures: (count) => `${count} consecutive failure${count === 1 ? "" : "s"}`,
+    createNew: "Create New",
+    currentStateBlocked: (failureSummary, cooldown, failureKind, blockedUntil) =>
+      `${failureSummary} triggered a ${cooldown} cooldown after ${failureKind}. Routing stays paused until ${blockedUntil ?? "the cooldown expires"}.`,
+    currentStateCounting: (failureSummary, failureKind) =>
+      `Tracking ${failureSummary} after ${failureKind}. No cooldown is currently open, but failover recovery is still counting these signals.`,
+    currentStateManualBan: "This connection is banned until the operator dismisses it.",
+    currentStateProbeEligible: (cooldown, blockedUntil, failureKind) =>
+      `The last ${cooldown} cooldown expired${blockedUntil ? ` at ${blockedUntil}` : ""}. This connection is now eligible for the next routed probe after ${failureKind}.`,
+    currentStateTemporaryBan: (until) =>
+      `This connection is banned until ${until ?? "the temporary ban expires"}.`,
+    customHeaders: "Custom Headers",
+    delete: "Delete",
+    dragToReorderConnection: (name) => `Drag to reorder connection ${name}`,
+    edit: "Edit",
+    editable: "Editable",
+    editConnection: "Edit Connection",
+    endpointApiKey: "API Key",
+    endpointApiKeyPlaceholder: "sk-...",
+    endpointBaseUrl: "Base URL",
+    endpointBaseUrlPlaceholder: "https://api.openai.com",
+    endpointName: "Name",
+    endpointNamePlaceholder: "e.g. OpenAI Primary",
+    endpointSource: "Endpoint Source",
+    endpointSourceCreateHint: "Choose an existing endpoint or create one inline for this connection.",
+    endpointSourceEditHint: "Switch this connection to another endpoint or create a new one.",
+    failoverEvents: (count) => `Events: ${count}`,
+    failoverLast: (value) => `Last: ${value}`,
+    failoverSignals: "Failover-like signals (derived from 5xx)",
+    failureCount: (count) => `${count} failure${count === 1 ? "" : "s"}`,
+    failureKindAuthLike: "an auth-like failure",
+    failureKindConnectError: "a connection error",
+    failureKindTimeout: "a timeout",
+    failureKindTransientHttp: "a transient HTTP failure",
+    failureKindUnknown: "an unknown failure",
+    filterConnections: "Filter connections...",
+    healthCheck: "Health Check",
+    healthChecking: "Checking",
+    healthHealthy: "Healthy",
+    healthUnknown: "Unknown",
+    healthUnhealthy: "Unhealthy",
+    headerKey: "Header Key",
+    headerValue: "Value",
+    includeInLoadBalancing: "Include in load balancing",
+    inactive: "Inactive",
+    keyLabel: "Key",
+    leaveBlankForUnlimited: "Leave blank for unlimited.",
+    loadMetrics: "Load 24h Metrics",
+    maxInFlightNonStream: "Max In-Flight (Non-Stream)",
+    maxInFlightStream: "Max In-Flight (Stream)",
+    metricsLoaded: "24h Metrics Loaded",
+    noConnectionsConfigured: "No connections configured",
+    noConnectionsMatchFilter: "No connections match your filter",
+    noCustomHeadersConfigured: "No custom headers configured.",
+    noProfileEndpointsFound: "No profile endpoints found.",
+    notCheckedYet: "Not checked yet",
+    p95Latency24h: "P95 latency (24h)",
+    pricingOff: "Pricing Off",
+    pricingOn: "Pricing On",
+    pricingTemplate: "Pricing Template",
+    pricingTemplateHint: "Assign a pricing template to track costs for this connection.",
+    pricingTemplatePlaceholder: "Select a pricing template...",
+    probeEligible: "Probe Eligible",
+    qpsLimit: "QPS Limit",
+    recoveryBlocked: "Recovery Blocked",
+    recoveryCounting: "Recovery Counting",
+    resetRecoveryState: "Reset Recovery State",
+    routingPriorityHint:
+      "New connections are appended as fallbacks. Drag and drop cards in the Model Detail list to adjust routing priority.",
+    sampled5xxRate: "5xx rate (sampled)",
+    saveConnection: "Save Connection",
+    selectEndpoint: "Select Endpoint",
+    selectedEndpoint: (name) => `Selected: ${name}`,
+    selectEndpointPlaceholder: "Select an endpoint...",
+    selectExisting: "Select Existing",
+    successRate24h: "Success rate (24h)",
+    successRateSample: (count) => `n=${count}`,
+    successRateTooltip:
+      "Success rate = successful requests / total requests for this connection in the last 24 hours. n = total requests counted in that 24h window.",
+    testConnection: "Test Connection",
+    testingConnection: "Testing...",
+    tryDifferentSearchTerm: "Try a different search term",
+    unknownEndpoint: "Unknown endpoint",
+    unpricedNoCostTracking: "Unpriced (No cost tracking)",
+    useEndpointNameFallback: (name) =>
+      name ? `Leave blank to use endpoint name: ${name}.` : "Leave blank to use endpoint name.",
+  },
   requestLogs: {
     allColumns: "All columns",
     allConnections: "All connections",
@@ -892,6 +1107,7 @@ export const enMessages: Messages = {
     auditCapture: "Audit capture",
     auditCaptureUnavailable: "Audit capture unavailable",
     auditCaptureDisabledForVendor: "Audit logging may be disabled for this vendor.",
+    auditLoadFailedTitle: "Audit detail load failed",
     auditLoadFailed: "Failed to load audit details after multiple attempts.",
     noAuditRecords: "No audit records found for this request.",
     timeRange: "Time range",

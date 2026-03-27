@@ -66,7 +66,15 @@ describe("ProxyKeysListCard", () => {
       </LocaleProvider>
     );
 
+    expect(screen.getByRole("columnheader", { name: "Name / note" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Preview" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Created" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Updated" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Last used" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Last IP" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Operation" })).toBeInTheDocument();
     expect(screen.getByText("Primary runtime key")).toBeInTheDocument();
+    expect(screen.getByText("Used by the primary ingress.")).toBeInTheDocument();
     expect(screen.getByText("Secondary runtime key")).toBeInTheDocument();
     expect(screen.getByText("prism_****************")).toBeInTheDocument();
     expect(screen.getByText("prism_alt_************")).toBeInTheDocument();

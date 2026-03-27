@@ -1,23 +1,54 @@
 import type { Connection, LoadbalanceCurrentStateItem } from "@/lib/types";
 import type { FormatTime } from "./connectionCardTypes";
 
+export type ConnectionCardHealthCopy = {
+  checking: string;
+  healthy: string;
+  unhealthy: string;
+  unknown: string;
+};
+
+export type ConnectionCardCurrentStateCopy = {
+  consecutiveFailures: (count: number) => string;
+  currentStateBlocked: (
+    failureSummary: string,
+    cooldown: string,
+    failureKind: string,
+    blockedUntil: string | null,
+  ) => string;
+  currentStateCounting: (failureSummary: string, failureKind: string) => string;
+  currentStateManualBan: string;
+  currentStateProbeEligible: (
+    cooldown: string,
+    blockedUntil: string | null,
+    failureKind: string,
+  ) => string;
+  currentStateTemporaryBan: (until: string | null) => string;
+  failureKindAuthLike: string;
+  failureKindConnectError: string;
+  failureKindTimeout: string;
+  failureKindTransientHttp: string;
+  failureKindUnknown: string;
+};
+
 export function getHealthBadgeProps(
   healthStatus: Connection["health_status"],
   isChecking: boolean,
+  copy: ConnectionCardHealthCopy,
 ): { healthLabel: string; healthIntent: "info" | "success" | "danger" | "muted" } {
   if (isChecking) {
-    return { healthLabel: "Checking", healthIntent: "info" };
+    return { healthLabel: copy.checking, healthIntent: "info" };
   }
 
   if (healthStatus === "healthy") {
-    return { healthLabel: "Healthy", healthIntent: "success" };
+    return { healthLabel: copy.healthy, healthIntent: "success" };
   }
 
   if (healthStatus === "unhealthy") {
-    return { healthLabel: "Unhealthy", healthIntent: "danger" };
+    return { healthLabel: copy.unhealthy, healthIntent: "danger" };
   }
 
-  return { healthLabel: "Unknown", healthIntent: "muted" };
+  return { healthLabel: copy.unknown, healthIntent: "muted" };
 }
 
 export function getPriorityBadgeClasses(priority: number): string {
@@ -43,10 +74,11 @@ export function getPriorityBadgeClasses(priority: number): string {
 export function buildCurrentStateCopy(
   currentState: LoadbalanceCurrentStateItem,
   formatTime: FormatTime,
+  copy: ConnectionCardCurrentStateCopy,
 ): string {
   const cooldown = formatCooldownSeconds(currentState.last_cooldown_seconds);
-  const failureSummary = `${currentState.consecutive_failures} consecutive failure${currentState.consecutive_failures === 1 ? "" : "s"}`;
-  const failureKindLabel = getFailureKindLabel(currentState.last_failure_kind);
+  const failureSummary = copy.consecutiveFailures(currentState.consecutive_failures);
+  const failureKindLabel = getFailureKindLabel(currentState.last_failure_kind, copy);
   const blockedUntilLabel = currentState.blocked_until_at
     ? formatTime(currentState.blocked_until_at, {
         hour: "numeric",
@@ -66,21 +98,21 @@ export function buildCurrentStateCopy(
 
   if (currentState.state === "banned") {
     if (currentState.ban_mode === "temporary") {
-      return `This connection is banned until ${bannedUntilLabel ?? "the temporary ban expires"}.`;
+      return copy.currentStateTemporaryBan(bannedUntilLabel);
     }
 
-    return "This connection is banned until the operator dismisses it.";
+    return copy.currentStateManualBan;
   }
 
   if (currentState.state === "blocked") {
-    return `${failureSummary} triggered a ${cooldown} cooldown after ${failureKindLabel}. Routing stays paused until ${blockedUntilLabel ?? "the cooldown expires"}.`;
+    return copy.currentStateBlocked(failureSummary, cooldown, failureKindLabel, blockedUntilLabel);
   }
 
   if (currentState.state === "probe_eligible") {
-    return `The last ${cooldown} cooldown expired${blockedUntilLabel ? ` at ${blockedUntilLabel}` : ""}. This connection is now eligible for the next routed probe after ${failureKindLabel}.`;
+    return copy.currentStateProbeEligible(cooldown, blockedUntilLabel, failureKindLabel);
   }
 
-  return `Tracking ${failureSummary} after ${failureKindLabel}. No cooldown is currently open, but failover recovery is still counting these signals.`;
+  return copy.currentStateCounting(failureSummary, failureKindLabel);
 }
 
 function formatCooldownSeconds(seconds: number): string {
@@ -99,18 +131,21 @@ function formatCooldownSeconds(seconds: number): string {
   return `${minutes}m ${remainingSeconds}s`;
 }
 
-function getFailureKindLabel(failureKind: LoadbalanceCurrentStateItem["last_failure_kind"]): string {
+function getFailureKindLabel(
+  failureKind: LoadbalanceCurrentStateItem["last_failure_kind"],
+  copy: ConnectionCardCurrentStateCopy,
+): string {
   if (failureKind === "transient_http") {
-    return "a transient HTTP failure";
+    return copy.failureKindTransientHttp;
   }
   if (failureKind === "auth_like") {
-    return "an auth-like failure";
+    return copy.failureKindAuthLike;
   }
   if (failureKind === "connect_error") {
-    return "a connection error";
+    return copy.failureKindConnectError;
   }
   if (failureKind === "timeout") {
-    return "a timeout";
+    return copy.failureKindTimeout;
   }
-  return "an unknown failure";
+  return copy.failureKindUnknown;
 }

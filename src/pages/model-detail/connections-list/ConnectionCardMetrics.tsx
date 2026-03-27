@@ -1,4 +1,5 @@
 import { Info, Route } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
@@ -18,22 +19,22 @@ export function ConnectionCardMetrics({
   formatTime: FormatTime;
   metrics24h: ConnectionDerivedMetrics | undefined;
 }) {
+  const { messages } = useLocale();
+  const copy = messages.modelDetail;
   const successRate = metrics24h?.success_rate_24h ?? null;
 
   return (
     <div className="space-y-2 pt-1">
       <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-        <span>Success rate (24h)</span>
-        <span className="text-[10px]">n={(metrics24h?.request_count_24h ?? 0).toLocaleString()}</span>
+        <span>{copy.successRate24h}</span>
+        <span className="text-[10px]">{copy.successRateSample((metrics24h?.request_count_24h ?? 0).toLocaleString())}</span>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Info className="h-3.5 w-3.5" />
             </TooltipTrigger>
             <TooltipContent className="pointer-events-none">
-              <p className="text-xs">
-                Success rate = successful requests / total requests for this connection in the last 24 hours. n = total requests counted in that 24h window.
-              </p>
+              <p className="text-xs">{copy.successRateTooltip}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -73,11 +74,11 @@ export function ConnectionCardMetrics({
 
       <div className="grid grid-cols-2 gap-2 text-[11px]">
         <ConnectionCardMetricTile
-          label="P95 latency (24h)"
+          label={copy.p95Latency24h}
           value={formatLatencyForDisplay(metrics24h?.p95_latency_ms ?? null)}
         />
         <ConnectionCardMetricTile
-          label="5xx rate (sampled)"
+          label={copy.sampled5xxRate}
           value={
             metrics24h?.five_xx_rate === null || metrics24h?.five_xx_rate === undefined
               ? "-"
@@ -89,12 +90,12 @@ export function ConnectionCardMetrics({
       <div className="rounded border border-dashed px-2 py-1.5 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-1">
           <Route className="h-3.5 w-3.5" />
-          Failover-like signals (derived from 5xx)
+          {copy.failoverSignals}
         </div>
         <div className="mt-1 flex items-center gap-3">
-          <span>Events: {metrics24h?.heuristic_failover_events ?? 0}</span>
+          <span>{copy.failoverEvents(String(metrics24h?.heuristic_failover_events ?? 0))}</span>
           <span>
-            Last: {metrics24h?.last_failover_like_at ? formatTime(metrics24h.last_failover_like_at) : "-"}
+            {copy.failoverLast(metrics24h?.last_failover_like_at ? formatTime(metrics24h.last_failover_like_at) : "-")}
           </span>
         </div>
       </div>

@@ -38,7 +38,7 @@ describe("RequestLogAuditTab", () => {
       />,
     );
 
-    expect(screen.getByText("审计捕获不可用")).toBeInTheDocument();
+    expect(screen.getByText("审计详情加载失败")).toBeInTheDocument();
     expect(screen.getByText("多次尝试后仍无法加载审计详情。")) .toBeInTheDocument();
   });
 });
