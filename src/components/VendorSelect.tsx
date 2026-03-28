@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { VendorIcon } from "@/components/VendorIcon";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type { Vendor } from "@/lib/types";
 
 interface VendorSelectProps {
@@ -24,11 +25,14 @@ export function VendorSelect({
   onValueChange,
   valueType = "vendor_id",
   showAll = true,
-  allLabel = "All Vendors",
+  allLabel,
   vendors,
   className,
-  placeholder = "Vendor",
+  placeholder,
 }: VendorSelectProps) {
+  const messages = getStaticMessages();
+  const resolvedAllLabel = allLabel ?? `${messages.statistics.all} ${messages.common.vendor}`;
+  const resolvedPlaceholder = placeholder ?? messages.common.vendor;
   const itemValue = (vendor: Vendor) =>
     valueType === "vendor_id" ? String(vendor.id) : vendor.key;
   const selectedVendor = vendors.find((vendor) => itemValue(vendor) === value);
@@ -39,16 +43,16 @@ export function VendorSelect({
       <span>{selectedVendor.name}</span>
     </span>
   ) : isAllSelected ? (
-    <span>{allLabel}</span>
+    <span>{resolvedAllLabel}</span>
   ) : null;
 
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder}>{selectedContent}</SelectValue>
+        <SelectValue placeholder={resolvedPlaceholder}>{selectedContent}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {showAll ? <SelectItem value="all">{allLabel}</SelectItem> : null}
+        {showAll ? <SelectItem value="all">{resolvedAllLabel}</SelectItem> : null}
         {vendors.map((vendor) => (
           <SelectItem key={vendor.id} value={itemValue(vendor)}>
             <span className="flex items-center gap-2">

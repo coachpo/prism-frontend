@@ -1,4 +1,5 @@
 import type { SessionResponse } from "../types";
+import { getStaticMessages } from "@/i18n/staticMessages";
 
 const rawApiBase = import.meta.env.VITE_API_BASE;
 const API_BASE =
@@ -30,7 +31,7 @@ export class ApiError extends Error {
 
 function extractErrorMessage(body: unknown): string {
   if (!body || typeof body !== "object") {
-    return "Request failed";
+    return getStaticMessages().common.requestFailed;
   }
   const detail = (body as { detail?: unknown }).detail;
   if (typeof detail === "string" && detail.trim().length > 0) {
@@ -45,7 +46,7 @@ function extractErrorMessage(body: unknown): string {
       return maybeMessage;
     }
   }
-  return "Request failed";
+  return getStaticMessages().common.requestFailed;
 }
 
 const AUTH_REFRESH_EXEMPT_PATHS = new Set([

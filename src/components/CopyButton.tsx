@@ -1,6 +1,7 @@
 import type { ComponentProps } from "react";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { Button } from "@/components/ui/button";
 import { copyTextToClipboard } from "@/lib/clipboard";
 
@@ -17,7 +18,7 @@ interface CopyButtonProps extends Omit<ButtonProps, "onClick"> {
 
 export function CopyButton({
   value,
-  label = "Copy",
+  label,
   targetLabel,
   successMessage,
   errorMessage,
@@ -28,15 +29,17 @@ export function CopyButton({
   children,
   ...props
 }: CopyButtonProps) {
-  const resolvedTargetLabel = targetLabel ?? label;
+  const messages = getStaticMessages();
+  const resolvedLabel = label ?? messages.common.copy;
+  const resolvedTargetLabel = targetLabel ?? resolvedLabel;
 
   const handleCopy = async () => {
     const copied = await copyTextToClipboard(value);
     if (!copied) {
-      toast.error(errorMessage ?? `Failed to copy ${resolvedTargetLabel.toLowerCase()}`);
+      toast.error(errorMessage ?? messages.common.copyFailed(resolvedTargetLabel));
       return;
     }
-    toast.success(successMessage ?? `${resolvedTargetLabel} copied to clipboard`);
+    toast.success(successMessage ?? messages.common.copiedToClipboard(resolvedTargetLabel));
   };
 
   return (
@@ -55,7 +58,7 @@ export function CopyButton({
       {children ?? (
         <>
           <Copy className="h-3.5 w-3.5" />
-          {label ? <span>{label}</span> : null}
+          {resolvedLabel ? <span>{resolvedLabel}</span> : null}
         </>
       )}
     </Button>

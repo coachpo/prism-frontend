@@ -1,4 +1,5 @@
 import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import {
   Select,
   SelectContent,
@@ -26,17 +27,20 @@ export function ApiFamilySelect({
   onValueChange,
   apiFamilies = DEFAULT_API_FAMILIES,
   showAll = true,
-  allLabel = "All API Families",
+  allLabel,
   className,
-  placeholder = "API Family",
+  placeholder,
 }: ApiFamilySelectProps) {
+  const messages = getStaticMessages();
+  const resolvedAllLabel = allLabel ?? `${messages.statistics.all} ${messages.common.apiFamily}`;
+  const resolvedPlaceholder = placeholder ?? messages.common.apiFamily;
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={resolvedPlaceholder} />
       </SelectTrigger>
       <SelectContent>
-        {showAll ? <SelectItem value="all">{allLabel}</SelectItem> : null}
+        {showAll ? <SelectItem value="all">{resolvedAllLabel}</SelectItem> : null}
         {apiFamilies.map((apiFamily) => (
           <SelectItem key={apiFamily} value={apiFamily}>
             <span className="flex items-center gap-2">

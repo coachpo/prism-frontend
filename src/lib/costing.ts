@@ -1,27 +1,36 @@
 import { formatNumber, getCurrentLocale, type Locale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 
 const MICRO_FACTOR = 1_000_000;
 
-const PRICING_UNIT_LABELS: Record<string, string> = {
-  PER_1M: "Per 1M tokens",
-};
+function getPricingUnitLabels(): Record<string, string> {
+  return {
+    PER_1M: getStaticMessages().costingUi.per1mTokens,
+  };
+}
 
-const MISSING_SPECIAL_TOKEN_POLICY_LABELS: Record<string, string> = {
-  MAP_TO_OUTPUT: "Map to output price",
-  ZERO_COST: "Zero cost",
-};
+function getMissingSpecialTokenPolicyLabels(): Record<string, string> {
+  return {
+    MAP_TO_OUTPUT: getStaticMessages().costingUi.mapToOutputPrice,
+    ZERO_COST: getStaticMessages().costingUi.zeroCost,
+  };
+}
 
-const UNPRICED_REASON_LABELS: Record<string, string> = {
-  PRICING_DISABLED: "Pricing disabled",
-  MISSING_PRICE_DATA: "Missing price data",
-  MISSING_ENDPOINT: "Missing endpoint",
-  MISSING_TOKEN_USAGE: "Missing token usage",
-};
+function getUnpricedReasonLabels(): Record<string, string> {
+  return {
+    PRICING_DISABLED: getStaticMessages().costingUi.pricingDisabled,
+    MISSING_PRICE_DATA: getStaticMessages().costingUi.missingPriceData,
+    MISSING_ENDPOINT: getStaticMessages().costingUi.missingEndpoint,
+    MISSING_TOKEN_USAGE: getStaticMessages().costingUi.missingTokenUsage,
+  };
+}
 
-const FX_RATE_SOURCE_LABELS: Record<string, string> = {
-  ENDPOINT_SPECIFIC: "Endpoint-specific rate",
-  DEFAULT_1_TO_1: "Default (1:1)",
-};
+function getFxRateSourceLabels(): Record<string, string> {
+  return {
+    ENDPOINT_SPECIFIC: getStaticMessages().costingUi.endpointSpecificRate,
+    DEFAULT_1_TO_1: getStaticMessages().costingUi.default1To1,
+  };
+}
 
 function formatEnumLabel(
   value: string | null | undefined,
@@ -86,19 +95,19 @@ export function isValidPositiveDecimalString(value: string): boolean {
 }
 
 export function formatPricingUnitLabel(value: string | null | undefined): string {
-  return formatEnumLabel(value, PRICING_UNIT_LABELS);
+  return formatEnumLabel(value, getPricingUnitLabels());
 }
 
 export function formatMissingSpecialTokenPolicyLabel(
   value: string | null | undefined
 ): string {
-  return formatEnumLabel(value, MISSING_SPECIAL_TOKEN_POLICY_LABELS);
+  return formatEnumLabel(value, getMissingSpecialTokenPolicyLabels());
 }
 
 export function formatUnpricedReasonLabel(value: string | null | undefined): string {
-  return formatEnumLabel(value, UNPRICED_REASON_LABELS);
+  return formatEnumLabel(value, getUnpricedReasonLabels());
 }
 
 export function formatFxRateSourceLabel(value: string | null | undefined): string {
-  return formatEnumLabel(value, FX_RATE_SOURCE_LABELS);
+  return formatEnumLabel(value, getFxRateSourceLabels());
 }

@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { getStaticMessages } from "@/i18n/staticMessages";
 
 type IssuePath = (string | number)[];
 type RefinementContext = Pick<z.RefinementCtx, "addIssue">;
@@ -22,6 +23,26 @@ type ResolveReferenceNameOptions = {
 
 function capitalizeReferenceLabel(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function getValidationMessages() {
+  return getStaticMessages().settingsBackupValidation;
+}
+
+function localizeReferenceLabel(value: string) {
+  const copy = getValidationMessages();
+  switch (value) {
+    case "vendor":
+      return copy.referenceLabelVendor;
+    case "endpoint":
+      return copy.referenceLabelEndpoint;
+    case "pricing template":
+      return copy.referenceLabelPricingTemplate;
+    case "loadbalance strategy":
+      return copy.referenceLabelLoadbalanceStrategy;
+    default:
+      return capitalizeReferenceLabel(value);
+  }
 }
 
 export function addCustomIssue(ctx: RefinementContext, path: IssuePath, message: string) {
@@ -57,7 +78,7 @@ export function collectNamedReferences<T extends { name: string }>({
       addCustomIssue(
         ctx,
         [collectionPath, index, "name"],
-        `${capitalizeReferenceLabel(referenceLabel)} name must not be empty`,
+        getValidationMessages().referenceNameEmpty(localizeReferenceLabel(referenceLabel)),
       );
       return;
     }
@@ -66,7 +87,7 @@ export function collectNamedReferences<T extends { name: string }>({
       addCustomIssue(
         ctx,
         [collectionPath, index, "name"],
-        `Duplicate ${referenceLabel} name '${normalizedName}'`,
+        getValidationMessages().duplicateReferenceName(localizeReferenceLabel(referenceLabel), normalizedName),
       );
     }
 
@@ -87,7 +108,7 @@ export function resolveRequiredReferenceName({
   const normalizedName = normalizeReferenceName(value);
 
   if (normalizedName === null) {
-    addCustomIssue(ctx, path, missingMessage ?? "Must include a reference name");
+    addCustomIssue(ctx, path, missingMessage ?? getValidationMessages().missingReferenceName);
     return null;
   }
 

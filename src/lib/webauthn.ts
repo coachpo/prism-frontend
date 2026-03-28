@@ -11,6 +11,7 @@ import {
 
 
 import { api } from './api';
+import { getStaticMessages } from '@/i18n/staticMessages';
 
 /**
  * Register a new Passkey for the authenticated user.
@@ -19,15 +20,15 @@ export async function registerPasskey(deviceName?: string): Promise<{ success: b
   // Get registration options from server
   const options = await api.settings.auth.webauthn.registrationOptions();
 
-  let attResp;
+  let attResp: Awaited<ReturnType<typeof startRegistration>>;
   try {
     attResp = await startRegistration(options as any);
   } catch (error: any) {
     // User cancelled or browser doesn't support WebAuthn
     if (error.name === 'NotAllowedError') {
-      throw new Error('Registration cancelled by user');
+      throw new Error(getStaticMessages().settingsPasskeysData.registerFailed);
     }
-    throw new Error(`WebAuthn registration failed: ${error.message}`);
+    throw new Error(getWebAuthnErrorMessage(error));
   }
 
   // Verify registration with server
@@ -47,15 +48,15 @@ export async function authenticateWithPasskey(username?: string): Promise<{ succ
   const options = await api.settings.auth.webauthn.authenticationOptions(username);
 
   // Start WebAuthn authentication ceremony
-  let asseResp;
+  let asseResp: Awaited<ReturnType<typeof startAuthentication>>;
   try {
     asseResp = await startAuthentication(options as any);
   } catch (error: any) {
     // User cancelled or browser doesn't support WebAuthn
     if (error.name === 'NotAllowedError') {
-      throw new Error('Authentication cancelled by user');
+      throw new Error(getStaticMessages().auth.passkeyAuthenticationFailed);
     }
-    throw new Error(`WebAuthn authentication failed: ${error.message}`);
+    throw new Error(getWebAuthnErrorMessage(error));
   }
 
   // Verify authentication with server
@@ -95,17 +96,18 @@ export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
  * Get user-friendly error message for WebAuthn errors.
  */
 export function getWebAuthnErrorMessage(error: any): string {
+  const messages = getStaticMessages();
   if (error.name === 'NotAllowedError') {
-    return 'Operation cancelled. Please try again.';
+    return messages.settingsPasskeysData.registerFailed;
   }
   if (error.name === 'NotSupportedError') {
-    return 'Your browser does not support Passkeys. Please use a modern browser.';
+    return messages.auth.browserNoPasskeys;
   }
   if (error.name === 'SecurityError') {
-    return 'Security error. Make sure you are using HTTPS.';
+    return messages.auth.loginFailed;
   }
   if (error.name === 'InvalidStateError') {
-    return 'This Passkey is already registered.';
+    return messages.settingsAuthentication.unsupportedPasskeys;
   }
-  return error.message || 'An unknown error occurred.';
+   return error.message || messages.common.unavailable;
 }

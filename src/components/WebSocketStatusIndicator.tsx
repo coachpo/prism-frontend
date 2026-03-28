@@ -1,4 +1,5 @@
 import type { ConnectionState } from "@/lib/websocket";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import {
   Tooltip,
   TooltipContent,
@@ -12,32 +13,32 @@ interface WebSocketStatusIndicatorProps {
   isSyncing?: boolean;
 }
 
-const STATUS_STYLES: Record<ConnectionState, { dotClassName: string; label: string }> = {
-  connected: {
-    dotClassName: "bg-emerald-500 animate-pulse",
-    label: "Connected",
-  },
-  connecting: {
-    dotClassName: "bg-amber-500 animate-pulse",
-    label: "Connecting...",
-  },
-  reconnecting: {
-    dotClassName: "bg-amber-500 animate-pulse",
-    label: "Reconnecting...",
-  },
-  disconnected: {
-    dotClassName: "bg-gray-400",
-    label: "Disconnected",
-  },
-};
-
 export function WebSocketStatusIndicator({
   connectionState,
   isSyncing = false,
 }: WebSocketStatusIndicatorProps) {
+  const copy = getStaticMessages().common;
+  const statusStyles: Record<ConnectionState, { dotClassName: string; label: string }> = {
+    connected: {
+      dotClassName: "bg-emerald-500 animate-pulse",
+      label: copy.connected,
+    },
+    connecting: {
+      dotClassName: "bg-amber-500 animate-pulse",
+      label: copy.connecting,
+    },
+    reconnecting: {
+      dotClassName: "bg-amber-500 animate-pulse",
+      label: copy.reconnecting,
+    },
+    disconnected: {
+      dotClassName: "bg-gray-400",
+      label: copy.disconnected,
+    },
+  };
   const status = isSyncing
-    ? { dotClassName: "bg-sky-500 animate-pulse", label: "Syncing..." }
-    : STATUS_STYLES[connectionState];
+    ? { dotClassName: "bg-sky-500 animate-pulse", label: copy.syncing }
+    : statusStyles[connectionState];
 
   return (
     <TooltipProvider>

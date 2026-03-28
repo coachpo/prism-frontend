@@ -161,7 +161,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         );
       } catch (err) {
         if (mounted) {
-          const message = err instanceof Error ? err.message : "Failed to initialize profiles";
+          const message = err instanceof Error ? err.message : messages.profiles.initializeFailed;
           setError(message);
         }
       } finally {
@@ -176,7 +176,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [applyActiveProfile, applyProfiles, syncSelectedProfile]);
+  }, [applyActiveProfile, applyProfiles, messages.profiles.initializeFailed, syncSelectedProfile]);
 
   if (isLoading) {
     return (

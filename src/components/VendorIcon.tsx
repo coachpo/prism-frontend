@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { getVendorIconPreset } from "@/components/vendorIconRegistry";
 
 type VendorIconLike = {
@@ -31,9 +32,10 @@ function getVendorMonogram(vendor?: VendorIconLike | null) {
 }
 
 export function VendorIcon({ vendor, size = 16, className, decorative = false }: VendorIconProps) {
+  const messages = getStaticMessages();
   const preset = getVendorIconPreset(vendor?.icon_key);
   const label = getVendorLabel(vendor);
-  const ariaLabel = label ? `Vendor icon ${label}` : "Vendor icon placeholder";
+  const ariaLabel = label ? messages.common.vendorIconLabel(label) : messages.common.vendorIconPlaceholder;
   const monogram = getVendorMonogram(vendor) ?? "?";
   const accessibilityProps = decorative ? { "aria-hidden": true as const } : { role: "img" as const, "aria-label": ariaLabel };
 

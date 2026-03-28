@@ -48,6 +48,8 @@ function applyProfileSnapshot(
   return profiles;
 }
 
+import { getStaticMessages } from "@/i18n/staticMessages";
+
 export function createProfileActions(options: ProfileActionsOptions) {
   const refreshProfiles = async () => {
     const profiles = await options.profilesApi.list();
@@ -61,9 +63,7 @@ export function createProfileActions(options: ProfileActionsOptions) {
       return createdProfile;
     } catch (error) {
       if (error instanceof Error && error.message.includes("409")) {
-        throw new Error(
-          "Maximum 10 profiles reached. Delete a profile to create a new one.",
-        );
+        throw new Error(getStaticMessages().profiles.limitReached);
       }
 
       throw error;

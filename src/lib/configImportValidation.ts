@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import {
   addCustomIssue,
   collectNamedReferences,
@@ -35,7 +36,7 @@ const FailoverStatusCodesImportSchema = z
     if (new Set(codes).size !== codes.length) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Failover status codes must be unique",
+        message: getStaticMessages().settingsBackupValidation.statusCodesUnique,
       });
     }
   })
@@ -128,6 +129,7 @@ export const ConfigImportSchema = z
     header_blocklist_rules: z.array(HeaderBlocklistRuleExportSchema).optional(),
   })
   .superRefine((data, ctx) => {
+    const validationMessages = getStaticMessages().settingsBackupValidation;
     const vendorKeys = collectNamedReferences({
       items: data.vendors,
       ctx,
@@ -162,7 +164,7 @@ export const ConfigImportSchema = z
         addCustomIssue(
           ctx,
           ["loadbalance_strategies", index, "failover_recovery_enabled"],
-          "Single strategies must not enable failover recovery",
+          validationMessages.singleStrategyNoRecovery,
         );
       }
     });
@@ -174,9 +176,8 @@ export const ConfigImportSchema = z
         ctx,
         knownNames: vendorKeys,
         path: ["models", modelIndex, "vendor_key"],
-        missingMessage: `Model '${model.model_id}' must include vendor_key`,
-        unknownMessage: (vendorKey) =>
-          `Unknown vendor_key '${vendorKey}' in import payload`,
+        missingMessage: validationMessages.modelMustIncludeVendorKey(model.model_id),
+        unknownMessage: (vendorKey) => validationMessages.unknownVendorKey(vendorKey),
       });
 
       const normalizedStrategyName = normalizeReferenceName(model.loadbalance_strategy_name);
@@ -186,9 +187,8 @@ export const ConfigImportSchema = z
           ctx,
           knownNames: strategyNames,
           path: ["models", modelIndex, "loadbalance_strategy_name"],
-          missingMessage: `Native model '${model.model_id}' must include loadbalance_strategy_name`,
-          unknownMessage: (strategyName) =>
-            `Unknown loadbalance strategy '${strategyName}' in import payload`,
+          missingMessage: validationMessages.nativeModelMustIncludeStrategy(model.model_id),
+          unknownMessage: (strategyName) => validationMessages.unknownLoadbalanceStrategy(strategyName),
         });
       }
 
@@ -196,7 +196,7 @@ export const ConfigImportSchema = z
         addCustomIssue(
           ctx,
           ["models", modelIndex, "loadbalance_strategy_name"],
-          `Proxy model '${model.model_id}' must not include loadbalance_strategy_name`,
+          validationMessages.proxyModelMustNotIncludeStrategy(model.model_id),
         );
       }
 
@@ -204,7 +204,7 @@ export const ConfigImportSchema = z
         addCustomIssue(
           ctx,
           ["models", modelIndex, "proxy_targets"],
-          `Native model '${model.model_id}' must not include proxy_targets`,
+          validationMessages.nativeModelMustNotIncludeProxyTargets(model.model_id),
         );
       }
 
@@ -214,7 +214,7 @@ export const ConfigImportSchema = z
           addCustomIssue(
             ctx,
             ["models", modelIndex, "proxy_targets", targetIndex, "position"],
-            `Proxy targets for '${model.model_id}' must use contiguous positions starting at 0`,
+            validationMessages.proxyTargetsContiguous(model.model_id),
           );
         }
 
@@ -222,7 +222,7 @@ export const ConfigImportSchema = z
           addCustomIssue(
             ctx,
             ["models", modelIndex, "proxy_targets", targetIndex, "target_model_id"],
-            `Duplicate proxy target '${target.target_model_id}' for model '${model.model_id}'`,
+            validationMessages.duplicateProxyTarget(target.target_model_id, model.model_id),
           );
           return;
         }
@@ -237,9 +237,8 @@ export const ConfigImportSchema = z
           ctx,
           knownNames: endpointNames,
           path: referencePath,
-          missingMessage: "Must include endpoint_name",
-          unknownMessage: (endpointName) =>
-            `Unknown endpoint_name '${endpointName}' in import payload`,
+          missingMessage: validationMessages.missingEndpointName,
+          unknownMessage: (endpointName) => validationMessages.unknownEndpointName(endpointName),
         });
         if (endpointName !== null) {
           connectionPairs.add(`${model.model_id}::${endpointName}`);
@@ -250,8 +249,7 @@ export const ConfigImportSchema = z
           ctx,
           knownNames: templateNames,
           path: [...referencePath, "pricing_template_name"],
-          unknownMessage: (templateName) =>
-            `Unknown pricing_template_name '${templateName}' in import payload`,
+          unknownMessage: (templateName) => validationMessages.unknownPricingTemplateName(templateName),
         });
       });
     });
@@ -264,9 +262,8 @@ export const ConfigImportSchema = z
         ctx,
         knownNames: endpointNames,
         path: referencePath,
-        missingMessage: "Must include endpoint_name",
-        unknownMessage: (endpointName) =>
-          `Unknown endpoint_name '${endpointName}' in import payload`,
+        missingMessage: validationMessages.missingEndpointName,
+        unknownMessage: (endpointName) => validationMessages.unknownEndpointName(endpointName),
       });
       if (endpointName === null) {
         return;
@@ -277,7 +274,7 @@ export const ConfigImportSchema = z
         addCustomIssue(
           ctx,
           referencePath,
-          `Duplicate FX mapping for model_id='${mapping.model_id}', endpoint_name='${endpointName}'`,
+          validationMessages.duplicateFxMapping(mapping.model_id, endpointName),
         );
         return;
       }
@@ -287,7 +284,7 @@ export const ConfigImportSchema = z
         addCustomIssue(
           ctx,
           referencePath,
-          `FX mapping must reference an imported model/endpoint pair: model_id='${mapping.model_id}', endpoint_name='${endpointName}'`,
+          validationMessages.fxMappingMustReferenceImportedPair(mapping.model_id, endpointName),
         );
       }
     });
