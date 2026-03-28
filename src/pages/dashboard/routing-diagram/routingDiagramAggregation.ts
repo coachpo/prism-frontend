@@ -1,5 +1,6 @@
 import type { Connection } from "@/lib/types";
 import { compareStringsForLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type {
   RoutingDiagramData,
   RoutingDiagramLink,
@@ -180,7 +181,7 @@ export function buildRoutingDiagramData({
       name: totals.label,
       kind: "endpoint",
       label: totals.label,
-      sublabel: `Endpoint ${endpointId}`,
+      sublabel: getStaticMessages().common.endpointWithId(String(endpointId)),
       endpointId,
       modelId: null,
       modelConfigId: null,
@@ -273,7 +274,7 @@ function getEndpointLabel(connection: Connection): string {
     return endpointBaseUrl;
   }
 
-  return `Endpoint ${connection.endpoint_id}`;
+  return getStaticMessages().common.endpointWithId(String(connection.endpoint_id));
 }
 
 function parseTrafficGroupKey(value: string): { modelId: string; endpointId: number } | null {

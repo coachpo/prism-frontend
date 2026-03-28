@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type {
   ApiFamily,
   Endpoint,
@@ -33,6 +34,7 @@ interface UseRequestLogsPageDataParams {
 }
 
 export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDataParams) {
+  const messages = getStaticMessages();
   const [items, setItems] = useState<RequestLogEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -115,7 +117,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
       })
       .catch((err) => {
         if (id !== fetchIdRef.current) return;
-        setError(err instanceof Error ? err.message : "Failed to load request logs");
+        setError(err instanceof Error ? err.message : messages.requestLogs.loadFailed);
         setItems([]);
         setTotal(0);
       })
@@ -134,6 +136,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     state.time_range,
     state.limit,
     state.offset,
+    messages.requestLogs.loadFailed,
   ]);
 
   useEffect(() => {

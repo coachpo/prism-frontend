@@ -1,5 +1,6 @@
 import type { DashboardRouteSnapshot } from "@/lib/types";
 import { compareStringsForLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type {
   RoutingDiagramData,
   RoutingDiagramLink,
@@ -114,7 +115,7 @@ function rebuildRoutingDiagramData(links: RoutingDiagramLink[]): RoutingDiagramD
       name: totals.label,
       kind: "endpoint",
       label: totals.label,
-      sublabel: `Endpoint ${endpointId}`,
+      sublabel: getStaticMessages().common.endpointWithId(String(endpointId)),
       endpointId,
       modelId: null,
       modelConfigId: null,

@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { api } from "@/lib/api";
 import { getSharedModels } from "@/lib/referenceData";
 import type {
@@ -119,8 +120,7 @@ async function loadDashboardBootstrapData(
         console.error("Failed to fetch routing diagram data", error);
         return {
           data: getEmptyRoutingDiagramData(),
-          error:
-            "Routing diagram data could not be loaded. The rest of the dashboard is still available.",
+          error: getStaticMessages().dashboard.routingDiagramLoadFailed,
         };
       }
     })(),

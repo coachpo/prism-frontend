@@ -19,7 +19,7 @@ import {
   STREAM_OPTIONS,
   VIEW_OPTIONS,
 } from "./queryParams";
-import { LATENCY_LABELS } from "./FiltersBar.constants";
+import { getLatencyLabel } from "./FiltersBar.constants";
 
 interface FiltersBarSecondaryFiltersProps {
   actions: Pick<
@@ -140,9 +140,7 @@ export function FiltersBarSecondaryFilters({
                 <SelectContent>
                   {LATENCY_BUCKET_OPTIONS.map((latencyBucket) => (
                     <SelectItem key={latencyBucket} value={latencyBucket}>
-                      {latencyBucket === "all"
-                        ? messages.requestLogs.anyLatency
-                        : LATENCY_LABELS[latencyBucket]}
+                      {getLatencyLabel(latencyBucket)}
                     </SelectItem>
                   ))}
                 </SelectContent>

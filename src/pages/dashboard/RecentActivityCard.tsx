@@ -75,7 +75,6 @@ export function RecentActivityCard({
                         hour: "numeric",
                         minute: "numeric",
                         second: "numeric",
-                        hour12: true,
                       })}{" "}
                       - {formatNumber(request.response_time_ms)}ms
                     </p>

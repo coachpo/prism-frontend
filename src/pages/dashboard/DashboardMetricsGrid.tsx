@@ -27,7 +27,9 @@ export function DashboardMetricsGrid({
       <MetricCard
         label={messages.dashboard.requests24h}
         value={formatNumber(snapshot.totalRequests)}
-        detail={messages.dashboard.successRate(snapshot.successRate.toFixed(1))}
+        detail={messages.dashboard.successRate(
+          formatNumber(snapshot.successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+        )}
         icon={<Activity className="h-4 w-4" />}
         className={cn(
           "[&_[data-slot=icon]]:bg-blue-500/10 [&_[data-slot=icon]]:text-blue-500",
@@ -47,7 +49,7 @@ export function DashboardMetricsGrid({
       />
       <MetricCard
         label={messages.dashboard.averageRpm}
-        value={snapshot.averageRpm.toFixed(3)}
+        value={formatNumber(snapshot.averageRpm, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
         detail={messages.dashboard.totalRequests(formatNumber(snapshot.averageRpmRequestTotal))}
         icon={<Activity className="h-4 w-4" />}
         className={cn(

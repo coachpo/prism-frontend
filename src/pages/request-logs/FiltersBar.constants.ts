@@ -1,22 +1,53 @@
-export const TIME_LABELS: Record<string, string> = {
-  "1h": "Last hour",
-  "6h": "Last 6 hours",
-  "24h": "Last 24 hours",
-  "7d": "Last 7 days",
-  "30d": "Last 30 days",
-  all: "All time",
-};
+import { getStaticMessages } from "@/i18n/staticMessages";
 
-export const LATENCY_LABELS: Record<string, string> = {
-  all: "Any latency",
-  fast: "< 500ms",
-  normal: "500ms-2s",
-  slow: "2s-5s",
-  very_slow: "> 5s",
-};
+export function getTimeLabel(value: string) {
+  const copy = getStaticMessages().requestLogs;
+  switch (value) {
+    case "1h":
+      return copy.lastHour;
+    case "6h":
+      return copy.last6Hours;
+    case "24h":
+      return copy.last24Hours;
+    case "7d":
+      return copy.last7Days;
+    case "30d":
+      return copy.last30Days;
+    case "all":
+      return copy.requestLogsAllTime;
+    default:
+      return value;
+  }
+}
 
-export const STATUS_FAMILY_LABELS: Record<string, string> = {
-  all: "All statuses",
-  "4xx": "4xx only",
-  "5xx": "5xx only",
-};
+export function getLatencyLabel(value: string) {
+  const copy = getStaticMessages().requestLogs;
+  switch (value) {
+    case "all":
+      return copy.anyLatency;
+    case "fast":
+      return copy.latencyFast;
+    case "normal":
+      return copy.latencyNormal;
+    case "slow":
+      return copy.latencySlow;
+    case "very_slow":
+      return copy.latencyVerySlow;
+    default:
+      return value;
+  }
+}
+
+export function getStatusFamilyLabel(value: string) {
+  const copy = getStaticMessages().requestLogs;
+  switch (value) {
+    case "all":
+      return copy.allStatuses;
+    case "4xx":
+      return copy.fourHundredsOnly;
+    case "5xx":
+      return copy.fiveHundredsOnly;
+    default:
+      return value;
+  }
+}

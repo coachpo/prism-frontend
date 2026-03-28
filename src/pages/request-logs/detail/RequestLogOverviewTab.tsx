@@ -119,7 +119,7 @@ export function RequestLogOverviewTab({
                   size="sm"
                     className="h-7 rounded-full border-red-500/20 px-2.5 text-[11px] text-red-700 hover:border-red-500/40 hover:bg-red-500/10 dark:text-red-200"
                     onClick={() => {
-                      void copyRequestLogText(formattedErrorDetail, "error detail");
+                      void copyRequestLogText(formattedErrorDetail, messages.requestLogs.errorDetail);
                     }}
                   >
                     <Copy className="h-3 w-3" />
@@ -139,7 +139,7 @@ export function RequestLogOverviewTab({
 
       <div className="space-y-4">
         <SectionCard icon={FileText} title={messages.requestLogs.requestDetails}>
-          <DetailRow label="Request ID"><span className="font-mono">#{request.id}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.requestId}><span className="font-mono">#{request.id}</span></DetailRow>
           {request.ingress_request_id && (
             <DetailRow label={messages.requestLogs.ingressRequestId}>
               <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">

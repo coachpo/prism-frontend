@@ -1,5 +1,10 @@
 import { toast } from "sonner";
 import { copyTextToClipboard } from "@/lib/clipboard";
+import { getStaticMessages } from "@/i18n/staticMessages";
+
+function getMessages() {
+  return getStaticMessages();
+}
 
 export function getStatusIntent(statusCode: number) {
   if (statusCode >= 200 && statusCode < 300) return "success" as const;
@@ -22,9 +27,9 @@ export function getStatusTone(statusCode: number) {
 export async function copyRequestLogText(content: string, label: string) {
   const copied = await copyTextToClipboard(content);
   if (copied) {
-    toast.success(`Copied ${label}`);
+    toast.success(getMessages().requestLogsDetail.copied(label));
     return;
   }
 
-  toast.error(`Failed to copy ${label}`);
+  toast.error(getMessages().requestLogsDetail.copyFailed(label));
 }

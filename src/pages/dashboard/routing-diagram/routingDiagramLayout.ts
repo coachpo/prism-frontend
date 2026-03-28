@@ -5,6 +5,7 @@ import type {
   RoutingDiagramLink,
 } from "./routingDiagramContracts";
 import { compareStringsForLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 
 export function getRoutingDiagramChartData(
   data: RoutingDiagramData,
@@ -46,20 +47,19 @@ export function getRoutingDiagramChartData(
 export function getRoutingDiagramEmptyState(
   data: RoutingDiagramData,
 ): { kind: "no_active_routes" | "no_recent_traffic"; title: string; description: string } {
+  const copy = getStaticMessages().dashboard;
   if (data.links.length === 0) {
     return {
       kind: "no_active_routes",
-      title: "No active routes",
-      description:
-        "Activate at least one model connection to map live routing paths across endpoints and models.",
+      title: copy.routingNoActiveRoutes,
+      description: copy.routingNoActiveRoutesDescription,
     };
   }
 
   return {
     kind: "no_recent_traffic",
-    title: "No routed traffic in the last 24h",
-    description:
-      "Active routes are configured, but no successful request traffic was recorded for the current profile in the last 24 hours.",
+    title: copy.routingNoRecentTraffic,
+    description: copy.routingNoRecentTrafficDescription,
   };
 }
 

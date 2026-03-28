@@ -29,8 +29,14 @@ export function DashboardHighlightsGrid({
   const performanceTiles = [
     { label: messages.dashboard.avgLatency, value: `${formatNumber(snapshot.avgLatency)}ms` },
     { label: messages.dashboard.p95Latency, value: `${formatNumber(snapshot.p95Latency)}ms` },
-    { label: messages.dashboard.errorRate, value: `${snapshot.errorRate.toFixed(1)}%` },
-    { label: messages.dashboard.streamingShare, value: `${snapshot.streamShare.toFixed(1)}%` },
+    {
+      label: messages.dashboard.errorRate,
+      value: `${formatNumber(snapshot.errorRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+    },
+    {
+      label: messages.dashboard.streamingShare,
+      value: `${formatNumber(snapshot.streamShare, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+    },
   ];
 
   return (

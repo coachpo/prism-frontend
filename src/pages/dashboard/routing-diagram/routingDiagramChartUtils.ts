@@ -2,6 +2,7 @@ import type {
   RoutingDiagramLink,
   RoutingDiagramNode,
 } from "../routingDiagram";
+import { formatNumber, getCurrentLocale } from "@/i18n/format";
 
 export const ROUTE_HEALTH_COLOR = {
   healthy: "#10b981",
@@ -59,7 +60,7 @@ export function formatSuccessRate(
     return null;
   }
 
-  return `${successRate.toFixed(2)}%`;
+  return `${formatNumber(successRate, getCurrentLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
 
 export function isRoutingDiagramNode(value: unknown): value is RoutingDiagramNode {

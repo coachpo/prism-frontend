@@ -14,7 +14,7 @@ import { formatApiFamily } from "@/lib/utils";
 import type { FilterOptions } from "./useRequestLogsPageData";
 import type { RequestLogPageActions } from "./useRequestLogPageState";
 import { STATUS_FAMILY_OPTIONS, TIME_RANGE_OPTIONS } from "./queryParams";
-import { TIME_LABELS } from "./FiltersBar.constants";
+import { getTimeLabel } from "./FiltersBar.constants";
 
 interface FiltersBarPrimaryFiltersProps {
   actions: Pick<
@@ -193,9 +193,9 @@ export function FiltersBarPrimaryFilters({
           </SelectTrigger>
           <SelectContent>
             {TIME_RANGE_OPTIONS.map((timeRange) => (
-              <SelectItem key={timeRange} value={timeRange}>
-                {timeRange === "24h" ? messages.requestLogs.last24Hours : TIME_LABELS[timeRange]}
-              </SelectItem>
+                <SelectItem key={timeRange} value={timeRange}>
+                  {getTimeLabel(timeRange)}
+                </SelectItem>
             ))}
           </SelectContent>
         </Select>

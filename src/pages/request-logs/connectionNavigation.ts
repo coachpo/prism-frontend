@@ -1,5 +1,10 @@
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { getStaticMessages } from "@/i18n/staticMessages";
+
+function getMessages() {
+  return getStaticMessages();
+}
 
 type ConnectionOwner = Awaited<ReturnType<typeof api.connections.owner>>;
 
@@ -48,7 +53,7 @@ export function createConnectionNavigator({
 
       navigate(`/models/${owner.model_config_id}?focus_connection_id=${connectionId}`);
     } catch {
-      toast.error("Connection not found — it may have been deleted");
+      toast.error(getMessages().requestLogsDetail.connectionNotFound);
     } finally {
       navigating = false;
     }

@@ -1,8 +1,7 @@
 import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { TypeBadge, ValueBadge } from "@/components/StatusBadge";
-import { getCurrentLocale } from "@/i18n/format";
-import { enMessages } from "@/i18n/messages/en";
-import { zhCNMessages } from "@/i18n/messages/zh-CN";
+import { formatNumber, getCurrentLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { formatMoneyMicros } from "@/lib/costing";
 import { cn, formatApiFamily } from "@/lib/utils";
 import type { ModelConfigListItem, RequestLogEntry } from "@/lib/types";
@@ -17,8 +16,7 @@ function formatCost(micros: number | null, symbol: string | null): string {
 
 function formatTokens(tokens: number | null): string {
   if (tokens === null) return "—";
-  if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}k`;
-  return String(tokens);
+  return formatNumber(tokens, getCurrentLocale());
 }
 
 function statusIntent(code: number) {
@@ -73,8 +71,7 @@ export function isProxyOriginRequest(
 }
 
 export function getColumns(view: "all" | "compact"): ColumnDef[] {
-  const localeMessages = getCurrentLocale() === "zh-CN" ? zhCNMessages : enMessages;
-  const messages = localeMessages.requestLogs;
+  const messages = getStaticMessages().requestLogs;
   const base: ColumnDef[] = [
     {
       key: "created_at",
@@ -120,7 +117,7 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
     },
     {
       key: "api_family",
-      label: localeMessages.common.apiFamily,
+      label: getStaticMessages().common.apiFamily,
       width: 150,
       grow: 1,
       render: (row) => (
