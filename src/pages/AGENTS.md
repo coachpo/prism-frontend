@@ -20,6 +20,7 @@
 ## WHERE TO LOOK
 
 - Mounted route list, public auth split, and protected shell boundary: `../App.tsx`
+- Route-surface smoke and public-auth route tests that stay parent-covered: `__tests__/AppRouteSmoke.test.tsx`, `__tests__/LoginPage.test.tsx`
 - Frontend locale boundary for route-shell copy and formatting: `../i18n/AGENTS.md`, `../i18n/useLocale.ts`
 - Dashboard bootstrap, realtime refresh, and parent-covered `dashboard/routing-diagram/` cluster: `DashboardPage.tsx`, `dashboard/AGENTS.md`
 - Model detail and proxy-model detail bootstrap, current-state helpers, connection flows, and parent-covered `model-detail/connections-list/` cluster: `ModelDetailPage.tsx`, `ProxyModelDetailPage.tsx`, `model-detail/AGENTS.md`
@@ -51,7 +52,7 @@
 - Keep route-shell copy on the shared frontend locale boundary through `useLocale()` and the `src/i18n/` catalogs instead of page-local string stores.
 - Let route files own bookmarkable query or hash state, route-entry redirects, and the first handoff into local hooks.
 - Refresh profile-scoped page data from `ProfileContext.revision` instead of bolting on unrelated cache invalidation paths.
-- Parent-cover local route clusters that do not need their own AGENTS file, including `dashboard/routing-diagram/`, `model-detail/connections-list/`, `statistics/charts/`, `statistics/sections/`, `statistics/tables/`, and request-log detail behavior under `request-logs/`.
+- Parent-cover local route clusters that do not need their own AGENTS file, including `__tests__/`, `dashboard/routing-diagram/`, `model-detail/connections-list/`, `statistics/charts/`, `statistics/sections/`, `statistics/tables/`, and request-log detail behavior under `request-logs/`.
 - Keep the settings parent focused on shell behavior. Section-level and costing-level details belong in the child docs.
 - Keep auth pages outside the protected shell and outside `ProfileProvider` assumptions.
 
