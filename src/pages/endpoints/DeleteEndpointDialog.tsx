@@ -23,21 +23,18 @@ export function DeleteEndpointDialog({
   onConfirm,
   onOpenChange,
 }: DeleteEndpointDialogProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.endpointsUi;
   return (
     <Dialog open={Boolean(deleteTarget)} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{locale === "zh-CN" ? "删除端点" : "Delete Endpoint"}</DialogTitle>
-          <DialogDescription>
-            {locale === "zh-CN"
-              ? `确定要删除“${deleteTarget?.name}”吗？此操作无法撤销。`
-              : `Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
-          </DialogDescription>
+          <DialogTitle>{copy.deleteEndpoint}</DialogTitle>
+          <DialogDescription>{copy.deleteEndpointDescription(deleteTarget?.name ?? "")}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" disabled={isDeletingEndpoint} onClick={() => onOpenChange(false)}>
-            {locale === "zh-CN" ? "取消" : "Cancel"}
+            {messages.settingsDialogs.cancel}
           </Button>
           <Button
             variant="destructive"
@@ -49,13 +46,7 @@ export function DeleteEndpointDialog({
               void onConfirm(deleteTarget.id);
             }}
           >
-            {isDeletingEndpoint
-              ? locale === "zh-CN"
-                ? "删除中..."
-                : "Deleting..."
-              : locale === "zh-CN"
-                ? "删除"
-                : "Delete"}
+            {isDeletingEndpoint ? messages.settingsDialogs.deleting : messages.settingsDialogs.delete}
           </Button>
         </DialogFooter>
       </DialogContent>

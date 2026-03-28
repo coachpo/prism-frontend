@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { getCurrentLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { getSharedEndpoints, setSharedEndpoints } from "@/lib/referenceData";
 import type { Endpoint, ModelConfigListItem } from "@/lib/types";
 
@@ -79,7 +79,7 @@ export function useEndpointBootstrapData(revision: number) {
         applyBootstrapData(data);
       } catch {
         if (!cancelled) {
-          toast.error(getCurrentLocale() === "zh-CN" ? "加载端点失败" : "Failed to load endpoints");
+          toast.error(getStaticMessages().endpointsData.loadFailed);
         }
       } finally {
         if (!cancelled) {

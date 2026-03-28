@@ -1,5 +1,5 @@
 import type { LoadbalanceBanMode, LoadbalanceStrategy } from "@/lib/types";
-import { getCurrentLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 
 export const DEFAULT_FAILOVER_STATUS_CODES = [403, 422, 429, 500, 502, 503, 504, 529];
 
@@ -88,18 +88,18 @@ export function toLoadbalanceStrategyPayload(
 export function getLoadbalanceStrategyFormValidationError(
   formState: LoadbalanceStrategyFormState,
 ): string | null {
-  const isChinese = getCurrentLocale() === "zh-CN";
+  const messages = getStaticMessages().loadbalanceStrategyValidation;
 
   if (!formState.name.trim()) {
-    return isChinese ? "名称为必填项" : "Name is required";
+    return messages.nameRequired;
   }
 
   if (formState.failover_status_codes.length === 0) {
-    return isChinese ? "请至少添加一个故障转移状态码" : "Add at least one failover status code";
+    return messages.addStatusCode;
   }
 
   if (new Set(formState.failover_status_codes).size !== formState.failover_status_codes.length) {
-    return isChinese ? "故障转移状态码必须唯一" : "Failover status codes must be unique";
+    return messages.statusCodesUnique;
   }
 
   if (
@@ -107,26 +107,24 @@ export function getLoadbalanceStrategyFormValidationError(
       (statusCode) => !Number.isInteger(statusCode) || statusCode < 100 || statusCode > 599,
     )
   ) {
-    return isChinese
-      ? "故障转移状态码必须是 100 到 599 之间的有效 HTTP 状态码"
-      : "Failover status codes must be valid HTTP status codes between 100 and 599";
+    return messages.statusCodesValidHttp;
   }
 
   if (!Number.isInteger(formState.failover_cooldown_seconds)) {
-    return isChinese ? "基础冷却时间必须为整数秒" : "Base cooldown must be a whole number of seconds";
+    return messages.baseCooldownIntegerSeconds;
   }
   if (formState.failover_cooldown_seconds < 0) {
-    return isChinese ? "基础冷却时间至少为 0 秒" : "Base cooldown must be at least 0 seconds";
+    return messages.baseCooldownMin;
   }
 
   if (!Number.isInteger(formState.failover_failure_threshold)) {
-    return isChinese ? "失败阈值必须为整数" : "Failure threshold must be a whole number";
+    return messages.failureThresholdInteger;
   }
   if (
     formState.failover_failure_threshold < 1 ||
     formState.failover_failure_threshold > 10
   ) {
-    return isChinese ? "失败阈值必须在 1 到 10 之间" : "Failure threshold must be between 1 and 10";
+    return messages.failureThresholdRange;
   }
 
   if (
@@ -134,17 +132,17 @@ export function getLoadbalanceStrategyFormValidationError(
     formState.failover_backoff_multiplier < 1 ||
     formState.failover_backoff_multiplier > 10
   ) {
-    return isChinese ? "退避倍数必须在 1 到 10 之间" : "Backoff multiplier must be between 1 and 10";
+    return messages.backoffMultiplierRange;
   }
 
   if (!Number.isInteger(formState.failover_max_cooldown_seconds)) {
-    return isChinese ? "最大冷却时间必须为整数秒" : "Max cooldown must be a whole number of seconds";
+    return messages.maxCooldownIntegerSeconds;
   }
   if (
     formState.failover_max_cooldown_seconds < 1 ||
     formState.failover_max_cooldown_seconds > 86_400
   ) {
-    return isChinese ? "最大冷却时间必须在 1 到 86400 秒之间" : "Max cooldown must be between 1 and 86400 seconds";
+    return messages.maxCooldownRange;
   }
 
   if (
@@ -152,19 +150,15 @@ export function getLoadbalanceStrategyFormValidationError(
     formState.failover_jitter_ratio < 0 ||
     formState.failover_jitter_ratio > 1
   ) {
-    return isChinese ? "抖动比率必须在 0 到 1 之间" : "Jitter ratio must be between 0 and 1";
+    return messages.jitterRatioRange;
   }
 
   if (!Number.isInteger(formState.failover_max_cooldown_strikes_before_ban)) {
-    return isChinese
-      ? "封禁前最大冷却次数必须为整数"
-      : "Max-cooldown strikes before ban must be a whole number";
+    return messages.maxCooldownStrikesInteger;
   }
 
   if (!Number.isInteger(formState.failover_ban_duration_seconds)) {
-    return isChinese
-      ? "封禁时长必须为整数秒"
-      : "Ban duration must be a whole number of seconds";
+    return messages.banDurationIntegerSeconds;
   }
 
   if (formState.failover_ban_mode === "off") {
@@ -172,34 +166,26 @@ export function getLoadbalanceStrategyFormValidationError(
       formState.failover_max_cooldown_strikes_before_ban !== 0 ||
       formState.failover_ban_duration_seconds !== 0
     ) {
-      return isChinese
-        ? "封禁模式关闭时，次数和时长都必须为 0"
-        : "Ban escalation must stay at 0 strikes and 0 seconds while ban mode is off";
+      return messages.banModeOffZero;
     }
 
     return null;
   }
 
   if (formState.failover_max_cooldown_strikes_before_ban < 1) {
-    return isChinese
-      ? "启用封禁升级时，封禁前最大冷却次数至少为 1"
-      : "Max-cooldown strikes before ban must be at least 1 when ban escalation is enabled";
+    return messages.maxCooldownStrikesMin;
   }
 
   if (formState.failover_ban_mode === "temporary") {
     if (formState.failover_ban_duration_seconds < 1) {
-      return isChinese
-        ? "临时封禁时长至少为 1 秒"
-        : "Ban duration must be at least 1 second for temporary bans";
+      return messages.banDurationTemporaryMin;
     }
 
     return null;
   }
 
   if (formState.failover_ban_duration_seconds !== 0) {
-    return isChinese
-      ? "手动解除封禁时，封禁时长必须为 0 秒"
-      : "Ban duration must be 0 seconds for manual dismiss bans";
+    return messages.banDurationManualDismissZero;
   }
 
   return null;
@@ -208,7 +194,7 @@ export function getLoadbalanceStrategyFormValidationError(
 export function getFailoverStatusCodeInputError(
   formState: Pick<LoadbalanceStrategyFormState, "failover_status_codes" | "failover_status_code_input">,
 ): string | null {
-  const isChinese = getCurrentLocale() === "zh-CN";
+  const messages = getStaticMessages().loadbalanceStrategyValidation;
   const rawValue = formState.failover_status_code_input.trim();
 
   if (!rawValue) {
@@ -216,20 +202,16 @@ export function getFailoverStatusCodeInputError(
   }
 
   if (!/^\d+$/.test(rawValue)) {
-    return isChinese
-      ? "状态码必须是 100 到 599 之间的整数"
-      : "Status code must be a whole number between 100 and 599";
+    return messages.statusCodeIntegerRange;
   }
 
   const statusCode = Number(rawValue);
   if (statusCode < 100 || statusCode > 599) {
-    return isChinese
-      ? "状态码必须是 100 到 599 之间的整数"
-      : "Status code must be a whole number between 100 and 599";
+    return messages.statusCodeIntegerRange;
   }
 
   if (formState.failover_status_codes.includes(statusCode)) {
-    return isChinese ? "该状态码已存在" : "That status code is already included";
+    return messages.statusCodeExists;
   }
 
   return null;

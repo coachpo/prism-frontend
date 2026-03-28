@@ -13,28 +13,25 @@ import { DeleteEndpointDialog } from "./endpoints/DeleteEndpointDialog";
 import { useEndpointsPageData } from "./endpoints/useEndpointsPageData";
 
 export function EndpointsPage() {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
   const data = useEndpointsPageData();
+  const copy = messages.endpointsPage;
   const showReviewToolbar = data.endpoints.length > 3 || data.hasActiveReviewFilters;
   const reviewFilterOptions = [
-    { value: "all", label: locale === "zh-CN" ? "全部" : "All" },
-    { value: "in-use", label: locale === "zh-CN" ? "使用中" : "In Use" },
-    { value: "unused", label: locale === "zh-CN" ? "未使用" : "Unused" },
+    { value: "all", label: copy.filterAll },
+    { value: "in-use", label: copy.filterInUse },
+    { value: "unused", label: copy.filterUnused },
   ] as const;
 
   return (
     <div className="space-y-[var(--density-page-gap)]">
       <PageHeader
-        title={locale === "zh-CN" ? "端点" : "Endpoints"}
-        description={
-          locale === "zh-CN"
-            ? "管理按配置档案划分的 API 凭证和模型路由目标。"
-            : "Manage profile-scoped API credentials and model routing targets."
-        }
+        title={copy.title}
+        description={copy.description}
       >
         <Button onClick={() => data.setIsCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          {locale === "zh-CN" ? "新增端点" : "Add Endpoint"}
+          {copy.addEndpoint}
         </Button>
       </PageHeader>
 
@@ -44,7 +41,7 @@ export function EndpointsPage() {
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder={locale === "zh-CN" ? "搜索端点..." : "Search endpoints..."}
+              placeholder={copy.searchEndpoints}
               value={data.searchQuery}
               onChange={(event) => data.setSearchQuery(event.target.value)}
               className="h-9 pl-9"
@@ -77,28 +74,20 @@ export function EndpointsPage() {
       ) : data.endpoints.length === 0 ? (
         <EmptyState
           icon={<Plug className="h-6 w-6" />}
-          title={locale === "zh-CN" ? "还没有配置端点" : "No endpoints configured"}
-          description={
-            locale === "zh-CN"
-              ? "新增你的第一个端点以开始路由请求。"
-              : "Add your first endpoint to start routing requests."
-          }
+          title={copy.noEndpointsConfigured}
+          description={copy.noEndpointsConfiguredDescription}
           action={
             <Button onClick={() => data.setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              {locale === "zh-CN" ? "新增端点" : "Add Endpoint"}
+              {copy.addEndpoint}
             </Button>
           }
         />
       ) : data.endpoints.length > 0 && data.filteredEndpoints.length === 0 ? (
         <EmptyState
           icon={<Plug className="h-6 w-6" />}
-          title={locale === "zh-CN" ? "没有端点符合当前筛选条件" : "No endpoints match your filters"}
-          description={
-            locale === "zh-CN"
-              ? "请尝试其他搜索词或清除筛选条件。"
-              : "Try a different search or clear the review filters."
-          }
+          title={copy.noEndpointsMatchFilters}
+          description={copy.noEndpointsMatchFiltersDescription}
         />
       ) : (
         <DndContext
@@ -114,9 +103,7 @@ export function EndpointsPage() {
             <div className="flex flex-col gap-3">
               {data.hasActiveReviewFilters ? (
                 <p className="text-xs text-muted-foreground">
-                  {locale === "zh-CN"
-                    ? "筛选开启时暂时无法拖动排序。"
-                    : "Reordering is disabled while review filters are active."}
+                  {copy.reorderDisabledWhileFilters}
                 </p>
               ) : null}
 
@@ -155,8 +142,8 @@ export function EndpointsPage() {
         open={data.isCreateOpen}
         onOpenChange={data.setIsCreateOpen}
         onSubmit={data.handleCreate}
-        title={locale === "zh-CN" ? "新增端点" : "Add Endpoint"}
-        submitLabel={locale === "zh-CN" ? "创建端点" : "Create Endpoint"}
+        title={copy.addEndpoint}
+        submitLabel={copy.addEndpoint}
       />
 
       <EndpointDialog
@@ -164,8 +151,8 @@ export function EndpointsPage() {
         onOpenChange={(open) => !open && data.setEditingEndpoint(null)}
         onSubmit={data.handleUpdate}
         initialValues={data.editingEndpoint || undefined}
-        title={locale === "zh-CN" ? "编辑端点" : "Edit Endpoint"}
-        submitLabel={locale === "zh-CN" ? "保存更改" : "Save Changes"}
+        title={copy.editEndpoint}
+        submitLabel={copy.saveChanges}
       />
 
       <DeleteEndpointDialog

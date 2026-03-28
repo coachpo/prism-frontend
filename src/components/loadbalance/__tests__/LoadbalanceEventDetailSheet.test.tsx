@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { LoadbalanceEventDetailSheet } from "../LoadbalanceEventDetailSheet";
 
 const api = vi.hoisted(() => ({
@@ -18,9 +19,11 @@ vi.mock("@/hooks/useTimezone", () => ({
 describe("LoadbalanceEventDetailSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    localStorage.setItem("prism.locale", "zh-CN");
   });
 
-  it("renders ban-related detail rows when the event payload includes them", async () => {
+  it("renders localized ban-related detail rows when the event payload includes them", async () => {
     api.loadbalance.getEvent.mockResolvedValue({
       id: 41,
       profile_id: 3,
@@ -48,15 +51,20 @@ describe("LoadbalanceEventDetailSheet", () => {
       banned_until_at: "2026-03-25T08:30:00Z",
     });
 
-    render(<LoadbalanceEventDetailSheet eventId={41} onClose={vi.fn()} />);
+    render(
+      <LocaleProvider>
+        <LoadbalanceEventDetailSheet eventId={41} onClose={vi.fn()} />
+      </LocaleProvider>,
+    );
 
     await waitFor(() => {
-      expect(screen.getByText("Max Cooldown Strikes")).toBeInTheDocument();
+      expect(screen.getByText("最大冷却次数")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Ban Mode")).toBeInTheDocument();
-    expect(screen.getByText("temporary")).toBeInTheDocument();
-    expect(screen.getByText("Banned Until")).toBeInTheDocument();
+    expect(screen.getByText("负载均衡事件详情")).toBeInTheDocument();
+    expect(screen.getByText("封禁模式")).toBeInTheDocument();
+    expect(screen.getByText("临时")).toBeInTheDocument();
+    expect(screen.getByText("封禁至")).toBeInTheDocument();
     expect(screen.getByText("formatted:2026-03-25T08:30:00Z")).toBeInTheDocument();
   });
 });

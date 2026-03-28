@@ -7,6 +7,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocale } from "@/i18n/useLocale";
 import { useTimezone } from "@/hooks/useTimezone";
 import { api } from "@/lib/api";
 import type { LoadbalanceEventDetail } from "@/lib/types";
@@ -17,12 +18,20 @@ interface LoadbalanceEventDetailSheetProps {
   onClose: () => void;
 }
 
-function DetailRow({ label, value }: { label: string; value: ReactNode }) {
+function DetailRow({
+  fallback,
+  label,
+  value,
+}: {
+  fallback: string;
+  label: string;
+  value: ReactNode;
+}) {
   return (
     <div className="grid gap-1 border-b py-3 last:border-b-0 sm:grid-cols-[128px,1fr] sm:gap-4">
       <span className="font-medium text-muted-foreground">{label}</span>
       <div className="text-sm text-foreground [overflow-wrap:anywhere] sm:text-right">
-        {value ?? "N/A"}
+        {value ?? fallback}
       </div>
     </div>
   );
@@ -32,7 +41,9 @@ export function LoadbalanceEventDetailSheet({
   eventId,
   onClose,
 }: LoadbalanceEventDetailSheetProps) {
+  const { formatNumber, messages } = useLocale();
   const { format: formatTime } = useTimezone();
+  const copy = messages.loadbalanceEvents;
   const [eventCache, setEventCache] = useState<Record<number, LoadbalanceEventDetail>>({});
   const [errorCache, setErrorCache] = useState<Record<number, string>>({});
 
@@ -57,27 +68,36 @@ export function LoadbalanceEventDetailSheet({
         if (!active) return;
         setErrorCache((previous) => ({
           ...previous,
-          [eventId]: err.message || "Failed to load event details",
+          [eventId]: err.message || copy.failedToLoadEventDetails,
         }));
       });
     return () => {
       active = false;
     };
-  }, [event, error, eventId]);
+  }, [copy.failedToLoadEventDetails, error, event, eventId]);
 
   const open = eventId !== null;
+  const banModeLabel =
+    event?.ban_mode === "temporary"
+      ? copy.banModeTemporary
+      : event?.ban_mode === "manual"
+        ? copy.banModeManual
+        : event?.ban_mode === "off"
+          ? copy.banModeOff
+          : null;
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-xl">
         <SheetHeader className="space-y-1 border-b bg-background/95 px-6 py-5 pr-14 backdrop-blur">
-          <SheetTitle>Loadbalance Event Details</SheetTitle>
-          <SheetDescription>Event ID: {eventId}</SheetDescription>
+          <SheetTitle>{copy.detailsTitle}</SheetTitle>
+          <SheetDescription>{copy.eventId(eventId)}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-6 p-6">
           {loading && (
             <div className="space-y-3">
+              <p className="sr-only">{copy.loadingEvents}</p>
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
@@ -93,10 +113,11 @@ export function LoadbalanceEventDetailSheet({
           {event && !loading && (
             <>
               <section className="space-y-3 rounded-2xl border bg-card p-4">
-                <h3 className="text-sm font-semibold">Summary</h3>
+                <h3 className="text-sm font-semibold">{copy.summary}</h3>
                 <div className="space-y-1">
                   <DetailRow
-                    label="Event"
+                    fallback={messages.common.notApplicable}
+                    label={copy.event}
                     value={
                       <div className="flex flex-col items-start gap-2 sm:items-end">
                         <EventTypeBadge eventType={event.event_type} />
@@ -105,7 +126,8 @@ export function LoadbalanceEventDetailSheet({
                     }
                   />
                   <DetailRow
-                    label="Reason"
+                    fallback={messages.common.notApplicable}
+                    label={copy.reason}
                     value={
                       <div className="flex flex-col items-start gap-2 sm:items-end">
                         <FailureKindBadge failureKind={event.failure_kind} />
@@ -113,10 +135,11 @@ export function LoadbalanceEventDetailSheet({
                       </div>
                     }
                   />
-                  <DetailRow label="Operation" value={event.summary.operation} />
-                  <DetailRow label="Cooldown" value={event.summary.cooldown} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.operation} value={event.summary.operation} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.cooldown} value={event.summary.cooldown} />
                   <DetailRow
-                    label="Created"
+                    fallback={messages.common.notApplicable}
+                    label={copy.created}
                     value={formatTime(event.created_at, {
                       year: "numeric",
                       month: "short",
@@ -130,47 +153,50 @@ export function LoadbalanceEventDetailSheet({
               </section>
 
               <section className="space-y-3 rounded-2xl border bg-card p-4">
-                <h3 className="text-sm font-semibold">Context</h3>
+                <h3 className="text-sm font-semibold">{copy.context}</h3>
                 <div className="space-y-1">
-                  <DetailRow label="Event Type" value={<EventTypeBadge eventType={event.event_type} />} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.eventType} value={<EventTypeBadge eventType={event.event_type} />} />
                   <DetailRow
-                    label="Failure Kind"
+                    fallback={messages.common.notApplicable}
+                    label={copy.failureKind}
                     value={<FailureKindBadge failureKind={event.failure_kind} />}
                   />
-                  <DetailRow label="Model ID" value={event.model_id} />
-                  <DetailRow label="Connection ID" value={event.connection_id} />
-                  <DetailRow label="Endpoint ID" value={event.endpoint_id} />
-                  <DetailRow label="Vendor ID" value={event.vendor_id} />
-                  <DetailRow label="Profile ID" value={event.profile_id} />
-                  <DetailRow label="Consecutive Failures" value={event.consecutive_failures} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.modelId} value={event.model_id} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.connectionId} value={event.connection_id} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.endpointId} value={event.endpoint_id} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.vendorId} value={event.vendor_id} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.profileId} value={event.profile_id} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.consecutiveFailures} value={event.consecutive_failures} />
                 </div>
               </section>
 
               <section className="space-y-3 rounded-2xl border bg-card p-4">
-                <h3 className="text-sm font-semibold">Failover Configuration</h3>
+                <h3 className="text-sm font-semibold">{copy.failoverConfiguration}</h3>
                 <div className="space-y-1">
-                  <DetailRow label="Failure Threshold" value={event.failure_threshold} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.failureThreshold} value={event.failure_threshold} />
                   <DetailRow
-                    label="Backoff Multiplier"
+                    fallback={messages.common.notApplicable}
+                    label={copy.backoffMultiplier}
                     value={
                       event.backoff_multiplier !== null
-                        ? event.backoff_multiplier.toFixed(2)
+                        ? formatNumber(event.backoff_multiplier, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })
                         : null
                     }
                   />
-                  <DetailRow label="Max Cooldown (seconds)" value={event.max_cooldown_seconds} />
+                  <DetailRow fallback={messages.common.notApplicable} label={copy.maxCooldownSeconds} value={event.max_cooldown_seconds} />
                   {event.max_cooldown_strikes !== null ? (
-                    <DetailRow
-                      label="Max Cooldown Strikes"
-                      value={event.max_cooldown_strikes}
-                    />
+                    <DetailRow fallback={messages.common.notApplicable} label={copy.maxCooldownStrikes} value={event.max_cooldown_strikes} />
                   ) : null}
                   {event.ban_mode !== null ? (
-                    <DetailRow label="Ban Mode" value={event.ban_mode} />
+                    <DetailRow fallback={messages.common.notApplicable} label={copy.banMode} value={banModeLabel} />
                   ) : null}
                   {event.banned_until_at ? (
                     <DetailRow
-                      label="Banned Until"
+                      fallback={messages.common.notApplicable}
+                      label={copy.bannedUntil}
                       value={formatTime(event.banned_until_at, {
                         year: "numeric",
                         month: "short",

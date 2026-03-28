@@ -14,61 +14,83 @@ import {
 } from "@/components/ui/table";
 import type { LoadbalanceStrategy } from "@/lib/types";
 
-function getBanSummary(strategy: LoadbalanceStrategy, locale: "en" | "zh-CN") {
+function getBanSummary(
+  strategy: LoadbalanceStrategy,
+  copy: {
+    banManualDismiss: (strikes: string) => string;
+    banOff: string;
+    banTemporary: (strikes: string, durationSeconds: string) => string;
+  },
+  formatNumber: (value: number) => string,
+) {
   if (strategy.failover_ban_mode === "off") {
-    return locale === "zh-CN" ? "封禁 关闭" : "Ban off";
+    return copy.banOff;
   }
 
   if (strategy.failover_ban_mode === "temporary") {
-    return locale === "zh-CN"
-      ? `封禁 临时 • 最大冷却 ${strategy.failover_max_cooldown_strikes_before_ban} 次 • ${strategy.failover_ban_duration_seconds}秒`
-      : `Ban temporary • ${strategy.failover_max_cooldown_strikes_before_ban} max-cooldown strikes • ${strategy.failover_ban_duration_seconds}s`;
+    return copy.banTemporary(
+      formatNumber(strategy.failover_max_cooldown_strikes_before_ban),
+      formatNumber(strategy.failover_ban_duration_seconds),
+    );
   }
 
-  return locale === "zh-CN"
-    ? `封禁 手动解除 • 最大冷却 ${strategy.failover_max_cooldown_strikes_before_ban} 次`
-    : `Ban manual dismiss • ${strategy.failover_max_cooldown_strikes_before_ban} max-cooldown strikes`;
+  return copy.banManualDismiss(formatNumber(strategy.failover_max_cooldown_strikes_before_ban));
 }
 
-function getStrategyLabel(strategyType: LoadbalanceStrategy["strategy_type"], locale: "en" | "zh-CN") {
+function getStrategyLabel(
+  strategyType: LoadbalanceStrategy["strategy_type"],
+  copy: {
+    failoverLabel: string;
+    fillFirstLabel: string;
+    roundRobinLabel: string;
+    singleLabel: string;
+  },
+) {
   if (strategyType === "fill-first") {
-    return locale === "zh-CN" ? "优先填充" : "Fill-first";
-  }
-
-   if (strategyType === "round-robin") {
-    return locale === "zh-CN" ? "轮询" : "Round-robin";
-  }
-
-  if (strategyType === "failover") {
-    return locale === "zh-CN" ? "故障转移" : "Failover";
-  }
-
-  return locale === "zh-CN" ? "单连接" : "Single";
-}
-
-function getStatusCodeSummary(statusCodes: number[], locale: "en" | "zh-CN") {
-  const sortedCodes = [...statusCodes].sort((left, right) => left - right);
-  return locale === "zh-CN"
-    ? `状态码 ${sortedCodes.join("、")}`
-    : `Status codes ${sortedCodes.join(", ")}`;
-}
-
-function getStrategySummary(strategyType: LoadbalanceStrategy["strategy_type"], locale: "en" | "zh-CN") {
-  if (strategyType === "fill-first") {
-    return locale === "zh-CN" ? "严格优先级溢出，可选恢复" : "Strict priority spillover with optional recovery";
+    return copy.fillFirstLabel;
   }
 
   if (strategyType === "round-robin") {
-    return locale === "zh-CN"
-      ? "轮询活动连接，可选恢复"
-      : "Rotate active connections with optional recovery";
+    return copy.roundRobinLabel;
   }
 
   if (strategyType === "failover") {
-    return locale === "zh-CN" ? "按健康感知故障转移，可选恢复" : "Health-aware failover with optional recovery";
+    return copy.failoverLabel;
   }
 
-  return locale === "zh-CN" ? "单个活动连接" : "Single active connection";
+  return copy.singleLabel;
+}
+
+function getStatusCodeSummary(
+  statusCodes: number[],
+  copy: { statusCodes: (codes: string) => string },
+) {
+  const sortedCodes = [...statusCodes].sort((left, right) => left - right);
+  return copy.statusCodes(sortedCodes.join(copy.statusCodes(" ").includes("、") ? "、" : ", "));
+}
+
+function getStrategySummary(
+  strategyType: LoadbalanceStrategy["strategy_type"],
+  copy: {
+    failoverSummary: string;
+    fillFirstSummary: string;
+    roundRobinSummary: string;
+    singleSummary: string;
+  },
+) {
+  if (strategyType === "fill-first") {
+    return copy.fillFirstSummary;
+  }
+
+  if (strategyType === "round-robin") {
+    return copy.roundRobinSummary;
+  }
+
+  if (strategyType === "failover") {
+    return copy.failoverSummary;
+  }
+
+  return copy.singleSummary;
 }
 
 interface LoadbalanceStrategiesTableProps {
@@ -88,7 +110,19 @@ export function LoadbalanceStrategiesTable({
   onDelete,
   onEdit,
 }: LoadbalanceStrategiesTableProps) {
-  const { locale } = useLocale();
+  const { formatNumber, messages } = useLocale();
+  const tableCopy = messages.loadbalanceStrategiesTable;
+  const strategyCopy = {
+    failoverLabel: messages.loadbalanceStrategyCopy.failoverLabel,
+    failoverSummary: messages.loadbalanceStrategyCopy.failoverSummary,
+    fillFirstLabel: messages.loadbalanceStrategyCopy.fillFirstLabel,
+    fillFirstSummary: messages.loadbalanceStrategyCopy.fillFirstSummary,
+    roundRobinLabel: messages.loadbalanceStrategyCopy.roundRobinLabel,
+    roundRobinSummary: messages.loadbalanceStrategyCopy.roundRobinSummary,
+    singleLabel: messages.loadbalanceStrategyCopy.singleLabel,
+    singleSummary: messages.loadbalanceStrategyCopy.singleSummary,
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -96,18 +130,16 @@ export function LoadbalanceStrategiesTable({
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Scale className="h-4 w-4" />
-              {locale === "zh-CN" ? "负载均衡策略" : "Loadbalance Strategies"}
+              {tableCopy.title}
             </CardTitle>
             <CardDescription className="text-xs">
-              {locale === "zh-CN"
-                ? "在原生模型之间复用策略定义，而不是为每个模型单独配置故障转移。"
-                : "Reuse strategy definitions across native models instead of configuring failover per model."}
+              {tableCopy.description}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" size="sm" onClick={onCreate}>
               <Plus className="mr-2 h-3.5 w-3.5" />
-              {locale === "zh-CN" ? "新增策略" : "Add Strategy"}
+              {tableCopy.addStrategy}
             </Button>
           </div>
         </div>
@@ -121,19 +153,19 @@ export function LoadbalanceStrategiesTable({
         ) : loadbalanceStrategies.length === 0 ? (
           <div className="rounded-md border border-dashed p-8 text-center">
             <p className="text-sm text-muted-foreground">
-              {locale === "zh-CN" ? "当前没有配置负载均衡策略。" : "No loadbalance strategies configured."}
+              {tableCopy.noStrategiesConfigured}
             </p>
           </div>
         ) : (
           <div className="rounded-md border">
             <Table>
-              <TableHeader>
+                <TableHeader>
                   <TableRow>
-                  <TableHead>{locale === "zh-CN" ? "名称" : "Name"}</TableHead>
-                  <TableHead>{locale === "zh-CN" ? "类型" : "Type"}</TableHead>
-                  <TableHead>{locale === "zh-CN" ? "恢复" : "Recovery"}</TableHead>
-                  <TableHead>{locale === "zh-CN" ? "已绑定模型" : "Attached Models"}</TableHead>
-                  <TableHead className="text-right">{locale === "zh-CN" ? "操作" : "Actions"}</TableHead>
+                  <TableHead>{tableCopy.name}</TableHead>
+                  <TableHead>{tableCopy.type}</TableHead>
+                  <TableHead>{tableCopy.recovery}</TableHead>
+                  <TableHead>{tableCopy.attachedModels}</TableHead>
+                  <TableHead className="text-right">{tableCopy.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -146,22 +178,26 @@ export function LoadbalanceStrategiesTable({
                         <div className="flex flex-col gap-1">
                           <span className="font-medium">{strategy.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {getStrategySummary(strategy.strategy_type, locale)}
+                            {getStrategySummary(strategy.strategy_type, strategyCopy)}
                           </span>
                           {strategy.strategy_type !== "single" ? (
                             <>
                               <span className="text-xs text-muted-foreground">
-                                {locale === "zh-CN"
-                                  ? `阈值 ${strategy.failover_failure_threshold} • 基础 ${strategy.failover_cooldown_seconds}秒 • 最大 ${strategy.failover_max_cooldown_seconds}秒`
-                                  : `Threshold ${strategy.failover_failure_threshold} • Base ${strategy.failover_cooldown_seconds}s • Max ${strategy.failover_max_cooldown_seconds}s`}
+                                {tableCopy.thresholdBaseMax(
+                                  formatNumber(strategy.failover_failure_threshold),
+                                  formatNumber(strategy.failover_cooldown_seconds),
+                                  formatNumber(strategy.failover_max_cooldown_seconds),
+                                )}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                {locale === "zh-CN"
-                                  ? `退避 ×${strategy.failover_backoff_multiplier} • 抖动 ${strategy.failover_jitter_ratio} • ${getStatusCodeSummary(strategy.failover_status_codes, locale)}`
-                                  : `Backoff ×${strategy.failover_backoff_multiplier} • Jitter ${strategy.failover_jitter_ratio} • ${getStatusCodeSummary(strategy.failover_status_codes, locale)}`}
+                                {tableCopy.backoffJitterStatusCodes(
+                                  String(strategy.failover_backoff_multiplier),
+                                  String(strategy.failover_jitter_ratio),
+                                  getStatusCodeSummary(strategy.failover_status_codes, tableCopy),
+                                )}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                {getBanSummary(strategy, locale)}
+                                {getBanSummary(strategy, tableCopy, formatNumber)}
                               </span>
                             </>
                           ) : null}
@@ -169,26 +205,20 @@ export function LoadbalanceStrategiesTable({
                       </TableCell>
                       <TableCell>
                         <TypeBadge
-                          label={getStrategyLabel(strategy.strategy_type, locale)}
+                          label={getStrategyLabel(strategy.strategy_type, strategyCopy)}
                           intent={strategy.strategy_type === "single" ? "info" : "accent"}
                         />
                       </TableCell>
                       <TableCell>
                         <StatusBadge
                           label={
-                            strategy.failover_recovery_enabled
-                              ? locale === "zh-CN"
-                                ? "已启用"
-                                : "Enabled"
-                              : locale === "zh-CN"
-                                ? "已禁用"
-                                : "Disabled"
+                            strategy.failover_recovery_enabled ? tableCopy.enabled : tableCopy.disabled
                           }
                           intent={strategy.failover_recovery_enabled ? "success" : "muted"}
                         />
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm tabular-nums">{strategy.attached_model_count}</span>
+                        <span className="text-sm tabular-nums">{formatNumber(strategy.attached_model_count)}</span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -205,7 +235,7 @@ export function LoadbalanceStrategiesTable({
                               ) : (
                                 <Pencil className="h-4 w-4" />
                               )}
-                              <span className="sr-only">{locale === "zh-CN" ? "编辑" : "Edit"}</span>
+                              <span className="sr-only">{tableCopy.edit}</span>
                             </IconActionButton>
                             <IconActionButton
                               size="icon"
@@ -213,7 +243,7 @@ export function LoadbalanceStrategiesTable({
                               onClick={() => onDelete(strategy)}
                             >
                               <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">{locale === "zh-CN" ? "删除" : "Delete"}</span>
+                              <span className="sr-only">{messages.settingsDialogs.delete}</span>
                             </IconActionButton>
                           </IconActionGroup>
                         </div>

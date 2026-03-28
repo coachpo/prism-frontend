@@ -54,7 +54,8 @@ export function EndpointCardView({
   onDuplicate,
   onEdit,
 }: EndpointCardViewProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.endpointsUi;
   const maskedKey = getMaskedApiKey(endpoint);
   const createdAt = formatTime(endpoint.created_at, {
     year: "numeric",
@@ -82,7 +83,7 @@ export function EndpointCardView({
               (reorderDisabled || isOverlay) && "cursor-default opacity-60",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             )}
-            aria-label={locale === "zh-CN" ? `拖动以重新排序端点 ${endpoint.name}` : `Drag to reorder endpoint ${endpoint.name}`}
+            aria-label={copy.dragToReorder(endpoint.name)}
             {...(dragHandleAttributes ?? {})}
             {...(dragHandleListeners ?? {})}
           >
@@ -94,7 +95,7 @@ export function EndpointCardView({
               {endpoint.name}
             </h3>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {locale === "zh-CN" ? `创建于 ${createdAt}` : `Created ${createdAt}`}
+              {copy.created(createdAt)}
             </p>
           </div>
         </div>
@@ -117,9 +118,9 @@ export function EndpointCardView({
 
           <div className="flex min-w-0 shrink-0 items-center gap-2 sm:w-[160px] lg:w-[220px]">
             <div className="flex shrink-0 items-center gap-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {locale === "zh-CN" ? "模型" : "Models"}
-              </span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {copy.models}
+                </span>
               <Badge
                 variant="outline"
                 className="h-4 px-1.5 text-[10px] bg-muted/30 text-muted-foreground"
@@ -155,7 +156,7 @@ export function EndpointCardView({
                 </>
               ) : (
                 <span className="text-[10px] italic text-muted-foreground">
-                  {locale === "zh-CN" ? "无" : "None"}
+                  {copy.none}
                 </span>
               )}
             </div>
@@ -168,7 +169,7 @@ export function EndpointCardView({
                 <IconActionButton
                   type="button"
                   size="icon"
-                  aria-label={locale === "zh-CN" ? `复制端点 ${endpoint.name}` : `Duplicate endpoint ${endpoint.name}`}
+                  aria-label={copy.duplicateEndpoint(endpoint.name)}
                   disabled={isDuplicating}
                 onClick={() => {
                   void onDuplicate?.(endpoint);
@@ -183,7 +184,7 @@ export function EndpointCardView({
                 <IconActionButton
                   type="button"
                   size="icon"
-                  aria-label={locale === "zh-CN" ? `编辑端点 ${endpoint.name}` : `Edit endpoint ${endpoint.name}`}
+                  aria-label={copy.editEndpoint(endpoint.name)}
                   onClick={() => {
                   void onEdit?.(endpoint);
                 }}
@@ -193,7 +194,7 @@ export function EndpointCardView({
                 <IconActionButton
                   type="button"
                   size="icon"
-                  aria-label={locale === "zh-CN" ? `删除端点 ${endpoint.name}` : `Delete endpoint ${endpoint.name}`}
+                  aria-label={copy.deleteEndpointDescription(endpoint.name)}
                   destructive
                 onClick={() => {
                   void onDelete?.(endpoint);

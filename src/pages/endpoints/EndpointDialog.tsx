@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,13 +23,14 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-const endpointSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  base_url: z.string().url("Must be a valid URL"),
-  api_key: z.string(),
-});
+const buildEndpointSchema = (copy: { nameRequired: string; baseUrlInvalid: string }) =>
+  z.object({
+    name: z.string().min(1, copy.nameRequired),
+    base_url: z.string().url(copy.baseUrlInvalid),
+    api_key: z.string(),
+  });
 
-export type EndpointFormValues = z.infer<typeof endpointSchema>;
+export type EndpointFormValues = z.infer<ReturnType<typeof buildEndpointSchema>>;
 
 interface EndpointDialogProps {
   open: boolean;
@@ -48,7 +49,12 @@ export function EndpointDialog({
   title,
   submitLabel,
 }: EndpointDialogProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.endpointsUi;
+  const endpointSchema = useMemo(
+    () => buildEndpointSchema({ nameRequired: copy.nameRequired, baseUrlInvalid: copy.baseUrlInvalid }),
+    [copy.baseUrlInvalid, copy.nameRequired],
+  );
   const form = useForm<EndpointFormValues>({
     resolver: zodResolver(endpointSchema),
     defaultValues: {
@@ -76,7 +82,7 @@ export function EndpointDialog({
 
   const handleSubmit = async (values: EndpointFormValues) => {
     if (!initialValues && !values.api_key.trim()) {
-      form.setError("api_key", { message: locale === "zh-CN" ? "API 密钥为必填项" : "API Key is required" });
+      form.setError("api_key", { message: copy.apiKeyRequired });
       return;
     }
     await onSubmit(values);
@@ -87,9 +93,7 @@ export function EndpointDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {locale === "zh-CN" ? "配置端点详情。" : "Configure the endpoint details."}
-          </DialogDescription>
+          <DialogDescription>{copy.configureDetails}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -98,9 +102,9 @@ export function EndpointDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{locale === "zh-CN" ? "名称" : "Name"}</FormLabel>
+                  <FormLabel>{copy.name}</FormLabel>
                   <FormControl>
-                    <Input placeholder={locale === "zh-CN" ? "例如：OpenAI 生产环境" : "e.g. OpenAI Production"} {...field} />
+                    <Input placeholder={copy.namePlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -111,9 +115,9 @@ export function EndpointDialog({
               name="base_url"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{locale === "zh-CN" ? "基础 URL" : "Base URL"}</FormLabel>
+                  <FormLabel>{copy.baseUrl}</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://api.openai.com" {...field} />
+                    <Input placeholder={copy.baseUrlPlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -124,17 +128,17 @@ export function EndpointDialog({
               name="api_key"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{locale === "zh-CN" ? "API 密钥" : "API Key"}</FormLabel>
+                  <FormLabel>{messages.proxyApiKeys.apiKey}</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
-                      placeholder={initialValues?.masked_api_key || "sk-..."}
+                      placeholder={initialValues?.masked_api_key || messages.modelDetail.endpointApiKeyPlaceholder}
                       {...field}
                     />
                   </FormControl>
                   {initialValues ? (
                     <p className="text-xs text-muted-foreground">
-                      {locale === "zh-CN" ? "留空可保留当前已存储的密钥。" : "Leave blank to keep the existing stored key."}
+                      {copy.keepStoredKey}
                     </p>
                   ) : null}
                   <FormMessage />

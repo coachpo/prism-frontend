@@ -1,55 +1,10 @@
 import { Badge } from "@/components/ui/badge";
+import { useLocale } from "@/i18n/useLocale";
 import type {
   LoadbalanceEventType,
   LoadbalanceFailureKind,
 } from "@/lib/types/loadbalance";
 import { cn } from "@/lib/utils";
-
-const EVENT_TYPE_CONFIG = {
-  opened: {
-    label: "Opened",
-    intent: "danger" as const,
-  },
-  extended: {
-    label: "Extended",
-    intent: "warning" as const,
-  },
-  max_cooldown_strike: {
-    label: "Max Cooldown Strike",
-    intent: "warning" as const,
-  },
-  banned: {
-    label: "Banned",
-    intent: "danger" as const,
-  },
-  probe_eligible: {
-    label: "Probe Eligible",
-    intent: "info" as const,
-  },
-  recovered: {
-    label: "Recovered",
-    intent: "success" as const,
-  },
-  not_opened: {
-    label: "Not Opened",
-    intent: "muted" as const,
-  },
-} as const;
-
-const FAILURE_KIND_CONFIG = {
-  transient_http: {
-    label: "Transient HTTP",
-    intent: "warning" as const,
-  },
-  connect_error: {
-    label: "Connection Error",
-    intent: "danger" as const,
-  },
-  timeout: {
-    label: "Timeout",
-    intent: "warning" as const,
-  },
-} as const;
 
 const INTENT_CLASSES = {
   success: "bg-emerald-500/10 text-emerald-700 border-emerald-500/25 dark:text-emerald-400",
@@ -65,7 +20,38 @@ interface EventTypeBadgeProps {
 }
 
 export function EventTypeBadge({ eventType, className }: EventTypeBadgeProps) {
-  const config = EVENT_TYPE_CONFIG[eventType];
+  const { messages } = useLocale();
+  const eventTypeConfig = {
+    opened: {
+      label: messages.loadbalanceEvents.eventTypeOpened,
+      intent: "danger" as const,
+    },
+    extended: {
+      label: messages.loadbalanceEvents.eventTypeExtended,
+      intent: "warning" as const,
+    },
+    max_cooldown_strike: {
+      label: messages.loadbalanceEvents.eventTypeMaxCooldownStrike,
+      intent: "warning" as const,
+    },
+    banned: {
+      label: messages.loadbalanceEvents.eventTypeBanned,
+      intent: "danger" as const,
+    },
+    probe_eligible: {
+      label: messages.loadbalanceEvents.eventTypeProbeEligible,
+      intent: "info" as const,
+    },
+    recovered: {
+      label: messages.loadbalanceEvents.eventTypeRecovered,
+      intent: "success" as const,
+    },
+    not_opened: {
+      label: messages.loadbalanceEvents.eventTypeNotOpened,
+      intent: "muted" as const,
+    },
+  } as const;
+  const config = eventTypeConfig[eventType];
   return (
     <Badge
       variant="outline"
@@ -86,18 +72,35 @@ interface FailureKindBadgeProps {
 }
 
 export function FailureKindBadge({ failureKind, className }: FailureKindBadgeProps) {
+  const { messages } = useLocale();
+
   if (!failureKind) {
     return (
       <Badge
         variant="outline"
         className={cn("text-[10px] shrink-0", INTENT_CLASSES.muted, className)}
       >
-        N/A
+        {messages.common.notApplicable}
       </Badge>
     );
   }
 
-  const config = FAILURE_KIND_CONFIG[failureKind];
+  const failureKindConfig = {
+    transient_http: {
+      label: messages.loadbalanceEvents.failureKindTransientHttp,
+      intent: "warning" as const,
+    },
+    connect_error: {
+      label: messages.loadbalanceEvents.failureKindConnectError,
+      intent: "danger" as const,
+    },
+    timeout: {
+      label: messages.loadbalanceEvents.failureKindTimeout,
+      intent: "warning" as const,
+    },
+  } as const;
+  const config = failureKindConfig[failureKind];
+
   return (
     <Badge
       variant="outline"

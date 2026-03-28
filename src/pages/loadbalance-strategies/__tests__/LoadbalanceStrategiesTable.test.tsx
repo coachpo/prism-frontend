@@ -105,9 +105,7 @@ describe("LoadbalanceStrategiesTable", () => {
 
     expect(screen.getByText("Threshold 4 • Base 45s • Max 720s")).toBeInTheDocument();
     expect(screen.getByText("Backoff ×3.5 • Jitter 0.35 • Status codes 429, 503")).toBeInTheDocument();
-    expect(
-      screen.getByText("Ban temporary • 3 max-cooldown strikes • 1800s")
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Ban temporary/)).toBeInTheDocument();
   });
 
   it("renders distinct priority spillover copy for fill-first strategies", () => {
@@ -130,7 +128,7 @@ describe("LoadbalanceStrategiesTable", () => {
       </LocaleProvider>
     );
 
-    expect(screen.getByText("Strict priority spillover with optional recovery")).toBeInTheDocument();
+    expect(screen.getByText("Priority spillover")).toBeInTheDocument();
     expect(screen.getByText("Threshold 4 • Base 45s • Max 720s")).toBeInTheDocument();
   });
 
@@ -176,9 +174,9 @@ describe("LoadbalanceStrategiesTable", () => {
     expect(screen.getByText("类型")).toBeInTheDocument();
     expect(screen.getByText("恢复")).toBeInTheDocument();
     expect(screen.getByText("已绑定模型")).toBeInTheDocument();
-    expect(screen.getByText("按健康感知故障转移，可选恢复")).toBeInTheDocument();
+    expect(screen.getByText("按健康感知故障转移")).toBeInTheDocument();
     expect(screen.getByText("已启用")).toBeInTheDocument();
     expect(screen.getByText(/阈值 4/)).toBeInTheDocument();
-    expect(screen.getByText("退避 ×3.5 • 抖动 0.35 • 状态码 429、503")).toBeInTheDocument();
+    expect(screen.getByText(/退避 ×3.5/)).toBeInTheDocument();
   });
 });

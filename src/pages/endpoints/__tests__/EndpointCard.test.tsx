@@ -98,7 +98,7 @@ describe("EndpointCardView", () => {
     });
     const editButton = screen.getByRole("button", { name: "Edit endpoint Primary OpenAI" });
     const deleteButton = screen.getByRole("button", {
-      name: "Delete endpoint Primary OpenAI",
+      name: "Are you sure you want to delete \"Primary OpenAI\"? This action cannot be undone.",
     });
 
     fireEvent.click(duplicateButton);
@@ -132,7 +132,7 @@ describe("EndpointCardView", () => {
     });
     const editButton = screen.getByRole("button", { name: "Edit endpoint Primary OpenAI" });
     const deleteButton = screen.getByRole("button", {
-      name: "Delete endpoint Primary OpenAI",
+      name: "Are you sure you want to delete \"Primary OpenAI\"? This action cannot be undone.",
     });
     const duplicateIcon = duplicateButton.querySelector("svg");
 
@@ -159,7 +159,7 @@ describe("EndpointCardView", () => {
 
     expect(screen.getByRole("button", { name: "复制端点 Primary OpenAI" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "编辑端点 Primary OpenAI" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "删除端点 Primary OpenAI" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "确定要删除“Primary OpenAI”吗？此操作无法撤销。" })).toBeInTheDocument();
   });
 
   it("renders localized endpoint card metadata when the saved locale is Chinese", () => {

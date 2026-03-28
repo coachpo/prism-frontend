@@ -39,7 +39,7 @@ describe("DeleteLoadbalanceStrategyDialog i18n", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByText("删除负载均衡策略")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "删除负载均衡策略" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除" })).toBeInTheDocument();
   });
 });

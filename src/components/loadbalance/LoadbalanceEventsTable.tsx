@@ -1,6 +1,7 @@
 import { useTimezone } from "@/hooks/useTimezone";
 import type { LoadbalanceEvent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/i18n/useLocale";
 import {
   Table,
   TableBody,
@@ -22,14 +23,6 @@ interface LoadbalanceEventsTableProps {
   onNextPage: () => void;
 }
 
-function getLoadbalanceRangeLabel(total: number, offset: number, limit: number) {
-  if (total === 0) {
-    return "Showing 0 of 0 events";
-  }
-
-  return `Showing ${offset + 1} to ${Math.min(offset + limit, total)} of ${total} events`;
-}
-
 export function LoadbalanceEventsTable({
   events,
   loading,
@@ -40,27 +33,37 @@ export function LoadbalanceEventsTable({
   onPreviousPage,
   onNextPage,
 }: LoadbalanceEventsTableProps) {
+  const { formatNumber, messages } = useLocale();
   const { format: formatTime } = useTimezone();
+  const copy = messages.loadbalanceEvents;
+  const rangeLabel =
+    total === 0
+      ? copy.showingEvents("0", "0", "0")
+      : copy.showingEvents(
+          formatNumber(offset + 1),
+          formatNumber(Math.min(offset + limit, total)),
+          formatNumber(total),
+        );
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Event</TableHead>
-            <TableHead>Failure</TableHead>
-            <TableHead>Connection</TableHead>
-            <TableHead>Failures</TableHead>
-            <TableHead>Cooldown</TableHead>
-            <TableHead>Created</TableHead>
+            <TableHead>{copy.tableId}</TableHead>
+            <TableHead>{copy.tableEvent}</TableHead>
+            <TableHead>{copy.tableFailure}</TableHead>
+            <TableHead>{copy.tableConnection}</TableHead>
+            <TableHead>{copy.tableFailures}</TableHead>
+            <TableHead>{copy.tableCooldown}</TableHead>
+            <TableHead>{copy.tableCreated}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {loading ? (
             <TableRow>
               <TableCell colSpan={7} className="h-28 text-center text-muted-foreground">
-                Loading loadbalance events...
+                {copy.loadingEvents}
               </TableCell>
             </TableRow>
           ) : null}
@@ -68,7 +71,7 @@ export function LoadbalanceEventsTable({
           {!loading && events.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="h-28 text-center text-muted-foreground">
-                No loadbalance events recorded for this model yet.
+                {copy.noEventsRecorded}
               </TableCell>
             </TableRow>
           ) : null}
@@ -90,7 +93,7 @@ export function LoadbalanceEventsTable({
                   <TableCell className="font-mono text-xs">#{event.connection_id}</TableCell>
                   <TableCell className="font-mono text-xs">{event.consecutive_failures}</TableCell>
                   <TableCell className="font-mono text-xs">
-                    {event.cooldown_seconds.toFixed(1)}s
+                    {copy.cooldownValue(formatNumber(event.cooldown_seconds, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {formatTime(event.created_at, {
@@ -108,14 +111,14 @@ export function LoadbalanceEventsTable({
 
       <div className="flex items-center justify-between border-t px-4 py-3">
         <p className="text-xs text-muted-foreground">
-          {getLoadbalanceRangeLabel(total, offset, limit)}
+          {rangeLabel}
         </p>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onPreviousPage} disabled={offset === 0}>
-            Previous
+            {copy.previous}
           </Button>
           <Button variant="outline" size="sm" onClick={onNextPage} disabled={offset + limit >= total}>
-            Next
+            {copy.next}
           </Button>
         </div>
       </div>
