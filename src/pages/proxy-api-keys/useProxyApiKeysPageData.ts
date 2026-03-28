@@ -2,7 +2,7 @@ import type { ComponentProps } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { getCurrentLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type { AuthSettings, ProxyApiKey, ProxyApiKeyUpdate } from "@/lib/types";
 import { getAuthStatusTone } from "./proxyKeyFormatting";
 
@@ -33,14 +33,14 @@ export function useProxyApiKeysPageData() {
   const remainingKeys = authSettings ? Math.max(proxyKeyLimit - proxyKeys.length, 0) : 0;
   const authStatusLabel = authSettings
     ? authSettings.auth_enabled
-      ? "Authentication On"
-      : "Authentication Off"
-    : "Authentication Unavailable";
+      ? getStaticMessages().proxyApiKeys.authenticationOn
+      : getStaticMessages().proxyApiKeys.authenticationOff
+    : getStaticMessages().proxyApiKeys.authenticationUnavailable;
   const authStatusTone = getAuthStatusTone(authSettings);
   const createDisabled = creatingProxyKey || !authSettings || remainingKeys === 0;
 
   useEffect(() => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     let active = true;
 
     setPageLoading(true);
@@ -56,9 +56,7 @@ export function useProxyApiKeysPageData() {
           toast.error(
             authResult.reason instanceof Error
               ? authResult.reason.message
-              : isChinese
-                ? "加载身份验证状态失败"
-                : "Failed to load authentication status"
+                : messages.proxyApiKeysData.loadAuthStatusFailed
           );
         }
 
@@ -68,9 +66,7 @@ export function useProxyApiKeysPageData() {
           toast.error(
             keysResult.reason instanceof Error
               ? keysResult.reason.message
-              : isChinese
-                ? "加载代理 API 密钥失败"
-                : "Failed to load proxy API keys"
+                : messages.proxyApiKeysData.loadKeysFailed
           );
         }
       })
@@ -86,21 +82,19 @@ export function useProxyApiKeysPageData() {
   }, []);
 
   async function handleCreateProxyKey() {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     if (!authSettings) {
-      toast.error(isChinese ? "身份验证设置不可用" : "Authentication settings are unavailable");
+      toast.error(messages.proxyApiKeysData.settingsUnavailable);
       return;
     }
 
     if (!proxyKeyName.trim()) {
-      toast.error(isChinese ? "密钥名称为必填项" : "Key name is required");
+      toast.error(messages.proxyApiKeysData.keyNameRequired);
       return;
     }
 
     if (remainingKeys <= 0) {
-      toast.error(
-        isChinese ? `已达到 ${proxyKeyLimit} 个代理 API 密钥上限` : `Maximum ${proxyKeyLimit} proxy API keys reached`,
-      );
+      toast.error(messages.proxyApiKeysData.maxKeysReached(String(proxyKeyLimit)));
       return;
     }
 
@@ -114,16 +108,16 @@ export function useProxyApiKeysPageData() {
       setProxyKeyName("");
       setProxyKeyNotes("");
       setProxyKeys((current) => [created.item, ...current]);
-      toast.success(isChinese ? "代理 API 密钥已创建" : "Proxy API key created");
+      toast.success(messages.proxyApiKeysData.created);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "创建代理 API 密钥失败" : "Failed to create proxy API key");
+      toast.error(error instanceof Error ? error.message : messages.proxyApiKeysData.createFailed);
     } finally {
       setCreatingProxyKey(false);
     }
   }
 
   async function handleRotateProxyKey(keyId: number) {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     setRotatingProxyKeyId(keyId);
     try {
       const rotated = await api.settings.auth.proxyKeys.rotate(keyId);
@@ -131,16 +125,16 @@ export function useProxyApiKeysPageData() {
       setProxyKeys((current) =>
         current.map((key) => (key.id === keyId ? rotated.item : key))
       );
-      toast.success(isChinese ? "代理 API 密钥已轮换" : "Proxy API key rotated");
+      toast.success(messages.proxyApiKeysData.rotated);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "轮换代理 API 密钥失败" : "Failed to rotate proxy API key");
+      toast.error(error instanceof Error ? error.message : messages.proxyApiKeysData.rotateFailed);
     } finally {
       setRotatingProxyKeyId(null);
     }
   }
 
   async function handleDeleteProxyKey() {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     if (!deleteConfirm) {
       return;
     }
@@ -150,9 +144,9 @@ export function useProxyApiKeysPageData() {
       await api.settings.auth.proxyKeys.delete(deleteConfirm.id);
       setProxyKeys((current) => current.filter((key) => key.id !== deleteConfirm.id));
       setDeleteConfirm(null);
-      toast.success(isChinese ? "代理 API 密钥已删除" : "Proxy API key deleted");
+      toast.success(messages.proxyApiKeysData.deleted);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "删除代理 API 密钥失败" : "Failed to delete proxy API key");
+      toast.error(error instanceof Error ? error.message : messages.proxyApiKeysData.deleteFailed);
     } finally {
       setDeletingProxyKeyId(null);
     }
@@ -173,14 +167,14 @@ export function useProxyApiKeysPageData() {
   };
 
   async function handleSaveEditedProxyKey() {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     if (!editingProxyKey) {
       return;
     }
 
     const nextName = editingProxyKeyName.trim();
     if (!nextName) {
-      toast.error(isChinese ? "密钥名称为必填项" : "Key name is required");
+      toast.error(messages.proxyApiKeysData.keyNameRequired);
       return;
     }
 
@@ -196,9 +190,9 @@ export function useProxyApiKeysPageData() {
         current.map((key) => (key.id === updated.id ? updated : key))
       );
       resetEditProxyKeyDialog();
-      toast.success(isChinese ? "代理 API 密钥已更新" : "Proxy API key updated");
+      toast.success(messages.proxyApiKeysData.updated);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "更新代理 API 密钥失败" : "Failed to update proxy API key");
+      toast.error(error instanceof Error ? error.message : messages.proxyApiKeysData.updateFailed);
     } finally {
       setSavingEditedProxyKeyId(null);
     }

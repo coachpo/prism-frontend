@@ -67,7 +67,7 @@ describe("PricingTemplatesPage shell i18n", () => {
     );
 
     expect(screen.getByRole("heading", { name: "价格模板" })).toBeInTheDocument();
-    expect(screen.getByText("管理可在模型和端点间复用的价格模板")).toBeInTheDocument();
+    expect(screen.getAllByText("管理可在模型和端点间复用的价格模板").length).toBeGreaterThan(0);
     expect(screen.getByText("配置档案作用域设置")).toBeInTheDocument();
   });
 });

@@ -10,29 +10,20 @@ import { ProxyKeyStatusCallout } from "./proxy-api-keys/ProxyKeyStatusCallout";
 import { useProxyApiKeysPageData } from "./proxy-api-keys/useProxyApiKeysPageData";
 
 export function ProxyApiKeysPage() {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
   const data = useProxyApiKeysPageData();
+  const copy = messages.proxyApiKeys;
   const authStatusLabel = data.authSettings
     ? data.authSettings.auth_enabled
-      ? locale === "zh-CN"
-        ? "身份验证开启"
-        : "Authentication On"
-      : locale === "zh-CN"
-        ? "身份验证关闭"
-        : "Authentication Off"
-    : locale === "zh-CN"
-      ? "身份验证不可用"
-      : "Authentication Unavailable";
+      ? copy.authenticationOn
+      : copy.authenticationOff
+    : copy.authenticationUnavailable;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={locale === "zh-CN" ? "代理 API 密钥" : "Proxy API Keys"}
-        description={
-          locale === "zh-CN"
-            ? "管理上游客户端用于访问 Prism 代理的机器凭证。适用于所有配置档案。"
-            : "Manage machine credentials used by upstream clients to access the Prism proxy. Applies to all profiles."
-        }
+        title={copy.title}
+        description={copy.description}
       >
         <Badge variant="outline" className={data.authStatusTone}>
           {authStatusLabel}

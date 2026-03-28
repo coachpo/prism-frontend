@@ -60,14 +60,15 @@ type ProxyKeyActionsProps = Pick<Props, "deleting" | "onDelete" | "onEdit" | "on
 };
 
 function ProxyKeyActions({ deleting, itemName, onDelete, onEdit, onRotate, rotating }: ProxyKeyActionsProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.proxyApiKeys;
 
   return (
     <IconActionGroup>
       <IconActionButton
         type="button"
         size="icon-sm"
-        aria-label={locale === "zh-CN" ? `编辑代理密钥 ${itemName}` : `Edit proxy key ${itemName}`}
+        aria-label={copy.editProxyKeyAria(itemName)}
         disabled={rotating || deleting}
         onClick={onEdit}
       >
@@ -76,7 +77,7 @@ function ProxyKeyActions({ deleting, itemName, onDelete, onEdit, onRotate, rotat
       <IconActionButton
         type="button"
         size="icon-sm"
-        aria-label={locale === "zh-CN" ? `轮换代理密钥 ${itemName}` : `Rotate proxy key ${itemName}`}
+        aria-label={copy.rotateProxyKeyAria(itemName)}
         disabled={rotating || deleting}
         onClick={onRotate}
       >
@@ -85,7 +86,7 @@ function ProxyKeyActions({ deleting, itemName, onDelete, onEdit, onRotate, rotat
       <IconActionButton
         type="button"
         size="icon-sm"
-        aria-label={locale === "zh-CN" ? `删除代理密钥 ${itemName}` : `Delete proxy key ${itemName}`}
+        aria-label={copy.deleteProxyKeyAria(itemName)}
         destructive
         disabled={rotating || deleting}
         onClick={onDelete}
@@ -109,18 +110,19 @@ export function ProxyKeyCard({
   onRotate,
   onDelete,
 }: Props) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.proxyApiKeys;
   const showStatusBadge = !item.is_active || authEnabled;
   const statusLabel = getRuntimeStatusLabel(item);
   const statusTone = getRuntimeStatusTone(item, authEnabled);
-  const note = item.notes?.trim() || (locale === "zh-CN" ? "没有内部备注。" : "No internal note.");
+  const note = item.notes?.trim() || copy.noInternalNote;
   const lastIp = item.last_used_ip || "—";
 
   return (
     <TableRow className="grid gap-3 px-3 py-3 md:table-row md:px-0 md:py-0">
       <TableCell className="block whitespace-normal px-0 py-0 align-top md:table-cell md:px-[var(--density-table-cell-px)] md:py-[var(--density-table-cell-py)]">
         <div className="min-w-0 space-y-1">
-          <MobileOnlyLabel>{locale === "zh-CN" ? "名称 / 备注" : "Name / note"}</MobileOnlyLabel>
+            <MobileOnlyLabel>{copy.nameNote}</MobileOnlyLabel>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="truncate font-medium" title={item.name}>
               {item.name}
@@ -139,14 +141,14 @@ export function ProxyKeyCard({
 
       <TableCell className="block whitespace-normal px-0 py-0 align-top md:table-cell md:max-w-[14rem] md:px-[var(--density-table-cell-px)] md:py-[var(--density-table-cell-py)]">
         <div className="space-y-1">
-          <MobileOnlyLabel>{locale === "zh-CN" ? "预览" : "Preview"}</MobileOnlyLabel>
+          <MobileOnlyLabel>{copy.preview}</MobileOnlyLabel>
           <p className="break-all font-mono text-xs text-muted-foreground">{item.key_preview}</p>
         </div>
       </TableCell>
 
       <TableCell className="block whitespace-normal px-0 py-0 align-top md:table-cell md:px-[var(--density-table-cell-px)] md:py-[var(--density-table-cell-py)]">
         <MobileField
-          label={locale === "zh-CN" ? "创建时间" : "Created"}
+          label={copy.created}
           value={formatDateTime(item.created_at)}
           className="border-0 bg-transparent px-0 py-0 md:space-y-0 md:border-none md:bg-transparent md:px-0 md:py-0"
         />
@@ -154,7 +156,7 @@ export function ProxyKeyCard({
 
       <TableCell className="block whitespace-normal px-0 py-0 align-top md:table-cell md:px-[var(--density-table-cell-px)] md:py-[var(--density-table-cell-py)]">
         <MobileField
-          label={locale === "zh-CN" ? "更新时间" : "Updated"}
+          label={copy.updated}
           value={formatDateTime(item.updated_at)}
           className="border-0 bg-transparent px-0 py-0 md:space-y-0 md:border-none md:bg-transparent md:px-0 md:py-0"
         />
@@ -162,7 +164,7 @@ export function ProxyKeyCard({
 
       <TableCell className="block whitespace-normal px-0 py-0 align-top md:table-cell md:px-[var(--density-table-cell-px)] md:py-[var(--density-table-cell-py)]">
         <MobileField
-          label={locale === "zh-CN" ? "最后使用" : "Last used"}
+          label={copy.lastUsed}
           value={formatLastUsed(item.last_used_at)}
           className="border-0 bg-transparent px-0 py-0 md:space-y-0 md:border-none md:bg-transparent md:px-0 md:py-0"
         />
@@ -170,7 +172,7 @@ export function ProxyKeyCard({
 
       <TableCell className="block whitespace-normal px-0 py-0 align-top md:table-cell md:max-w-[12rem] md:px-[var(--density-table-cell-px)] md:py-[var(--density-table-cell-py)]">
         <MobileField
-          label={locale === "zh-CN" ? "最后 IP" : "Last IP"}
+          label={copy.lastIp}
           value={lastIp}
           mono
           className="border-0 bg-transparent px-0 py-0 md:space-y-0 md:border-none md:bg-transparent md:px-0 md:py-0"
@@ -179,7 +181,7 @@ export function ProxyKeyCard({
 
       <TableCell className="block whitespace-normal px-0 py-0 align-top md:table-cell md:px-[var(--density-table-cell-px)] md:py-[var(--density-table-cell-py)] md:text-right">
         <div className="flex items-center justify-between gap-3 md:justify-end">
-          <MobileOnlyLabel>{locale === "zh-CN" ? "操作" : "Operation"}</MobileOnlyLabel>
+          <MobileOnlyLabel>{copy.operation}</MobileOnlyLabel>
           <ProxyKeyActions
             itemName={item.name}
             rotating={rotating}

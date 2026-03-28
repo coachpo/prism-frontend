@@ -2,6 +2,7 @@ import type {
   PricingTemplate,
   PricingTemplateConnectionUsageItem,
 } from "@/lib/types";
+import { getStaticMessages } from "@/i18n/staticMessages";
 
 export type PricingTemplateFormState = {
   name: string;
@@ -95,11 +96,11 @@ export const parsePricingTemplateUsageRows = (
     const modelId =
       typeof entry.model_id === "string" && entry.model_id.trim().length > 0
         ? entry.model_id
-        : "Unknown model";
+        : getStaticMessages().pricingTemplatesData.unknownModel;
     const endpointName =
       typeof entry.endpoint_name === "string" && entry.endpoint_name.trim().length > 0
         ? entry.endpoint_name
-        : `Endpoint #${endpointId}`;
+        : getStaticMessages().pricingTemplatesData.endpointWithId(String(endpointId));
 
     rows.push({
       connection_id: connectionId,

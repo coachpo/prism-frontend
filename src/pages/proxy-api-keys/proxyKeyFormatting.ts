@@ -1,5 +1,10 @@
 import type { AuthSettings, ProxyApiKey } from "@/lib/types";
 import { getCurrentLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
+
+function getProxyKeyMessages() {
+  return getStaticMessages();
+}
 
 export function getAuthStatusTone(authSettings: AuthSettings | null) {
   if (!authSettings) {
@@ -12,12 +17,12 @@ export function getAuthStatusTone(authSettings: AuthSettings | null) {
 }
 
 export function getRuntimeStatusLabel(item: ProxyApiKey) {
-  const locale = getCurrentLocale();
+  const messages = getProxyKeyMessages();
   if (!item.is_active) {
-    return locale === "zh-CN" ? "已禁用" : "Disabled";
+    return messages.proxyApiKeys.disabled;
   }
 
-  return locale === "zh-CN" ? "活跃" : "Active";
+  return messages.proxyApiKeys.active;
 }
 
 export function getRuntimeStatusTone(item: ProxyApiKey, authEnabled: boolean) {
@@ -31,8 +36,9 @@ export function getRuntimeStatusTone(item: ProxyApiKey, authEnabled: boolean) {
 }
 
 export function formatDateTime(value: string | null, fallback = "Unknown") {
+  const messages = getProxyKeyMessages();
   if (!value) {
-    return fallback;
+    return fallback === "Unknown" ? messages.proxyApiKeys.unknown : fallback;
   }
 
   const date = new Date(value);
@@ -47,5 +53,5 @@ export function formatDateTime(value: string | null, fallback = "Unknown") {
 }
 
 export function formatLastUsed(value: string | null) {
-  return formatDateTime(value, getCurrentLocale() === "zh-CN" ? "从未" : "Never");
+  return formatDateTime(value, getProxyKeyMessages().proxyApiKeys.never);
 }

@@ -33,7 +33,8 @@ export function PricingTemplatesTable({
   pricingTemplates,
   pricingTemplatesLoading,
 }: PricingTemplatesTableProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.pricingTemplatesUi;
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -41,18 +42,16 @@ export function PricingTemplatesTable({
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-sm">
               <Coins className="h-4 w-4" />
-              {locale === "zh-CN" ? "价格模板" : "Pricing Templates"}
+              {copy.tableTitle}
             </CardTitle>
             <CardDescription className="text-xs">
-              {locale === "zh-CN"
-                ? "管理可在模型和端点间复用的价格模板。"
-                : "Manage reusable pricing templates for models and endpoints."}
+              {copy.description}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" size="sm" onClick={onCreate}>
               <Plus className="mr-2 h-3.5 w-3.5" />
-              {locale === "zh-CN" ? "新增模板" : "Add Template"}
+              {copy.addTemplate}
             </Button>
           </div>
         </div>
@@ -66,7 +65,7 @@ export function PricingTemplatesTable({
         ) : pricingTemplates.length === 0 ? (
           <div className="rounded-md border border-dashed p-8 text-center">
             <p className="text-sm text-muted-foreground">
-              {locale === "zh-CN" ? "当前没有配置价格模板。" : "No pricing templates configured."}
+              {copy.noTemplatesConfigured}
             </p>
           </div>
         ) : (
@@ -74,11 +73,11 @@ export function PricingTemplatesTable({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{locale === "zh-CN" ? "名称" : "Name"}</TableHead>
-                  <TableHead>{locale === "zh-CN" ? "货币" : "Currency"}</TableHead>
-                  <TableHead>{locale === "zh-CN" ? "输入" : "Input"}</TableHead>
-                  <TableHead>{locale === "zh-CN" ? "输出" : "Output"}</TableHead>
-                  <TableHead className="text-right">{locale === "zh-CN" ? "操作" : "Actions"}</TableHead>
+                  <TableHead>{messages.settingsDialogs.name}</TableHead>
+                  <TableHead>{copy.currency}</TableHead>
+                  <TableHead>{copy.input}</TableHead>
+                  <TableHead>{copy.output}</TableHead>
+                  <TableHead className="text-right">{copy.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -108,13 +107,13 @@ export function PricingTemplatesTable({
                           <IconActionGroup>
                             <IconActionButton
                               size="icon"
-                              aria-label={locale === "zh-CN" ? `查看模板 ${template.name} 的使用情况` : `View usage for pricing template ${template.name}`}
+                              aria-label={`${copy.viewUsage} ${template.name}`}
                               onClick={() => {
                                 void onViewUsage(template);
                               }}
                             >
                               <Eye className="h-4 w-4" />
-                              <span className="sr-only">{locale === "zh-CN" ? "查看使用情况" : "View usage"}</span>
+                              <span className="sr-only">{copy.viewUsage}</span>
                             </IconActionButton>
                             <IconActionButton
                               size="icon"
@@ -128,7 +127,7 @@ export function PricingTemplatesTable({
                               ) : (
                                 <Pencil className="h-4 w-4" />
                               )}
-                              <span className="sr-only">{locale === "zh-CN" ? "编辑" : "Edit"}</span>
+                              <span className="sr-only">{messages.loadbalanceStrategiesTable.edit}</span>
                             </IconActionButton>
                             <IconActionButton
                               size="icon"
@@ -138,7 +137,7 @@ export function PricingTemplatesTable({
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">{locale === "zh-CN" ? "删除" : "Delete"}</span>
+                              <span className="sr-only">{messages.settingsDialogs.delete}</span>
                             </IconActionButton>
                           </IconActionGroup>
                         </div>

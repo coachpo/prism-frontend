@@ -33,17 +33,14 @@ export function PricingTemplateUsageDialog({
   pricingTemplateUsageRows,
   pricingTemplateUsageTemplate,
 }: PricingTemplateUsageDialogProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.pricingTemplatesUi;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{locale === "zh-CN" ? "模板使用情况" : "Template Usage"}</DialogTitle>
-          <DialogDescription>
-            {locale === "zh-CN"
-              ? `当前使用“${pricingTemplateUsageTemplate?.name}”模板的连接。`
-              : `Connections currently using the "${pricingTemplateUsageTemplate?.name}" template.`}
-          </DialogDescription>
+          <DialogTitle>{copy.templateUsage}</DialogTitle>
+          <DialogDescription>{copy.templateUsageDescription(pricingTemplateUsageTemplate?.name ?? "")}</DialogDescription>
         </DialogHeader>
         <div className="py-4">
           {pricingTemplateUsageLoading ? (
@@ -54,9 +51,7 @@ export function PricingTemplateUsageDialog({
           ) : pricingTemplateUsageRows.length === 0 ? (
             <div className="rounded-md border border-dashed p-8 text-center">
               <p className="text-sm text-muted-foreground">
-                {locale === "zh-CN"
-                  ? "此模板当前没有被任何连接使用。"
-                  : "This template is not currently used by any connections."}
+                {copy.templateUnused}
               </p>
             </div>
           ) : (
@@ -64,9 +59,9 @@ export function PricingTemplateUsageDialog({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{locale === "zh-CN" ? "模型" : "Model"}</TableHead>
-                    <TableHead>{locale === "zh-CN" ? "端点" : "Endpoint"}</TableHead>
-                    <TableHead>{locale === "zh-CN" ? "连接" : "Connection"}</TableHead>
+                    <TableHead>{copy.model}</TableHead>
+                    <TableHead>{copy.endpoint}</TableHead>
+                    <TableHead>{messages.requestLogs.connection}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -76,7 +71,7 @@ export function PricingTemplateUsageDialog({
                       <TableCell>{row.endpoint_name}</TableCell>
                         <TableCell>
                           {row.connection_name || (
-                          <span className="text-muted-foreground italic">{locale === "zh-CN" ? "未命名" : "Unnamed"}</span>
+                          <span className="text-muted-foreground italic">{copy.unnamed}</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -87,7 +82,7 @@ export function PricingTemplateUsageDialog({
           )}
         </div>
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>{locale === "zh-CN" ? "关闭" : "Close"}</Button>
+          <Button onClick={() => onOpenChange(false)}>{copy.close}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

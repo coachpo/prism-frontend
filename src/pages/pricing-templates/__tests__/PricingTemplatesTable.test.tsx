@@ -46,7 +46,7 @@ describe("PricingTemplatesTable", () => {
       </LocaleProvider>
     );
 
-    const viewUsageButton = screen.getByRole("button", { name: `View usage for pricing template ${template.name}` });
+    const viewUsageButton = screen.getByRole("button", { name: `View usage ${template.name}` });
     const editButton = screen.getByRole("button", { name: "Edit" });
     const deleteButton = screen.getByRole("button", { name: "Delete" });
     const actionGroup = viewUsageButton.parentElement;
@@ -135,6 +135,6 @@ describe("PricingTemplatesTable", () => {
     expect(screen.getByText("货币")).toBeInTheDocument();
     expect(screen.getByText("输入")).toBeInTheDocument();
     expect(screen.getByText("输出")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: `查看模板 ${template.name} 的使用情况` })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `查看使用情况 ${template.name}` })).toBeInTheDocument();
   });
 });

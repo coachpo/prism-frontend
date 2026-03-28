@@ -36,8 +36,8 @@ describe("DeleteProxyKeyDialog", () => {
       </LocaleProvider>
     );
 
-    expect(screen.getByText("Delete Proxy API Key")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Delete Proxy API Key" })).toBeInTheDocument();
     expect(screen.getByText(/Primary runtime key/)).toBeInTheDocument();
-    expect(screen.getByText("prism")).toBeInTheDocument();
+    expect(screen.getByText(/Confirm the prefix prism before continuing/)).toBeInTheDocument();
   });
 });

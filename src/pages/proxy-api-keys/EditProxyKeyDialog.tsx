@@ -40,44 +40,41 @@ export function EditProxyKeyDialog({
   setProxyKeyName,
   setProxyKeyNotes,
 }: Props) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.proxyApiKeys;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{locale === "zh-CN" ? "编辑代理 API 密钥" : "Edit Proxy API Key"}</DialogTitle>
-          <DialogDescription>
-            {locale === "zh-CN"
-              ? "更新这个已发放密钥的名称、备注和启用状态。轮换密钥是单独的操作。"
-              : "Update the stored name, note, and active state for this issued key. Rotating the secret is a separate action."}
-          </DialogDescription>
+          <DialogTitle>{copy.editProxyApiKey}</DialogTitle>
+          <DialogDescription>{copy.editDescription}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="proxy-key-edit-name">{locale === "zh-CN" ? "名称" : "Name"}</Label>
+            <Label htmlFor="proxy-key-edit-name">{copy.name}</Label>
             <Input
               id="proxy-key-edit-name"
               value={proxyKeyName}
               onChange={(event) => setProxyKeyName(event.target.value)}
-              placeholder={locale === "zh-CN" ? "生产客户端" : "Production client"}
+              placeholder={copy.namePlaceholder}
               disabled={saving}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="proxy-key-edit-note">{locale === "zh-CN" ? "备注" : "Note"}</Label>
+            <Label htmlFor="proxy-key-edit-note">{copy.notes}</Label>
             <Input
               id="proxy-key-edit-note"
               value={proxyKeyNotes}
               onChange={(event) => setProxyKeyNotes(event.target.value)}
-              placeholder={locale === "zh-CN" ? "供主站使用" : "Used by the main website"}
+              placeholder={copy.notesPlaceholder}
               disabled={saving}
             />
           </div>
 
           <SwitchController
-            label={locale === "zh-CN" ? "启用" : "Active"}
+            label={copy.active}
             checked={proxyKeyActive}
             onCheckedChange={setProxyKeyActive}
             disabled={saving}
@@ -86,16 +83,10 @@ export function EditProxyKeyDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-              {locale === "zh-CN" ? "取消" : "Cancel"}
+              {messages.settingsDialogs.cancel}
             </Button>
             <Button type="submit" disabled={saving || !proxyKeyName.trim()}>
-              {saving
-                ? locale === "zh-CN"
-                  ? "保存中..."
-                  : "Saving..."
-                : locale === "zh-CN"
-                  ? "保存"
-                  : "Save"}
+              {saving ? messages.pricingTemplateDialog.saving : messages.modelsUi.save}
             </Button>
           </DialogFooter>
         </form>

@@ -86,7 +86,7 @@ export function PricingTemplateDialog({
                     pricing_currency_code: event.target.value.toUpperCase(),
                   }))
                 }
-                placeholder="USD"
+                placeholder={dialogMessages.currencyCodePlaceholder}
                 maxLength={3}
               />
             </div>

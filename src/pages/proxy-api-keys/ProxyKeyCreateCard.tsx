@@ -37,17 +37,16 @@ export function ProxyKeyCreateCard({
   setProxyKeyName,
   setProxyKeyNotes,
 }: ProxyKeyCreateCardProps) {
-  const { locale } = useLocale();
+  const { formatNumber, messages } = useLocale();
+  const copy = messages.proxyApiKeys;
   return (
     <form onSubmit={handleCreateSubmit}>
       <Card>
         <CardHeader className="pb-3">
           <div className="space-y-1">
-            <CardTitle className="text-base">{locale === "zh-CN" ? "创建代理密钥" : "Create proxy key"}</CardTitle>
+            <CardTitle className="text-base">{copy.createProxyKey}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {locale === "zh-CN"
-                ? "添加名称和可选备注，然后创建一个新的客户端凭证。"
-                : "Add a name and optional note, then create a new client credential."}
+              {copy.createDescription}
             </p>
           </div>
         </CardHeader>
@@ -57,18 +56,16 @@ export function ProxyKeyCreateCard({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
-                    {locale === "zh-CN" ? "新密钥" : "New secret"}
+                    {copy.newSecret}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {locale === "zh-CN"
-                      ? "完整密钥只会显示一次。离开页面前请妥善保存。"
-                      : "This full key is shown once. Store it before leaving the page."}
+                    {copy.newSecretDescription}
                   </p>
                 </div>
                 <CopyButton
                   value={latestGeneratedKey}
-                  label={locale === "zh-CN" ? "复制密钥" : "Copy key"}
-                  targetLabel={locale === "zh-CN" ? "API 密钥" : "API key"}
+                  label={copy.copyKey}
+                  targetLabel={copy.apiKey}
                   variant="outline"
                 />
               </div>
@@ -81,13 +78,13 @@ export function ProxyKeyCreateCard({
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1">
               <Label htmlFor="proxy-key-name" className="text-xs text-muted-foreground">
-                {locale === "zh-CN" ? "名称" : "Name"}
+                {copy.name}
               </Label>
               <Input
                 id="proxy-key-name"
                 value={proxyKeyName}
                 onChange={(event) => setProxyKeyName(event.target.value)}
-                placeholder={locale === "zh-CN" ? "生产客户端" : "Production client"}
+                placeholder={copy.namePlaceholder}
                 disabled={creatingProxyKey || !authAvailable}
                 className="w-56"
               />
@@ -95,13 +92,13 @@ export function ProxyKeyCreateCard({
 
             <div className="space-y-1">
               <Label htmlFor="proxy-key-notes" className="text-xs text-muted-foreground">
-                {locale === "zh-CN" ? "备注" : "Notes"}
+                {copy.notes}
               </Label>
               <Input
                 id="proxy-key-notes"
                 value={proxyKeyNotes}
                 onChange={(event) => setProxyKeyNotes(event.target.value)}
-                placeholder={locale === "zh-CN" ? "供主站使用" : "Used by the main website"}
+                placeholder={copy.notesPlaceholder}
                 disabled={creatingProxyKey || !authAvailable}
                 className="w-72"
               />
@@ -109,30 +106,16 @@ export function ProxyKeyCreateCard({
 
             <Button type="submit" disabled={createDisabled}>
               {creatingProxyKey
-                ? locale === "zh-CN"
-                  ? "创建中..."
-                  : "Creating..."
+                ? copy.creating
                 : remainingKeys === 0
-                  ? locale === "zh-CN"
-                    ? "已达到密钥上限"
-                    : "Key limit reached"
-                  : locale === "zh-CN"
-                    ? "创建密钥"
-                    : "Create key"}
+                  ? copy.keyLimitReached
+                  : copy.createKey}
             </Button>
           </div>
 
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <p>
-              {locale === "zh-CN"
-                ? `${proxyKeysUsed} / ${proxyKeyLimit} 个密钥已使用`
-                : `${proxyKeysUsed} / ${proxyKeyLimit} keys used`}
-            </p>
-            <p>
-              {locale === "zh-CN"
-                ? `${remainingKeys} 个可用名额剩余。`
-                : `${remainingKeys} slot${remainingKeys === 1 ? "" : "s"} remaining.`}
-            </p>
+            <p>{copy.keysUsed(formatNumber(proxyKeysUsed), formatNumber(proxyKeyLimit))}</p>
+            <p>{copy.slotsRemaining(formatNumber(remainingKeys))}</p>
           </div>
         </CardContent>
       </Card>
