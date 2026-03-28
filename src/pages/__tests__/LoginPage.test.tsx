@@ -4,7 +4,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { LoginPage } from "../LoginPage";
 
-const loginMock = vi.fn();
+const { authState, confirmPasswordResetMock, loginMock, requestPasswordResetMock } = vi.hoisted(() => ({
+  authState: {
+    authEnabled: true,
+    authenticated: false,
+    loading: false,
+  },
+  confirmPasswordResetMock: vi.fn(),
+  loginMock: vi.fn(),
+  requestPasswordResetMock: vi.fn(),
+}));
 
 vi.mock("next-themes", () => ({
   useTheme: () => ({ resolvedTheme: "light", setTheme: vi.fn(), theme: "system" }),
@@ -12,11 +21,20 @@ vi.mock("next-themes", () => ({
 
 vi.mock("@/context/useAuth", () => ({
   useAuth: () => ({
-    authEnabled: true,
-    authenticated: false,
-    loading: false,
+    authEnabled: authState.authEnabled,
+    authenticated: authState.authenticated,
+    loading: authState.loading,
     login: loginMock,
   }),
+}));
+
+vi.mock("@/lib/api", () => ({
+  api: {
+    auth: {
+      confirmPasswordReset: confirmPasswordResetMock,
+      requestPasswordReset: requestPasswordResetMock,
+    },
+  },
 }));
 
 vi.mock("@/context/AuthContext", () => ({
@@ -32,9 +50,25 @@ vi.mock("@/components/ui/topography", () => ({
   TopographyBackground: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+async function renderAppRoute(path: string) {
+  const AppModule = await import("@/App");
+
+  window.history.pushState({}, "", path);
+
+  return render(
+    <LocaleProvider>
+      <AppModule.default />
+    </LocaleProvider>,
+  );
+}
+
 describe("LoginPage", () => {
   beforeEach(() => {
     localStorage.clear();
+    authState.authEnabled = true;
+    authState.authenticated = false;
+    authState.loading = false;
+    window.history.replaceState({}, "", "/login");
   });
 
   it("renders language controls and locale-backed auth copy", () => {
@@ -87,16 +121,33 @@ describe("LoginPage", () => {
   });
 
   it("shows the locale-backed loading fallback in App route suspense", async () => {
-    const AppModule = await import("@/App");
-    window.history.pushState({}, "", "/login");
-    const view = render(
-      <LocaleProvider>
-        <AppModule.default />
-      </LocaleProvider>,
-    );
+    const view = await renderAppRoute("/login");
 
     expect(screen.getByText(/loading application/i)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
+    view.unmount();
+  });
+
+  it.each([
+    ["/login", /^sign in$/i],
+    ["/forgot-password", /send code/i],
+    ["/reset-password", /reset password/i],
+  ])("keeps %s on the public auth side of the route split", async (path, landmark) => {
+    const view = await renderAppRoute(path);
+
+    expect(await screen.findByRole("button", { name: landmark })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(path);
+
+    view.unmount();
+  });
+
+  it("redirects unauthenticated protected routes to /login", async () => {
+    const view = await renderAppRoute("/dashboard");
+
+    expect(await screen.findByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/login");
+    expect(window.history.state?.usr?.from?.pathname).toBe("/dashboard");
+
     view.unmount();
   });
 });
