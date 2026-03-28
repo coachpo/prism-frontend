@@ -6,14 +6,14 @@
 ## ROUTE SURFACE
 
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
-- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
+- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/models/:id/proxy`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
 - Root redirect: `/` -> `/dashboard`
 
 ## DOMAINS
 
 - Auth entry and recovery: `LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`
 - Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestLogsPage.tsx`
-- Configuration and routing: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `EndpointsPage.tsx`, `LoadbalanceStrategiesPage.tsx`, `PricingTemplatesPage.tsx`
+- Configuration and routing: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `ProxyModelDetailPage.tsx`, `EndpointsPage.tsx`, `LoadbalanceStrategiesPage.tsx`, `PricingTemplatesPage.tsx`
 - Access control and runtime credentials: `ProxyApiKeysPage.tsx`
 - Settings shell: `SettingsPage.tsx` with local `settings/sections/` and `settings/costing/`
 
@@ -22,8 +22,8 @@
 - Mounted route list, public auth split, and protected shell boundary: `../App.tsx`
 - Frontend locale boundary for route-shell copy and formatting: `../i18n/AGENTS.md`, `../i18n/useLocale.ts`
 - Dashboard bootstrap, realtime refresh, and parent-covered `dashboard/routing-diagram/` cluster: `DashboardPage.tsx`, `dashboard/AGENTS.md`
-- Model detail bootstrap, current-state helpers, connection flows, and parent-covered `model-detail/connections-list/` cluster: `ModelDetailPage.tsx`, `model-detail/AGENTS.md`
-- Statistics tab shell, shared URL state, polling, and parent-covered `statistics/operations/` and `statistics/spending/` clusters: `StatisticsPage.tsx`, `statistics/AGENTS.md`
+- Model detail and proxy-model detail bootstrap, current-state helpers, connection flows, and parent-covered `model-detail/connections-list/` cluster: `ModelDetailPage.tsx`, `ProxyModelDetailPage.tsx`, `model-detail/AGENTS.md`
+- Statistics route shell, shared persisted presentation state, snapshot orchestration, and parent-covered `statistics/charts/`, `statistics/sections/`, and `statistics/tables/` clusters: `StatisticsPage.tsx`, `statistics/AGENTS.md`
 - Settings tab shell, section navigation, save-state helpers, and child-doc delegation: `SettingsPage.tsx`, `settings/AGENTS.md`
 - Models table, dialogs, and metrics hydration: `ModelsPage.tsx`, `models/AGENTS.md`
 - Endpoint CRUD and reorder helpers: `EndpointsPage.tsx`, `endpoints/AGENTS.md`
@@ -43,7 +43,7 @@
 - `proxy-api-keys/AGENTS.md`: proxy-key creation, edit and rotation flows, delete confirmation, and auth-status UX.
 - `request-logs/AGENTS.md`: request-log investigation flow, query params, filters, and parent-owned detail behavior.
 - `settings/AGENTS.md`: settings page shell, profile/global tab split, section navigation, save-state helpers, and delegation to `sections/AGENTS.md` and `costing/AGENTS.md`.
-- `statistics/AGENTS.md`: operations, throughput, and spending tabs with shared URL state and local subfolder coverage.
+- `statistics/AGENTS.md`: unified statistics route with snapshot orchestration and the local `charts/`, `sections/`, and `tables/` clusters.
 
 ## CONVENTIONS
 
@@ -51,7 +51,7 @@
 - Keep route-shell copy on the shared frontend locale boundary through `useLocale()` and the `src/i18n/` catalogs instead of page-local string stores.
 - Let route files own bookmarkable query or hash state, route-entry redirects, and the first handoff into local hooks.
 - Refresh profile-scoped page data from `ProfileContext.revision` instead of bolting on unrelated cache invalidation paths.
-- Parent-cover local route clusters that do not need their own AGENTS file, including `dashboard/routing-diagram/`, `model-detail/connections-list/`, `statistics/operations/`, `statistics/spending/`, and request-log detail behavior under `request-logs/`.
+- Parent-cover local route clusters that do not need their own AGENTS file, including `dashboard/routing-diagram/`, `model-detail/connections-list/`, `statistics/charts/`, `statistics/sections/`, `statistics/tables/`, and request-log detail behavior under `request-logs/`.
 - Keep the settings parent focused on shell behavior. Section-level and costing-level details belong in the child docs.
 - Keep auth pages outside the protected shell and outside `ProfileProvider` assumptions.
 
