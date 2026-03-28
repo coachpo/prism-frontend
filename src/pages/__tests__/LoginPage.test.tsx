@@ -80,8 +80,8 @@ describe("LoginPage", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "English" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "简体中文" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^English/ })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "简体中文" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
     expect(screen.getByText(/or continue with/i)).toBeInTheDocument();
   });
@@ -95,7 +95,10 @@ describe("LoginPage", () => {
       </LocaleProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "简体中文" }));
+    const languageTrigger = screen.getByRole("button", { name: /^English/ });
+    languageTrigger.focus();
+    fireEvent.keyDown(languageTrigger, { key: "Enter", code: "Enter" });
+    fireEvent.click(screen.getByRole("menuitem", { name: "简体中文" }));
 
     expect(screen.getByRole("button", { name: "登录" })).toBeInTheDocument();
     expect(screen.getByText("或继续使用")).toBeInTheDocument();
@@ -111,7 +114,10 @@ describe("LoginPage", () => {
       </LocaleProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "简体中文" }));
+    const languageTrigger = screen.getByRole("button", { name: /^English/ });
+    languageTrigger.focus();
+    fireEvent.keyDown(languageTrigger, { key: "Enter", code: "Enter" });
+    fireEvent.click(screen.getByRole("menuitem", { name: "简体中文" }));
 
     expect(screen.getAllByText("当前浏览器会话").length).toBeGreaterThan(0);
     expect(screen.getByText("7 天")).toBeInTheDocument();

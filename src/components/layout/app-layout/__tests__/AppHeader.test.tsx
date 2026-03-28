@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { AppHeader } from "../AppHeader";
@@ -12,7 +12,7 @@ vi.mock("next-themes", () => ({
 }));
 
 describe("AppHeader", () => {
-  it("renders locale-backed mismatch and action copy", () => {
+  it("renders locale-backed mismatch and action copy", async () => {
     render(
       <LocaleProvider>
         <AppHeader
@@ -49,11 +49,19 @@ describe("AppHeader", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "English" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "简体中文" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^English/ })).toBeInTheDocument();
+    expect(screen.queryByText("简体中文")).not.toBeInTheDocument();
     expect(screen.getByText(/activate profile/i)).toBeInTheDocument();
     expect(screen.getByText(/you're viewing/i)).toBeInTheDocument();
     expect(screen.getByText("alice")).toBeInTheDocument();
+
+    const languageTrigger = screen.getByRole("button", { name: /^English/ });
+    languageTrigger.focus();
+    fireEvent.keyDown(languageTrigger, { key: "Enter", code: "Enter" });
+
+    await waitFor(() => {
+      expect(screen.getByRole("menuitem", { name: "简体中文" })).toBeInTheDocument();
+    });
   });
 
   it("stacks the profile switcher and global preferences controls for mobile widths", () => {

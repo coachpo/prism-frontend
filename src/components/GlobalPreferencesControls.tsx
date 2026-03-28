@@ -17,7 +17,7 @@ export function GlobalPreferencesControls({
 }: GlobalPreferencesControlsProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <LanguageSwitcher className={languageSwitcherClassName} />
+      <LanguageSwitcher buttonClassName={languageSwitcherClassName} />
       <ThemeToggle
         buttonClassName={themeToggleButtonClassName}
         menuClassName={themeToggleMenuClassName}

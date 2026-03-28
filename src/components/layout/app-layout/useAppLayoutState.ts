@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/useAuth";
 import { useProfileContext } from "@/context/ProfileContext";
+import { useLocale } from "@/i18n/useLocale";
 import { MAX_PROFILES, PROFILE_SCOPED_PREFIXES } from "./navigationProfileConfig";
 import { useProfileDialogState } from "./useProfileDialogState";
 import { useProfileSwitcherState } from "./useProfileSwitcherState";
@@ -11,6 +12,7 @@ export function useAppLayoutState() {
   const location = useLocation();
   const navigate = useNavigate();
   const { authEnabled, username, logout } = useAuth();
+  const { messages } = useLocale();
   const {
     profiles,
     activeProfile,
@@ -32,20 +34,20 @@ export function useAppLayoutState() {
   const hasMismatch = selectedProfile !== null && activeProfile !== null && !selectedIsActive;
   const selectedIsDefault = selectedProfile?.is_default ?? false;
   const selectedIsEditable = selectedProfile?.is_editable ?? true;
-  const selectedProfileName = selectedProfile?.name ?? "Unavailable";
-  const activeProfileName = activeProfile?.name ?? "Unavailable";
+  const selectedProfileName = selectedProfile?.name ?? messages.common.unavailable;
+  const activeProfileName = activeProfile?.name ?? messages.common.unavailable;
   const deleteDisabledReason = selectedIsDefault
-    ? "Default profile cannot be deleted."
+    ? messages.profiles.defaultProfileDeleteDisabled
     : selectedIsActive
-      ? "Active runtime profile cannot be deleted."
+      ? messages.profiles.activeProfileDeleteDisabled
       : !selectedProfile
-        ? "Select a profile to delete."
+        ? messages.profiles.selectProfileToDelete
         : null;
 
   const editDisabledReason = !selectedProfile
-    ? "Select a profile to edit."
+    ? messages.profiles.selectProfileToEdit
     : !selectedIsEditable
-      ? "Default profile is locked and cannot be edited."
+      ? messages.profiles.lockedProfileEditDisabled
       : null;
 
   const isProfileScopedPage = useMemo(
@@ -97,7 +99,7 @@ export function useAppLayoutState() {
       await logout();
       navigate("/login", { replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to sign out");
+      toast.error(error instanceof Error ? error.message : messages.shell.logoutFailed);
     }
   };
 

@@ -45,8 +45,8 @@ export function useProfileDialogState({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const deleteConfirmTarget = useMemo(
-    () => `delete ${selectedProfile?.name ?? ""}`.trim().toLowerCase(),
-    [selectedProfile?.name]
+    () => messages.profiles.deleteConfirmPhrase(selectedProfile?.name ?? "").trim().toLowerCase(),
+    [messages.profiles, selectedProfile?.name]
   );
   const isDeleteConfirmMatch = deleteConfirmInput.trim().toLowerCase() === deleteConfirmTarget;
 

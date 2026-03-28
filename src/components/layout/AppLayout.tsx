@@ -88,7 +88,7 @@ export function AppLayout() {
         setEditOpen={state.setEditOpen}
         deleteOpen={state.deleteOpen}
         setDeleteOpen={state.setDeleteOpen}
-        selectedProfileName={state.selectedProfile?.name ?? "profile"}
+        selectedProfileName={state.selectedProfile?.name ?? messages.common.profileFallback}
         activeProfileName={state.activeProfileName}
         hasMismatch={state.hasMismatch}
         isActivating={state.isActivating}

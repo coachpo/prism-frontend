@@ -5,7 +5,7 @@ describe("parseConflictMessage", () => {
   it("returns the caller-provided localized max-profile message", () => {
     expect(
       parseConflictMessage(
-        new Error("Maximum 10 profiles reached. Delete a profile to create a new one."),
+        new Error("你已达到上限（10）。请删除一个未激活的配置档案后再创建新的配置档案。"),
         "你已达到上限（10）。请删除一个未激活的配置档案后再创建新的配置档案。",
       ),
     ).toBe("你已达到上限（10）。请删除一个未激活的配置档案后再创建新的配置档案。");
