@@ -120,14 +120,6 @@ export function useModelsPageData(revision: number) {
       toast.error(isChinese ? "请选择 API 家族" : "Please select an API family");
       return;
     }
-    if (formData.model_type === "proxy" && (formData.proxy_targets?.length ?? 0) === 0) {
-      toast.error(
-        isChinese
-          ? "请至少添加一个代理目标模型"
-          : "Please add at least one proxy target model",
-      );
-      return;
-    }
     if (formData.model_type === "native" && formData.loadbalance_strategy_id === null) {
       toast.error(
         isChinese

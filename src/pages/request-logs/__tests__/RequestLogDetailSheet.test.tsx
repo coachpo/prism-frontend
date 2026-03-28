@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { AuditLogDetail, RequestLogEntry } from "@/lib/types";
+import type { AuditLogDetail, ModelConfigListItem, RequestLogEntry } from "@/lib/types";
 import { RequestLogDetailSheet } from "../RequestLogDetailSheet";
 import { useAuditDetail } from "../useAuditDetail";
 
@@ -87,6 +87,24 @@ const baseAudit: AuditLogDetail = {
 
 const useAuditDetailMock = vi.mocked(useAuditDetail);
 
+function createResolveModelLabel(
+  labels: Record<string, string>,
+  modelTypes: Record<string, "native" | "proxy"> = {},
+) {
+  return Object.assign(
+    (modelId: string) => labels[modelId] ?? modelId,
+    {
+      getModelMetadata: (modelId: string) =>
+        modelTypes[modelId]
+          ? ({
+              model_id: modelId,
+              model_type: modelTypes[modelId],
+            } as ModelConfigListItem)
+          : undefined,
+    },
+  );
+}
+
 function renderSheet(
   overrides?: Partial<React.ComponentProps<typeof RequestLogDetailSheet>> & {
     request?: RequestLogEntry;
@@ -107,7 +125,7 @@ function renderSheet(
         onClose={onClose}
         onNavigateToConnection={onNavigateToConnection}
         formatTimestamp={(iso) => `formatted:${iso}`}
-        resolveModelLabel={() => "GPT 5.4"}
+        resolveModelLabel={createResolveModelLabel({ "gpt-5.4": "GPT 5.4" })}
         {...overrides}
       />
     </LocaleProvider>
@@ -161,20 +179,55 @@ describe("RequestLogDetailSheet", () => {
           onClose={vi.fn()}
           onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `formatted:${iso}`}
-          resolveModelLabel={(modelId) =>
-            ({
+          resolveModelLabel={createResolveModelLabel(
+            {
               "claude-sonnet-4-5": "Claude Sonnet 4.5 Proxy",
               "claude-sonnet-4-5-20250929": "Claude Sonnet 4.5 (20250929)",
-            })[modelId] ?? modelId
-          }
+            },
+            { "claude-sonnet-4-5": "proxy" },
+          )}
         />
       </LocaleProvider>,
     );
 
+    expect(screen.getByText(/proxy origin/i)).toBeInTheDocument();
     expect(screen.getByText("Requested model")).toBeInTheDocument();
     expect(screen.getByText("Resolved target")).toBeInTheDocument();
     expect(screen.getAllByText("Claude Sonnet 4.5 Proxy").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Claude Sonnet 4.5 (20250929)").length).toBeGreaterThan(0);
+  });
+
+  it("shows the proxy-origin sign for unroutable proxy rejections using current model metadata", () => {
+    render(
+      <LocaleProvider>
+        <RequestLogDetailSheet
+          request={{
+            ...baseRequest,
+            model_id: "claude-sonnet-4-5",
+            resolved_target_model_id: null,
+            endpoint_id: null,
+            connection_id: null,
+            endpoint_base_url: null,
+            endpoint_description: null,
+            status_code: 503,
+          } as RequestLogEntry}
+          open
+          activeTab="overview"
+          onTabChange={vi.fn()}
+          onClose={vi.fn()}
+          onNavigateToConnection={vi.fn()}
+          formatTimestamp={(iso) => `formatted:${iso}`}
+          resolveModelLabel={createResolveModelLabel(
+            { "claude-sonnet-4-5": "Gateway alias" },
+            { "claude-sonnet-4-5": "proxy" },
+          )}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText(/proxy origin/i)).toBeInTheDocument();
+    expect(screen.getAllByText("Gateway alias").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Resolved target")).not.toBeInTheDocument();
   });
 
   it("renders the loading audit state", () => {
@@ -194,7 +247,7 @@ describe("RequestLogDetailSheet", () => {
           onClose={vi.fn()}
           onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `formatted:${iso}`}
-          resolveModelLabel={() => "GPT 5.4"}
+          resolveModelLabel={createResolveModelLabel({ "gpt-5.4": "GPT 5.4" })}
         />
       </LocaleProvider>
     );
@@ -383,12 +436,16 @@ describe("RequestLogDetailSheet", () => {
           onClose={vi.fn()}
           onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `格式化:${iso}`}
-          resolveModelLabel={() => "GPT 5.4"}
+          resolveModelLabel={createResolveModelLabel(
+            { "gpt-5.4": "GPT 5.4" },
+            { "gpt-5.4": "proxy" },
+          )}
         />
       </LocaleProvider>,
     );
 
     expect(screen.getByText("技术排查")).toBeInTheDocument();
+    expect(screen.getByText("代理来源")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /概览/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /审计/i })).toBeInTheDocument();
   });

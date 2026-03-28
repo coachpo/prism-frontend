@@ -16,6 +16,7 @@ import { RequestLogDetailSheet } from "./request-logs/RequestLogDetailSheet";
 import { SearchX, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DetailTab } from "./request-logs/queryParams";
+import type { RequestLogModelResolver } from "./request-logs/columns";
 
 export function RequestLogsPage() {
   const navigate = useNavigate();
@@ -68,8 +69,16 @@ export function RequestLogsPage() {
     () => new Map(filterOptions.models.map((model) => [model.model_id, model.display_name || model.model_id])),
     [filterOptions.models]
   );
+  const modelMetadataById = useMemo(
+    () => new Map(filterOptions.models.map((model) => [model.model_id, model])),
+    [filterOptions.models],
+  );
 
-  const resolveModelLabel = (modelId: string) => modelLabelById.get(modelId) ?? modelId;
+  const resolveModelLabel = useMemo<RequestLogModelResolver>(() => {
+    const resolver = ((modelId: string) => modelLabelById.get(modelId) ?? modelId) as RequestLogModelResolver;
+    resolver.getModelMetadata = (modelId: string) => modelMetadataById.get(modelId);
+    return resolver;
+  }, [modelLabelById, modelMetadataById]);
 
   const sheetOpen = selectedRequest !== null;
 

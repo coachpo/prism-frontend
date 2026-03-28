@@ -13,6 +13,7 @@ import type { DetailTab } from "./queryParams";
 import { useAuditDetail } from "./useAuditDetail";
 import { RequestLogAuditTab } from "./detail/RequestLogAuditTab";
 import { RequestLogOverviewTab } from "./detail/RequestLogOverviewTab";
+import type { RequestLogModelResolver } from "./columns";
 
 interface RequestLogDetailSheetProps {
   request: RequestLogEntry | null;
@@ -22,7 +23,7 @@ interface RequestLogDetailSheetProps {
   onClose: () => void;
   onNavigateToConnection: (connectionId: number) => void;
   formatTimestamp: (iso: string) => string;
-  resolveModelLabel: (modelId: string) => string;
+  resolveModelLabel: RequestLogModelResolver;
 }
 
 export function RequestLogDetailSheet({

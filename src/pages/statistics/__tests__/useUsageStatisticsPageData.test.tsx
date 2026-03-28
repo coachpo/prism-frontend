@@ -405,7 +405,7 @@ describe("useUsageStatisticsPageData", () => {
     return <LocaleProvider>{children}</LocaleProvider>;
   }
 
-  it("fetches only the usage snapshot API and filters visible model lines from local page state", async () => {
+  it("keeps request-event snapshot metadata intact while filtering visible model lines from local page state", async () => {
     const { result } = renderHook(
       () =>
         useUsageStatisticsPageData({
@@ -446,6 +446,7 @@ describe("useUsageStatisticsPageData", () => {
       ingress_request_id: "ingress-success-1",
       request_logs_href: "/request-logs?ingress_request_id=ingress-success-1",
     });
+    expect(result.current.requestEvents).toHaveLength(1);
     expect(result.current.requestEventsTotal).toBe(1);
     expect(result.current.requestEventsShownCount).toBe(1);
     expect(result.current.requestEventsRenderLimit).toBe(500);

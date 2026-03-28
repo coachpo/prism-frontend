@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { RequestLogEntry } from "@/lib/types";
+import type { ModelConfigListItem, RequestLogEntry } from "@/lib/types";
 import { RequestLogOverviewTab } from "../detail/RequestLogOverviewTab";
 
 const trackedRequest: RequestLogEntry = {
@@ -55,19 +55,41 @@ const trackedRequest: RequestLogEntry = {
   created_at: "2026-03-16T00:00:00.000Z",
 };
 
+function createResolveModelLabel(
+  labels: Record<string, string>,
+  modelTypes: Record<string, "native" | "proxy"> = {},
+) {
+  return Object.assign(
+    (modelId: string) => labels[modelId] ?? modelId,
+    {
+      getModelMetadata: (modelId: string) =>
+        modelTypes[modelId]
+          ? ({
+              model_id: modelId,
+              model_type: modelTypes[modelId],
+            } as ModelConfigListItem)
+          : undefined,
+    },
+  );
+}
+
 describe("RequestLogOverviewTab tracking fields", () => {
-  it("renders ingress request tracking metadata in the overview tab", () => {
+  it("renders ingress tracking metadata and a proxy-origin sign from current model metadata", () => {
     render(
       <LocaleProvider>
         <RequestLogOverviewTab
           request={trackedRequest}
           onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `formatted:${iso}`}
-          resolveModelLabel={() => "GPT 5.4"}
+          resolveModelLabel={createResolveModelLabel(
+            { "gpt-5.4": "Gateway alias" },
+            { "gpt-5.4": "proxy" },
+          )}
         />
       </LocaleProvider>
     );
 
+    expect(screen.getByText(/proxy origin/i)).toBeInTheDocument();
     expect(screen.getByText(/ingress request id/i)).toBeInTheDocument();
     expect(screen.getByText("ingress_req_42")).toBeInTheDocument();
     expect(screen.getByText(/attempt number/i)).toBeInTheDocument();

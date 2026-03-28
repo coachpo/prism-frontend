@@ -132,6 +132,42 @@ function Harness() {
   );
 }
 
+function EmptyProxyTargetsHarness() {
+  const vendors = [buildVendor()];
+  const [formData, setFormData] = useState<ModelConfigCreate>(
+    {
+      vendor_id: 7,
+      api_family: "openai",
+      model_id: "friendly-proxy",
+      display_name: "Friendly Proxy",
+      model_type: "proxy",
+      loadbalance_strategy_id: null,
+      is_enabled: true,
+      proxy_targets: [],
+    } as unknown as ModelConfigCreate,
+  );
+
+  return (
+    <LocaleProvider>
+      <ModelDialog
+        editingModel={null}
+        formData={formData}
+        isDialogOpen
+        loadbalanceStrategies={loadbalanceStrategies}
+        nativeModelsForApiFamily={[]}
+        vendors={vendors}
+        setFormData={setFormData}
+        setIsDialogOpen={vi.fn()}
+        setLoadbalanceStrategyId={vi.fn()}
+        setModelType={(value) => {
+          setFormData((current) => ({ ...current, model_type: value } as unknown as ModelConfigCreate));
+        }}
+        onSubmit={vi.fn()}
+      />
+    </LocaleProvider>
+  );
+}
+
 describe("ModelDialog proxy target editing", () => {
   beforeEach(() => {
     const localStorageMock = createLocalStorageMock();
@@ -245,6 +281,20 @@ describe("ModelDialog proxy target editing", () => {
     expect(screen.getByTestId("proxy-targets-state")).toHaveTextContent(
       JSON.stringify([{ target_model_id: "gpt-4.1-mini", position: 0 }]),
     );
+  });
+
+  it("explains that proxy targets can be configured later on the proxy detail page", () => {
+    render(<EmptyProxyTargetsHarness />);
+
+    expect(screen.getByText("No proxy targets selected yet.")).toBeInTheDocument();
+    expect(
+      screen.getByText("You can create this proxy now and configure targets later on /models/:id/proxy."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "No native models available for the openai API family yet. Configure targets later on /models/:id/proxy.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("keeps fill-first attached with priority spillover wording for native models", () => {

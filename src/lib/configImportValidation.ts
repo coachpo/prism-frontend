@@ -200,14 +200,6 @@ export const ConfigImportSchema = z
         );
       }
 
-      if (model.model_type === "proxy" && model.proxy_targets.length === 0) {
-        addCustomIssue(
-          ctx,
-          ["models", modelIndex, "proxy_targets"],
-          `Proxy model '${model.model_id}' must include at least one proxy target`,
-        );
-      }
-
       if (model.model_type === "native" && model.proxy_targets.length > 0) {
         addCustomIssue(
           ctx,
