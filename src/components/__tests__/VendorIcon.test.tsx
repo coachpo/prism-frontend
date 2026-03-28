@@ -31,7 +31,7 @@ describe("VendorIcon", () => {
 
     expect(svg).not.toBeNull();
     expect(icon.querySelector("img")).toBeNull();
-    expect(svg).toHaveClass("[&_*]:fill-current", "[&_*]:stroke-current");
+    expect(svg).toHaveClass("h-full", "w-full");
   });
 
   it("renders a fallback monogram for vendors without a preset icon", () => {
