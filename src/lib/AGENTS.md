@@ -7,6 +7,7 @@
 ```
 lib/
 ├── api.ts                        # Public API facade re-exporting split modules
+├── api/AGENTS.md                 # Typed `/api/*` client module split and grouped ownership
 ├── api/
 │   ├── core.ts                   # API base, X-Profile-Id injection, auth refresh, query builder
 │   ├── authSettings.ts           # Auth bootstrap, proxy keys, WebAuthn methods
@@ -30,10 +31,7 @@ lib/
 ## WHERE TO LOOK
 
 - Public import boundary: `api.ts`
-- API base URL, `X-Profile-Id` injection, auth refresh retry, and query building: `api/core.ts`
-- Operator auth, public bootstrap, proxy keys, and passkeys: `api/authSettings.ts`
-- Management CRUD clients: `api/management.ts`
-- Usage snapshot, summary, spending, throughput, metrics, timezone, config v8, audit, and loadbalance clients: `api/observability.ts`
+- Typed `/api/*` client split, grouped surfaces, and `api/core.ts` request rules: `api/AGENTS.md`
 - Shared vendor cache, request dedupe, and dataset registry: `referenceData.ts`, `referenceDataRegistry.ts`
 - Frontend-side config import reference validation: `configImportValidation.ts`, `configImportValidationReferences.ts`
 - Browser app version label formatting and Vite-injected package metadata: `appVersion.ts`
@@ -41,11 +39,16 @@ lib/
 - Browser passkey helpers and support checks: `webauthn.ts`
 - Backend-aligned payload types: `types.ts`, `types/`
 
+## CHILD DOCS
+
+- `api/AGENTS.md`: `core.ts`, `authSettings.ts`, `management.ts`, and `observability.ts` ownership beneath the public `api.ts` barrel.
+
 ## CONVENTIONS
 
 - Pages and hooks should import from `api.ts` or the exported helpers, not call `fetch()` directly.
 - `setApiProfileId()` is fed by `ProfileContext`, and `api/core.ts` is the only place that injects `X-Profile-Id` into `/api/*` requests.
 - `request()` handles cookie credentials, `ApiError`, and one refresh retry for eligible `/api/*` paths.
+- Let `api/AGENTS.md` own the typed client split instead of expanding this parent with module-by-module endpoint detail.
 - `referenceData.ts` and `referenceDataRegistry.ts` own shared cache reuse, request dedupe, and revision-keyed invalidation for lookup datasets.
 - `configImportValidation.ts` owns frontend-side validation of the version-8 import payload shape, including explicit `failover_status_codes` and vendor `icon_key` presence, instead of leaving that logic in page components.
 - `appVersion.ts` owns the browser-facing frontend version contract so shell chrome reads the synced `frontend/package.json` version through Vite instead of hard-coded literals.

@@ -10,17 +10,24 @@ context/
 ├── auth-context.ts    # Shared context type and createContext() export
 ├── useAuth.ts         # Guard hook for auth consumers
 ├── auth/              # Bootstrap, mutation, and passive/proactive refresh helpers
+├── auth/AGENTS.md     # Helper-layer auth bootstrap, mutation, and refresh ownership
 ├── ProfileContext.tsx # Provider wiring over profile bootstrap, actions, persistence, and selection
-└── profile/           # Bootstrap, actions, persistence, and selection helpers
+├── profile/           # Bootstrap, actions, persistence, and selection helpers
+└── profile/AGENTS.md  # Helper-layer profile bootstrap, persistence, selection, and CRUD ownership
 ```
 
 ## WHERE TO LOOK
 
 - Auth bootstrap mode selection, in-flight reuse, proactive refresh timer, and visibility-triggered refresh: `AuthContext.tsx`
-- Auth bootstrap, mutation, and refresh helpers: `auth/bootstrap.ts`, `auth/mutations.ts`, `auth/refresh.ts`
+- Auth bootstrap, mutation, and refresh helpers: `auth/AGENTS.md`
 - Auth context type/export split and guarded hook: `auth-context.ts`, `useAuth.ts`
 - Selected-profile persistence, active-profile sync, `setApiProfileId()` updates, and revision triggers: `ProfileContext.tsx`
-- Profile bootstrap, CRUD actions, local-storage persistence, and selected-profile resolution: `profile/bootstrap.ts`, `profile/actions.ts`, `profile/persistence.ts`, `profile/selection.ts`
+- Profile bootstrap, CRUD actions, local-storage persistence, and selected-profile resolution: `profile/AGENTS.md`
+
+## CHILD DOCS
+
+- `auth/AGENTS.md`: helper-layer auth bootstrap flow, login/logout mutation helpers, and passive/proactive refresh rules.
+- `profile/AGENTS.md`: helper-layer profile bootstrap, local-storage persistence, selection fallback, and CRUD action orchestration.
 
 ## CONVENTIONS
 
@@ -29,6 +36,7 @@ context/
 - Keep `selectedProfile` and `activeProfile` distinct in UI and docs. `selectedProfile` scopes management APIs, it does not switch proxy traffic.
 - Treat `ProfileContext.revision` as the shared invalidation signal when selected scope changes.
 - Keep bootstrap and helper logic in `auth/` and `profile/`, with the provider files focused on composition and exposed state.
+- Let the child AGENTS files own helper-layer detail so this parent stays provider-focused.
 
 ## ANTI-PATTERNS
 
