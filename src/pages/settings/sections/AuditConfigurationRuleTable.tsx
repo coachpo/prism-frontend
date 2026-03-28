@@ -1,4 +1,5 @@
 import { Lock } from "lucide-react";
+import { useLocale } from "@/i18n/useLocale";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -27,16 +28,17 @@ export function AuditConfigurationRuleTable({
   onEditRule,
   onDeleteRule,
 }: AuditConfigurationRuleTableProps) {
+  const { messages } = useLocale();
   return (
     <div className="mt-1.5 rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[90px]">Enabled</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Pattern</TableHead>
-            <TableHead className="w-[120px] text-right">Actions</TableHead>
+            <TableHead className="w-[90px]">{messages.settingsDialogs.enabled}</TableHead>
+            <TableHead>{messages.settingsDialogs.name}</TableHead>
+            <TableHead>{messages.settingsDialogs.type}</TableHead>
+            <TableHead>{messages.settingsDialogs.pattern}</TableHead>
+            <TableHead className="w-[120px] text-right">{messages.pricingTemplatesUi.actions}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -60,7 +62,7 @@ export function AuditConfigurationRuleTable({
               </TableCell>
               <TableCell>
                 <TypeBadge
-                  label={rule.match_type}
+                  label={rule.match_type === "exact" ? messages.settingsDialogs.exactMatch : messages.settingsDialogs.prefixMatch}
                   intent={rule.match_type === "exact" ? "info" : "accent"}
                 />
               </TableCell>

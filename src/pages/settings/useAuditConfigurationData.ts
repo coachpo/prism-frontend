@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { getSharedVendors, setSharedVendors } from "@/lib/referenceData";
 import type {
   HeaderBlocklistRule,
@@ -18,6 +19,10 @@ const DEFAULT_RULE_FORM: HeaderBlocklistRuleCreate = {
   pattern: "",
   enabled: true,
 };
+
+function getMessages() {
+  return getStaticMessages();
+}
 
 export function useAuditConfigurationData({ revision }: UseAuditConfigurationDataInput) {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -44,7 +49,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
       if (requestId !== vendorsRequestIdRef.current) {
         return;
       }
-      toast.error("Failed to load vendors");
+      toast.error(getMessages().settingsAuditData.loadVendorsFailed);
     }
   }, [revision]);
 
@@ -72,7 +77,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
       if (requestId !== rulesRequestIdRef.current) {
         return;
       }
-      toast.error("Failed to load header blocklist rules");
+      toast.error(getMessages().settingsAuditData.loadHeaderRulesFailed);
     } finally {
       if (requestId === rulesRequestIdRef.current) {
         setLoadingRules(false);
@@ -103,7 +108,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
           vendor.id === vendorId ? { ...vendor, audit_enabled: !checked } : vendor
         )
       );
-      toast.error("Failed to update vendor");
+      toast.error(getMessages().settingsAuditData.updateVendorFailed);
     }
   };
 
@@ -122,7 +127,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
           vendor.id === vendorId ? { ...vendor, audit_capture_bodies: !checked } : vendor
         )
       );
-      toast.error("Failed to update vendor");
+      toast.error(getMessages().settingsAuditData.updateVendorFailed);
     }
   };
 
@@ -133,7 +138,7 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
       await api.config.headerBlocklistRules.update(rule.id, { enabled: checked });
     } catch {
       setBlocklistRules((prev) => prev.map((row) => (row.id === rule.id ? { ...row, enabled: !checked } : row)));
-      toast.error("Failed to update rule");
+      toast.error(getMessages().settingsAuditData.updateRuleFailed);
     }
   };
 
@@ -156,12 +161,12 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
 
   const handleSaveRule = async () => {
     if (!ruleForm.name || !ruleForm.pattern) {
-      toast.error("Name and pattern are required");
+      toast.error(getMessages().settingsAuditData.nameAndPatternRequired);
       return;
     }
 
     if (ruleForm.match_type === "prefix" && !ruleForm.pattern.endsWith("-")) {
-      toast.error("Prefix patterns must end with a hyphen (-)");
+      toast.error(getMessages().settingsAuditData.prefixPatternsHyphen);
       return;
     }
 
@@ -169,17 +174,17 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
       if (editingRule) {
         const updatedRule = await api.config.headerBlocklistRules.update(editingRule.id, ruleForm);
         setBlocklistRules((prev) => prev.map((rule) => (rule.id === updatedRule.id ? updatedRule : rule)));
-        toast.success("Rule updated successfully");
+        toast.success(getMessages().settingsAuditData.ruleUpdated);
       } else {
         const createdRule = await api.config.headerBlocklistRules.create(ruleForm);
         setBlocklistRules((prev) => [...prev, createdRule]);
-        toast.success("Rule created successfully");
+        toast.success(getMessages().settingsAuditData.ruleCreated);
       }
       setEditingRule(null);
       setRuleForm(DEFAULT_RULE_FORM);
       setRuleDialogOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save rule");
+      toast.error(error instanceof Error ? error.message : getMessages().settingsAuditData.saveRuleFailed);
     }
   };
 
@@ -191,10 +196,10 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
     try {
       await api.config.headerBlocklistRules.delete(deleteRuleConfirm.id);
       setBlocklistRules((prev) => prev.filter((rule) => rule.id !== deleteRuleConfirm.id));
-      toast.success("Rule deleted successfully");
+      toast.success(getMessages().settingsAuditData.ruleDeleted);
       setDeleteRuleConfirm(null);
     } catch {
-      toast.error("Failed to delete rule");
+      toast.error(getMessages().settingsAuditData.deleteRuleFailed);
     }
   };
 

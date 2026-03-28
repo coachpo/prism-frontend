@@ -21,7 +21,8 @@ export function DeleteRuleConfirmDialog({
   setDeleteRuleConfirm,
   handleDeleteRule,
 }: DeleteRuleConfirmDialogProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsDialogs;
   return (
     <Dialog
       open={Boolean(deleteRuleConfirm)}
@@ -33,19 +34,17 @@ export function DeleteRuleConfirmDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{locale === "zh-CN" ? "删除规则" : "Delete Rule"}</DialogTitle>
+          <DialogTitle>{copy.deleteRuleTitle}</DialogTitle>
           <DialogDescription>
-            {locale === "zh-CN"
-              ? `确定要删除规则“${deleteRuleConfirm?.name}”吗？此操作无法撤销。`
-              : `Are you sure you want to delete the rule "${deleteRuleConfirm?.name}"? This action cannot be undone.`}
+            {copy.deleteRuleDescription(deleteRuleConfirm?.name ?? "")}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => setDeleteRuleConfirm(null)}>
-            {locale === "zh-CN" ? "取消" : "Cancel"}
+            {copy.cancel}
           </Button>
           <Button variant="destructive" onClick={() => void handleDeleteRule()}>
-            {locale === "zh-CN" ? "删除" : "Delete"}
+            {copy.delete}
           </Button>
         </DialogFooter>
       </DialogContent>

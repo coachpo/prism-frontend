@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { registerPasskey } from "@/lib/webauthn";
 import { toast } from "sonner";
 import type { PasskeyCredential } from "./types";
+
+function getMessages() {
+  return getStaticMessages();
+}
 
 export function usePasskeyManagement(authEnabled: boolean) {
   const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
@@ -20,7 +25,7 @@ export function usePasskeyManagement(authEnabled: boolean) {
       const response = await api.settings.auth.webauthn.listCredentials();
       setPasskeys(response.items);
     } catch {
-      toast.error("Failed to load passkeys");
+      toast.error(getMessages().settingsPasskeysData.loadFailed);
     } finally {
       setLoadingPasskeys(false);
     }
@@ -48,18 +53,18 @@ export function usePasskeyManagement(authEnabled: boolean) {
 
   const handleRegisterSubmit = async () => {
     if (!deviceName.trim()) {
-      toast.error("Device name is required");
+      toast.error(getMessages().settingsPasskeysData.deviceNameRequired);
       return;
     }
 
     setRegistering(true);
     try {
       await registerPasskey(deviceName.trim());
-      toast.success("Passkey registered successfully");
+      toast.success(getMessages().settingsPasskeysData.registered);
       setRegisterDialogOpen(false);
       await fetchPasskeys();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to register passkey");
+      toast.error(error instanceof Error ? error.message : getMessages().settingsPasskeysData.registerFailed);
     } finally {
       setRegistering(false);
     }
@@ -78,12 +83,12 @@ export function usePasskeyManagement(authEnabled: boolean) {
     setRemoving(true);
     try {
       await api.settings.auth.webauthn.revokeCredential(passkeyToRemove.id);
-      toast.success("Passkey removed successfully");
+      toast.success(getMessages().settingsPasskeysData.removed);
       setRemoveDialogOpen(false);
       setPasskeyToRemove(null);
       await fetchPasskeys();
     } catch {
-      toast.error("Failed to remove passkey");
+      toast.error(getMessages().settingsPasskeysData.removeFailed);
     } finally {
       setRemoving(false);
     }

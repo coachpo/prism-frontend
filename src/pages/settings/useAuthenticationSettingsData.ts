@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { api } from "@/lib/api";
-import { getCurrentLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type { AuthSettings } from "@/lib/types";
 import { toast } from "sonner";
 import { validateAuthPassword } from "./settingsPageHelpers";
@@ -10,6 +10,14 @@ interface UseAuthenticationSettingsDataInput {
   navigate: NavigateFunction;
   refreshAuth: () => Promise<void>;
   revision: number;
+}
+
+function getAuthenticationMessages() {
+  return getStaticMessages().settingsAuthentication;
+}
+
+function getMessages() {
+  return getStaticMessages();
 }
 
 export function useAuthenticationSettingsData({
@@ -29,7 +37,7 @@ export function useAuthenticationSettingsData({
   const [confirmingEmailVerification, setConfirmingEmailVerification] = useState(false);
 
   const fetchAuthSettings = useCallback(async () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getMessages();
     try {
       const data = await api.settings.auth.get();
       setAuthSettings(data);
@@ -43,9 +51,7 @@ export function useAuthenticationSettingsData({
       toast.error(
         error instanceof Error
           ? error.message
-          : isChinese
-            ? "加载身份验证设置失败"
-            : "Failed to load authentication settings",
+          : messages.proxyApiKeysData.loadAuthStatusFailed,
       );
     }
   }, []);
@@ -63,7 +69,7 @@ export function useAuthenticationSettingsData({
 
   const handleSaveAuthSettings = useCallback(
     async (nextEnabled?: boolean) => {
-      const isChinese = getCurrentLocale() === "zh-CN";
+      const messages = getMessages();
       const wasEnabled = authSettings?.auth_enabled ?? false;
       const isDisablingAuth = nextEnabled === false && wasEnabled;
 
@@ -72,7 +78,7 @@ export function useAuthenticationSettingsData({
         return;
       }
       if (!isDisablingAuth && authPasswordMismatch) {
-        toast.error(isChinese ? "两次输入的密码不一致" : "Passwords do not match");
+        toast.error(messages.settingsAuthentication.passwordsMustMatch);
         return;
       }
 
@@ -101,24 +107,18 @@ export function useAuthenticationSettingsData({
         }
 
         if (!wasEnabled && saved.auth_enabled) {
-          toast.success(
-            isChinese
-              ? "身份验证已启用。请重新登录以继续。"
-              : "Authentication enabled. Sign in to continue.",
-          );
+          toast.success(messages.auth.signInToContinue);
           navigate("/login", { replace: true });
           return;
         }
 
-        toast.success(isChinese ? "身份验证设置已保存" : "Authentication settings saved");
+        toast.success(messages.settingsAuthentication.authenticationStatus);
       } catch (error) {
         setAuthEnabledInput(authSettings?.auth_enabled ?? false);
         toast.error(
           error instanceof Error
             ? error.message
-            : isChinese
-              ? "保存身份验证设置失败"
-              : "Failed to save authentication settings",
+            : messages.proxyApiKeysData.updateFailed,
         );
       } finally {
         setAuthSaving(false);
@@ -128,9 +128,10 @@ export function useAuthenticationSettingsData({
   );
 
   const handleRequestEmailVerification = useCallback(async () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getMessages();
+    const authenticationMessages = getAuthenticationMessages();
     if (!authEmail.trim()) {
-      toast.error(isChinese ? "邮箱为必填项" : "Email is required");
+      toast.error(authenticationMessages.emailRequired);
       return;
     }
 
@@ -150,14 +151,12 @@ export function useAuthenticationSettingsData({
             }
           : prev
       );
-      toast.success(isChinese ? "验证码已发送" : "Verification code sent");
+      toast.success(authenticationMessages.verificationCodeSent);
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : isChinese
-            ? "发送验证码失败"
-            : "Failed to send verification code",
+          : messages.settingsAuthentication.emailVerificationFailed,
       );
     } finally {
       setSendingEmailVerification(false);
@@ -165,9 +164,9 @@ export function useAuthenticationSettingsData({
   }, [authEmail]);
 
   const handleConfirmEmailVerification = useCallback(async () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const authenticationMessages = getAuthenticationMessages();
     if (!emailVerificationOtp.trim()) {
-      toast.error(isChinese ? "验证码为必填项" : "Verification code is required");
+      toast.error(authenticationMessages.verificationCodeRequired);
       return;
     }
 
@@ -189,14 +188,12 @@ export function useAuthenticationSettingsData({
       );
       setAuthEmail(result.email ?? authEmail);
       setEmailVerificationOtp("");
-      toast.success(isChinese ? "邮箱已验证" : "Email verified");
+      toast.success(authenticationMessages.emailVerificationSucceeded);
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : isChinese
-            ? "验证邮箱失败"
-            : "Failed to verify email",
+          : authenticationMessages.emailVerificationFailed,
       );
     } finally {
       setConfirmingEmailVerification(false);

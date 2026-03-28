@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import { getCurrentLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { getSharedVendors, setSharedVendors } from "@/lib/referenceData";
 import type { Vendor, VendorModelUsageItem } from "@/lib/types";
 import { toast } from "sonner";
@@ -41,13 +41,13 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
   );
 
   const fetchVendors = useCallback(async () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     setVendorsLoading(true);
     try {
       const data = await getSharedVendors(revision);
       setVendors(data);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "加载供应商失败" : "Failed to load vendors");
+      toast.error(error instanceof Error ? error.message : messages.settingsAuditData.loadVendorsFailed);
     } finally {
       setVendorsLoading(false);
     }
@@ -83,16 +83,16 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
   };
 
   const handleSaveVendor = async () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     const payload = normalizeVendorPayload(vendorForm);
 
     if (!payload.key) {
-      toast.error(isChinese ? "供应商键为必填项" : "Vendor key is required");
+      toast.error(messages.vendorManagement.vendorKeyRequired);
       return;
     }
 
     if (!payload.name) {
-      toast.error(isChinese ? "供应商名称为必填项" : "Vendor name is required");
+      toast.error(messages.vendorManagement.vendorNameRequired);
       return;
     }
 
@@ -103,23 +103,23 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
         commitVendors((current) =>
           current.map((vendor) => (vendor.id === editingVendor.id ? updatedVendor : vendor)),
         );
-        toast.success(isChinese ? "供应商已更新" : "Vendor updated");
+        toast.success(messages.vendorManagement.vendorUpdated);
       } else {
         const createdVendor = await api.vendors.create(payload);
         commitVendors((current) => [createdVendor, ...current]);
-        toast.success(isChinese ? "供应商已创建" : "Vendor created");
+        toast.success(messages.vendorManagement.vendorCreated);
       }
 
       closeVendorDialog();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "保存供应商失败" : "Failed to save vendor");
+      toast.error(error instanceof Error ? error.message : messages.vendorManagement.vendorSaveFailed);
     } finally {
       setVendorSaving(false);
     }
   };
 
   const handleDeleteVendorClick = async (vendor: Vendor) => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     setDeleteVendorConfirm(vendor);
     setDeleteVendorConflict(null);
     setVendorUsageRows([]);
@@ -129,7 +129,7 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
       const rows = await api.vendors.models(vendor.id);
       setVendorUsageRows(rows);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "加载供应商依赖失败" : "Failed to load vendor usage");
+      toast.error(error instanceof Error ? error.message : messages.vendorManagement.vendorUsageLoadFailed);
       setVendorUsageRows([]);
     } finally {
       setVendorUsageLoading(false);
@@ -137,7 +137,7 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
   };
 
   const handleDeleteVendor = async () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
 
     if (!deleteVendorConfirm) {
       return;
@@ -147,15 +147,15 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
     try {
       await api.vendors.delete(deleteVendorConfirm.id);
       commitVendors((current) => current.filter((vendor) => vendor.id !== deleteVendorConfirm.id));
-      toast.success(isChinese ? "供应商已删除" : "Vendor deleted");
+      toast.success(messages.vendorManagement.vendorDeleted);
       closeDeleteVendorDialog();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         const conflictRows = parseVendorUsageRows(error.detail);
         setDeleteVendorConflict(conflictRows);
-        toast.error(isChinese ? "此供应商仍被模型引用，无法删除" : "Cannot delete this vendor because it is still in use");
+        toast.error(messages.vendorManagement.vendorInUseDeleteBlocked);
       } else {
-        toast.error(error instanceof Error ? error.message : isChinese ? "删除供应商失败" : "Failed to delete vendor");
+        toast.error(error instanceof Error ? error.message : messages.vendorManagement.vendorDeleteFailed);
       }
     } finally {
       setVendorDeleting(false);

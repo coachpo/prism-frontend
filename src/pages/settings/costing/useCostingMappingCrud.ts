@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type { Connection, CostingSettingsUpdate, EndpointFxMapping } from "@/lib/types";
 import { toast } from "sonner";
 import {
@@ -13,6 +14,10 @@ import {
 interface UseCostingMappingCrudInput {
   costingForm: CostingSettingsUpdate;
   setCostingForm: Dispatch<SetStateAction<CostingSettingsUpdate>>;
+}
+
+function getMessages() {
+  return getStaticMessages();
 }
 
 export function useCostingMappingCrud({
@@ -41,7 +46,7 @@ export function useCostingMappingCrud({
       setMappingConnections(model.connections ?? []);
     } catch {
       setMappingConnections([]);
-      toast.error("Failed to load connections for selected model");
+      toast.error(getMessages().settingsCostingData.loadConnectionsFailed);
     } finally {
       setMappingLoading(false);
     }
@@ -49,7 +54,7 @@ export function useCostingMappingCrud({
 
   const handleAddFxMapping = useCallback(() => {
     if (!mappingModelId || !mappingEndpointId || !mappingFxRate.trim()) {
-      toast.error("Model, endpoint, and FX rate are required");
+      toast.error(getMessages().settingsCostingData.mappingFieldsRequired);
       return;
     }
 
@@ -61,7 +66,7 @@ export function useCostingMappingCrud({
 
     const endpointId = Number.parseInt(mappingEndpointId, 10);
     if (Number.isNaN(endpointId)) {
-      toast.error("Invalid endpoint selection");
+      toast.error(getMessages().settingsCostingData.endpointSelectionInvalid);
       return;
     }
 
@@ -69,7 +74,7 @@ export function useCostingMappingCrud({
       (row) => row.model_id === mappingModelId && row.endpoint_id === endpointId,
     );
     if (duplicate) {
-      toast.error("Duplicate FX mapping for selected model and endpoint");
+      toast.error(getMessages().settingsCostingData.mappingDuplicate);
       return;
     }
 

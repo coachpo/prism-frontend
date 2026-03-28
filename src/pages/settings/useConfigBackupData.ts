@@ -1,7 +1,7 @@
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { api } from "@/lib/api";
-import { getCurrentLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { ConfigImportSchema } from "@/lib/configImportValidation";
 import type { ConfigImportRequest } from "@/lib/types";
 import { toast } from "sonner";
@@ -42,13 +42,9 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
   }, [parsedConfig]);
 
   const handleExport = async () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     if (!exportSecretsAcknowledged) {
-      toast.error(
-        isChinese
-          ? "请先确认导出中包含端点 API 密钥。"
-          : "Acknowledge that endpoint API keys are included before exporting.",
-      );
+      toast.error(messages.settingsBackupData.acknowledgeSecretsBeforeExport);
       return;
     }
 
@@ -65,16 +61,16 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
       anchor.download = `gateway-config-${date}.json`;
       anchor.click();
       URL.revokeObjectURL(url);
-      toast.success(isChinese ? "配置导出成功" : "Configuration exported successfully");
+      toast.success(messages.settingsBackupData.exportSucceeded);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "导出失败" : "Export failed");
+      toast.error(error instanceof Error ? error.message : messages.settingsBackupData.exportFailed);
     } finally {
       setExporting(false);
     }
   };
 
   const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -91,18 +87,18 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
         const errors = validation.error.issues
           .map((issue: z.ZodIssue) => `${issue.path.join(".")}: ${issue.message}`)
           .join(", ");
-        throw new Error(`Invalid configuration payload: ${errors}`);
+        throw new Error(messages.settingsBackupData.invalidConfigPayload(errors));
       }
 
       setParsedConfig(validation.data as ConfigImportRequest);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "无效的 JSON 文件" : "Invalid JSON file");
+      toast.error(error instanceof Error ? error.message : messages.settingsBackupData.invalidJsonFile);
       resetSelectedFile();
     }
   };
 
   const handleImport = async () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     if (!parsedConfig) {
       return;
     }
@@ -110,15 +106,16 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
     setImporting(true);
     try {
       const result = await api.config.import(parsedConfig);
-      toast.success(
-        isChinese
-          ? `已导入 ${result.endpoints_imported} 个端点、${result.strategies_imported} 个策略、${result.models_imported} 个模型、${result.connections_imported} 个连接`
-          : `Imported ${result.endpoints_imported} endpoints, ${result.strategies_imported} strategies, ${result.models_imported} models, ${result.connections_imported} connections`
-      );
+      toast.success(messages.settingsBackupData.importSucceeded(
+        String(result.endpoints_imported),
+        String(result.strategies_imported),
+        String(result.models_imported),
+        String(result.connections_imported),
+      ));
       resetSelectedFile();
       bumpRevision();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : isChinese ? "导入失败" : "Import failed");
+      toast.error(error instanceof Error ? error.message : messages.settingsBackupData.importFailed);
     } finally {
       setImporting(false);
     }

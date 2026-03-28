@@ -37,6 +37,10 @@ describe("settings dialogs i18n", () => {
     );
 
     expect(screen.getByText("新增规则")).toBeInTheDocument();
+    expect(screen.getByText("名称")).toBeInTheDocument();
+    expect(screen.getByText("类型")).toBeInTheDocument();
+    expect(screen.getByText("规则模式")).toBeInTheDocument();
+    expect(screen.getByText("启用")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存规则" })).toBeInTheDocument();
   });
 
@@ -57,6 +61,8 @@ describe("settings dialogs i18n", () => {
     );
 
     expect(screen.getByText("确认删除")).toBeInTheDocument();
+    expect(screen.getByText("删除摘要")).toBeInTheDocument();
+    expect(screen.getByText("输入 删除 以继续")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "删除" })).toBeInTheDocument();
   });
 

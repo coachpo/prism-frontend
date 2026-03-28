@@ -15,12 +15,13 @@ export function AuditConfigurationVendorToggles({
   toggleAudit,
   toggleBodies,
 }: AuditConfigurationVendorTogglesProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsAudit;
   return (
     <div className="space-y-3">
       {vendors.map((vendor) => {
-        const auditStatus = vendor.audit_enabled ? (locale === "zh-CN" ? "开启" : "On") : locale === "zh-CN" ? "关闭" : "Off";
-        const bodiesStatus = vendor.audit_capture_bodies ? (locale === "zh-CN" ? "开启" : "On") : locale === "zh-CN" ? "关闭" : "Off";
+        const auditStatus = vendor.audit_enabled ? copy.on : copy.off;
+        const bodiesStatus = vendor.audit_capture_bodies ? copy.on : copy.off;
 
         return (
           <div key={vendor.id} className="rounded-lg border p-3">
@@ -34,7 +35,7 @@ export function AuditConfigurationVendorToggles({
 
               <div className="flex flex-col items-start gap-2 md:items-end">
                 <p className="text-xs text-muted-foreground">
-                  {locale === "zh-CN" ? "审计" : "Audit"}: {auditStatus} · {locale === "zh-CN" ? "正文" : "Bodies"}: {bodiesStatus}
+                  {copy.audit}: {auditStatus} · {copy.bodies}: {bodiesStatus}
                 </p>
                 <div className="flex items-center gap-5">
                   <div className="flex items-center gap-2">
@@ -45,7 +46,7 @@ export function AuditConfigurationVendorToggles({
                       className="data-[state=checked]:bg-emerald-500"
                     />
                     <Label htmlFor={`audit-${vendor.id}`} className="text-xs">
-                      {locale === "zh-CN" ? "审计" : "Audit"}
+                      {copy.audit}
                     </Label>
                   </div>
                   <div className="flex items-center gap-2">
@@ -57,7 +58,7 @@ export function AuditConfigurationVendorToggles({
                       className="data-[state=checked]:bg-emerald-500"
                     />
                     <Label htmlFor={`bodies-${vendor.id}`} className="text-xs">
-                      {locale === "zh-CN" ? "正文" : "Bodies"}
+                      {copy.bodies}
                     </Label>
                   </div>
                 </div>
@@ -65,7 +66,7 @@ export function AuditConfigurationVendorToggles({
             </div>
             {vendor.audit_enabled && vendor.audit_capture_bodies ? (
               <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                {locale === "zh-CN" ? "可能会捕获提示词/输出。" : "May capture prompts/outputs."}
+                {copy.outputsMayBeCaptured}
               </div>
             ) : null}
           </div>

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type { Connection, CostingSettingsUpdate, ModelConfigListItem } from "@/lib/types";
 import {
   areMappingsEqual,
@@ -20,6 +21,7 @@ export function useCostingDerivedState({
   models,
   mappingConnections,
 }: UseCostingDerivedStateInput) {
+  const messages = getStaticMessages();
   const normalizedCurrentCosting = useMemo(
     () => normalizeCostingForm(costingForm),
     [costingForm],
@@ -80,12 +82,12 @@ export function useCostingDerivedState({
                 connection.endpoint?.name ||
                 connection.endpoint?.base_url ||
                 getConnectionName(connection) ||
-                `Endpoint #${connection.endpoint_id}`,
+                messages.common.endpointWithId(String(connection.endpoint_id)),
             },
           ]),
         ).values(),
       ).sort((a, b) => a.endpointId - b.endpointId),
-    [mappingConnections],
+    [mappingConnections, messages.common],
   );
 
   return {

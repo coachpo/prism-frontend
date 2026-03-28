@@ -32,7 +32,8 @@ export function RecoveryEmailCard({
   setEmail,
   setEmailVerificationOtp,
 }: RecoveryEmailCardProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsAuthentication;
   const [emailEditorOpen, setEmailEditorOpen] = useState(false);
   const verificationPending = Boolean(authSettings?.pending_email);
   const verifiedEmail = authSettings?.email ?? null;
@@ -45,11 +46,9 @@ export function RecoveryEmailCard({
   return (
     <Card className="shadow-none">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">{locale === "zh-CN" ? "恢复邮箱" : "Recovery email"}</CardTitle>
+        <CardTitle className="text-base">{copy.recoveryEmail}</CardTitle>
         <CardDescription>
-          {locale === "zh-CN"
-            ? "在开启身份验证前，必须先验证一个恢复邮箱。"
-            : "Verify a recovery email before authentication can be turned on."}
+          {copy.recoveryEmailDescription}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -57,7 +56,7 @@ export function RecoveryEmailCard({
           <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">{locale === "zh-CN" ? "已验证邮箱" : "Verified email"}</p>
+                  <p className="text-sm font-medium">{copy.verifiedEmail}</p>
                   <p className="text-sm text-muted-foreground">{verifiedEmail}</p>
                 </div>
               <div className="flex items-center gap-2">
@@ -65,7 +64,7 @@ export function RecoveryEmailCard({
                   variant="outline"
                   className="border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
                   >
-                    {locale === "zh-CN" ? "已验证" : "Verified"}
+                    {copy.verified}
                   </Badge>
                 <Button
                   type="button"
@@ -75,23 +74,23 @@ export function RecoveryEmailCard({
                     setEmailEditorOpen(true);
                   }}
                   >
-                    {locale === "zh-CN" ? "更改邮箱" : "Change email"}
+                    {messages.vendorManagement.edit}
                   </Button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+            <div className="space-y-4">
               <AuthenticationFieldShell
-                label={locale === "zh-CN" ? "邮箱地址" : "Email address"}
-                helper={locale === "zh-CN" ? "如果你更改了恢复邮箱，则必须使用 OTP 验证新的地址。" : "If you change the recovery email, you must verify the new address with OTP."}
+                label={copy.emailAddress}
+                helper={copy.recoveryEmailChangedRequiresVerification}
                 htmlFor="auth-email"
               >
               <Input
                 id="auth-email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                  placeholder={locale === "zh-CN" ? "operator@example.com" : "operator@example.com"}
+                placeholder={copy.recoveryEmailPlaceholder}
                 />
               </AuthenticationFieldShell>
 
@@ -104,37 +103,27 @@ export function RecoveryEmailCard({
                 >
                   <MailCheck className="mr-2 h-3.5 w-3.5" />
                   {sendingEmailVerification
-                    ? locale === "zh-CN"
-                      ? "发送中..."
-                      : "Sending code..."
+                    ? copy.sendingCode
                     : verificationPending
-                      ? locale === "zh-CN"
-                        ? "重新发送验证码"
-                        : "Resend code"
-                      : locale === "zh-CN"
-                        ? "发送验证码"
-                        : "Send verification code"}
+                      ? copy.resendCode
+                      : copy.sendVerificationCode}
                 </Button>
               </div>
 
             {showEmailEditor ? (
               <div className="rounded-lg border border-sky-500/25 bg-sky-500/10 p-4">
-                <p className="text-sm font-medium">{locale === "zh-CN" ? "验证邮箱" : "Verify email"}</p>
+                <p className="text-sm font-medium">{copy.verifyEmail}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {verificationPending
-                    ? locale === "zh-CN"
-                      ? `验证码已发送至 ${authSettings?.pending_email}。请在下方输入验证码完成确认。`
-                      : `A verification code was sent to ${authSettings?.pending_email}. Enter it below to confirm.`
-                    : locale === "zh-CN"
-                      ? "更改邮箱地址后，请先发送验证码。"
-                      : "Send a verification code after changing the email address."}
+                    ? copy.verificationCodeSentTo(authSettings?.pending_email ?? "")
+                    : copy.verificationCodePrompt}
                 </p>
                 <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-                  <AuthenticationFieldShell label={locale === "zh-CN" ? "验证码" : "Verification code"}>
+                  <AuthenticationFieldShell label={copy.verificationCode}>
                     <Input
                       value={emailVerificationOtp}
                       onChange={(event) => setEmailVerificationOtp(event.target.value)}
-                      placeholder={locale === "zh-CN" ? "输入 OTP" : "Enter OTP"}
+                      placeholder={copy.verificationOtpPlaceholder}
                     />
                   </AuthenticationFieldShell>
                   <div className="flex items-end">
@@ -144,13 +133,7 @@ export function RecoveryEmailCard({
                       disabled={confirmingEmailVerification || !emailVerificationOtp.trim()}
                       >
                         <MailCheck className="mr-2 h-3.5 w-3.5" />
-                        {confirmingEmailVerification
-                          ? locale === "zh-CN"
-                            ? "验证中..."
-                            : "Verifying..."
-                          : locale === "zh-CN"
-                            ? "验证"
-                            : "Verify"}
+                        {confirmingEmailVerification ? copy.verifying : copy.verify}
                       </Button>
                     </div>
                   </div>

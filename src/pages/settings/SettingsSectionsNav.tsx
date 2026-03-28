@@ -35,7 +35,7 @@ export function SettingsSectionsNav({
             className="w-full justify-start"
             onClick={() => onJumpToSection(section.id)}
           >
-            {labels[section.id] ?? section.label}
+            {labels[section.id]}
           </Button>
         ))}
       </CardContent>

@@ -4,13 +4,18 @@ import {
   formatRelativeTimeFromNow,
   getCurrentLocale,
 } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
+
+function getMessages() {
+  return getStaticMessages();
+}
 
 function formatCreatedDate(dateString: string) {
   const locale = getCurrentLocale();
-  const isChinese = locale === "zh-CN";
+  const messages = getMessages();
   const timestamp = new Date(dateString);
   if (Number.isNaN(timestamp.getTime())) {
-    return isChinese ? "未知日期" : "Unknown date";
+    return messages.settingsAuthentication.unknownDate;
   }
 
   return formatDateForLocale(locale, dateString, {
@@ -22,24 +27,24 @@ function formatCreatedDate(dateString: string) {
 
 function formatRelativeLastUsed(dateString: string | null) {
   const locale = getCurrentLocale();
-  const isChinese = locale === "zh-CN";
+  const messages = getMessages();
   if (!dateString) {
-    return isChinese ? "尚未使用" : "Not used yet";
+    return messages.settingsAuthentication.notUsedYet;
   }
 
   const timestamp = new Date(dateString);
   if (Number.isNaN(timestamp.getTime())) {
-    return isChinese ? "上次使用时间未知" : "Unknown last use";
+    return messages.settingsAuthentication.unknownLastUse;
   }
 
   return formatRelativeTimeFromNow(dateString, locale);
 }
 
 export function getPasskeyStateBadge(passkey: PasskeyCredential) {
-  const isChinese = getCurrentLocale() === "zh-CN";
+  const messages = getMessages();
   if (passkey.backup_state) {
     return {
-      label: isChinese ? "已同步" : "Synced",
+      label: messages.settingsAuthentication.synced,
       className:
         "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
     };
@@ -47,14 +52,14 @@ export function getPasskeyStateBadge(passkey: PasskeyCredential) {
 
   if (passkey.backup_eligible === true) {
     return {
-      label: isChinese ? "可备份" : "Backup ready",
+      label: messages.settingsAuthentication.backupReady,
       className: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300",
     };
   }
 
   if (passkey.backup_eligible === false) {
     return {
-      label: isChinese ? "设备绑定" : "Device-bound",
+      label: messages.settingsAuthentication.deviceBound,
       className: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     };
   }
@@ -63,21 +68,21 @@ export function getPasskeyStateBadge(passkey: PasskeyCredential) {
 }
 
 export function buildPasskeyMetadata(passkey: PasskeyCredential) {
-  const isChinese = getCurrentLocale() === "zh-CN";
-  const parts = [isChinese ? `创建于 ${formatCreatedDate(passkey.created_at)}` : `Created ${formatCreatedDate(passkey.created_at)}`];
+  const messages = getMessages();
+  const parts = [messages.settingsAuthentication.created(formatCreatedDate(passkey.created_at))];
 
   if (passkey.last_used_at) {
-    parts.push(isChinese ? `上次使用 ${formatRelativeLastUsed(passkey.last_used_at)}` : `Last used ${formatRelativeLastUsed(passkey.last_used_at)}`);
+    parts.push(messages.settingsAuthentication.lastUsed(formatRelativeLastUsed(passkey.last_used_at)));
   } else {
-    parts.push(isChinese ? "尚未使用" : "Not used yet");
+    parts.push(messages.settingsAuthentication.notUsedYet);
   }
 
   if (passkey.backup_state) {
-    parts.push(isChinese ? "已同步到你的账户" : "Synced to your account");
+    parts.push(messages.settingsAuthentication.syncedToAccount);
   } else if (passkey.backup_eligible === true) {
-    parts.push(isChinese ? "支持备份" : "Backup capable");
+    parts.push(messages.settingsAuthentication.backupCapable);
   } else if (passkey.backup_eligible === false) {
-    parts.push(isChinese ? "存储在此设备上" : "Stored on this device");
+    parts.push(messages.settingsAuthentication.deviceBound);
   }
 
   return parts.join(" · ");

@@ -38,7 +38,8 @@ export function TimezoneSection({
   timezonePreviewText,
   timezonePreviewZone,
 }: TimezoneSectionProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsBilling;
   return (
     <section id="timezone" tabIndex={-1} className="scroll-mt-24">
       <Card>
@@ -47,12 +48,10 @@ export function TimezoneSection({
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <Globe className="h-4 w-4" />
-                {locale === "zh-CN" ? "时区" : "Timezone"}
+                {copy.timezone}
               </CardTitle>
               <CardDescription className="text-xs">
-                {locale === "zh-CN"
-                  ? "时区偏好会影响整个仪表盘中的时间戳显示。"
-                  : "Timezone preference affects timestamp rendering across the dashboard."}
+                {copy.timezoneAffectsTimestamps}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -68,13 +67,7 @@ export function TimezoneSection({
                   !timezoneDirty
                 }
               >
-                {costingSaving
-                  ? locale === "zh-CN"
-                    ? "保存中..."
-                    : "Saving..."
-                  : locale === "zh-CN"
-                    ? "保存时区"
-                    : "Save timezone"}
+                {costingSaving ? messages.pricingTemplateDialog.saving : copy.saveTimezone}
               </Button>
             </div>
           </div>
@@ -82,7 +75,7 @@ export function TimezoneSection({
         <CardContent className="space-y-4">
           {costingUnavailable ? (
             <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-              {locale === "zh-CN" ? "设置 API 当前不可用。" : "Settings API is currently unavailable."}
+              {copy.settingsApiUnavailable}
             </div>
           ) : costingLoading ? (
             <div className="space-y-2">
@@ -92,7 +85,7 @@ export function TimezoneSection({
             <div className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>{locale === "zh-CN" ? "时区偏好" : "Timezone preference"}</Label>
+                  <Label>{copy.timezonePreference}</Label>
                   <Select
                     value={costingForm.timezone_preference || "auto"}
                     onValueChange={(value) =>
@@ -103,13 +96,11 @@ export function TimezoneSection({
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={locale === "zh-CN" ? "选择时区" : "Select timezone"} />
+                      <SelectValue placeholder={copy.selectTimezone} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="auto">
-                        {locale === "zh-CN"
-                          ? `自动（浏览器：${Intl.DateTimeFormat().resolvedOptions().timeZone})`
-                          : `Auto (Browser: ${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
+                        {copy.timezoneAuto(Intl.DateTimeFormat().resolvedOptions().timeZone)}
                       </SelectItem>
                       {Intl.supportedValuesOf("timeZone").map((timezone) => (
                         <SelectItem key={timezone} value={timezone}>
@@ -122,9 +113,7 @@ export function TimezoneSection({
               </div>
 
               <p className="text-sm text-muted-foreground">
-                {locale === "zh-CN"
-                  ? `示例时间戳：${timezonePreviewText}（${timezonePreviewZone}）`
-                  : `Example timestamp: ${timezonePreviewText} (${timezonePreviewZone})`}
+                {copy.exampleTimestamp(timezonePreviewText, timezonePreviewZone)}
               </p>
             </div>
           )}

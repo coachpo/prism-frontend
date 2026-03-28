@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { SettingsSaveSection } from "./settingsSaveTypes";
@@ -15,8 +16,10 @@ export function renderSectionSaveState({
   isDirty,
   recentlySavedSection,
 }: SectionSaveStateProps): ReactNode {
+  const messages = getStaticMessages();
+
   if (isDirty) {
-    return <StatusBadge label="Unsaved changes" intent="warning" />;
+    return <StatusBadge label={messages.settingsSaveState.unsavedChanges} intent="warning" />;
   }
 
   if (recentlySavedSection === section) {
@@ -26,7 +29,7 @@ export function renderSectionSaveState({
         className="text-[10px] border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
       >
         <Check className="h-3 w-3" />
-        Saved
+        {messages.settingsSaveState.saved}
       </Badge>
     );
   }

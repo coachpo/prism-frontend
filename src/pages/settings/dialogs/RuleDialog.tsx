@@ -39,21 +39,15 @@ export function RuleDialog({
   setRuleForm,
   handleSaveRule,
 }: RuleDialogProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsDialogs;
+
   return (
     <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{editingRule ? (locale === "zh-CN" ? "编辑规则" : "Edit Rule") : locale === "zh-CN" ? "新增规则" : "Add Rule"}</DialogTitle>
-          <DialogDescription>
-            {editingRule
-              ? locale === "zh-CN"
-                ? "修改现有的自定义请求头屏蔽规则。"
-                : "Modify an existing custom header blocklist rule."
-              : locale === "zh-CN"
-                ? "创建自定义规则，在请求发送到上游之前屏蔽指定请求头。"
-                : "Create a custom rule to block headers before requests are sent upstream."}
-          </DialogDescription>
+          <DialogTitle>{editingRule ? copy.ruleDialogEditTitle : copy.ruleDialogAddTitle}</DialogTitle>
+          <DialogDescription>{editingRule ? copy.ruleDialogEditDescription : copy.ruleDialogAddDescription}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-1">
@@ -61,22 +55,18 @@ export function RuleDialog({
             <div className="flex items-start gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" aria-label="Why block headers" className="mt-0.5">
+                  <button type="button" aria-label={copy.whyBlockHeaders} className="mt-0.5">
                     <Info className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-xs">
-                  Blocklist rules prevent privacy, tunnel, and tracing metadata from reaching
-                  upstream providers.
+                  {copy.blockHeadersTooltip}
                 </TooltipContent>
               </Tooltip>
 
               <div className="space-y-1">
-                <p>
-                  Examples: <code className="rounded bg-background px-1">cf-</code> (prefix),{" "}
-                  <code className="rounded bg-background px-1">x-forwarded-for</code> (exact).
-                </p>
-                <p>Use this to strip sensitive headers before forwarding runtime traffic.</p>
+                <p>{copy.blockHeadersExamples}</p>
+                <p>{copy.stripSensitiveHeaders}</p>
               </div>
             </div>
           </div>
@@ -84,7 +74,7 @@ export function RuleDialog({
           <div className="grid gap-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="rule-name" className="text-right">
-                Name
+                {copy.name}
               </Label>
               <Input
                 id="rule-name"
@@ -93,13 +83,13 @@ export function RuleDialog({
                   setRuleForm((prev) => ({ ...prev, name: event.target.value }))
                 }
                 className="col-span-3"
-                placeholder="e.g. Remove Tunnel Headers"
+                placeholder={copy.namePlaceholder}
               />
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="rule-type" className="text-right">
-                Type
+                {copy.type}
               </Label>
               <Select
                 value={ruleForm.match_type}
@@ -114,15 +104,15 @@ export function RuleDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="exact">Exact Match</SelectItem>
-                  <SelectItem value="prefix">Prefix Match</SelectItem>
+                  <SelectItem value="exact">{copy.exactMatch}</SelectItem>
+                  <SelectItem value="prefix">{copy.prefixMatch}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="rule-pattern" className="text-right">
-                Pattern
+                {copy.pattern}
               </Label>
               <div className="col-span-3 space-y-1">
                 <Input
@@ -133,20 +123,22 @@ export function RuleDialog({
                   }
                   className="font-mono"
                   placeholder={
-                    ruleForm.match_type === "prefix" ? "cf-" : "x-request-id"
+                    ruleForm.match_type === "prefix"
+                      ? copy.patternPlaceholderPrefix
+                      : copy.patternPlaceholderExact
                   }
                 />
                 {ruleForm.match_type === "prefix" && (
                   <p className="text-[0.8rem] text-muted-foreground">
-                    Prefix patterns must end with a hyphen (-).
+                    {copy.prefixMatchMustEndHyphen}
                   </p>
                 )}
               </div>
             </div>
 
             <SwitchController
-              label="Enabled"
-              description="Activate this rule immediately"
+              label={copy.enabled}
+              description={copy.activateRuleImmediately}
               checked={ruleForm.enabled}
               onCheckedChange={(checked) =>
                 setRuleForm((prev) => ({ ...prev, enabled: checked }))
@@ -157,9 +149,9 @@ export function RuleDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
-            {locale === "zh-CN" ? "取消" : "Cancel"}
+            {copy.cancel}
           </Button>
-          <Button onClick={() => void handleSaveRule()}>{locale === "zh-CN" ? "保存规则" : "Save Rule"}</Button>
+          <Button onClick={() => void handleSaveRule()}>{copy.saveRule}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

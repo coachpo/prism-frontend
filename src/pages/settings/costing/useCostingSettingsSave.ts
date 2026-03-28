@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { isValidCurrencyCode } from "@/lib/costing";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { clearUserTimezonePreference } from "@/lib/timezone";
 import type { CostingSettingsUpdate } from "@/lib/types";
 import { toast } from "sonner";
@@ -9,6 +10,10 @@ import type { SettingsSaveSection } from "../settingsSaveTypes";
 import { normalizeCostingForm, validateMappings } from "../settingsPageHelpers";
 
 type CostingSaveSection = "billing" | "timezone";
+
+function getMessages() {
+  return getStaticMessages();
+}
 
 interface UseCostingSettingsSaveInput {
   normalizedCurrentCosting: CostingSettingsUpdate;
@@ -62,7 +67,7 @@ export function useCostingSettingsSave({
             timezone_preference: prev?.timezone_preference ?? baseline.timezone_preference,
           }));
           setRecentlySavedSection("billing");
-          toast.success("Billing and currency settings saved");
+          toast.success(getMessages().settingsCostingData.billingSaved);
         } else {
           const saved = await api.settings.timezone.update({
             timezone_preference: normalizedCurrentCosting.timezone_preference ?? null,
@@ -81,12 +86,12 @@ export function useCostingSettingsSave({
             timezone_preference: saved.timezone_preference ?? null,
           }));
           setRecentlySavedSection("timezone");
-          toast.success("Timezone saved");
+          toast.success(getMessages().settingsCostingData.timezoneSaved);
         }
 
         setCostingUnavailable(false);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to save settings");
+        toast.error(error instanceof Error ? error.message : getMessages().settingsCostingData.saveFailed);
       } finally {
         setCostingSaving(false);
       }
@@ -108,29 +113,31 @@ export function useCostingSettingsSave({
 }
 
 function validateBillingSection(costing: CostingSettingsUpdate): string | null {
+  const messages = getMessages().settingsCostingData;
   if (!isValidCurrencyCode(costing.report_currency_code)) {
-    return "Reporting currency must be a valid 3-letter code (for example, USD)";
+    return messages.reportCurrencyRequired;
   }
 
   if (!costing.report_currency_symbol) {
-    return "Reporting currency symbol is required";
+    return messages.reportCurrencyRequired;
   }
 
   if (costing.report_currency_symbol.length > 5) {
-    return "Reporting currency symbol must be 5 characters or fewer";
+    return messages.reportCurrencySymbolLength;
   }
 
   return validateMappings(costing.endpoint_fx_mappings);
 }
 
 function validateTimezoneSection(baseline: CostingSettingsUpdate): string | null {
+  const messages = getMessages().settingsCostingData;
   if (!isValidCurrencyCode(baseline.report_currency_code) || !baseline.report_currency_symbol) {
-    return "Save billing and currency settings before saving timezone.";
+    return messages.saveBillingBeforeTimezone;
   }
 
   const baselineMappingError = validateMappings(baseline.endpoint_fx_mappings);
   if (baselineMappingError) {
-    return "Fix billing and currency mapping errors before saving timezone.";
+    return messages.fixMappingErrorsBeforeTimezone;
   }
 
   return null;

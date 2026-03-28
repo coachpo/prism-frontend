@@ -17,27 +17,23 @@ export function AuthenticationStatusCard({
   statusDescription,
   onSaveAuthSettings,
 }: AuthenticationStatusCardProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsAuthentication;
   return (
     <Card className="shadow-none">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">{locale === "zh-CN" ? "身份验证状态" : "Authentication status"}</CardTitle>
+        <CardTitle className="text-base">{copy.authentication}</CardTitle>
         <CardDescription>
           <span className="font-medium text-foreground">
-            {locale === "zh-CN" ? "身份验证：" : "Authentication: "}
-            {authEnabled ? (locale === "zh-CN" ? "开启" : "On") : locale === "zh-CN" ? "关闭" : "Off"}
+            {copy.authentication}: {authEnabled ? messages.shell.activate : messages.settingsDialogs.cancel}
           </span>{" "}
           {statusDescription}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <SwitchController
-          label={locale === "zh-CN" ? "启用身份验证" : "Enable authentication"}
-          description={
-            locale === "zh-CN"
-              ? "只有在操作员账户和恢复邮箱都完成配置后，才可以启用登录。"
-              : "Sign-in can only be enabled after the operator account and recovery email are fully configured."
-          }
+          label={copy.authentication}
+          description={copy.enableAuthenticationToManagePasskeys}
           checked={authEnabled}
           disabled={authSaving || (!setupReady && !authEnabled)}
           onCheckedChange={(checked) => {

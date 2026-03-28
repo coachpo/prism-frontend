@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { useLocale } from "@/i18n/useLocale";
 import type { Vendor, VendorModelUsageItem } from "@/lib/types";
+import { formatApiFamily } from "@/lib/utils";
 
 interface DeleteVendorDialogProps {
   deleteVendorConfirm: Vendor | null;
@@ -38,6 +39,8 @@ export function DeleteVendorDialog({
   vendorUsageRows,
 }: DeleteVendorDialogProps) {
   const { messages } = useLocale();
+  const modelTypeLabel = (modelType: string) =>
+    modelType === "proxy" ? messages.modelDetail.typeProxy : messages.modelDetail.typeNative;
   const blockedRows = deleteVendorConflict?.length ? deleteVendorConflict : vendorUsageRows;
   const isBlocked = blockedRows.length > 0;
 
@@ -76,8 +79,8 @@ export function DeleteVendorDialog({
                     <TableRow key={`${row.model_config_id}-${row.profile_id}`}>
                       <TableCell>{row.profile_name}</TableCell>
                       <TableCell className="font-medium">{row.model_id}</TableCell>
-                      <TableCell>{row.api_family}</TableCell>
-                      <TableCell>{row.model_type}</TableCell>
+                      <TableCell>{formatApiFamily(row.api_family)}</TableCell>
+                      <TableCell>{modelTypeLabel(row.model_type)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

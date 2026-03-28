@@ -50,7 +50,7 @@ describe("AuthenticationSection i18n", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByText("身份验证")).toBeInTheDocument();
+    expect(screen.getAllByText("身份验证").length).toBeGreaterThan(0);
     expect(screen.getByText("已禁用")).toBeInTheDocument();
   });
 });

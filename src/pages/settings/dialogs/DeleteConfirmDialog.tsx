@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getCleanupTypeLabel, type DeleteCleanupType } from "../settingsPageHelpers";
+import { type DeleteCleanupType } from "../settingsPageHelpers";
 
 interface DeleteConfirmDialogProps {
   deleteConfirm: {
@@ -41,7 +41,16 @@ export function DeleteConfirmDialog({
   deleting,
   isDeletePhraseValid,
 }: DeleteConfirmDialogProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsDialogs;
+  const cleanupTypeLabel = deleteConfirm
+    ? deleteConfirm.type === "requests"
+      ? copy.cleanupTypeRequests
+      : deleteConfirm.type === "audits"
+        ? copy.cleanupTypeAudits
+        : copy.cleanupTypeLoadbalanceEvents
+    : "-";
+
   return (
     <Dialog
       open={Boolean(deleteConfirm)}
@@ -54,37 +63,30 @@ export function DeleteConfirmDialog({
     >
         <DialogContent>
           <DialogHeader>
-          <DialogTitle>{locale === "zh-CN" ? "确认删除" : "Confirm Deletion"}</DialogTitle>
-          <DialogDescription>
-            {locale === "zh-CN"
-              ? `${selectedProfileLabel} 中的数据将被删除且无法撤销。`
-              : `This deletes data in ${selectedProfileLabel} and cannot be undone.`}
-          </DialogDescription>
+            <DialogTitle>{copy.deleteConfirmTitle}</DialogTitle>
+            <DialogDescription>{copy.deleteConfirmDescription(selectedProfileLabel)}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 text-sm">
           <div className="rounded-md border px-3 py-3">
-            <p className="font-medium">Deletion summary</p>
+            <p className="font-medium">{copy.deletionSummary}</p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
               <li>
-                Data type: {deleteConfirm ? getCleanupTypeLabel(deleteConfirm.type) : "-"}
+                {copy.dataType}: {cleanupTypeLabel}
               </li>
               <li>
-                Retention:{" "}
-                {deleteConfirm?.deleteAll
-                  ? "All data"
-                  : `Older than ${deleteConfirm?.days} days`}
+                {copy.retention}: {deleteConfirm?.deleteAll ? copy.allData : copy.olderThanDays(deleteConfirm?.days ?? null)}
               </li>
             </ul>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="delete-confirm-phrase">Type DELETE to proceed</Label>
+            <Label htmlFor="delete-confirm-phrase">{copy.typeDeleteToProceed(copy.deleteConfirmKeyword)}</Label>
             <Input
               id="delete-confirm-phrase"
               value={deleteConfirmPhrase}
               onChange={(event) => setDeleteConfirmPhrase(event.target.value)}
-              placeholder="DELETE"
+              placeholder={copy.deleteConfirmKeyword}
             />
           </div>
         </div>
@@ -97,14 +99,14 @@ export function DeleteConfirmDialog({
               setDeleteConfirmPhrase("");
             }}
           >
-            {locale === "zh-CN" ? "取消" : "Cancel"}
+            {copy.cancel}
           </Button>
           <Button
             variant="destructive"
             onClick={() => void handleBatchDelete()}
             disabled={deleting || !isDeletePhraseValid}
           >
-            {deleting ? (locale === "zh-CN" ? "删除中..." : "Deleting...") : locale === "zh-CN" ? "删除" : "Delete"}
+            {deleting ? copy.deleting : copy.delete}
           </Button>
         </DialogFooter>
       </DialogContent>

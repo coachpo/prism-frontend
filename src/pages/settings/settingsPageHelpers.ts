@@ -4,6 +4,7 @@ import {
   formatNumber,
   getCurrentLocale,
 } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { isValidPositiveDecimalString } from "@/lib/costing";
 
 export const SETTINGS_TABS = {
@@ -16,11 +17,11 @@ export type SettingsTab = (typeof SETTINGS_TABS)[keyof typeof SETTINGS_TABS];
 export const INSTANCE_SECTION_IDS = new Set(["authentication"]);
 
 export const SETTINGS_SECTIONS = [
-  { id: "backup", label: "Backup" },
-  { id: "billing-currency", label: "Billing & Currency" },
-  { id: "timezone", label: "Timezone" },
-  { id: "audit-configuration", label: "Audit & Privacy" },
-  { id: "retention-deletion", label: "Retention & Deletion" },
+  { id: "backup" },
+  { id: "billing-currency" },
+  { id: "timezone" },
+  { id: "audit-configuration" },
+  { id: "retention-deletion" },
 ] as const;
 
 export const SETTINGS_SECTION_IDS = new Set<string>(SETTINGS_SECTIONS.map((section) => section.id));
@@ -29,20 +30,26 @@ export type CleanupType = "" | "requests" | "audits" | "loadbalance_events";
 export type DeleteCleanupType = Exclude<CleanupType, "">;
 export type RetentionPreset = "" | "7" | "30" | "90" | "all";
 
-export const DELETE_CONFIRM_KEYWORD = "DELETE";
+export const DELETE_CONFIRM_KEYWORD = getStaticMessages().settingsDialogs.deleteConfirmKeyword;
 export const FX_RATE_MAX_DECIMALS = 6;
 export const TIMEZONE_PREVIEW_SOURCE = new Date("2026-02-27T21:39:00Z");
 export const AUTH_PASSWORD_MIN_LENGTH = 8;
 export const AUTH_PASSWORD_MAX_LENGTH = 512;
 
+function getSettingsMessages() {
+  return getStaticMessages();
+}
+
 export function getCleanupTypeLabel(type: DeleteCleanupType): string {
+  const messages = getSettingsMessages();
+
   switch (type) {
     case "requests":
-      return "Request Logs";
+      return messages.settingsDialogs.cleanupTypeRequests;
     case "audits":
-      return "Audit Logs";
+      return messages.settingsDialogs.cleanupTypeAudits;
     case "loadbalance_events":
-      return "Loadbalance Events";
+      return messages.settingsDialogs.cleanupTypeLoadbalanceEvents;
   }
 }
 
@@ -96,56 +103,49 @@ export const areMappingsEqual = (left: EndpointFxMapping[], right: EndpointFxMap
 };
 
 export const validateFxRate = (rawValue: string): string | null => {
-  const locale = getCurrentLocale();
-  const isChinese = locale === "zh-CN";
+  const messages = getSettingsMessages();
   const value = rawValue.trim();
   if (!value) {
-    return isChinese ? "FX 汇率为必填项" : "FX rate is required";
+    return messages.settingsFx.rateRequired;
   }
   if (!isValidPositiveDecimalString(value)) {
-    return isChinese ? "FX 汇率必须大于零" : "FX rate must be greater than zero";
+    return messages.settingsFx.rateMustBeGreaterThanZero;
   }
   const [, decimals = ""] = value.split(".");
   if (decimals.length > FX_RATE_MAX_DECIMALS) {
-    return isChinese
-      ? `最多保留 ${FX_RATE_MAX_DECIMALS} 位小数`
-      : `Use up to ${FX_RATE_MAX_DECIMALS} decimal places`;
+    return messages.settingsFx.decimalPlacesLimit(FX_RATE_MAX_DECIMALS);
   }
   return null;
 };
 
 export const validateMappings = (mappings: EndpointFxMapping[]): string | null => {
+  const messages = getSettingsMessages();
   const seen = new Set<string>();
   for (const mapping of mappings) {
     const key = getMappingKey(mapping);
     if (seen.has(key)) {
-      return `Duplicate FX mapping detected for ${mapping.model_id} #${mapping.endpoint_id}`;
+      return messages.settingsFx.duplicateMapping(mapping.model_id, mapping.endpoint_id);
     }
     seen.add(key);
 
     const fxRateError = validateFxRate(mapping.fx_rate);
     if (fxRateError) {
-      return `FX rate for ${mapping.model_id} #${mapping.endpoint_id}: ${fxRateError}`;
+      return messages.settingsFx.rateForMapping(mapping.model_id, mapping.endpoint_id, fxRateError);
     }
   }
   return null;
 };
 
 export const validateAuthPassword = (value: string): string | null => {
-  const locale = getCurrentLocale();
-  const isChinese = locale === "zh-CN";
+  const messages = getSettingsMessages();
   if (!value) {
     return null;
   }
   if (value.length < AUTH_PASSWORD_MIN_LENGTH) {
-    return isChinese
-      ? `密码至少需要 ${AUTH_PASSWORD_MIN_LENGTH} 个字符`
-      : `Password must be at least ${AUTH_PASSWORD_MIN_LENGTH} characters`;
+    return messages.settingsAuth.passwordMinLength(AUTH_PASSWORD_MIN_LENGTH);
   }
   if (value.length > AUTH_PASSWORD_MAX_LENGTH) {
-    return isChinese
-      ? `密码最多只能有 ${AUTH_PASSWORD_MAX_LENGTH} 个字符`
-      : `Password must be at most ${AUTH_PASSWORD_MAX_LENGTH} characters`;
+    return messages.settingsAuth.passwordMaxLength(AUTH_PASSWORD_MAX_LENGTH);
   }
   return null;
 };
@@ -162,6 +162,7 @@ export const formatFxRateDisplay = (value: string): string => {
 };
 
 export const formatTimezonePreview = (timezone: string): string => {
+  const messages = getSettingsMessages();
   try {
     const parts = new Intl.DateTimeFormat(getCurrentLocale(), {
       timeZone: timezone,
@@ -181,6 +182,6 @@ export const formatTimezonePreview = (timezone: string): string => {
     const minute = byType.get("minute") ?? "00";
     return `${year}-${month}-${day} ${hour}:${minute}`;
   } catch {
-    return "Unavailable";
+    return messages.settingsTimezone.unavailable;
   }
 };

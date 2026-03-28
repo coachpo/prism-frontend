@@ -42,11 +42,12 @@ export function FxMappingForm({
   setMappingFxRate,
   setMappingModelId,
 }: FxMappingFormProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsBilling;
   return (
     <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto]">
       <div className="space-y-2">
-        <Label>{locale === "zh-CN" ? "模型" : "Model"}</Label>
+        <Label>{copy.model}</Label>
         <Select
           value={mappingModelId}
           onValueChange={(value) => {
@@ -58,7 +59,7 @@ export function FxMappingForm({
           }}
         >
           <SelectTrigger>
-            <SelectValue placeholder={locale === "zh-CN" ? "选择模型" : "Select model"} />
+            <SelectValue placeholder={copy.selectModel} />
           </SelectTrigger>
           <SelectContent>
             {nativeModels.map((model) => (
@@ -71,14 +72,14 @@ export function FxMappingForm({
       </div>
 
       <div className="space-y-2">
-        <Label>{locale === "zh-CN" ? "端点" : "Endpoint"}</Label>
+        <Label>{copy.endpoint}</Label>
         <Select
           value={mappingEndpointId}
           onValueChange={setMappingEndpointId}
           disabled={!mappingModelId || mappingLoading}
         >
           <SelectTrigger>
-            <SelectValue placeholder={mappingLoading ? (locale === "zh-CN" ? "正在加载端点..." : "Loading endpoints...") : locale === "zh-CN" ? "选择端点" : "Select endpoint"} />
+            <SelectValue placeholder={mappingLoading ? copy.loadingEndpoints : copy.selectEndpoint} />
           </SelectTrigger>
           <SelectContent>
             {mappingEndpointOptions.map((endpoint) => (
@@ -91,12 +92,12 @@ export function FxMappingForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="mapping-fx-rate">{locale === "zh-CN" ? "FX 汇率" : "FX rate"}</Label>
+        <Label htmlFor="mapping-fx-rate">{copy.fxRate}</Label>
         <Input
           id="mapping-fx-rate"
           value={mappingFxRate}
           onChange={(event) => setMappingFxRate(event.target.value)}
-          placeholder="1.000000"
+          placeholder={copy.fxRatePlaceholder}
           inputMode="decimal"
           aria-invalid={Boolean(addMappingFxError)}
           className={cn(addMappingFxError && "border-destructive")}
@@ -118,7 +119,7 @@ export function FxMappingForm({
           }
         >
           <Plus className="mr-2 h-4 w-4" />
-          {locale === "zh-CN" ? "新增映射" : "Add Mapping"}
+          {copy.addMapping}
         </Button>
       </div>
     </div>

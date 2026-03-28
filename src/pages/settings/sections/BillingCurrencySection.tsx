@@ -75,7 +75,8 @@ export function BillingCurrencySection({
   handleStartEditFxMapping,
   handleDeleteFxMapping,
 }: BillingCurrencySectionProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsBilling;
   return (
     <section id="billing-currency" tabIndex={-1} className="scroll-mt-24">
       <Card>
@@ -84,12 +85,10 @@ export function BillingCurrencySection({
             <div className="space-y-1">
               <CardTitle className="flex items-center gap-2 text-sm">
                 <Coins className="h-4 w-4" />
-                {locale === "zh-CN" ? "计费与货币" : "Billing & Currency"}
+                {copy.billingAndCurrency}
               </CardTitle>
               <CardDescription className="text-xs">
-                {locale === "zh-CN"
-                  ? "配置支出仪表盘使用的报告货币和端点 FX 覆盖。"
-                  : "Configure reporting currency and endpoint FX overrides used by spending dashboards."}
+                {messages.dashboard.inspectSpendingBreakdown}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -105,24 +104,16 @@ export function BillingCurrencySection({
                   !billingDirty
                 }
               >
-                {costingSaving
-                  ? locale === "zh-CN"
-                    ? "保存中..."
-                    : "Saving..."
-                  : locale === "zh-CN"
-                    ? "保存"
-                    : "Save"}
+                {costingSaving ? messages.pricingTemplateDialog.saving : messages.modelsUi.save}
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {costingUnavailable ? (
-            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-              {locale === "zh-CN"
-                ? "计费设置 API 当前不可用。请升级后端以启用此功能。"
-                : "Costing settings API is currently unavailable. Upgrade the backend to enable this feature."}
-            </div>
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                {copy.costApiUnavailable}
+              </div>
           ) : costingLoading ? (
             <div className="space-y-2">
               <div className="h-9 animate-pulse rounded bg-muted" />

@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { getSharedModels } from "@/lib/referenceData";
 import type { CostingSettingsUpdate, ModelConfigListItem } from "@/lib/types";
 import { toast } from "sonner";
 import { DEFAULT_COSTING_FORM, normalizeCostingForm } from "../settingsPageHelpers";
+
+function getMessages() {
+  return getStaticMessages();
+}
 
 export function useCostingSettingsBootstrap(revision: number) {
   const [costingUnavailable, setCostingUnavailable] = useState(false);
@@ -26,7 +31,7 @@ export function useCostingSettingsBootstrap(revision: number) {
       if (requestId !== modelsRequestIdRef.current) {
         return;
       }
-      toast.error("Failed to load models for FX mapping");
+      toast.error(getMessages().settingsCostingData.loadModelsForFxFailed);
     }
   }, [revision]);
 
@@ -49,7 +54,7 @@ export function useCostingSettingsBootstrap(revision: number) {
       if (error instanceof Error && /not found/i.test(error.message)) {
         setCostingUnavailable(true);
       } else {
-        toast.error(error instanceof Error ? error.message : "Failed to load costing settings");
+        toast.error(error instanceof Error ? error.message : getMessages().settingsCostingData.loadCostingFailed);
       }
     } finally {
       if (requestId === costingRequestIdRef.current) {
@@ -61,7 +66,7 @@ export function useCostingSettingsBootstrap(revision: number) {
   useEffect(() => {
     void fetchCostingSettings();
     void fetchModels();
-  }, [fetchCostingSettings, fetchModels, revision]);
+  }, [fetchCostingSettings, fetchModels]);
 
   return {
     costingForm,

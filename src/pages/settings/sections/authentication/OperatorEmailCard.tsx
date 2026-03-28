@@ -35,43 +35,38 @@ export function OperatorEmailCard({
   setUsername,
   username,
 }: OperatorEmailCardProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsAuthentication;
   return (
     <Card className="shadow-none">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">{locale === "zh-CN" ? "操作员账户" : "Operator account"}</CardTitle>
+        <CardTitle className="text-base">{copy.operatorAccount}</CardTitle>
         <CardDescription>
-          {locale === "zh-CN"
-            ? "配置用于登录的唯一本地操作员身份。"
-            : "Configure the single local operator identity used to sign in."}
+          {copy.operatorAccountDescription}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <AuthenticationFieldShell
-          label={locale === "zh-CN" ? "用户名" : "Username"}
-          helper={locale === "zh-CN" ? "这将是此 Prism 实例唯一的本地登录名。" : "This will be the only local sign-in name for this Prism instance."}
+          label={copy.username}
+          helper={copy.usernameHelper}
           htmlFor="auth-username"
         >
           <Input
             id="auth-username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            placeholder={locale === "zh-CN" ? "管理员" : "admin"}
+            placeholder={copy.usernamePlaceholder}
           />
         </AuthenticationFieldShell>
 
         <AuthenticationFieldShell
-          label={locale === "zh-CN" ? "密码" : "Password"}
+          label={copy.password}
           helper={
             passwordError
               ? passwordError
               : authSettings?.has_password
-                ? locale === "zh-CN"
-                  ? "留空可保留当前密码。"
-                  : "Leave blank to keep the current password."
-                : locale === "zh-CN"
-                  ? "请先设置密码，再启用身份验证。"
-                  : "Set a password before enabling authentication."
+                ? copy.passwordKeepCurrent
+                : messages.settingsAuthentication.enableAuthenticationToManagePasskeys
           }
           helperClassName={passwordError ? "text-destructive" : undefined}
           htmlFor="auth-password"
@@ -85,15 +80,11 @@ export function OperatorEmailCard({
         </AuthenticationFieldShell>
 
         <AuthenticationFieldShell
-          label={locale === "zh-CN" ? "确认密码" : "Confirm password"}
+          label={copy.confirmPassword}
           helper={
             passwordMismatch
-              ? locale === "zh-CN"
-                ? "继续之前，两次输入的密码必须一致。"
-                : "Passwords must match before you can continue."
-              : locale === "zh-CN"
-                ? "请再次准确输入密码以确认。"
-                : "Repeat the password exactly to confirm it."
+              ? copy.passwordsMustMatch
+              : copy.passwordConfirmationHelp
           }
           helperClassName={passwordMismatch ? "text-destructive" : undefined}
           htmlFor="auth-password-confirm"
@@ -109,9 +100,7 @@ export function OperatorEmailCard({
         <div className="rounded-lg border bg-muted/30 px-4 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">
-                {locale === "zh-CN"
-                  ? "如果你更新了操作员账户，请先保存设置更改，再启用身份验证。"
-                  : "Save setup changes before enabling authentication if you update the operator account."}
+                {copy.authenticationToggleDescription}
               </p>
             <Button
               type="button"
@@ -119,13 +108,7 @@ export function OperatorEmailCard({
               onClick={() => void onSaveAuthSettings(authEnabled)}
               disabled={authSaving || Boolean(passwordError) || passwordMismatch}
             >
-              {authSaving
-                ? locale === "zh-CN"
-                  ? "保存中..."
-                  : "Saving..."
-                : locale === "zh-CN"
-                  ? "保存账户更改"
-                  : "Save account changes"}
+              {authSaving ? messages.pricingTemplateDialog.saving : copy.saveAccountChanges}
             </Button>
           </div>
         </div>

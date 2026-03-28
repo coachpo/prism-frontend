@@ -31,7 +31,8 @@ export function AuditConfigurationHeaderBlocklistCard({
   openEditRuleDialog,
   setDeleteRuleConfirm,
 }: AuditConfigurationHeaderBlocklistCardProps) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.settingsAudit;
 
   return (
     <Card>
@@ -39,10 +40,10 @@ export function AuditConfigurationHeaderBlocklistCard({
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2 text-sm">
             <Ban className="h-4 w-4" />
-            {locale === "zh-CN" ? "请求头屏蔽列表" : "Header Blocklist"}
+            {copy.headerBlocklist}
           </CardTitle>
           <CardDescription className="text-xs">
-            {locale === "zh-CN" ? "在发送到上游之前移除指定请求头。" : "Strips headers before sending upstream."}
+            {copy.stripsHeadersBeforeSendingUpstream}
           </CardDescription>
         </div>
       </CardHeader>

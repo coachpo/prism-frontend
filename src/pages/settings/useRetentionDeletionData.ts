@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { getCurrentLocale } from "@/i18n/format";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { toast } from "sonner";
 import {
-  DELETE_CONFIRM_KEYWORD,
   type CleanupType,
   type DeleteCleanupType,
   type RetentionPreset,
@@ -11,6 +10,7 @@ import {
 } from "./settingsPageHelpers";
 
 export function useRetentionDeletionData() {
+  const deleteKeyword = getStaticMessages().settingsDialogs.deleteConfirmKeyword;
   const [cleanupType, setCleanupType] = useState<CleanupType>("");
   const [retentionPreset, setRetentionPreset] = useState<RetentionPreset>("");
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -22,12 +22,12 @@ export function useRetentionDeletionData() {
   const [deleting, setDeleting] = useState(false);
 
   const isDeletePhraseValid = useMemo(
-    () => deleteConfirmPhrase.trim().toUpperCase() === DELETE_CONFIRM_KEYWORD,
-    [deleteConfirmPhrase]
+    () => deleteConfirmPhrase.trim().toLowerCase() === deleteKeyword.toLowerCase(),
+    [deleteConfirmPhrase, deleteKeyword]
   );
 
   const handleOpenDeleteConfirm = () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     if (!cleanupType || !retentionPreset) {
       return;
     }
@@ -35,7 +35,7 @@ export function useRetentionDeletionData() {
     const deleteAll = retentionPreset === "all";
     const days = deleteAll ? null : Number.parseInt(retentionPreset, 10);
     if (!deleteAll && Number.isNaN(days)) {
-      toast.error(isChinese ? "请选择有效的保留选项" : "Select a valid retention option");
+      toast.error(messages.settingsRetentionDeletion.invalidRetentionOption);
       return;
     }
 
@@ -44,7 +44,7 @@ export function useRetentionDeletionData() {
   };
 
   const handleBatchDelete = async () => {
-    const isChinese = getCurrentLocale() === "zh-CN";
+    const messages = getStaticMessages();
     if (!deleteConfirm || !isDeletePhraseValid) {
       return;
     }
@@ -73,16 +73,14 @@ export function useRetentionDeletionData() {
       }
 
       toast.success(
-        isChinese
-          ? `已请求删除${getCleanupTypeLabel(type)}`
-          : `${getCleanupTypeLabel(type)} deletion requested`,
+        messages.settingsRetentionDeletion.deletionRequested(getCleanupTypeLabel(type)),
       );
 
       setDeleteConfirm(null);
       setDeleteConfirmPhrase("");
       setRetentionPreset("");
     } catch {
-      toast.error(isChinese ? "删除失败" : "Deletion failed");
+      toast.error(messages.settingsRetentionDeletion.deletionFailed);
     } finally {
       setDeleting(false);
     }
