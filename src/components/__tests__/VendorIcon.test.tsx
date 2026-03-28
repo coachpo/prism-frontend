@@ -13,6 +13,12 @@ describe("VendorIcon", () => {
         disconnect() {}
       },
     );
+
+    Object.defineProperty(Element.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
   });
 
   it("renders a curated preset icon for known vendor icon keys", () => {
