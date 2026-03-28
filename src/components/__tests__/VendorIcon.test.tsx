@@ -27,8 +27,11 @@ describe("VendorIcon", () => {
     );
 
     const icon = screen.getByLabelText("Vendor icon Z.ai");
+    const svg = icon.querySelector("svg");
 
-    expect(icon.querySelector("img")).toHaveAttribute("src", expect.stringContaining("zhipu.svg"));
+    expect(svg).not.toBeNull();
+    expect(icon.querySelector("img")).toBeNull();
+    expect(svg).toHaveClass("[&_*]:fill-current", "[&_*]:stroke-current");
   });
 
   it("renders a fallback monogram for vendors without a preset icon", () => {

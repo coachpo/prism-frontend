@@ -94,7 +94,7 @@ export function ModelDialog({
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editingModel ? (locale === "zh-CN" ? "编辑模型" : "Edit Model") : locale === "zh-CN" ? "新建模型" : "New Model"}</DialogTitle>
           <DialogDescription>
@@ -119,6 +119,7 @@ export function ModelDialog({
                 valueType="vendor_id"
                 vendors={vendors}
                 showAll={false}
+                className="w-full"
                 placeholder={locale === "zh-CN" ? "选择供应商" : "Select vendor"}
               />
             </div>
@@ -138,6 +139,7 @@ export function ModelDialog({
                   }))
                 }
                 showAll={false}
+                className="w-full"
                 placeholder={locale === "zh-CN" ? "选择 API 家族" : "Select API family"}
               />
             </div>
@@ -167,7 +169,7 @@ export function ModelDialog({
           <div className="space-y-2">
             <Label>{locale === "zh-CN" ? "类型" : "Type"}</Label>
             <Select value={formData.model_type} onValueChange={(v) => setModelType(v as "native" | "proxy")}> 
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -202,15 +204,15 @@ export function ModelDialog({
                       {normalizedProxyTargets.map((target, index) => (
                         <div
                           key={target.target_model_id}
-                          className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                          className="flex flex-col gap-3 rounded-md border px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{resolveTargetLabel(target.target_model_id)}</p>
                             <p className="text-xs text-muted-foreground">
                               {locale === "zh-CN" ? `优先级 ${index + 1}` : `Priority ${index + 1}`}
                             </p>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                             <Button
                               type="button"
                               variant="outline"
@@ -264,8 +266,8 @@ export function ModelDialog({
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs text-muted-foreground">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="min-w-0 text-xs text-muted-foreground">
                       {remainingProxyTargets.length === 0
                         ? locale === "zh-CN"
                           ? "当前 API 家族下的原生模型都已加入。"
@@ -278,6 +280,7 @@ export function ModelDialog({
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="w-full sm:w-auto"
                       disabled={remainingProxyTargets.length === 0}
                       onClick={() => {
                         const nextTarget = remainingProxyTargets[0];
@@ -313,7 +316,7 @@ export function ModelDialog({
                   value={formData.loadbalance_strategy_id === null ? undefined : String(formData.loadbalance_strategy_id)}
                   onValueChange={(value) => setLoadbalanceStrategyId(Number.parseInt(value, 10))}
                 >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder={locale === "zh-CN" ? "选择策略" : "Select strategy"} />
                     </SelectTrigger>
                     <SelectContent>

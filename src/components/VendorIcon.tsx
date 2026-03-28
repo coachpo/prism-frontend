@@ -47,7 +47,10 @@ export function VendorIcon({ vendor, size = 16, className, decorative = false }:
       style={{ width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.55)) }}
     >
       {preset ? (
-        <img src={preset.src} alt="" aria-hidden="true" className="h-full w-full object-contain" />
+        <preset.Icon
+          className="h-full w-full [&_*]:fill-current [&_*]:stroke-current"
+          aria-hidden="true"
+        />
       ) : (
         <span className="font-medium leading-none">{monogram}</span>
       )}

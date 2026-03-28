@@ -1,12 +1,42 @@
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { DeleteModelDialog } from "../DeleteModelDialog";
 import { ModelDialog } from "../ModelDialog";
 
+const originalLocalStorage = window.localStorage;
+
+function createLocalStorageMock(): Storage {
+  let storage: Record<string, string> = {};
+
+  return {
+    clear: () => {
+      storage = {};
+    },
+    getItem: (key) => storage[key] ?? null,
+    key: (index) => Object.keys(storage)[index] ?? null,
+    get length() {
+      return Object.keys(storage).length;
+    },
+    removeItem: (key) => {
+      delete storage[key];
+    },
+    setItem: (key, value) => {
+      storage[key] = value;
+    },
+  };
+}
+
 describe("model dialogs i18n", () => {
   beforeEach(() => {
+    const localStorageMock = createLocalStorageMock();
+
+    vi.stubGlobal("localStorage", localStorageMock);
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: localStorageMock,
+    });
     localStorage.clear();
     localStorage.setItem("prism.locale", "zh-CN");
     vi.stubGlobal(
@@ -17,6 +47,14 @@ describe("model dialogs i18n", () => {
         disconnect() {}
       },
     );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: originalLocalStorage,
+    });
   });
 
   it("renders localized model dialog copy", () => {

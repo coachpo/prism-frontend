@@ -1,9 +1,32 @@
 import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { LoadbalanceStrategy, ModelConfigCreate, ModelConfigListItem, Vendor } from "@/lib/types";
 import { ModelDialog } from "../ModelDialog";
+
+const originalLocalStorage = window.localStorage;
+
+function createLocalStorageMock(): Storage {
+  let storage: Record<string, string> = {};
+
+  return {
+    clear: () => {
+      storage = {};
+    },
+    getItem: (key) => storage[key] ?? null,
+    key: (index) => Object.keys(storage)[index] ?? null,
+    get length() {
+      return Object.keys(storage).length;
+    },
+    removeItem: (key) => {
+      delete storage[key];
+    },
+    setItem: (key, value) => {
+      storage[key] = value;
+    },
+  };
+}
 
 function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
   const { icon_key = null, ...rest } = overrides;
@@ -111,6 +134,9 @@ function Harness() {
 
 describe("ModelDialog proxy target editing", () => {
   beforeEach(() => {
+    const localStorageMock = createLocalStorageMock();
+
+    vi.stubGlobal("localStorage", localStorageMock);
     class ResizeObserverMock {
       observe() {}
       unobserve() {}
@@ -118,6 +144,78 @@ describe("ModelDialog proxy target editing", () => {
     }
 
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: localStorageMock,
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: originalLocalStorage,
+    });
+  });
+
+  it("renders proxy dialog selects as full-width controls inside a scroll-safe dialog", () => {
+    render(<Harness />);
+
+    expect(screen.getByRole("dialog")).toHaveClass("max-h-[90vh]", "max-w-2xl", "overflow-y-auto");
+    screen.getAllByRole("combobox").forEach((combobox) => {
+      expect(combobox).toHaveClass("w-full");
+    });
+  });
+
+  it("keeps native loadbalance strategy selection full-width", () => {
+    render(
+      <LocaleProvider>
+        <ModelDialog
+          editingModel={null}
+          formData={{
+            vendor_id: 7,
+            api_family: "openai",
+            model_id: "gpt-4o-mini",
+            display_name: "GPT-4o Mini",
+            model_type: "native",
+            proxy_targets: [],
+            loadbalance_strategy_id: 100,
+            is_enabled: true,
+          }}
+          isDialogOpen
+          loadbalanceStrategies={loadbalanceStrategies}
+          nativeModelsForApiFamily={[]}
+          vendors={[buildVendor()]}
+          setFormData={vi.fn()}
+          setIsDialogOpen={vi.fn()}
+          setLoadbalanceStrategyId={vi.fn()}
+          setModelType={vi.fn()}
+          onSubmit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    screen.getAllByRole("combobox").forEach((combobox) => {
+      expect(combobox).toHaveClass("w-full");
+    });
+  });
+
+  it("keeps proxy target rows and add-target controls contained on narrow widths", () => {
+    render(<Harness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Target" }));
+
+    const proxyTargetRow = screen
+      .getByText("GPT-4o Mini (gpt-4o-mini)")
+      .closest('div[class*="rounded-md"][class*="border"]');
+    expect(proxyTargetRow).toHaveClass("flex-col", "sm:flex-row");
+
+    const proxyTargetActions = screen.getByRole("button", { name: "Remove target gpt-4o-mini" }).parentElement;
+    expect(proxyTargetActions).toHaveClass("shrink-0", "flex-wrap", "justify-end");
+
+    const addTargetButton = screen.getByRole("button", { name: "Add Target" });
+    expect(addTargetButton).toHaveClass("w-full", "sm:w-auto");
+    expect(addTargetButton.parentElement).toHaveClass("flex-col", "sm:flex-row");
   });
 
   it("adds, reorders, and removes ordered proxy targets", () => {

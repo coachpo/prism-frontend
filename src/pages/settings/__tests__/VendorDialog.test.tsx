@@ -1,10 +1,40 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { VendorDialog } from "../dialogs/VendorDialog";
 
+const originalLocalStorage = window.localStorage;
+
+function createLocalStorageMock(): Storage {
+  let storage: Record<string, string> = {};
+
+  return {
+    clear: () => {
+      storage = {};
+    },
+    getItem: (key) => storage[key] ?? null,
+    key: (index) => Object.keys(storage)[index] ?? null,
+    get length() {
+      return Object.keys(storage).length;
+    },
+    removeItem: (key) => {
+      delete storage[key];
+    },
+    setItem: (key, value) => {
+      storage[key] = value;
+    },
+  };
+}
+
 describe("VendorDialog", () => {
   beforeEach(() => {
+    const localStorageMock = createLocalStorageMock();
+
+    vi.stubGlobal("localStorage", localStorageMock);
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: localStorageMock,
+    });
     vi.stubGlobal(
       "ResizeObserver",
       class ResizeObserver {
@@ -14,6 +44,14 @@ describe("VendorDialog", () => {
       },
     );
     HTMLElement.prototype.scrollIntoView = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: originalLocalStorage,
+    });
   });
 
   it("renders icon preset controls, preview, and fallback help text", () => {

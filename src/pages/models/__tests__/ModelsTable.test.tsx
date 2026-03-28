@@ -1,9 +1,32 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { ModelConfigListItem, Vendor } from "@/lib/types";
 import { ModelsTable } from "../ModelsTable";
+
+const originalLocalStorage = window.localStorage;
+
+function createLocalStorageMock(): Storage {
+  let storage: Record<string, string> = {};
+
+  return {
+    clear: () => {
+      storage = {};
+    },
+    getItem: (key) => storage[key] ?? null,
+    key: (index) => Object.keys(storage)[index] ?? null,
+    get length() {
+      return Object.keys(storage).length;
+    },
+    removeItem: (key) => {
+      delete storage[key];
+    },
+    setItem: (key, value) => {
+      storage[key] = value;
+    },
+  };
+}
 
 function buildVendor(overrides: Partial<Vendor> = {}): Vendor {
   return {
@@ -94,6 +117,24 @@ function renderTable({
 }
 
 describe("ModelsTable", () => {
+  beforeEach(() => {
+    const localStorageMock = createLocalStorageMock();
+
+    vi.stubGlobal("localStorage", localStorageMock);
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: localStorageMock,
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: originalLocalStorage,
+    });
+  });
+
   it("copies the model ID from the explicit copy button without navigating", async () => {
     const writeTextMock = vi.fn<Clipboard["writeText"]>().mockResolvedValue(undefined);
     const originalClipboard = navigator.clipboard;
@@ -225,8 +266,10 @@ describe("ModelsTable", () => {
 
     expect(screen.getByRole("button", { name: /z.ai/i })).toHaveTextContent("2 models");
     expect(screen.getByRole("button", { name: /^OpenAI 1 model$/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /z.ai/i }).querySelector('img[src*="zhipu.svg"]')).not.toBeNull();
-    expect(screen.getByRole("button", { name: /^OpenAI 1 model$/i }).querySelector('img[src*="openai.svg"]')).not.toBeNull();
+    expect(screen.getByRole("button", { name: /z.ai/i }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: /z.ai/i }).querySelector("img")).toBeNull();
+    expect(screen.getByRole("button", { name: /^OpenAI 1 model$/i }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: /^OpenAI 1 model$/i }).querySelector("img")).toBeNull();
     expect(screen.getByText("GPT-4o Mini")).toBeInTheDocument();
     expect(screen.getByText("GLM 4.6")).toBeInTheDocument();
     expect(screen.getAllByText("OpenAI").length).toBeGreaterThan(0);
