@@ -55,7 +55,7 @@ describe("ModelStatisticsTable", () => {
     expect(cards).toHaveLength(2);
     expect(cards[0]).toHaveTextContent("GPT-5.4");
     expect(cards[1]).toHaveTextContent("Claude Sonnet 4.6");
-    expect(within(cards[0]).getByText("openai")).toBeInTheDocument();
+    expect(within(cards[0]).getByText("OpenAI")).toBeInTheDocument();
     expect(within(cards[0]).getByTestId("model-stat-cost")).toBeInTheDocument();
     expect(within(cards[1]).queryByTestId("model-stat-cost")).not.toBeInTheDocument();
   });

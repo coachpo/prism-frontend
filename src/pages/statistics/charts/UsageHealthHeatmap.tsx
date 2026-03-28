@@ -52,7 +52,6 @@ export function UsageHealthHeatmap({ cells, intervalMinutes }: UsageHealthHeatma
   }, [cells]);
 
   const maxColumns = Math.max(...groupedRows.map((row) => row.cells.length), 1);
-  const isEnglish = locale.toLowerCase().startsWith("en");
 
   const formatDayLabel = (dayKey: string) => {
     const date = new Date(`${dayKey}T00:00:00Z`);
@@ -90,10 +89,15 @@ export function UsageHealthHeatmap({ cells, intervalMinutes }: UsageHealthHeatma
               style={{ gridTemplateColumns: `repeat(${maxColumns}, minmax(0, 1fr))` }}
             >
               {row.cells.map((cell) => {
-                const availabilityText = `${messages.statistics.availability} ${cell.availability_percentage?.toFixed(1) ?? "—"}%`;
-                const requestText = isEnglish
-                  ? `${formatNumber(cell.request_count)} ${messages.statistics.requests.toLowerCase()}`
-                  : `${formatNumber(cell.request_count)} ${messages.statistics.requests}`;
+                const availabilityPercent =
+                  cell.availability_percentage === null || cell.availability_percentage === undefined
+                    ? "—"
+                    : formatNumber(cell.availability_percentage, {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      });
+                const availabilityText = `${messages.statistics.availability} ${availabilityPercent}%`;
+                const requestText = `${messages.statistics.requests} ${formatNumber(cell.request_count)}`;
                 const outcomeText = `${messages.statistics.successfulCount(formatNumber(cell.success_count))} · ${messages.statistics.failedCount(formatNumber(cell.failed_count))}`;
 
                 return (

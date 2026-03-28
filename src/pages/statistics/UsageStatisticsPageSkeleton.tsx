@@ -1,14 +1,17 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocale } from "@/i18n/useLocale";
 
 export function UsageStatisticsPageSkeleton() {
+  const { messages } = useLocale();
+
   return (
     <section
-      aria-label="usage-statistics-page-skeleton"
+      aria-label={messages.statistics.usageStatisticsPagePlaceholder}
       aria-live="polite"
       role="status"
       className="space-y-6 rounded-xl border bg-card p-6 shadow-none"
     >
-      <span className="sr-only">Usage statistics page placeholder</span>
+      <span className="sr-only">{messages.statistics.usageStatisticsPagePlaceholder}</span>
 
       <div className="space-y-2">
         <Skeleton className="h-5 w-40 rounded-md" />

@@ -19,7 +19,7 @@ import type {
   UsageRequestEventAvailableFilters,
   UsageSnapshotCurrency,
 } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatApiFamily } from "@/lib/utils";
 import type { UsageStatisticsRequestEventRow } from "../useUsageStatisticsPageData";
 
 interface RequestEventsTableProps {
@@ -401,7 +401,7 @@ export function RequestEventsTable({
                           </TableCell>
                           <TableCell className="font-medium">{item.model_label}</TableCell>
                           <TableCell>{item.endpoint_label}</TableCell>
-                          <TableCell>{item.api_family}</TableCell>
+                          <TableCell>{formatApiFamily(item.api_family)}</TableCell>
                           <TableCell>{item.proxy_api_key.label ?? "—"}</TableCell>
                           <TableCell>
                             <div className="space-y-0.5">

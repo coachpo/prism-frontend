@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useLocale } from "@/i18n/useLocale";
 import { formatMoneyMicros } from "@/lib/costing";
 import type { UsageModelStatistic, UsageSnapshotCurrency } from "@/lib/types";
+import { formatApiFamily } from "@/lib/utils";
 
 interface ModelStatisticsTableProps {
   currency: UsageSnapshotCurrency;
@@ -52,7 +53,7 @@ export function ModelStatisticsTable({ currency, items }: ModelStatisticsTablePr
                         variant="outline"
                         className="rounded-full border-border/70 bg-background/80 text-[10px] font-medium"
                       >
-                        {item.api_family}
+                        {formatApiFamily(item.api_family)}
                       </Badge>
 
                       {item.total_cost_micros > 0 ? (
@@ -89,7 +90,7 @@ export function ModelStatisticsTable({ currency, items }: ModelStatisticsTablePr
                       {messages.statistics.successRate}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-foreground">
-                      {item.success_rate.toFixed(1)}%
+                      {formatNumber(item.success_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                     </p>
                   </div>
 

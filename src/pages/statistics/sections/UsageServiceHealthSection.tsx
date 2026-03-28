@@ -11,13 +11,20 @@ interface UsageServiceHealthSectionProps {
 
 export function UsageServiceHealthSection({ serviceHealth }: UsageServiceHealthSectionProps) {
   const { formatNumber, messages } = useLocale();
+  const availabilityPercent =
+    serviceHealth.availability_percentage === null || serviceHealth.availability_percentage === undefined
+      ? "—"
+      : formatNumber(serviceHealth.availability_percentage, {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        });
 
   return (
     <section className="space-y-4">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold tracking-tight">{messages.statistics.serviceHealthTitle}</h2>
         <p className="text-sm text-muted-foreground">
-          {messages.statistics.requests} {formatNumber(serviceHealth.request_count)} · {messages.statistics.successRate} {serviceHealth.availability_percentage?.toFixed(1) ?? "—"}%
+          {messages.statistics.requests} {formatNumber(serviceHealth.request_count)} · {messages.statistics.successRate} {availabilityPercent}%
         </p>
       </div>
 
@@ -50,7 +57,7 @@ export function UsageServiceHealthSection({ serviceHealth }: UsageServiceHealthS
               <div className="rounded-xl border border-border/60 bg-muted/25 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{messages.statistics.availability}</p>
                 <p className="mt-2 text-2xl font-semibold tracking-tight">
-                  {serviceHealth.availability_percentage?.toFixed(1) ?? "—"}%
+                  {availabilityPercent}%
                 </p>
               </div>
               <div className="rounded-xl border border-border/60 bg-muted/25 px-4 py-3">

@@ -111,7 +111,7 @@ describe("UsageServiceHealthSection", () => {
     fireEvent.focus(within(dayRows[0]).getAllByTestId("usage-health-cell")[0]);
 
     expect(screen.getAllByText("Availability 75.0%")[0]).toBeInTheDocument();
-    expect(screen.getAllByText("12 requests")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("Requests 12")[0]).toBeInTheDocument();
     expect(screen.getAllByText("9 successful · 3 failed")[0]).toBeInTheDocument();
     expect(screen.getAllByText(/15m/)[0]).toBeInTheDocument();
   });

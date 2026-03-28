@@ -455,7 +455,7 @@ describe("StatisticsPage shell i18n", () => {
       .toBeInTheDocument();
     expect(screen.getByRole("button", { name: "刷新用量统计" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /json/i })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "usage-statistics-page-skeleton" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "用量统计页面占位中" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "运营" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "吞吐量" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "支出" })).not.toBeInTheDocument();

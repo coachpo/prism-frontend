@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import {
+  isLegacyAllModelsLabel,
+  isLegacyUnknownEndpointLabel,
+  isLegacyUnknownProxyApiKeyLabel,
+} from "@/i18n/staticMessages";
 import { useLocale } from "@/i18n/useLocale";
 import type {
   UsageCostOverviewPoint,
@@ -29,10 +34,6 @@ const EMPTY_REQUEST_EVENT_AVAILABLE_FILTERS: UsageRequestEventAvailableFilters =
   models: [],
   proxy_api_keys: [],
 };
-
-const ALL_MODELS_LABEL = "All Models";
-const UNKNOWN_ENDPOINT_LABEL = "Unknown Endpoint";
-const UNKNOWN_PROXY_API_KEY_LABEL = "Unknown Proxy API Key";
 
 function collectModelLineIds(snapshot: UsageSnapshotResponse | null): string[] {
   if (!snapshot) {
@@ -121,24 +122,24 @@ export function useUsageStatisticsPageData({
     }
 
     const localizeSeriesLabel = (label: string, key: string) => {
-      if (key === "all" || label === ALL_MODELS_LABEL) {
+      if (isLegacyAllModelsLabel(label, key)) {
         return messages.statistics.allModels;
       }
       return label;
     };
 
     const localizeEndpointLabel = (label: string) => {
-      if (label === UNKNOWN_ENDPOINT_LABEL) {
+      if (isLegacyUnknownEndpointLabel(label)) {
         return messages.modelDetail.unknownEndpoint;
       }
       return label;
     };
 
     const localizeProxyApiKeyLabel = (label: string | null) => {
-      if (!label || label === UNKNOWN_PROXY_API_KEY_LABEL) {
+      if (isLegacyUnknownProxyApiKeyLabel(label)) {
         return messages.statistics.unknownProxyApiKey;
       }
-      return label;
+      return label ?? messages.statistics.unknownProxyApiKey;
     };
 
     const availableFilters =
@@ -164,8 +165,10 @@ export function useUsageStatisticsPageData({
           })),
           models: availableFilters.models.map((item) => ({
             ...item,
-            label: item.model_id === "all" || item.label === ALL_MODELS_LABEL ? messages.statistics.allModels : item.label,
-          })),
+              label: isLegacyAllModelsLabel(item.label, item.model_id)
+                ? messages.statistics.allModels
+                : item.label,
+            })),
           proxy_api_keys: availableFilters.proxy_api_keys.map((item) => ({
             ...item,
             label: localizeProxyApiKeyLabel(item.label),

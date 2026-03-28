@@ -104,7 +104,7 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
                                     : "text-red-600 dark:text-red-400",
                               )}
                             >
-                              {item.success_rate.toFixed(1)}%
+                              {formatNumber(item.success_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                             </p>
                           </div>
 
@@ -161,7 +161,7 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
                                     {model.model_label}
                                   </TableCell>
                                   <TableCell>{formatNumber(model.request_count)}</TableCell>
-                                  <TableCell>{model.success_rate.toFixed(1)}%</TableCell>
+                                  <TableCell>{formatNumber(model.success_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</TableCell>
                                   <TableCell>{formatNumber(model.total_tokens)}</TableCell>
                                   <TableCell>
                                     {model.total_cost_micros > 0

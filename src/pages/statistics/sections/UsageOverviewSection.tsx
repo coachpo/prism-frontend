@@ -27,6 +27,10 @@ export function UsageOverviewSection({
   tokenUsageTrendSeries,
 }: UsageOverviewSectionProps) {
   const { formatNumber, locale, messages } = useLocale();
+  const formattedSuccessRate = formatNumber(overview.success_rate, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
   const rollingWindowLabel = overview.rolling_window_minutes
     ? `${formatNumber(overview.rolling_window_minutes)}m`
     : null;
@@ -62,7 +66,7 @@ export function UsageOverviewSection({
           <div data-testid="usage-kpi-card">
             <UsageKpiCard
               accentClassName="bg-primary/10 text-primary"
-              detail={`${overview.success_rate.toFixed(1)}% ${messages.statistics.successRate.toLowerCase()} · ${messages.statistics.totalRequests(formatNumber(overview.total_requests))}`}
+              detail={`${messages.statistics.successRate} ${formattedSuccessRate}% · ${messages.statistics.totalRequests(formatNumber(overview.total_requests))}`}
               icon={<Activity className="h-4 w-4" />}
               label={messages.statistics.requests}
               sparkline={requestSparkline}
@@ -76,7 +80,7 @@ export function UsageOverviewSection({
           <div data-testid="usage-kpi-card">
             <UsageKpiCard
               accentClassName="bg-success/10 text-success"
-              detail={`${formatNumber(overview.input_tokens)} in · ${formatNumber(overview.output_tokens)} out · ${formatNumber(overview.cached_tokens)} cached`}
+              detail={`${messages.requestLogs.input} ${formatNumber(overview.input_tokens)} · ${messages.requestLogs.output} ${formatNumber(overview.output_tokens)} · ${messages.requestLogs.cacheRead} ${formatNumber(overview.cached_tokens)}`}
               icon={<Coins className="h-4 w-4" />}
               label={messages.statistics.totalTokens}
               sparkline={tokenSparkline}

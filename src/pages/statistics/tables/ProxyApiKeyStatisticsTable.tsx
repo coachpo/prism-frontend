@@ -114,7 +114,7 @@ export function ProxyApiKeyStatisticsTable({
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span tabIndex={0} className="cursor-help text-muted-foreground/80">
+                                <span className="cursor-help text-muted-foreground/80">
                                   {messages.common.notApplicable}
                                 </span>
                               </TooltipTrigger>
@@ -129,7 +129,7 @@ export function ProxyApiKeyStatisticsTable({
                       </TableCell>
                       <TableCell>{item.key_prefix ?? "—"}</TableCell>
                       <TableCell>{formatNumber(item.request_count)}</TableCell>
-                      <TableCell>{item.success_rate.toFixed(1)}%</TableCell>
+                      <TableCell>{formatNumber(item.success_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</TableCell>
                       <TableCell>{formatNumber(item.total_tokens)}</TableCell>
                       <TableCell>
                         {formatMoneyMicros(
