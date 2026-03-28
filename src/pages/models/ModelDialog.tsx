@@ -183,89 +183,96 @@ export function ModelDialog({
             <div className="space-y-2">
               <Label>{locale === "zh-CN" ? "代理目标" : "Proxy Targets"}</Label>
               <p className="text-xs text-muted-foreground">
-                {locale === "zh-CN"
-                  ? "请求会按顺序尝试这些原生目标，找到第一个可用目标后停止。"
-                  : "Requests try these native targets in order and stop at the first available target."}
-              </p>
-              {nativeModelsForApiFamily.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <span className="block">
                   {locale === "zh-CN"
-                    ? `${formData.api_family || "该 API 家族"} 暂无可用的原生模型。请先创建一个原生模型。`
-                    : `No native models available for the ${formData.api_family || "selected"} API family. Create a native model first.`}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {normalizedProxyTargets.length === 0 ? (
-                    <p className="rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
-                      {locale === "zh-CN" ? "尚未选择代理目标。" : "No proxy targets selected yet."}
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {normalizedProxyTargets.map((target, index) => (
-                        <div
-                          key={target.target_model_id}
-                          className="flex flex-col gap-3 rounded-md border px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{resolveTargetLabel(target.target_model_id)}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {locale === "zh-CN" ? `优先级 ${index + 1}` : `Priority ${index + 1}`}
-                            </p>
-                          </div>
-                          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              aria-label={`Move target ${target.target_model_id} up`}
-                              disabled={index === 0}
-                              onClick={() =>
-                                setFormData({
-                                  ...formData,
-                                  proxy_targets: moveProxyTarget(normalizedProxyTargets, index, index - 1),
-                                })
-                              }
-                            >
-                              <ArrowUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              aria-label={`Move target ${target.target_model_id} down`}
-                              disabled={index === normalizedProxyTargets.length - 1}
-                              onClick={() =>
-                                setFormData({
-                                  ...formData,
-                                  proxy_targets: moveProxyTarget(normalizedProxyTargets, index, index + 1),
-                                })
-                              }
-                            >
-                              <ArrowDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              aria-label={`Remove target ${target.target_model_id}`}
-                              onClick={() =>
-                                setFormData({
-                                  ...formData,
-                                  proxy_targets: removeProxyTarget(normalizedProxyTargets, target.target_model_id),
-                                })
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                    ? "请求会按顺序尝试这些原生目标，找到第一个可用目标后停止。"
+                    : "Requests try these native targets in order and stop at the first available target."}
+                </span>
+                <span className="block">
+                  {locale === "zh-CN"
+                    ? "你也可以先创建此代理，再到 /models/:id/proxy 配置目标。"
+                    : "You can create this proxy now and configure targets later on /models/:id/proxy."}
+                </span>
+              </p>
+              <div className="space-y-2">
+                {normalizedProxyTargets.length === 0 ? (
+                  <p className="rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
+                    {locale === "zh-CN" ? "尚未选择代理目标。你可以先创建此代理，再到 /models/:id/proxy 配置目标。" : "No proxy targets selected yet."}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {normalizedProxyTargets.map((target, index) => (
+                      <div
+                        key={target.target_model_id}
+                        className="flex flex-col gap-3 rounded-md border px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{resolveTargetLabel(target.target_model_id)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {locale === "zh-CN" ? `优先级 ${index + 1}` : `Priority ${index + 1}`}
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label={`Move target ${target.target_model_id} up`}
+                            disabled={index === 0}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                proxy_targets: moveProxyTarget(normalizedProxyTargets, index, index - 1),
+                              })
+                            }
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label={`Move target ${target.target_model_id} down`}
+                            disabled={index === normalizedProxyTargets.length - 1}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                proxy_targets: moveProxyTarget(normalizedProxyTargets, index, index + 1),
+                              })
+                            }
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label={`Remove target ${target.target_model_id}`}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                proxy_targets: removeProxyTarget(normalizedProxyTargets, target.target_model_id),
+                              })
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
+                {nativeModelsForApiFamily.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {locale === "zh-CN"
+                      ? `${formData.api_family || "该 API 家族"} 暂无可用的原生模型。稍后可在 /models/:id/proxy 配置目标。`
+                      : `No native models available for the ${formData.api_family || "selected"} API family yet. Configure targets later on /models/:id/proxy.`}
+                  </p>
+                ) : (
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="min-w-0 text-xs text-muted-foreground">
                       {remainingProxyTargets.length === 0
@@ -297,8 +304,8 @@ export function ModelDialog({
                       {locale === "zh-CN" ? "添加目标" : "Add Target"}
                     </Button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 

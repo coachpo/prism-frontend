@@ -5,7 +5,7 @@ import { enMessages } from "@/i18n/messages/en";
 import { zhCNMessages } from "@/i18n/messages/zh-CN";
 import { formatMoneyMicros } from "@/lib/costing";
 import { cn, formatApiFamily } from "@/lib/utils";
-import type { RequestLogEntry } from "@/lib/types";
+import type { ModelConfigListItem, RequestLogEntry } from "@/lib/types";
 import { AlertCircle, Clock } from "lucide-react";
 
 export const ROW_HEIGHT = 45;
@@ -43,8 +43,33 @@ export interface ColumnDef {
   render: (
     row: RequestLogEntry,
     formatTimestamp: (iso: string) => string,
-    resolveModelLabel: (modelId: string) => string
+    resolveModelLabel: RequestLogModelResolver
   ) => React.ReactNode;
+}
+
+export type RequestLogModelResolver = ((modelId: string) => string) & {
+  getModelMetadata?: (modelId: string) => ModelConfigListItem | undefined;
+};
+
+function getRequestModelMetadata(
+  resolveModelLabel: RequestLogModelResolver,
+  modelId: string,
+): ModelConfigListItem | undefined {
+  return resolveModelLabel.getModelMetadata?.(modelId);
+}
+
+export function isProxyOriginRequest(
+  row: RequestLogEntry,
+  resolveModelLabel: RequestLogModelResolver,
+): boolean {
+  if (
+    row.resolved_target_model_id !== null &&
+    row.resolved_target_model_id !== row.model_id
+  ) {
+    return true;
+  }
+
+  return getRequestModelMetadata(resolveModelLabel, row.model_id)?.model_type === "proxy";
 }
 
 export function getColumns(view: "all" | "compact"): ColumnDef[] {
@@ -74,10 +99,16 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
         const resolvedTargetLabel = row.resolved_target_model_id
           ? resolveModelLabel(row.resolved_target_model_id)
           : null;
+        const isProxyOrigin = isProxyOriginRequest(row, resolveModelLabel);
 
         return (
           <div className="min-w-0">
-            <span className="block truncate text-xs font-medium">{requestedModelLabel}</span>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="block min-w-0 truncate text-xs font-medium">{requestedModelLabel}</span>
+              {isProxyOrigin ? (
+                <TypeBadge label={messages.proxyOrigin} intent="accent" className="px-2 py-0.5" />
+              ) : null}
+            </div>
             {resolvedTargetLabel && row.resolved_target_model_id !== row.model_id ? (
               <span className="block truncate text-[11px] text-muted-foreground">
                 {messages.resolvedTarget} → {resolvedTargetLabel}

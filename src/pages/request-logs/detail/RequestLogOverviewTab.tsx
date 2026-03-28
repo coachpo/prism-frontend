@@ -7,7 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, formatApiFamily } from "@/lib/utils";
 import type { RequestLogEntry } from "@/lib/types";
-import { formatCost, formatTokens } from "../columns";
+import {
+  formatCost,
+  formatTokens,
+  isProxyOriginRequest,
+  type RequestLogModelResolver,
+} from "../columns";
 import {
   ApiFamilyPill,
   DetailRow,
@@ -20,7 +25,7 @@ interface RequestLogOverviewTabProps {
   request: RequestLogEntry;
   onNavigateToConnection: (id: number) => void;
   formatTimestamp: (iso: string) => string;
-  resolveModelLabel: (modelId: string) => string;
+  resolveModelLabel: RequestLogModelResolver;
 }
 
 function formatErrorDetail(errorDetail: string) {
@@ -52,6 +57,7 @@ export function RequestLogOverviewTab({
   const formattedErrorDetail = request.error_detail ? formatErrorDetail(request.error_detail) : null;
   const hasFormattedErrorDetail = formattedErrorDetail !== null && formattedErrorDetail !== request.error_detail;
   const apiFamily = request.api_family;
+  const isProxyOrigin = isProxyOriginRequest(request, resolveModelLabel);
 
   return (
     <div className="space-y-4">
@@ -61,6 +67,9 @@ export function RequestLogOverviewTab({
             <div className="flex flex-wrap items-center gap-2">
               <ValueBadge label={String(request.status_code)} intent={getStatusIntent(request.status_code)} className="px-1.5 py-0 font-mono" />
               {request.is_stream && <TypeBadge label={messages.requestLogs.streaming} intent="blue" className="px-2 py-0.5" />}
+              {isProxyOrigin && (
+                <TypeBadge label={messages.requestLogs.proxyOrigin} intent="accent" className="px-2 py-0.5" />
+              )}
               <ApiFamilyPill apiFamily={apiFamily} />
             </div>
 

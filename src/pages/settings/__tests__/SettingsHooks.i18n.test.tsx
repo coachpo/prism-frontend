@@ -1,4 +1,5 @@
-import { act, renderHook } from "@testing-library/react";
+import type { ChangeEvent } from "react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import { useConfigBackupData } from "../useConfigBackupData";
@@ -52,6 +53,57 @@ describe("settings hooks i18n", () => {
     });
 
     expect(toast.error).toHaveBeenCalledWith("请先确认导出中包含端点 API 密钥。");
+  });
+
+  it("accepts imported proxy models with empty proxy_targets through the settings hook", async () => {
+    document.documentElement.lang = "en";
+    const { result } = renderHook(() => useConfigBackupData({ bumpRevision: vi.fn() }));
+    const file = {
+      name: "config.json",
+      text: vi.fn().mockResolvedValue(
+        JSON.stringify({
+          version: 8,
+          vendors: [
+            {
+              key: "openai",
+              name: "OpenAI",
+              description: "OpenAI vendor",
+              icon_key: "openai",
+              audit_enabled: true,
+              audit_capture_bodies: false,
+            },
+          ],
+          endpoints: [],
+          pricing_templates: [],
+          loadbalance_strategies: [],
+          models: [
+            {
+              vendor_key: "openai",
+              api_family: "openai",
+              model_id: "gateway-proxy",
+              display_name: "Gateway Proxy",
+              model_type: "proxy",
+              proxy_targets: [],
+              loadbalance_strategy_name: null,
+              is_enabled: true,
+              connections: [],
+            },
+          ],
+        }),
+      ),
+    } as unknown as File;
+
+    await act(async () => {
+      await result.current.handleFileSelect({
+        target: { files: [file] },
+      } as unknown as ChangeEvent<HTMLInputElement>);
+    });
+
+    await waitFor(() => {
+      expect(result.current.parsedConfig?.models[0]?.model_type).toBe("proxy");
+      expect(result.current.parsedConfig?.models[0]?.proxy_targets).toEqual([]);
+    });
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("emits a localized retention validation toast", () => {

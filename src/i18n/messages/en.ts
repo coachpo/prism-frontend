@@ -475,6 +475,7 @@ export interface Messages {
     tokens: string;
     requestDetails: string;
     requestedModel: string;
+    proxyOrigin: string;
     resolvedTarget: string;
     time: string;
     totalCost: string;
@@ -640,6 +641,10 @@ export interface Messages {
     proxyApiKeyNotApplicableAuthDisabledTooltip: string;
     proxyApiKeyStatisticsTitle: string;
     removeLine: (label: string) => string;
+    previousPage: string;
+    nextPage: string;
+    requestEventsPage: (page: string, totalPages: string) => string;
+    requestEventsPaginationSummary: (start: string, end: string, total: string) => string;
     requestEventsTitle: string;
     showingRequestEvents: (shown: string, total: string) => string;
     requestTrendsTitle: string;
@@ -1217,6 +1222,7 @@ export const enMessages: Messages = {
     technicalInspection: "Technical inspection",
     requestDetails: "Request details",
     requestedModel: "Requested model",
+    proxyOrigin: "Proxy origin",
     resolvedTarget: "Resolved target",
     time: "Time",
     totalCost: "Total cost",
@@ -1382,6 +1388,10 @@ export const enMessages: Messages = {
       "Not applicable because proxy authentication is disabled in Settings.",
     proxyApiKeyStatisticsTitle: "Proxy API Key Statistics",
     removeLine: (label) => `Remove line ${label}`,
+    previousPage: "Previous Page",
+    nextPage: "Next Page",
+    requestEventsPage: (page, totalPages) => `Page ${page} of ${totalPages}`,
+    requestEventsPaginationSummary: (start, end, total) => `Rows ${start}-${end} of ${total}`,
     requestEventsTitle: "Request Events",
     showingRequestEvents: (shown, total) => `Showing ${shown} of ${total} request events`,
     requestTrendsTitle: "Request Trends",

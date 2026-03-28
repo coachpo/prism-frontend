@@ -54,6 +54,95 @@ describe("RequestEventsTable", () => {
     });
   });
 
+  it("paginates locally at 25 rows, clamps back when filters shrink the result set, and still exports the full filtered slice", async () => {
+    const createObjectURL = vi.mocked(URL.createObjectURL);
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    const availableFilters: UsageRequestEventAvailableFilters = {
+      api_families: [{ api_family: "openai", label: "openai" }],
+      endpoints: [{ endpoint_id: 10, label: "Primary Endpoint" }],
+      models: [
+        { label: "Claude Sonnet 4.6", model_id: "claude-sonnet-4-6" },
+        { label: "GPT-5.4", model_id: "gpt-5.4" },
+      ],
+      proxy_api_keys: [
+        {
+          key_prefix: "prism_pk_primary_1234",
+          label: "Primary runtime key",
+          proxy_api_key_id: 77,
+        },
+      ],
+    };
+    const items = Array.from({ length: 30 }, (_, index) => {
+      const itemNumber = index + 1;
+      const isClaudeRow = itemNumber <= 4;
+
+      return createRequestEvent({
+        created_at: `2026-03-27T11:${String(59 - index).padStart(2, "0")}:00Z`,
+        ingress_request_id: `ingress-row-${String(itemNumber).padStart(2, "0")}`,
+        model_id: isClaudeRow ? "claude-sonnet-4-6" : "gpt-5.4",
+        model_label: isClaudeRow ? "Claude Sonnet 4.6" : "GPT-5.4",
+        request_logs_href: `/request-logs?ingress_request_id=ingress-row-${String(itemNumber).padStart(2, "0")}`,
+      });
+    });
+
+    const { container } = render(
+      <MemoryRouter>
+        <LocaleProvider>
+          <RequestEventsTable
+            availableFilters={availableFilters}
+            items={items}
+            renderLimit={30}
+            shownCount={30}
+            total={30}
+          />
+        </LocaleProvider>
+      </MemoryRouter>,
+    );
+
+    const scrollArea = container.querySelector('[data-slot="scroll-area"]');
+    const scrollViewport = container.querySelector('[data-slot="scroll-area-viewport"]');
+
+    expect(scrollArea).toHaveClass("h-[32rem]");
+    expect(scrollViewport).toContainElement(screen.getByText("ingress-row-01"));
+    expect(scrollViewport).not.toContainElement(screen.getByText("Page 1 of 2"));
+
+    expect(screen.getByText("ingress-row-01")).toBeInTheDocument();
+    expect(screen.getByText("ingress-row-25")).toBeInTheDocument();
+    expect(screen.queryByText("ingress-row-26")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next Page" }));
+
+    expect(screen.getByText("ingress-row-26")).toBeInTheDocument();
+    expect(screen.getByText("ingress-row-30")).toBeInTheDocument();
+    expect(screen.queryByText("ingress-row-25")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Claude Sonnet 4.6" }));
+
+    expect(screen.getByText("ingress-row-01")).toBeInTheDocument();
+    expect(screen.getByText("ingress-row-04")).toBeInTheDocument();
+    expect(screen.queryByText("ingress-row-05")).not.toBeInTheDocument();
+    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Export request events JSON" }));
+
+    await waitFor(async () => {
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+
+      const jsonBlob = createObjectURL.mock.calls[0]?.[0];
+      expect(jsonBlob).toBeInstanceOf(Blob);
+      if (!(jsonBlob instanceof Blob)) {
+        throw new Error("Expected JSON export payload to be a Blob");
+      }
+
+      const exportedJson = await jsonBlob.text();
+      expect(exportedJson).toContain("ingress-row-01");
+      expect(exportedJson).toContain("ingress-row-04");
+      expect(exportedJson).not.toContain("ingress-row-05");
+    });
+
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("renders Prism request-event rows, supports local snapshot-backed filters, keeps ingress drilldown links, and exports the filtered set", async () => {
     const createObjectURL = vi.mocked(URL.createObjectURL);
     const revokeObjectURL = vi.mocked(URL.revokeObjectURL);

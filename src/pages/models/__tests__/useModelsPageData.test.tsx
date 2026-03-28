@@ -260,7 +260,7 @@ describe("useModelsPageData", () => {
         model_id: "friendly-proxy",
         display_name: "Friendly Proxy",
         model_type: "proxy",
-        proxy_targets: [{ target_model_id: "gpt-5.4", position: 0 }],
+        proxy_targets: [],
         loadbalance_strategy_id: null,
         loadbalance_strategy: null,
       })
@@ -283,7 +283,7 @@ describe("useModelsPageData", () => {
             model_id: "friendly-proxy",
             display_name: "Friendly Proxy",
             model_type: "proxy",
-            proxy_targets: [{ target_model_id: "gpt-5.4", position: 0 }],
+            proxy_targets: [],
             loadbalance_strategy_id: 100,
           }) as unknown as typeof current,
       );
@@ -303,7 +303,7 @@ describe("useModelsPageData", () => {
       model_id: "friendly-proxy",
       display_name: "Friendly Proxy",
       model_type: "proxy",
-      proxy_targets: [{ target_model_id: "gpt-5.4", position: 0 }],
+      proxy_targets: [],
       loadbalance_strategy_id: null,
       is_enabled: true,
     });
@@ -316,6 +316,38 @@ describe("useModelsPageData", () => {
       icon_key: null,
     });
     expect(createdModel?.vendor?.name).not.toBe("OpenAI");
+  });
+
+  it("still requires a loadbalance strategy for native models", async () => {
+    const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      result.current.handleOpenDialog();
+      result.current.setFormData((current) => ({
+        ...current,
+        vendor_id: 10,
+        api_family: "openai",
+        model_id: "new-native-model",
+        display_name: "New Native Model",
+        model_type: "native",
+        loadbalance_strategy_id: null,
+      }));
+    });
+
+    const submitEvent = createSubmitEvent();
+    await act(async () => {
+      await result.current.handleSubmit(submitEvent);
+    });
+
+    expect(submitEvent.preventDefault).toHaveBeenCalledTimes(1);
+    expect(api.models.create).not.toHaveBeenCalled();
+    expect((await import("sonner")).toast.error).toHaveBeenCalledWith(
+      "Please select a loadbalance strategy for native models",
+    );
   });
 
   it("builds proxy target options from api family compatibility instead of vendor identity", async () => {

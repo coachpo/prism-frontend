@@ -123,6 +123,27 @@ describe("ConfigImportSchema", () => {
     }
   });
 
+  it("accepts proxy models with empty proxy_targets in version 8 imports", () => {
+    const result = ConfigImportSchema.safeParse({
+      ...buildImportPayload(),
+      models: [
+        {
+          vendor_key: "openai",
+          api_family: "openai",
+          model_id: "gateway-proxy",
+          display_name: "Gateway Proxy",
+          model_type: "proxy",
+          proxy_targets: [],
+          loadbalance_strategy_name: null,
+          is_enabled: true,
+          connections: [],
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("normalizes reference names through the extracted helper module", async () => {
     const { normalizeReferenceName } = await import("../configImportValidationReferences");
 
