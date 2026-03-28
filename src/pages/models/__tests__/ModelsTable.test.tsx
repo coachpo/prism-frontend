@@ -109,7 +109,8 @@ function renderTable({
               />
             }
           />
-          <Route path="/models/:id" element={<div>Model detail route</div>} />
+          <Route path="/models/:id" element={<div>Native model detail route</div>} />
+          <Route path="/models/:id/proxy" element={<div>Proxy model detail route</div>} />
         </Routes>
       </MemoryRouter>
     </LocaleProvider>
@@ -159,7 +160,8 @@ describe("ModelsTable", () => {
         expect(writeTextMock).toHaveBeenCalledWith("gpt-4o-mini");
       });
 
-      expect(screen.queryByText("Model detail route")).not.toBeInTheDocument();
+      expect(screen.queryByText("Native model detail route")).not.toBeInTheDocument();
+      expect(screen.queryByText("Proxy model detail route")).not.toBeInTheDocument();
     } finally {
       Object.defineProperty(navigator, "clipboard", {
         configurable: true,
@@ -178,7 +180,7 @@ describe("ModelsTable", () => {
 
     fireEvent.click(screen.getByRole("link", { name: "GPT-4o Mini" }));
 
-    expect(screen.getByText("Model detail route")).toBeInTheDocument();
+    expect(screen.getByText("Native model detail route")).toBeInTheDocument();
   });
 
   it("navigates when the detail button is clicked", () => {
@@ -186,7 +188,53 @@ describe("ModelsTable", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "View model details for GPT-4o Mini" }));
 
-    expect(screen.getByText("Model detail route")).toBeInTheDocument();
+    expect(screen.getByText("Native model detail route")).toBeInTheDocument();
+  });
+
+  it("routes proxy model title links to the dedicated proxy detail route", () => {
+    renderTable({
+      filtered: [
+        buildModel({
+          id: 12,
+          model_id: "claude-proxy",
+          display_name: "Claude Proxy",
+          model_type: "proxy",
+          api_family: "anthropic",
+          vendor_id: 20,
+          vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
+          proxy_targets: [{ target_model_id: "claude-sonnet-4-5-20250929", position: 0 }],
+          loadbalance_strategy_id: null,
+          loadbalance_strategy: null,
+        }),
+      ],
+    });
+
+    fireEvent.click(screen.getByRole("link", { name: "Claude Proxy" }));
+
+    expect(screen.getByText("Proxy model detail route")).toBeInTheDocument();
+  });
+
+  it("routes proxy model detail buttons to the dedicated proxy detail route", () => {
+    renderTable({
+      filtered: [
+        buildModel({
+          id: 12,
+          model_id: "claude-proxy",
+          display_name: "Claude Proxy",
+          model_type: "proxy",
+          api_family: "anthropic",
+          vendor_id: 20,
+          vendor: buildVendor({ id: 20, key: "anthropic", name: "Anthropic" }),
+          proxy_targets: [{ target_model_id: "claude-sonnet-4-5-20250929", position: 0 }],
+          loadbalance_strategy_id: null,
+          loadbalance_strategy: null,
+        }),
+      ],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "View model details for Claude Proxy" }));
+
+    expect(screen.getByText("Proxy model detail route")).toBeInTheDocument();
   });
 
   it("opens delete for the row without navigating to the detail route", () => {
@@ -197,7 +245,8 @@ describe("ModelsTable", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Delete model GPT-4o Mini" }));
 
-    expect(screen.queryByText("Model detail route")).not.toBeInTheDocument();
+    expect(screen.queryByText("Native model detail route")).not.toBeInTheDocument();
+    expect(screen.queryByText("Proxy model detail route")).not.toBeInTheDocument();
     expect(screen.getByText("GPT-4o Mini")).toBeInTheDocument();
     expect(setDeleteTarget).toHaveBeenCalledWith(model);
   });
@@ -222,7 +271,7 @@ describe("ModelsTable", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "View model details for GPT-4o Mini" }));
 
-      expect(screen.getByText("Model detail route")).toBeInTheDocument();
+      expect(screen.getByText("Native model detail route")).toBeInTheDocument();
       expect(writeTextMock).not.toHaveBeenCalled();
     } finally {
       Object.defineProperty(navigator, "clipboard", {
@@ -383,7 +432,8 @@ describe("ModelsTable", () => {
                 />
               }
             />
-            <Route path="/models/:id" element={<div>Model detail route</div>} />
+            <Route path="/models/:id" element={<div>Native model detail route</div>} />
+            <Route path="/models/:id/proxy" element={<div>Proxy model detail route</div>} />
           </Routes>
         </MemoryRouter>
       </LocaleProvider>

@@ -6,6 +6,7 @@ import type { LoadbalanceCurrentStateItem } from "@/lib/types";
 interface UseModelLoadbalanceCurrentStateInput {
   modelConfigId: number | undefined;
   revision: number;
+  enabled?: boolean;
 }
 
 function toCurrentStateMap(items: LoadbalanceCurrentStateItem[]) {
@@ -15,6 +16,7 @@ function toCurrentStateMap(items: LoadbalanceCurrentStateItem[]) {
 export function useModelLoadbalanceCurrentState({
   modelConfigId,
   revision,
+  enabled = true,
 }: UseModelLoadbalanceCurrentStateInput) {
   const [currentStateByConnectionId, setCurrentStateByConnectionId] = useState<
     Map<number, LoadbalanceCurrentStateItem>
@@ -23,11 +25,11 @@ export function useModelLoadbalanceCurrentState({
     new Set()
   );
   const requestIdRef = useRef(0);
-  const resetKey = `${modelConfigId ?? "none"}:${revision}`;
+  const resetKey = `${enabled ? modelConfigId ?? "none" : "disabled"}:${revision}`;
   const resetKeyRef = useRef(resetKey);
 
   const fetchCurrentState = useCallback(async () => {
-    if (typeof modelConfigId !== "number" || !Number.isFinite(modelConfigId)) {
+    if (!enabled || typeof modelConfigId !== "number" || !Number.isFinite(modelConfigId)) {
       requestIdRef.current += 1;
       setCurrentStateByConnectionId(new Map());
       return;
@@ -57,7 +59,7 @@ export function useModelLoadbalanceCurrentState({
       );
       console.error("Failed to load model loadbalance current state", error);
     }
-  }, [modelConfigId]);
+  }, [enabled, modelConfigId]);
 
   const resetCooldown = useCallback(async (connectionId: number) => {
     setResettingConnectionIds((current) => {

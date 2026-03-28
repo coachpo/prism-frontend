@@ -21,7 +21,10 @@ import {
 import { formatMoneyMicros } from "@/lib/costing";
 import type { ModelConfigListItem } from "@/lib/types";
 import { cn, formatApiFamily } from "@/lib/utils";
-import { formatLatencyForDisplay } from "../model-detail/modelDetailMetricsAndPaths";
+import {
+  formatLatencyForDisplay,
+  getModelDetailPath,
+} from "../model-detail/modelDetailMetricsAndPaths";
 import type { ModelDerivedMetric } from "./modelTableContracts";
 
 const TYPE_ORDER: ModelConfigListItem["model_type"][] = ["native", "proxy"];
@@ -54,7 +57,7 @@ type SharedRenderProps = Pick<
   | "modelSpend30dMicros"
   | "setDeleteTarget"
 > & {
-  onNavigate: (modelId: number) => void;
+  onNavigate: (model: Pick<ModelConfigListItem, "id" | "model_type">) => void;
 };
 
 type VendorGroup = {
@@ -260,7 +263,7 @@ function ModelRow({
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
           <Link
-            to={`/models/${model.id}`}
+            to={getModelDetailPath(model)}
             className="min-w-0 max-w-full truncate rounded-md text-base font-semibold text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50"
             title={title}
           >
@@ -320,13 +323,13 @@ function ModelRow({
 
       <div className="flex shrink-0 items-center justify-end gap-2 pt-0.5">
         <IconActionGroup>
-          <IconActionButton
-            aria-label={`View model details for ${title}`}
-            size="icon-sm"
-            onClick={() => onNavigate(model.id)}
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </IconActionButton>
+            <IconActionButton
+              aria-label={`View model details for ${title}`}
+              size="icon-sm"
+              onClick={() => onNavigate(model)}
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </IconActionButton>
           <IconActionButton
             aria-label={`Delete model ${title}`}
             size="icon-sm"
@@ -479,7 +482,7 @@ export function ModelsTable({
           metricsLoading={metricsLoading}
           modelMetrics24h={modelMetrics24h}
           modelSpend30dMicros={modelSpend30dMicros}
-          onNavigate={(modelId) => navigate(`/models/${modelId}`)}
+          onNavigate={(model) => navigate(getModelDetailPath(model))}
           onOpenChange={(isOpen) =>
             setExpandedGroups((currentState) => ({
               ...currentState,

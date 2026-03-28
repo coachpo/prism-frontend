@@ -85,7 +85,7 @@ vi.mock("../ModelDetailTabs", () => ({
   ),
 }));
 
-function buildModelDetailData() {
+function buildModelDetailData(modelType: "native" | "proxy" = "native") {
   return {
     model: {
       id: 5,
@@ -103,9 +103,9 @@ function buildModelDetailData() {
       api_family: "openai",
       model_id: "gpt-5.4",
       display_name: "GPT-5.4",
-      model_type: "proxy",
+      model_type: modelType,
       is_enabled: true,
-      proxy_targets: [{ target_model_id: "gpt-4o" }],
+      proxy_targets: modelType === "proxy" ? [{ target_model_id: "gpt-4o" }] : [],
       created_at: "2026-03-25T10:00:00Z",
       loadbalance_strategy: null,
     },
@@ -115,7 +115,7 @@ function buildModelDetailData() {
     setIsEditModelDialogOpen: mockSetIsEditModelDialogOpen,
     editLoadbalanceStrategyId: null,
     setEditLoadbalanceStrategyId: vi.fn(),
-    editProxyTargets: [{ target_model_id: "gpt-4o" }],
+    editProxyTargets: modelType === "proxy" ? [{ target_model_id: "gpt-4o" }] : [],
     spending: null,
     spendingLoading: false,
     spendingCurrencySymbol: "$",
@@ -157,9 +157,9 @@ function buildModelDetailData() {
     },
     proxyTargetOptions: [{ modelId: "gpt-4o", label: "GPT-4o" }],
     proxyTargetSummary: {
-      targetCount: 1,
-      firstTargetId: "gpt-4o",
-      firstTargetLabel: "GPT-4o",
+      targetCount: modelType === "proxy" ? 1 : 0,
+      firstTargetId: modelType === "proxy" ? "gpt-4o" : null,
+      firstTargetLabel: modelType === "proxy" ? "GPT-4o" : null,
       routePolicyLabel: "Ordered priority routing",
     },
     endpointSourceDefaultName: "",
@@ -203,17 +203,17 @@ describe("ModelDetailPage shell", () => {
     mockNavigate.mockReset();
     mockSetIsEditModelDialogOpen.mockReset();
     mockUseModelDetailData.mockReset();
-    mockUseModelDetailData.mockReturnValue(buildModelDetailData());
+    mockUseModelDetailData.mockReturnValue(buildModelDetailData("native"));
   });
 
-  it("mounts extracted header and tab content components while preserving proxy targets and dialog wiring", async () => {
+  it("mounts the native detail shell with tabs and dialogs while leaving proxy-only UI out", async () => {
     const { ModelDetailPage } = await import("../../ModelDetailPage");
 
     render(<ModelDetailPage />);
 
     expect(screen.getByText("model-detail-header:gpt-5.4")).toBeInTheDocument();
     expect(screen.getByText("model-detail-tabs:gpt-5.4:connections")).toBeInTheDocument();
-    expect(screen.getByText("proxy-targets:1")).toBeInTheDocument();
+    expect(screen.queryByText(/proxy-targets:/)).not.toBeInTheDocument();
     expect(screen.getByText("connection-dialog")).toBeInTheDocument();
     expect(screen.getByText("model-settings-dialog:closed")).toBeInTheDocument();
 

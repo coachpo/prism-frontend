@@ -1,5 +1,10 @@
 import type { Connection } from "@/lib/types";
 
+type ModelDetailPathTarget = {
+  id: number;
+  model_type: "native" | "proxy";
+};
+
 export type ConnectionDerivedMetrics = {
   success_rate_24h: number | null;
   p95_latency_ms: number | null;
@@ -11,6 +16,9 @@ export type ConnectionDerivedMetrics = {
 
 export const get24hFromTime = (): string =>
   new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+export const getModelDetailPath = ({ id, model_type }: ModelDetailPathTarget): string =>
+  model_type === "proxy" ? `/models/${id}/proxy` : `/models/${id}`;
 
 export const formatLatencyForDisplay = (value: number | null): string => {
   if (value === null || !Number.isFinite(value)) return "-";

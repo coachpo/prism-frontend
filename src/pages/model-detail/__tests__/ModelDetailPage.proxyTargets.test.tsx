@@ -1,10 +1,34 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ModelDetailPage } from "../../ModelDetailPage";
+import { ProxyModelDetailPage } from "../../ProxyModelDetailPage";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { useModelDetailData } from "../useModelDetailData";
 import { useModelDetailPageShell } from "../useModelDetailPageShell";
+
+const originalLocalStorage = window.localStorage;
+
+function createLocalStorageMock(): Storage {
+  let storage: Record<string, string> = {};
+
+  return {
+    clear: () => {
+      storage = {};
+    },
+    getItem: (key) => storage[key] ?? null,
+    key: (index) => Object.keys(storage)[index] ?? null,
+    get length() {
+      return Object.keys(storage).length;
+    },
+    removeItem: (key) => {
+      delete storage[key];
+    },
+    setItem: (key, value) => {
+      storage[key] = value;
+    },
+  };
+}
 
 vi.mock("../useModelDetailData", () => ({
   useModelDetailData: vi.fn(),
@@ -16,6 +40,10 @@ vi.mock("../useModelDetailPageShell", () => ({
 
 vi.mock("../OverviewCards", () => ({
   OverviewCards: () => <div>overview-cards</div>,
+}));
+
+vi.mock("../ModelDetailHeader", () => ({
+  ModelDetailHeader: ({ model }: { model: { model_id: string } }) => <div>{`model-detail-header:${model.model_id}`}</div>,
 }));
 
 vi.mock("../ConnectionsList", () => ({
@@ -159,6 +187,19 @@ function renderPage() {
       <MemoryRouter initialEntries={["/models/9"]}>
         <Routes>
           <Route path="/models/:id" element={<ModelDetailPage />} />
+          <Route path="/models/:id/proxy" element={<div>proxy-detail-route</div>} />
+        </Routes>
+      </MemoryRouter>
+    </LocaleProvider>,
+  );
+}
+
+function renderProxyPage() {
+  return render(
+    <LocaleProvider>
+      <MemoryRouter initialEntries={["/models/9/proxy"]}>
+        <Routes>
+          <Route path="/models/:id/proxy" element={<ProxyModelDetailPage />} />
         </Routes>
       </MemoryRouter>
     </LocaleProvider>,
@@ -166,7 +207,25 @@ function renderPage() {
 }
 
 describe("ModelDetailPage proxy target wiring", () => {
-  it("renders the dedicated proxy target card for proxy models", () => {
+  beforeEach(() => {
+    const localStorageMock = createLocalStorageMock();
+
+    vi.stubGlobal("localStorage", localStorageMock);
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: localStorageMock,
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: originalLocalStorage,
+    });
+  });
+
+  it("redirects proxy models from the generic detail route to the dedicated proxy route", () => {
     useModelDetailPageShellMock.mockReturnValue({
       activeTab: "connections",
       navigateBackToModels: vi.fn(),
@@ -177,8 +236,24 @@ describe("ModelDetailPage proxy target wiring", () => {
 
     renderPage();
 
-    expect(
-      screen.getByText("proxy-targets-card:claude-sonnet-4-5-20250929"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("proxy-detail-route")).toBeInTheDocument();
+  });
+
+  it("renders header overview and proxy targets without native-only tabs or connection UI", () => {
+    useModelDetailPageShellMock.mockReturnValue({
+      activeTab: "connections",
+      navigateBackToModels: vi.fn(),
+      navigateToRequestLogs: vi.fn(),
+      setActiveTab: vi.fn(),
+    });
+    useModelDetailDataMock.mockReturnValue(buildHookValue("proxy"));
+
+    renderProxyPage();
+
+    expect(screen.getByText("model-detail-header:claude-proxy")).toBeInTheDocument();
+    expect(screen.getByText("overview-cards")).toBeInTheDocument();
+    expect(screen.getByText("proxy-targets-card:claude-sonnet-4-5-20250929")).toBeInTheDocument();
+    expect(screen.queryByText("connections-list")).not.toBeInTheDocument();
+    expect(screen.queryByText("events-tab")).not.toBeInTheDocument();
   });
 });

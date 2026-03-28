@@ -59,6 +59,20 @@ describe("useModelLoadbalanceCurrentState", () => {
     });
   });
 
+  it("does not fetch current state when disabled", async () => {
+    renderHook(() =>
+      useModelLoadbalanceCurrentState({
+        modelConfigId: 11,
+        revision: 1,
+        enabled: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(api.loadbalance.listCurrentState).not.toHaveBeenCalled();
+    });
+  });
+
   it("ignores stale current-state responses after switching models", async () => {
     const firstResponse = createDeferred<LoadbalanceCurrentStateListResponse>();
 

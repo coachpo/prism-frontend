@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useModelDetailData } from "./model-detail/useModelDetailData";
 import { useModelDetailPageShell } from "./model-detail/useModelDetailPageShell";
@@ -7,7 +7,7 @@ import { ModelDetailTabs } from "./model-detail/ModelDetailTabs";
 import { OverviewCards } from "./model-detail/OverviewCards";
 import { ConnectionDialog } from "./model-detail/ConnectionDialog";
 import { ModelSettingsDialog } from "./model-detail/ModelSettingsDialog";
-import { ProxyTargetsCard } from "./model-detail/ProxyTargetsCard";
+import { getModelDetailPath } from "./model-detail/modelDetailMetricsAndPaths";
 
 export function ModelDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -58,7 +58,6 @@ export function ModelDetailPage() {
     headerRows,
     setHeaderRows,
     modelKpis,
-    proxyTargetOptions,
     proxyTargetSummary,
     endpointSourceDefaultName,
     openConnectionDialog,
@@ -69,7 +68,6 @@ export function ModelDetailPage() {
     handleDialogTestConnection,
     handleToggleActive,
     handleEditModelSubmit,
-    handleSaveProxyTargets,
     pricingTemplates,
     reorderInFlight,
     handleReorderConnections,
@@ -91,6 +89,10 @@ export function ModelDetailPage() {
 
   if (!model) return null;
 
+  if (model.model_type === "proxy") {
+    return <Navigate to={getModelDetailPath(model)} replace />;
+  }
+
   return (
     <div className="space-y-[var(--density-page-gap)] pb-2">
       <ModelDetailHeader
@@ -110,16 +112,6 @@ export function ModelDetailPage() {
         proxyTargetSummary={proxyTargetSummary}
         onViewRequestLogs={() => navigateToRequestLogs(model.model_id)}
       />
-
-      {model.model_type === "proxy" ? (
-        <ProxyTargetsCard
-          availableTargets={proxyTargetOptions}
-          proxyTargets={model.proxy_targets}
-          saving={false}
-          onSave={handleSaveProxyTargets}
-        />
-      ) : null}
-
       <ModelDetailTabs
         activeTab={activeTab}
         setActiveTab={setActiveTab}

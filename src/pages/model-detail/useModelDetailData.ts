@@ -109,6 +109,7 @@ export function useModelDetailData(id: string | undefined) {
   } = useModelLoadbalanceCurrentState({
     modelConfigId,
     revision,
+    enabled: model?.model_type === "native",
   });
 
   const {
