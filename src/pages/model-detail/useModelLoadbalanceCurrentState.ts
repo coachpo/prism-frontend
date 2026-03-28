@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type { LoadbalanceCurrentStateItem } from "@/lib/types";
 
 interface UseModelLoadbalanceCurrentStateInput {
@@ -55,7 +56,7 @@ export function useModelLoadbalanceCurrentState({
       }
 
       toast.error(
-        error instanceof Error ? error.message : "Failed to load recovery state"
+        error instanceof Error ? error.message : getStaticMessages().modelDetailData.loadRecoveryStateFailed
       );
       console.error("Failed to load model loadbalance current state", error);
     }
@@ -82,7 +83,7 @@ export function useModelLoadbalanceCurrentState({
       });
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to reset recovery state"
+        error instanceof Error ? error.message : getStaticMessages().modelDetailData.resetRecoveryStateFailed
       );
     } finally {
       setResettingConnectionIds((current) => {

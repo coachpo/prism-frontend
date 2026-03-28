@@ -44,7 +44,8 @@ export function OverviewCards({
   onViewRequestLogs,
 }: OverviewCardsProps) {
   const { format: formatTime } = useTimezone();
-  const { messages } = useLocale();
+  const { formatNumber, locale, messages } = useLocale();
+  const copy = messages.modelDetail;
   const strategyCopy = messages.loadbalanceStrategyCopy;
   const fieldCopy = messages.common;
   const apiFamily = model.api_family ?? "openai";
@@ -55,7 +56,7 @@ export function OverviewCards({
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardContent className="p-4">
-            <h3 className="font-semibold mb-4">Configuration</h3>
+            <h3 className="mb-4 font-semibold">{copy.configuration}</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">{fieldCopy.vendor}</p>
@@ -72,16 +73,16 @@ export function OverviewCards({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">
-                  {model.model_type === "proxy" ? "Proxy Routing" : "Loadbalance Strategy"}
+                  {model.model_type === "proxy" ? copy.proxyRouting : copy.loadbalanceStrategy}
                 </p>
                 <div className="text-sm font-medium">
                   {model.model_type === "proxy" ? (
                     <div className="space-y-0.5">
-                      <div>{proxyTargetSummary?.routePolicyLabel ?? "Ordered priority routing"}</div>
+                      <div>{proxyTargetSummary?.routePolicyLabel ?? copy.orderedPriorityRouting}</div>
                       <div className="text-xs font-normal text-muted-foreground">
-                        {proxyTargetSummary?.targetCount ?? 0} targets
+                        {copy.targets(formatNumber(proxyTargetSummary?.targetCount ?? 0))}
                         {proxyTargetSummary?.firstTargetId
-                          ? ` · First ${proxyTargetSummary.firstTargetId}`
+                          ? ` · ${copy.firstTarget(proxyTargetSummary.firstTargetId)}`
                           : ""}
                       </div>
                     </div>
@@ -99,28 +100,28 @@ export function OverviewCards({
                       </div>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">Unassigned</span>
+                    <span className="text-muted-foreground">{copy.unassigned}</span>
                   )}
                 </div>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Strategy Recovery</p>
+                <p className="text-xs text-muted-foreground mb-1">{copy.strategyRecovery}</p>
                 <span className="text-sm font-medium">
                   {model.model_type === "native" && model.loadbalance_strategy ? (
                     model.loadbalance_strategy.strategy_type === "single" ? (
-                      <span className="text-muted-foreground">Not applicable for single strategies</span>
+                      <span className="text-muted-foreground">{copy.notApplicableForSingleStrategies}</span>
                     ) : model.loadbalance_strategy.failover_recovery_enabled ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">Enabled</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">{copy.enabled}</span>
                     ) : (
-                      <span className="text-muted-foreground">Disabled</span>
+                      <span className="text-muted-foreground">{copy.disabled}</span>
                     )
                   ) : (
-                    <span className="text-muted-foreground">N/A</span>
+                    <span className="text-muted-foreground">{messages.common.notApplicable}</span>
                   )}
                 </span>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Created</p>
+                <p className="text-xs text-muted-foreground mb-1">{copy.created}</p>
                 <span className="text-sm font-medium">
                   {formatTime(model.created_at, { year: "numeric", month: "numeric", day: "numeric" })}
                 </span>
@@ -131,9 +132,9 @@ export function OverviewCards({
 
         <Card>
           <CardContent className="p-4">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <h3 className="mb-4 flex items-center gap-2 font-semibold">
               <Coins className="h-4 w-4" />
-              Cost Overview
+              {copy.costOverview}
             </h3>
             {spendingLoading ? (
               <div className="space-y-2">
@@ -143,38 +144,38 @@ export function OverviewCards({
             ) : spending ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Total Cost ({spendingCurrencyCode})</p>
+                  <p className="text-xs text-muted-foreground mb-1">{copy.totalCost(spendingCurrencyCode)}</p>
                   <p className="text-2xl font-bold tracking-tight">
                     {formatMoneyMicros(
                       spending.total_cost_micros,
                       spendingCurrencySymbol,
                       spendingCurrencyCode,
                       2,
-                      6
+                      6,
+                      locale,
                     )}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Requests</p>
+                  <p className="text-xs text-muted-foreground mb-1">{copy.requestsLabel}</p>
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">
-                      {spending.successful_request_count.toLocaleString()} successful
-                    </p>
+                    <p className="text-sm font-medium">{copy.successfulRequests(formatNumber(spending.successful_request_count))}</p>
                     <p className="text-xs text-muted-foreground">
-                      {spending.total_tokens.toLocaleString()} tokens
+                      {copy.totalTokens(formatNumber(spending.total_tokens))}
                     </p>
                   </div>
                 </div>
                 <div className="col-span-2 pt-2 border-t">
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Avg Cost / Request</span>
+                    <span className="text-muted-foreground">{copy.avgCostPerRequest}</span>
                     <span className="font-medium font-mono">
                       {formatMoneyMicros(
                         spending.avg_cost_per_successful_request_micros,
                         spendingCurrencySymbol,
                         spendingCurrencyCode,
                         4,
-                        6
+                        6,
+                        locale,
                       )}
                     </span>
                   </div>
@@ -182,7 +183,7 @@ export function OverviewCards({
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-[100px] text-muted-foreground">
-                <p className="text-sm">No cost data available</p>
+                <p className="text-sm">{copy.noCostDataAvailable}</p>
               </div>
             )}
           </CardContent>
@@ -191,9 +192,9 @@ export function OverviewCards({
 
       <Card>
         <CardContent className="p-4">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold">
             <Gauge className="h-4 w-4" />
-            Model KPIs (24h)
+            {copy.modelKpis24h}
           </h3>
           {metrics24hLoading ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -205,25 +206,27 @@ export function OverviewCards({
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-md border p-3">
-                <p className="text-[11px] text-muted-foreground">Success rate (24h)</p>
+                <p className="text-[11px] text-muted-foreground">{copy.successRate24h}</p>
                 <p className="text-lg font-semibold tabular-nums">
-                  {modelKpis.successRate === null ? "-" : `${modelKpis.successRate.toFixed(1)}%`}
+                  {modelKpis.successRate === null
+                    ? "-"
+                    : `${formatNumber(modelKpis.successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
                 </p>
               </div>
               <div className="rounded-md border p-3">
-                <p className="text-[11px] text-muted-foreground">P95 latency (24h)</p>
+                <p className="text-[11px] text-muted-foreground">{copy.p95Latency24h}</p>
                 <p className="text-lg font-semibold tabular-nums">
                   {formatLatencyForDisplay(modelKpis.p95LatencyMs)}
                 </p>
               </div>
               <div className="rounded-md border p-3">
-                <p className="text-[11px] text-muted-foreground">Requests (24h)</p>
+                <p className="text-[11px] text-muted-foreground">{copy.requests24h}</p>
                 <p className="text-lg font-semibold tabular-nums">
-                  {modelKpis.requestCount24h.toLocaleString()}
+                  {formatNumber(modelKpis.requestCount24h)}
                 </p>
               </div>
               <div className="rounded-md border p-3">
-                <p className="text-[11px] text-muted-foreground">Spend (24h, {spendingCurrencyCode})</p>
+                <p className="text-[11px] text-muted-foreground">{copy.spend24h(spendingCurrencyCode)}</p>
                 <p className="text-lg font-semibold tabular-nums">
                   {modelKpis.spend24hMicros === null
                     ? "-"
@@ -232,7 +235,8 @@ export function OverviewCards({
                         spendingCurrencySymbol,
                         spendingCurrencyCode,
                         2,
-                        6
+                        6,
+                        locale,
                       )}
                 </p>
               </div>
@@ -241,7 +245,7 @@ export function OverviewCards({
           {onViewRequestLogs && (
             <Button variant="outline" size="sm" className="mt-3 w-full gap-1.5 text-xs" onClick={onViewRequestLogs}>
               <FileText className="h-3.5 w-3.5" />
-              View Request Logs
+              {copy.viewRequestLogs}
             </Button>
           )}
         </CardContent>

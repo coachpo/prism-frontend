@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import {
   getSharedEndpoints,
   getSharedLoadbalanceStrategies,
@@ -131,7 +132,7 @@ export function useModelDetailBootstrap({
       if (requestId !== modelRequestIdRef.current) {
         return;
       }
-      toast.error("Failed to fetch model details");
+      toast.error(getStaticMessages().modelDetailData.fetchModelDetailsFailed);
       console.error(error);
       navigate("/models");
     } finally {

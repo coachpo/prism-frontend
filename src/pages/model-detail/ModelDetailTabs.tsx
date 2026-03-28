@@ -1,5 +1,6 @@
 import type { ComponentProps } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocale } from "@/i18n/useLocale";
 import { ConnectionsList } from "./ConnectionsList";
 import { LoadbalanceEventsTab } from "./LoadbalanceEventsTab";
 
@@ -11,14 +12,16 @@ interface ModelDetailTabsProps extends ConnectionsListProps {
 }
 
 export function ModelDetailTabs({ activeTab, setActiveTab, ...connectionsListProps }: ModelDetailTabsProps) {
+  const { messages } = useLocale();
+
   return (
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "connections" | "events")} className="space-y-4">
       <TabsList className="grid h-11 w-full max-w-md grid-cols-2 rounded-xl bg-muted/70 p-1">
         <TabsTrigger value="connections" className="rounded-lg text-sm font-medium">
-          Connections
+          {messages.modelDetailTabs.connections}
         </TabsTrigger>
         <TabsTrigger value="events" className="rounded-lg text-sm font-medium">
-          Loadbalance Events
+          {messages.modelDetailTabs.loadbalanceEvents}
         </TabsTrigger>
       </TabsList>
 

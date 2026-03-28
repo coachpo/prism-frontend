@@ -10,6 +10,9 @@ export type ConnectionCardHealthCopy = {
 
 export type ConnectionCardCurrentStateCopy = {
   consecutiveFailures: (count: number) => string;
+  cooldownMinutes: (minutes: number) => string;
+  cooldownMinutesSeconds: (minutes: number, seconds: number) => string;
+  cooldownSeconds: (seconds: number) => string;
   currentStateBlocked: (
     failureSummary: string,
     cooldown: string,
@@ -75,7 +78,7 @@ export function buildCurrentStateCopy(
   formatTime: FormatTime,
   copy: ConnectionCardCurrentStateCopy,
 ): string {
-  const cooldown = formatCooldownSeconds(currentState.last_cooldown_seconds);
+  const cooldown = formatCooldownSeconds(currentState.last_cooldown_seconds, copy);
   const failureSummary = copy.consecutiveFailures(currentState.consecutive_failures);
   const failureKindLabel = getFailureKindLabel(currentState.last_failure_kind, copy);
   const blockedUntilLabel = currentState.blocked_until_at
@@ -83,7 +86,6 @@ export function buildCurrentStateCopy(
         hour: "numeric",
         minute: "numeric",
         second: "numeric",
-        hour12: true,
       })
     : null;
   const bannedUntilLabel = currentState.banned_until_at
@@ -91,7 +93,6 @@ export function buildCurrentStateCopy(
         hour: "numeric",
         minute: "numeric",
         second: "numeric",
-        hour12: true,
       })
     : null;
 
@@ -114,20 +115,20 @@ export function buildCurrentStateCopy(
   return copy.currentStateCounting(failureSummary, failureKindLabel);
 }
 
-function formatCooldownSeconds(seconds: number): string {
+function formatCooldownSeconds(seconds: number, copy: Pick<ConnectionCardCurrentStateCopy, "cooldownMinutes" | "cooldownMinutesSeconds" | "cooldownSeconds">): string {
   const roundedSeconds = Math.max(0, Math.round(seconds));
   const minutes = Math.floor(roundedSeconds / 60);
   const remainingSeconds = roundedSeconds % 60;
 
   if (minutes === 0) {
-    return `${roundedSeconds}s`;
+    return copy.cooldownSeconds(roundedSeconds);
   }
 
   if (remainingSeconds === 0) {
-    return `${minutes}m`;
+    return copy.cooldownMinutes(minutes);
   }
 
-  return `${minutes}m ${remainingSeconds}s`;
+  return copy.cooldownMinutesSeconds(minutes, remainingSeconds);
 }
 
 function getFailureKindLabel(

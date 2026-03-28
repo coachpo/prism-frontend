@@ -19,7 +19,7 @@ export function ConnectionCardMetrics({
   formatTime: FormatTime;
   metrics24h: ConnectionDerivedMetrics | undefined;
 }) {
-  const { messages } = useLocale();
+  const { formatNumber, messages } = useLocale();
   const copy = messages.modelDetail;
   const successRate = metrics24h?.success_rate_24h ?? null;
 
@@ -27,7 +27,7 @@ export function ConnectionCardMetrics({
     <div className="space-y-2 pt-1">
       <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
         <span>{copy.successRate24h}</span>
-        <span className="text-[10px]">{copy.successRateSample((metrics24h?.request_count_24h ?? 0).toLocaleString())}</span>
+        <span className="text-[10px]">{copy.successRateSample(formatNumber(metrics24h?.request_count_24h ?? 0))}</span>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -67,7 +67,7 @@ export function ConnectionCardMetrics({
                     : "text-red-600 dark:text-red-400",
             )}
           >
-            {successRate === null ? "-" : `${successRate.toFixed(1)}%`}
+            {successRate === null ? "-" : `${formatNumber(successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
           </span>
         </div>
       </div>
@@ -82,7 +82,7 @@ export function ConnectionCardMetrics({
           value={
             metrics24h?.five_xx_rate === null || metrics24h?.five_xx_rate === undefined
               ? "-"
-              : `${metrics24h.five_xx_rate.toFixed(1)}%`
+                : `${formatNumber(metrics24h.five_xx_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
           }
         />
       </div>

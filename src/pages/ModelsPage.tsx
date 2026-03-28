@@ -13,8 +13,9 @@ import { useModelsPageData } from "./models/useModelsPageData";
 
 export function ModelsPage() {
   const { revision } = useProfileContext();
-  const { locale } = useLocale();
+  const { formatNumber, messages } = useLocale();
   const data = useModelsPageData(revision);
+  const copy = messages.modelsPage;
 
   if (data.loading) {
     return (
@@ -35,16 +36,12 @@ export function ModelsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={locale === "zh-CN" ? "模型" : "Models"}
-        description={
-          locale === "zh-CN"
-            ? `${data.models.length} 个模型配置`
-            : `${data.models.length} model configurations`
-        }
+        title={copy.title}
+        description={copy.countDescription(formatNumber(data.models.length))}
       >
         <Button size="sm" onClick={() => data.handleOpenDialog()}>
           <Plus className="mr-1.5 h-4 w-4" />
-          {locale === "zh-CN" ? "新建模型" : "New Model"}
+          {copy.newModel}
         </Button>
       </PageHeader>
 

@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import type { Connection, ModelConfig } from "@/lib/types";
 import { moveConnectionInList } from "./useModelDetailDataSupport";
 import { useConnectionHealthChecks } from "./useConnectionHealthChecks";
@@ -63,8 +64,8 @@ export function useModelDetailConnectionFlows({
       } catch (error) {
         setConnections(previousConnections);
         setModel((prev) => (prev ? { ...prev, connections: previousConnections } : prev));
-        const detail = error instanceof Error ? error.message : "Failed to save routing priority.";
-        toast.error(`${detail} Order reverted.`);
+        const detail = error instanceof Error ? error.message : getStaticMessages().modelDetailData.reorderPriorityReverted;
+        toast.error(`${detail} ${getStaticMessages().modelDetailData.reorderPriorityReverted}`);
       } finally {
         setReorderInFlight(false);
       }
@@ -78,10 +79,15 @@ export function useModelDetailConnectionFlows({
       const result = successfulChecks.get(connectionId);
 
       if (result) {
-        toast.success(`Health: ${result.health_status} (${result.response_time_ms}ms)`);
+        toast.success(
+          getStaticMessages().modelDetailData.healthCheckResult(
+            result.health_status,
+            String(result.response_time_ms),
+          ),
+        );
       }
       if (failedCount > 0) {
-        toast.error("Health check failed");
+        toast.error(getStaticMessages().modelDetailData.healthCheckFailed);
       }
     },
     [runHealthChecks],
@@ -93,14 +99,10 @@ export function useModelDetailConnectionFlows({
     );
 
     if (successfulChecks.size > 0) {
-      toast.success(
-        `Checked ${successfulChecks.size} connection${successfulChecks.size === 1 ? "" : "s"}`
-      );
+      toast.success(getStaticMessages().modelDetailData.checkedConnections(String(successfulChecks.size)));
     }
     if (failedCount > 0) {
-      toast.error(
-        `Health check failed for ${failedCount} connection${failedCount === 1 ? "" : "s"}`
-      );
+      toast.error(getStaticMessages().modelDetailData.healthCheckFailedFor(String(failedCount)));
     }
   }, [connections, runHealthChecks]);
 
@@ -116,7 +118,7 @@ export function useModelDetailConnectionFlows({
       setDialogTestResult({ status: result.health_status, detail: result.detail });
       void refreshCurrentState();
     } catch {
-      setDialogTestResult({ status: "error", detail: "Connection test failed" });
+      setDialogTestResult({ status: "error", detail: getStaticMessages().modelDetailData.connectionTestFailed });
     } finally {
       setDialogTestingConnection(false);
     }

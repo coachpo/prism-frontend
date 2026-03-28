@@ -7,6 +7,7 @@ import type {
   ProxyTarget,
   Vendor,
 } from "@/lib/types";
+import { getStaticMessages } from "@/i18n/staticMessages";
 
 export type SubmitEventLike = Pick<Event, "preventDefault">;
 
@@ -53,7 +54,7 @@ function resolveModelVendor(
   return {
     id: vendorId,
     key: "unknown-vendor",
-    name: "Unknown vendor",
+    name: getStaticMessages().modelsUi.unknownVendor,
     description: null,
     icon_key: null,
     audit_enabled: false,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { clearSharedReferenceData } from "@/lib/referenceData";
 import type { ModelConfig, ModelConfigListItem, ModelConfigUpdate, ProxyTarget } from "@/lib/types";
 import {
@@ -78,7 +79,7 @@ export function useModelDetailModelForm({
       }
 
       if (model.model_type === "native" && !editLoadbalanceStrategyId) {
-        toast.error("Please select a loadbalance strategy for this native model");
+        toast.error(getStaticMessages().modelDetailData.selectLoadbalanceStrategy);
         return;
       }
 
@@ -87,12 +88,12 @@ export function useModelDetailModelForm({
       const apiFamily = String(formData.get("api_family") ?? "").trim();
 
       if (!vendorId) {
-        toast.error("Please select a vendor");
+        toast.error(getStaticMessages().modelDetailData.selectVendor);
         return;
       }
 
       if (!apiFamily) {
-        toast.error("Please select an API family");
+        toast.error(getStaticMessages().modelDetailData.selectApiFamily);
         return;
       }
 
@@ -111,10 +112,10 @@ export function useModelDetailModelForm({
       try {
         const updatedModel = await api.models.update(model.id, updateData);
         applyUpdatedModel(updatedModel);
-        toast.success("Model updated");
+        toast.success(getStaticMessages().modelDetailData.modelUpdated);
         setIsEditModelDialogOpen(false);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to update model");
+        toast.error(error instanceof Error ? error.message : getStaticMessages().modelDetailData.updateModelFailed);
       }
     },
     [
@@ -137,9 +138,9 @@ export function useModelDetailModelForm({
           proxy_targets: normalizeProxyTargets(proxyTargets),
         });
         applyUpdatedModel(updatedModel);
-        toast.success("Proxy targets updated");
+        toast.success(getStaticMessages().modelDetailData.proxyTargetsUpdated);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to update proxy targets");
+        toast.error(error instanceof Error ? error.message : getStaticMessages().modelDetailData.updateProxyTargetsFailed);
       }
     },
     [applyUpdatedModel, model],

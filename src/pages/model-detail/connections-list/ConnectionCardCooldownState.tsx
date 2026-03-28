@@ -42,6 +42,9 @@ export function ConnectionCardCooldownState({
           <p className="leading-5 text-muted-foreground">
             {buildCurrentStateCopy(currentState, formatTime, {
               consecutiveFailures: copy.consecutiveFailures,
+              cooldownMinutes: copy.cooldownMinutes,
+              cooldownMinutesSeconds: copy.cooldownMinutesSeconds,
+              cooldownSeconds: copy.cooldownSeconds,
               currentStateBlocked: copy.currentStateBlocked,
               currentStateCounting: copy.currentStateCounting,
               currentStateManualBan: copy.currentStateManualBan,

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Route, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useLocale } from "@/i18n/useLocale";
 import type { ProxyTarget } from "@/lib/types";
 import { appendProxyTarget, moveProxyTarget, normalizeProxyTargets, removeProxyTarget } from "../models/modelFormState";
 
@@ -18,6 +19,9 @@ export function ProxyTargetsCard({
   saving,
   onSave,
 }: ProxyTargetsCardProps) {
+  const { formatNumber, messages } = useLocale();
+  const copy = messages.modelsUi;
+  const detailCopy = messages.modelDetail;
   const [draftTargets, setDraftTargets] = useState<ProxyTarget[]>(() => normalizeProxyTargets(proxyTargets));
 
   useEffect(() => {
@@ -38,19 +42,19 @@ export function ProxyTargetsCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Route className="h-4 w-4" />
-          Proxy Targets
+          {detailCopy.proxyTargets}
         </CardTitle>
         <CardDescription>
-          Ordered priority routing
+          {detailCopy.orderedPriorityRouting}
         </CardDescription>
         <p className="text-sm text-muted-foreground">
-          The first available target wins, then that native model handles connection failover.
+          {copy.proxyTargetsDescriptionPrimary}
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
         {draftTargets.length === 0 ? (
           <div className="rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
-            No proxy targets configured.
+            {copy.noProxyTargetsSelected}
           </div>
         ) : (
           <div className="space-y-2">
@@ -58,7 +62,7 @@ export function ProxyTargetsCard({
               <div key={target.target_model_id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{resolveTargetLabel(target.target_model_id)}</p>
-                  <p className="text-xs text-muted-foreground">Priority {index + 1}</p>
+                  <p className="text-xs text-muted-foreground">{copy.priority(formatNumber(index + 1))}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
@@ -66,7 +70,7 @@ export function ProxyTargetsCard({
                     variant="outline"
                     size="icon"
                     className="h-8 w-8"
-                    aria-label={`Move target ${target.target_model_id} up`}
+                    aria-label={copy.targetMoveUp(target.target_model_id)}
                     disabled={index === 0}
                     onClick={() => setDraftTargets((current) => moveProxyTarget(current, index, index - 1))}
                   >
@@ -77,7 +81,7 @@ export function ProxyTargetsCard({
                     variant="outline"
                     size="icon"
                     className="h-8 w-8"
-                    aria-label={`Move target ${target.target_model_id} down`}
+                    aria-label={copy.targetMoveDown(target.target_model_id)}
                     disabled={index === draftTargets.length - 1}
                     onClick={() => setDraftTargets((current) => moveProxyTarget(current, index, index + 1))}
                   >
@@ -88,7 +92,7 @@ export function ProxyTargetsCard({
                     variant="outline"
                     size="icon"
                     className="h-8 w-8"
-                    aria-label={`Remove target ${target.target_model_id}`}
+                    aria-label={copy.targetRemove(target.target_model_id)}
                     onClick={() => setDraftTargets((current) => removeProxyTarget(current, target.target_model_id))}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -102,8 +106,8 @@ export function ProxyTargetsCard({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
             {remainingTargets.length === 0
-              ? "All available native models are already included."
-              : `${remainingTargets.length} more native targets available.`}
+              ? copy.allNativeModelsIncluded
+              : copy.remainingNativeTargets(formatNumber(remainingTargets.length))}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -120,7 +124,7 @@ export function ProxyTargetsCard({
                 setDraftTargets((current) => appendProxyTarget(current, nextTarget.modelId));
               }}
             >
-              Add Target
+              {copy.addTarget}
             </Button>
             <Button
               type="button"
@@ -129,7 +133,7 @@ export function ProxyTargetsCard({
               onClick={() => void onSave(normalizeProxyTargets(draftTargets))}
             >
               <Save className="mr-1.5 h-4 w-4" />
-              Save Proxy Targets
+              {detailCopy.saveChanges}
             </Button>
           </div>
         </div>

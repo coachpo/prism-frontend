@@ -8,6 +8,7 @@ import type {
   ModelConfig,
   ModelConfigListItem,
 } from "@/lib/types";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { normalizeProxyTargets } from "../models/modelFormState";
 
 function resolveApiFamily(
@@ -220,7 +221,7 @@ export function buildProxyTargetOptions(
     .filter((target) => !nativeTargets.some((candidate) => candidate.modelId === target.target_model_id))
     .map((target) => ({
       modelId: target.target_model_id,
-      label: `${target.target_model_id} (current target)`,
+      label: getStaticMessages().modelDetail.currentTargetLabel(target.target_model_id),
     }));
 
   return [...currentTargets, ...nativeTargets];
@@ -245,6 +246,6 @@ export function buildProxyTargetSummary(
     targetCount: proxyTargets.length,
     firstTargetId,
     firstTargetLabel: firstTargetId ? resolveProxyTargetLabel(firstTargetId, targetOptions) : null,
-    routePolicyLabel: "Ordered priority routing",
+    routePolicyLabel: getStaticMessages().modelDetail.orderedPriorityRouting,
   };
 }

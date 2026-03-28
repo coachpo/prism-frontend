@@ -5,6 +5,7 @@ import { LoadbalanceEventsTable } from "@/components/loadbalance/LoadbalanceEven
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useProfileContext } from "@/context/ProfileContext";
+import { useLocale } from "@/i18n/useLocale";
 import { useModelLoadbalanceEvents } from "./useModelLoadbalanceEvents";
 
 interface LoadbalanceEventsTabProps {
@@ -22,7 +23,9 @@ interface LoadbalanceEventsTabContentProps {
 }
 
 function LoadbalanceEventsTabContent({ modelId, revision }: LoadbalanceEventsTabContentProps) {
+  const { formatNumber, messages } = useLocale();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const copy = messages.loadbalanceEvents;
   const {
     events,
     loading,
@@ -40,11 +43,11 @@ function LoadbalanceEventsTabContent({ modelId, revision }: LoadbalanceEventsTab
         <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold">
-              Loadbalance Events
-              <span className="ml-2 text-xs font-normal text-muted-foreground">({total})</span>
+              {copy.tabTitle}
+              <span className="ml-2 text-xs font-normal text-muted-foreground">({formatNumber(total)})</span>
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Recent failover, recovery, and ban activity for this model.
+              {copy.tabDescription}
             </p>
           </div>
 
@@ -54,8 +57,8 @@ function LoadbalanceEventsTabContent({ modelId, revision }: LoadbalanceEventsTab
             variant="outline"
             onClick={() => void refresh()}
             disabled={loading}
-            aria-label="Refresh loadbalance events"
-            title="Refresh loadbalance events"
+            aria-label={copy.refresh}
+            title={copy.refresh}
           >
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           </Button>
@@ -65,8 +68,8 @@ function LoadbalanceEventsTabContent({ modelId, revision }: LoadbalanceEventsTab
           <div className="rounded-xl border bg-card px-4">
             <EmptyState
               icon={<Activity className="h-6 w-6" />}
-              title="No loadbalance events yet"
-              description="This model has not recorded any failover or recovery activity."
+              title={copy.emptyTitle}
+              description={copy.emptyDescription}
             />
           </div>
         ) : (

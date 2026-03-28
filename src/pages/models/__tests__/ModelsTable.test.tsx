@@ -243,7 +243,11 @@ describe("ModelsTable", () => {
 
     renderTable({ filtered: [model], setDeleteTarget });
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete model GPT-4o Mini" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: 'Are you sure you want to delete "GPT-4o Mini"? This will also delete all associated endpoints.',
+      }),
+    );
 
     expect(screen.queryByText("Native model detail route")).not.toBeInTheDocument();
     expect(screen.queryByText("Proxy model detail route")).not.toBeInTheDocument();

@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { getStaticMessages } from "@/i18n/staticMessages";
 import { clearSharedReferenceData } from "@/lib/referenceData";
 import type {
   Connection,
@@ -99,9 +100,9 @@ export function useModelDetailConnectionMutations({
           : await api.connections.create(Number.parseInt(id, 10), payload);
 
         if (editingConnection) {
-          toast.success("Connection updated");
+          toast.success(getStaticMessages().modelDetailData.connectionUpdated);
         } else {
-          toast.success("Connection created");
+          toast.success(getStaticMessages().modelDetailData.connectionCreated);
         }
 
         clearSharedReferenceData(undefined, revision);
@@ -110,7 +111,7 @@ export function useModelDetailConnectionMutations({
         setIsConnectionDialogOpen(false);
         void refreshCurrentState();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to save connection");
+        toast.error(error instanceof Error ? error.message : getStaticMessages().modelDetailData.saveConnectionFailed);
       }
     },
     [
@@ -137,9 +138,9 @@ export function useModelDetailConnectionMutations({
         clearSharedReferenceData(undefined, revision);
         commitConnections((current) => removeConnectionFromList(current, connectionId));
         void refreshCurrentState();
-        toast.success("Connection deleted");
+        toast.success(getStaticMessages().modelDetailData.connectionDeleted);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to delete connection");
+        toast.error(error instanceof Error ? error.message : getStaticMessages().modelDetailData.deleteConnectionFailed);
       }
     },
     [commitConnections, refreshCurrentState, revision],
@@ -156,7 +157,7 @@ export function useModelDetailConnectionMutations({
         commitConnections((current) => upsertConnectionInList(current, updatedConnection));
         void refreshCurrentState();
       } catch {
-        toast.error("Failed to toggle connection");
+        toast.error(getStaticMessages().modelDetailData.toggleConnectionFailed);
       }
     },
     [commitConnections, refreshCurrentState, revision, setGlobalEndpoints],
@@ -213,18 +214,18 @@ function buildConnectionPayload({
     max_in_flight_stream: normalizeLimiterField(connectionForm.max_in_flight_stream),
   };
 
-  if (createMode === "select") {
-    if (!selectedEndpointId) {
-      toast.error("Please select an endpoint");
-      return null;
-    }
+    if (createMode === "select") {
+      if (!selectedEndpointId) {
+        toast.error(getStaticMessages().modelDetailData.selectEndpoint);
+        return null;
+      }
     payload.endpoint_id = Number.parseInt(selectedEndpointId, 10);
     delete payload.endpoint_create;
     return payload;
   }
 
   if (!newEndpointForm.name || !newEndpointForm.base_url || !newEndpointForm.api_key) {
-    toast.error("Please fill in all endpoint fields");
+    toast.error(getStaticMessages().modelDetailData.fillEndpointFields);
     return null;
   }
 

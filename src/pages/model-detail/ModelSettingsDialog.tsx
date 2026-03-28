@@ -44,6 +44,7 @@ export function ModelSettingsDialog({
   handleEditModelSubmit,
 }: ModelSettingsDialogProps) {
   const { messages } = useLocale();
+  const copy = messages.modelDetail;
   const strategyCopy = messages.loadbalanceStrategyCopy;
   const fieldCopy = messages.common;
 
@@ -54,6 +55,7 @@ export function ModelSettingsDialog({
           <ModelSettingsForm
             key={`${model.id}:${model.updated_at}`}
             editLoadbalanceStrategyId={editLoadbalanceStrategyId}
+            copy={copy}
             fieldCopy={fieldCopy}
             handleEditModelSubmit={handleEditModelSubmit}
             loadbalanceStrategies={loadbalanceStrategies}
@@ -70,6 +72,22 @@ export function ModelSettingsDialog({
 }
 
 type ModelSettingsFormProps = {
+  copy: {
+    cancel: string;
+    displayName: string;
+    displayNamePlaceholder: string;
+    loadbalanceStrategyLabel: string;
+    modelIdLabel: string;
+    modelSettingsDescription: string;
+    modelSettingsTitle: string;
+    noLoadbalanceStrategiesAvailable: string;
+    proxyTargets: string;
+    proxyTargetsHint: string;
+    saveChanges: string;
+    selectApiFamily: string;
+    selectStrategy: string;
+    selectVendor: string;
+  };
   editLoadbalanceStrategyId: string;
   fieldCopy: {
     vendor: string;
@@ -93,6 +111,7 @@ type ModelSettingsFormProps = {
 };
 
 function ModelSettingsForm({
+  copy,
   editLoadbalanceStrategyId,
   fieldCopy,
   handleEditModelSubmit,
@@ -132,97 +151,86 @@ function ModelSettingsForm({
 
   return (
     <>
-            <DialogHeader>
-              <DialogTitle>Model Settings</DialogTitle>
-              <DialogDescription>
-                Update model identity, vendor metadata, and API family compatibility for this profile.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleEditModelSubmit} className="space-y-4">
-              <input type="hidden" name="vendor_id" value={selectedVendorId} />
-              <input type="hidden" name="api_family" value={selectedApiFamily} />
+      <DialogHeader>
+        <DialogTitle>{copy.modelSettingsTitle}</DialogTitle>
+        <DialogDescription>{copy.modelSettingsDescription}</DialogDescription>
+      </DialogHeader>
+      <form onSubmit={handleEditModelSubmit} className="space-y-4">
+        <input type="hidden" name="vendor_id" value={selectedVendorId} />
+        <input type="hidden" name="api_family" value={selectedApiFamily} />
 
-              <div className="space-y-2">
-                <Label htmlFor="edit-display-name">Display Name</Label>
-                <Input
-                  id="edit-display-name"
-                  name="display_name"
-                  defaultValue={model.display_name || ""}
-                  placeholder="Friendly name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-model-id">Model ID</Label>
-                <Input
-                  id="edit-model-id"
-                  name="model_id"
-                  defaultValue={model.model_id}
-                  required
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>{fieldCopy.vendor}</Label>
-                  <VendorSelect
-                    value={selectedVendorId}
-                    onValueChange={setSelectedVendorId}
-                    valueType="vendor_id"
-                    vendors={vendors}
-                    showAll={false}
-                    placeholder="Select vendor"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{fieldCopy.apiFamily}</Label>
-                  <ApiFamilySelect
-                     value={selectedApiFamily}
-                    onValueChange={handleApiFamilyChange}
-                     showAll={false}
-                     placeholder="Select API family"
-                   />
-                </div>
-              </div>
-              {model.model_type === "proxy" && (
-                <div className="space-y-2">
-                  <Label>Proxy Targets</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Manage ordered proxy targets from the dedicated card on this page. Proxy targets must stay on the same API family even when the vendor metadata changes.
-                  </p>
-                </div>
-              )}
-              {model.model_type === "native" && (
-                <div className="space-y-2">
-                  <Label htmlFor="edit-loadbalance-strategy">Loadbalance Strategy</Label>
-                  {loadbalanceStrategies.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No loadbalance strategies are available for this profile. Create one on the Loadbalance Strategies page first.
-                    </p>
-                  ) : (
-                    <Select
-                      value={editLoadbalanceStrategyId || undefined}
-                      onValueChange={setEditLoadbalanceStrategyId}
-                    >
-                      <SelectTrigger id="edit-loadbalance-strategy">
-                       <SelectValue placeholder="Select strategy" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {loadbalanceStrategies.map((strategy) => (
-                          <SelectItem key={strategy.id} value={String(strategy.id)}>
-                            {getStrategyOptionText(strategy)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              )}
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Save Changes</Button>
-              </DialogFooter>
-            </form>
+        <div className="space-y-2">
+          <Label htmlFor="edit-display-name">{copy.displayName}</Label>
+          <Input
+            id="edit-display-name"
+            name="display_name"
+            defaultValue={model.display_name || ""}
+            placeholder={copy.displayNamePlaceholder}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-model-id">{copy.modelIdLabel}</Label>
+          <Input id="edit-model-id" name="model_id" defaultValue={model.model_id} required />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>{fieldCopy.vendor}</Label>
+            <VendorSelect
+              value={selectedVendorId}
+              onValueChange={setSelectedVendorId}
+              valueType="vendor_id"
+              vendors={vendors}
+              showAll={false}
+              placeholder={copy.selectVendor}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{fieldCopy.apiFamily}</Label>
+            <ApiFamilySelect
+              value={selectedApiFamily}
+              onValueChange={handleApiFamilyChange}
+              showAll={false}
+              placeholder={copy.selectApiFamily}
+            />
+          </div>
+        </div>
+        {model.model_type === "proxy" && (
+          <div className="space-y-2">
+            <Label>{copy.proxyTargets}</Label>
+            <p className="text-sm text-muted-foreground">{copy.proxyTargetsHint}</p>
+          </div>
+        )}
+        {model.model_type === "native" && (
+          <div className="space-y-2">
+            <Label htmlFor="edit-loadbalance-strategy">{copy.loadbalanceStrategyLabel}</Label>
+            {loadbalanceStrategies.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{copy.noLoadbalanceStrategiesAvailable}</p>
+            ) : (
+              <Select
+                value={editLoadbalanceStrategyId || undefined}
+                onValueChange={setEditLoadbalanceStrategyId}
+              >
+                <SelectTrigger id="edit-loadbalance-strategy">
+                  <SelectValue placeholder={copy.selectStrategy} />
+                </SelectTrigger>
+                <SelectContent>
+                  {loadbalanceStrategies.map((strategy) => (
+                    <SelectItem key={strategy.id} value={String(strategy.id)}>
+                      {getStrategyOptionText(strategy)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {copy.cancel}
+          </Button>
+          <Button type="submit">{copy.saveChanges}</Button>
+        </DialogFooter>
+      </form>
     </>
   );
 }

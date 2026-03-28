@@ -5,6 +5,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { EmptyState } from "@/components/EmptyState";
 import { VendorIcon } from "@/components/VendorIcon";
 import { useLocale } from "@/i18n/useLocale";
+import { isLegacyUnknownVendorLabel } from "@/i18n/staticMessages";
 import {
   IconActionButton,
   IconActionGroup,
@@ -76,20 +77,16 @@ function resolveApiFamily(model: ModelConfigListItem) {
   return model.api_family ?? "openai";
 }
 
-function getUnknownVendorLabel(locale: "en" | "zh-CN") {
-  return locale === "zh-CN" ? "未知供应商" : "Unknown vendor";
-}
-
 function isUnknownVendor(model: ModelConfigListItem) {
-  return !model.vendor || model.vendor.key === UNKNOWN_VENDOR_KEY || model.vendor.name === "Unknown vendor";
+  return !model.vendor || model.vendor.key === UNKNOWN_VENDOR_KEY || isLegacyUnknownVendorLabel(model.vendor.name);
 }
 
-function resolveVendorName(model: ModelConfigListItem, locale: "en" | "zh-CN") {
+function resolveVendorName(model: ModelConfigListItem, unknownVendorLabel: string) {
   if (isUnknownVendor(model)) {
-    return getUnknownVendorLabel(locale);
+    return unknownVendorLabel;
   }
 
-  return model.vendor?.name?.trim() || model.vendor?.key?.trim() || getUnknownVendorLabel(locale);
+  return model.vendor?.name?.trim() || model.vendor?.key?.trim() || unknownVendorLabel;
 }
 
 function orderVendorModels(models: ModelConfigListItem[]) {
@@ -98,12 +95,12 @@ function orderVendorModels(models: ModelConfigListItem[]) {
   );
 }
 
-function groupModels(filtered: ModelConfigListItem[], locale: "en" | "zh-CN"): VendorGroup[] {
+function groupModels(filtered: ModelConfigListItem[], unknownVendorLabel: string): VendorGroup[] {
   const groups = new Map<string, VendorGroup>();
 
   filtered.forEach((model) => {
     const unknown = isUnknownVendor(model);
-    const vendorLabel = resolveVendorName(model, locale);
+    const vendorLabel = resolveVendorName(model, unknownVendorLabel);
     const vendor = unknown
       ? { key: UNKNOWN_VENDOR_KEY, name: vendorLabel, icon_key: null }
       : {
@@ -177,17 +174,15 @@ function InlineMetaDivider() {
   );
 }
 
-function getProxyTargetSummary(model: ModelConfigListItem, locale: "en" | "zh-CN") {
+function getProxyTargetSummary(model: ModelConfigListItem, copy: { noProxyTargets: string; targetsFirst: (count: string, first: string) => string }, formatNumber: (value: number) => string) {
   const proxyTargets = model.proxy_targets ?? [];
   const firstTarget = proxyTargets[0]?.target_model_id;
 
   if (!firstTarget) {
-    return locale === "zh-CN" ? "未配置代理目标" : "No proxy targets";
+    return copy.noProxyTargets;
   }
 
-  return locale === "zh-CN"
-    ? `${proxyTargets.length} 个目标 · 首选 ${firstTarget}`
-    : `${proxyTargets.length} targets · ${firstTarget} first`;
+  return copy.targetsFirst(formatNumber(proxyTargets.length), firstTarget);
 }
 
 function ModelRow({
@@ -198,20 +193,22 @@ function ModelRow({
   onNavigate,
   setDeleteTarget,
 }: SharedRenderProps & { model: ModelConfigListItem }) {
-  const { locale, messages } = useLocale();
+  const { formatNumber, locale, messages } = useLocale();
   const strategyCopy = messages.loadbalanceStrategyCopy;
+  const copy = messages.modelsUi;
+  const detailCopy = messages.modelDetail;
   const metrics24h = modelMetrics24h[model.id];
   const successRate = metrics24h?.success_rate ?? null;
   const requestCount = metrics24h?.request_count_24h ?? 0;
   const p95LatencyMs = metrics24h?.p95_latency_ms ?? null;
   const spend30dMicros = modelSpend30dMicros[model.id] ?? 0;
   const title = model.display_name || model.model_id;
-  const proxyTargetSummary = getProxyTargetSummary(model, locale as "en" | "zh-CN");
+  const proxyTargetSummary = getProxyTargetSummary(model, copy, formatNumber);
   const apiFamilyLabel = formatApiFamily(resolveApiFamily(model));
-  const vendorLabel = resolveVendorName(model, locale as "en" | "zh-CN");
-  const typeLabel = model.model_type === "proxy" ? (locale === "zh-CN" ? "代理" : "Proxy") : locale === "zh-CN" ? "原生" : "Native";
+  const vendorLabel = resolveVendorName(model, copy.unknownVendor);
+  const typeLabel = model.model_type === "proxy" ? detailCopy.typeProxy : detailCopy.typeNative;
   const typeIntent = model.model_type === "proxy" ? "accent" : "info";
-  const statusLabel = model.is_enabled ? (locale === "zh-CN" ? "已启用" : "Enabled") : locale === "zh-CN" ? "已禁用" : "Disabled";
+  const statusLabel = model.is_enabled ? detailCopy.enabled : detailCopy.disabled;
   const statusIntent = model.is_enabled ? "success" : "muted";
   const showModelId = Boolean(model.display_name && model.display_name !== model.model_id);
   const strategySummary = model.loadbalance_strategy
@@ -222,41 +219,27 @@ function ModelRow({
       : model.loadbalance_strategy.strategy_type === "failover"
         ? `${model.loadbalance_strategy.name} · ${strategyCopy.failoverSummary}`
         : `${model.loadbalance_strategy.name} · ${strategyCopy.singleLabel}`
-    : locale === "zh-CN"
-      ? "未配置策略"
-      : "Strategy not configured";
+      : copy.strategyNotConfigured;
   const successRateText =
-    metricsLoading && !metrics24h
-      ? locale === "zh-CN"
-        ? "… 成功率"
-        : "… success"
+      metricsLoading && !metrics24h
+        ? `… ${copy.successLabel}`
       : successRate === null
-        ? locale === "zh-CN"
-          ? "— 成功率"
-          : "— success"
-        : `${successRate.toFixed(1)}% ${locale === "zh-CN" ? "成功率" : "success"}`;
+        ? `— ${copy.successLabel}`
+        : `${formatNumber(successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% ${copy.successLabel}`;
   const p95LatencyText =
     metricsLoading
-      ? locale === "zh-CN"
-        ? "… P95"
-        : "… p95"
-      : `${formatLatencyForDisplay(p95LatencyMs)} ${locale === "zh-CN" ? "P95" : "p95"}`;
+      ? "… P95"
+      : `${formatLatencyForDisplay(p95LatencyMs)} P95`;
   const requestCountText =
     metricsLoading && !metrics24h
-      ? locale === "zh-CN"
-        ? "… 请求"
-        : "… req"
+      ? `… ${copy.requestsShort}`
       : requestCount > 0
-        ? `${requestCount.toLocaleString()} ${locale === "zh-CN" ? "请求" : "req"}`
-        : locale === "zh-CN"
-          ? "— 请求"
-          : "— req";
+        ? `${formatNumber(requestCount)} ${copy.requestsShort}`
+        : `— ${copy.requestsShort}`;
   const spend30dText =
     metricsLoading
-      ? locale === "zh-CN"
-        ? "… 支出"
-        : "… spend"
-      : `${formatMoneyMicros(spend30dMicros, "$", undefined, 2, 6, locale as "en" | "zh-CN")} ${locale === "zh-CN" ? "支出" : "spend"}`;
+      ? `… ${copy.spendShort}`
+      : `${formatMoneyMicros(spend30dMicros, "$", undefined, 2, 6, locale as "en" | "zh-CN")} ${copy.spendShort}`;
 
   return (
     <div className="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/25">
@@ -275,13 +258,13 @@ function ModelRow({
             </span>
           ) : null}
           <CopyButton
-            aria-label={`Copy model ID ${model.model_id}`}
+            aria-label={detailCopy.copyModelIdAria(model.model_id)}
             className="h-5 w-5 rounded-md text-muted-foreground hover:text-foreground"
-            errorMessage="Failed to copy model id"
+            errorMessage={messages.auth.loginFailed}
             label=""
             size="icon-xs"
-            successMessage="Model ID copied to clipboard"
-            targetLabel="Model ID"
+            successMessage={messages.requestLogs.copy}
+            targetLabel={detailCopy.modelIdLabel}
             value={model.model_id}
           />
         </div>
@@ -301,7 +284,7 @@ function ModelRow({
 
           <InlineMetaDivider />
           <span className="tabular-nums text-xs text-foreground/90">
-            {model.active_connection_count}/{model.connection_count} {locale === "zh-CN" ? "活跃" : "active"}
+            {copy.activeConnections(formatNumber(model.active_connection_count), formatNumber(model.connection_count))}
           </span>
           <InlineMetaDivider />
           <span
@@ -324,14 +307,14 @@ function ModelRow({
       <div className="flex shrink-0 items-center justify-end gap-2 pt-0.5">
         <IconActionGroup>
             <IconActionButton
-              aria-label={`View model details for ${title}`}
+              aria-label={copy.viewModelDetails(title)}
               size="icon-sm"
               onClick={() => onNavigate(model)}
             >
               <Eye className="h-3.5 w-3.5" />
             </IconActionButton>
           <IconActionButton
-            aria-label={`Delete model ${title}`}
+            aria-label={copy.deleteModelDescription(title)}
             size="icon-sm"
             destructive
             onClick={() => setDeleteTarget(model)}
@@ -360,11 +343,10 @@ function VendorSection({
   onOpenChange: (isOpen: boolean) => void;
   search: string;
 }) {
-  const { locale } = useLocale();
+  const { formatNumber, messages } = useLocale();
+  const copy = messages.modelsUi;
   const modelCountLabel =
-    locale === "zh-CN"
-      ? `${group.models.length} ${group.models.length === 1 ? "个模型" : "个模型"}`
-      : `${group.models.length} ${group.models.length === 1 ? "model" : "models"}`;
+    copy.modelCount(formatNumber(group.models.length));
   const isSearchActive = search.trim().length > 0;
 
   return (
@@ -433,9 +415,9 @@ export function ModelsTable({
   search,
   setDeleteTarget,
 }: Props) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
   const navigate = useNavigate();
-  const vendorGroups = useMemo(() => groupModels(filtered, locale as "en" | "zh-CN"), [filtered, locale]);
+  const vendorGroups = useMemo(() => groupModels(filtered, messages.modelsUi.unknownVendor), [filtered, messages.modelsUi.unknownVendor]);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   if (filtered.length === 0) {
@@ -443,28 +425,16 @@ export function ModelsTable({
       <EmptyState
         icon={<Server className="h-6 w-6" />}
         title={
-          locale === "zh-CN"
-            ? search
-              ? "没有匹配的模型"
-              : "还没有配置模型"
-            : search
-              ? "No models match search"
-              : "No models configured"
+          search ? messages.modelsUi.noModelsMatchSearch : messages.modelsUi.noModelsConfigured
         }
         description={
-          locale === "zh-CN"
-            ? search
-              ? "请尝试不同的模型名称或模型 ID"
-              : "创建你的第一个模型以开始使用"
-            : search
-              ? "Try a different model name or ID"
-              : "Create your first model to get started"
+          search ? messages.modelsUi.tryDifferentModelNameOrId : messages.modelsUi.createFirstModel
         }
         action={
           !search ? (
             <Button size="sm" onClick={() => handleOpenDialog()}>
               <Plus className="mr-1.5 h-4 w-4" />
-              {locale === "zh-CN" ? "新建模型" : "New Model"}
+              {messages.modelsPage.newModel}
             </Button>
           ) : undefined
         }

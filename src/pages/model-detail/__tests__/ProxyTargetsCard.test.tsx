@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { ProxyTargetsCard } from "../ProxyTargetsCard";
 
 describe("ProxyTargetsCard", () => {
@@ -7,29 +8,31 @@ describe("ProxyTargetsCard", () => {
     const onSave = vi.fn();
 
     render(
-      <ProxyTargetsCard
-        availableTargets={[
-          { modelId: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5 (20250929)" },
-          { modelId: "claude-sonnet-4-5-20250701", label: "Claude Sonnet 4.5 (20250701)" },
-          { modelId: "claude-sonnet-4-5-20250301", label: "Claude Sonnet 4.5 (20250301)" },
-        ]}
-        proxyTargets={[
-          { target_model_id: "claude-sonnet-4-5-20250929", position: 0 },
-          { target_model_id: "claude-sonnet-4-5-20250701", position: 1 },
-        ]}
-        saving={false}
-        onSave={onSave}
-      />,
+      <LocaleProvider>
+        <ProxyTargetsCard
+          availableTargets={[
+            { modelId: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5 (20250929)" },
+            { modelId: "claude-sonnet-4-5-20250701", label: "Claude Sonnet 4.5 (20250701)" },
+            { modelId: "claude-sonnet-4-5-20250301", label: "Claude Sonnet 4.5 (20250301)" },
+          ]}
+          proxyTargets={[
+            { target_model_id: "claude-sonnet-4-5-20250929", position: 0 },
+            { target_model_id: "claude-sonnet-4-5-20250701", position: 1 },
+          ]}
+          saving={false}
+          onSave={onSave}
+        />
+      </LocaleProvider>,
     );
 
     expect(screen.getByText("Ordered priority routing")).toBeInTheDocument();
     expect(
-      screen.getByText("The first available target wins, then that native model handles connection failover."),
+      screen.getByText("Requests try these native targets in order and stop at the first available target."),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Target" }));
     fireEvent.click(screen.getByRole("button", { name: "Move target claude-sonnet-4-5-20250301 up" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save Proxy Targets" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
 
     expect(onSave).toHaveBeenCalledWith([
       { target_model_id: "claude-sonnet-4-5-20250929", position: 0 },

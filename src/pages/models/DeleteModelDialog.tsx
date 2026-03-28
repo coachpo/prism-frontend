@@ -17,21 +17,18 @@ type Props = {
 };
 
 export function DeleteModelDialog({ deleteTarget, onDelete, setDeleteTarget }: Props) {
-  const { locale } = useLocale();
+  const { messages } = useLocale();
+  const copy = messages.modelsUi;
   return (
     <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{locale === "zh-CN" ? "删除模型" : "Delete Model"}</DialogTitle>
-          <DialogDescription>
-            {locale === "zh-CN"
-              ? `确定要删除“${deleteTarget?.display_name || deleteTarget?.model_id}”吗？这也会删除所有关联的端点。`
-              : `Are you sure you want to delete "${deleteTarget?.display_name || deleteTarget?.model_id}"? This will also delete all associated endpoints.`}
-          </DialogDescription>
+          <DialogTitle>{copy.deleteModel}</DialogTitle>
+          <DialogDescription>{copy.deleteModelDescription(deleteTarget?.display_name || deleteTarget?.model_id || "")}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setDeleteTarget(null)}>{locale === "zh-CN" ? "取消" : "Cancel"}</Button>
-          <Button variant="destructive" onClick={onDelete}>{locale === "zh-CN" ? "删除" : "Delete"}</Button>
+          <Button variant="outline" onClick={() => setDeleteTarget(null)}>{messages.settingsDialogs.cancel}</Button>
+          <Button variant="destructive" onClick={onDelete}>{messages.settingsDialogs.delete}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

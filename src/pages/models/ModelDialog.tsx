@@ -56,9 +56,11 @@ export function ModelDialog({
   setModelType,
   onSubmit,
 }: Props) {
-  const { locale, messages } = useLocale();
+  const { formatNumber, messages } = useLocale();
   const strategyCopy = messages.loadbalanceStrategyCopy;
   const fieldCopy = messages.common;
+  const copy = messages.modelsUi;
+  const detailCopy = messages.modelDetail;
   const normalizedProxyTargets = normalizeProxyTargets(formData.proxy_targets);
   const selectedProxyTargetIds = new Set(normalizedProxyTargets.map((target) => target.target_model_id));
   const remainingProxyTargets = nativeModelsForApiFamily.filter(
@@ -96,12 +98,8 @@ export function ModelDialog({
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingModel ? (locale === "zh-CN" ? "编辑模型" : "Edit Model") : locale === "zh-CN" ? "新建模型" : "New Model"}</DialogTitle>
-          <DialogDescription>
-            {locale === "zh-CN"
-              ? "配置此模型的供应商、API 家族、路由类型和策略绑定。"
-              : "Configure vendor, API family, routing type, and strategy attachment for this model."}
-          </DialogDescription>
+          <DialogTitle>{editingModel ? copy.editModel : messages.modelsPage.newModel}</DialogTitle>
+          <DialogDescription>{detailCopy.modelSettingsDescription}</DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -120,7 +118,7 @@ export function ModelDialog({
                 vendors={vendors}
                 showAll={false}
                 className="w-full"
-                placeholder={locale === "zh-CN" ? "选择供应商" : "Select vendor"}
+                placeholder={detailCopy.selectVendor}
               />
             </div>
 
@@ -140,64 +138,60 @@ export function ModelDialog({
                 }
                 showAll={false}
                 className="w-full"
-                placeholder={locale === "zh-CN" ? "选择 API 家族" : "Select API family"}
+                placeholder={detailCopy.selectApiFamily}
               />
             </div>
           </div>
 
           {!editingModel && (
             <div className="space-y-2">
-              <Label>{locale === "zh-CN" ? "模型 ID" : "Model ID"}</Label>
+              <Label>{copy.modelId}</Label>
               <Input
                 value={formData.model_id}
                 onChange={(e) => setFormData({ ...formData, model_id: e.target.value })}
-                placeholder={locale === "zh-CN" ? "例如：gpt-4o" : "e.g. gpt-4o"}
+                placeholder={copy.modelIdPlaceholder}
                 required
               />
             </div>
           )}
 
           <div className="space-y-2">
-            <Label>{locale === "zh-CN" ? "显示名称" : "Display Name"}</Label>
+            <Label>{copy.displayNameOptional}</Label>
             <Input
               value={formData.display_name ?? ""}
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-              placeholder={locale === "zh-CN" ? "可选的友好名称" : "Optional friendly name"}
+              placeholder={copy.optionalFriendlyName}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>{locale === "zh-CN" ? "类型" : "Type"}</Label>
+            <Label>{messages.settingsDialogs.type}</Label>
             <Select value={formData.model_type} onValueChange={(v) => setModelType(v as "native" | "proxy")}> 
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="native">{locale === "zh-CN" ? "原生" : "Native"}</SelectItem>
-                <SelectItem value="proxy">{locale === "zh-CN" ? "代理" : "Proxy"}</SelectItem>
+                <SelectItem value="native">{detailCopy.typeNative}</SelectItem>
+                <SelectItem value="proxy">{detailCopy.typeProxy}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {formData.model_type === "proxy" && (
             <div className="space-y-2">
-              <Label>{locale === "zh-CN" ? "代理目标" : "Proxy Targets"}</Label>
+              <Label>{detailCopy.proxyTargets}</Label>
               <p className="text-xs text-muted-foreground">
                 <span className="block">
-                  {locale === "zh-CN"
-                    ? "请求会按顺序尝试这些原生目标，找到第一个可用目标后停止。"
-                    : "Requests try these native targets in order and stop at the first available target."}
+                  {copy.proxyTargetsDescriptionPrimary}
                 </span>
                 <span className="block">
-                  {locale === "zh-CN"
-                    ? "你也可以先创建此代理，再到 /models/:id/proxy 配置目标。"
-                    : "You can create this proxy now and configure targets later on /models/:id/proxy."}
+                  {copy.proxyTargetsDescriptionSecondary}
                 </span>
               </p>
               <div className="space-y-2">
                 {normalizedProxyTargets.length === 0 ? (
                   <p className="rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
-                    {locale === "zh-CN" ? "尚未选择代理目标。你可以先创建此代理，再到 /models/:id/proxy 配置目标。" : "No proxy targets selected yet."}
+                    {copy.noProxyTargetsSelected}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -209,7 +203,7 @@ export function ModelDialog({
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{resolveTargetLabel(target.target_model_id)}</p>
                           <p className="text-xs text-muted-foreground">
-                            {locale === "zh-CN" ? `优先级 ${index + 1}` : `Priority ${index + 1}`}
+                            {copy.priority(formatNumber(index + 1))}
                           </p>
                         </div>
                         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
@@ -218,7 +212,7 @@ export function ModelDialog({
                             variant="outline"
                             size="icon"
                             className="h-8 w-8"
-                            aria-label={`Move target ${target.target_model_id} up`}
+                            aria-label={copy.targetMoveUp(target.target_model_id)}
                             disabled={index === 0}
                             onClick={() =>
                               setFormData({
@@ -234,7 +228,7 @@ export function ModelDialog({
                             variant="outline"
                             size="icon"
                             className="h-8 w-8"
-                            aria-label={`Move target ${target.target_model_id} down`}
+                            aria-label={copy.targetMoveDown(target.target_model_id)}
                             disabled={index === normalizedProxyTargets.length - 1}
                             onClick={() =>
                               setFormData({
@@ -250,7 +244,7 @@ export function ModelDialog({
                             variant="outline"
                             size="icon"
                             className="h-8 w-8"
-                            aria-label={`Remove target ${target.target_model_id}`}
+                            aria-label={copy.targetRemove(target.target_model_id)}
                             onClick={() =>
                               setFormData({
                                 ...formData,
@@ -268,20 +262,14 @@ export function ModelDialog({
 
                 {nativeModelsForApiFamily.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    {locale === "zh-CN"
-                      ? `${formData.api_family || "该 API 家族"} 暂无可用的原生模型。稍后可在 /models/:id/proxy 配置目标。`
-                      : `No native models available for the ${formData.api_family || "selected"} API family yet. Configure targets later on /models/:id/proxy.`}
+                      {copy.noNativeModelsForFamily(formData.api_family || messages.common.apiFamily)}
                   </p>
                 ) : (
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="min-w-0 text-xs text-muted-foreground">
                       {remainingProxyTargets.length === 0
-                        ? locale === "zh-CN"
-                          ? "当前 API 家族下的原生模型都已加入。"
-                          : "All native models for this API family are already included."
-                        : locale === "zh-CN"
-                          ? `还可添加 ${remainingProxyTargets.length} 个原生模型。`
-                          : `${remainingProxyTargets.length} more native targets available.`}
+                        ? copy.allNativeModelsIncluded
+                        : copy.remainingNativeTargets(formatNumber(remainingProxyTargets.length))}
                     </p>
                     <Button
                       type="button"
@@ -301,7 +289,7 @@ export function ModelDialog({
                         });
                       }}
                     >
-                      {locale === "zh-CN" ? "添加目标" : "Add Target"}
+                      {copy.addTarget}
                     </Button>
                   </div>
                 )}
@@ -311,12 +299,10 @@ export function ModelDialog({
 
           {formData.model_type === "native" && (
             <div className="space-y-2">
-              <Label>{locale === "zh-CN" ? "负载均衡策略" : "Loadbalance Strategy"}</Label>
+              <Label>{detailCopy.loadbalanceStrategy}</Label>
               {loadbalanceStrategies.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  {locale === "zh-CN"
-                    ? "此配置档案没有可用的负载均衡策略。请先在负载均衡策略页面创建一个。"
-                    : "No loadbalance strategies are available for this profile. Create one on the Loadbalance Strategies page first."}
+                  {detailCopy.noLoadbalanceStrategiesAvailable}
                 </p>
               ) : (
                 <Select
@@ -324,7 +310,7 @@ export function ModelDialog({
                   onValueChange={(value) => setLoadbalanceStrategyId(Number.parseInt(value, 10))}
                 >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder={locale === "zh-CN" ? "选择策略" : "Select strategy"} />
+                       <SelectValue placeholder={detailCopy.selectStrategy} />
                     </SelectTrigger>
                     <SelectContent>
                       {loadbalanceStrategies.map((strategy) => (
@@ -339,15 +325,15 @@ export function ModelDialog({
           )}
 
           <SwitchController
-            label={locale === "zh-CN" ? "启用" : "Active"}
-            description={locale === "zh-CN" ? "开启或关闭此模型" : "Turn this model on or off"}
+            label={detailCopy.enabled}
+            description={copy.routingTypeDescription}
             checked={formData.is_enabled}
             onCheckedChange={(checked) => setFormData({ ...formData, is_enabled: checked })}
           />
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{locale === "zh-CN" ? "取消" : "Cancel"}</Button>
-            <Button type="submit">{locale === "zh-CN" ? "保存" : "Save"}</Button>
+            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{messages.settingsDialogs.cancel}</Button>
+            <Button type="submit">{copy.save}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
