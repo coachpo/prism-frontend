@@ -8,6 +8,7 @@ import {
 } from "@/lib/types";
 
 export const USAGE_STATISTICS_STORAGE_KEY = "prism.statistics.usage-state";
+const USAGE_STATISTICS_STORAGE_VERSION = 2;
 
 const DEFAULT_CHART_GRANULARITY: UsageStatisticsChartGranularityState = {
   costOverview: "hourly",
@@ -57,40 +58,140 @@ function parseChartGranularity(value: unknown): UsageStatisticsChartGranularityS
   };
 }
 
-export function readUsageStatisticsPageState(): UsageStatisticsPageState {
+interface StorageLike {
+  clear: () => void;
+  getItem: (key: string) => string | null;
+  key: (index: number) => string | null;
+  readonly length: number;
+  removeItem: (key: string) => void;
+  setItem: (key: string, value: string) => void;
+}
+
+interface UsageStatisticsStorageEnvelope {
+  version: number;
+  state: UsageStatisticsPageState;
+}
+
+function createMemoryStorage(): StorageLike {
+  let storage: Record<string, string> = {};
+
+  return {
+    clear: () => {
+      storage = {};
+    },
+    getItem: (key) => storage[key] ?? null,
+    key: (index) => Object.keys(storage)[index] ?? null,
+    get length() {
+      return Object.keys(storage).length;
+    },
+    removeItem: (key) => {
+      delete storage[key];
+    },
+    setItem: (key, value) => {
+      storage[key] = value;
+    },
+  };
+}
+
+function isStorageLike(value: unknown): value is StorageLike {
+  return (
+    isRecord(value) &&
+    typeof value.clear === "function" &&
+    typeof value.getItem === "function" &&
+    typeof value.key === "function" &&
+    typeof value.length === "number" &&
+    typeof value.removeItem === "function" &&
+    typeof value.setItem === "function"
+  );
+}
+
+function installStorageCompat(storage: StorageLike): StorageLike {
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: storage,
+  });
+
+  if (typeof window !== "undefined") {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: storage,
+    });
+  }
+
+  return storage;
+}
+
+function getLocalStorage(): StorageLike | null {
   if (typeof window === "undefined") {
+    return null;
+  }
+
+  if (isStorageLike(window.localStorage)) {
+    return window.localStorage;
+  }
+
+  return installStorageCompat(createMemoryStorage());
+}
+
+function parseUsageStatisticsPageState(value: unknown): UsageStatisticsPageState {
+  if (!isRecord(value)) {
     return getDefaultUsageStatisticsPageState();
   }
 
-  const raw = window.localStorage.getItem(USAGE_STATISTICS_STORAGE_KEY);
+  return {
+    chartGranularity: parseChartGranularity(value.chartGranularity),
+    selectedModelLines: Array.isArray(value.selectedModelLines)
+      ? value.selectedModelLines.filter((item): item is string => typeof item === "string")
+      : [],
+    selectedTimeRange: isUsageSnapshotPreset(value.selectedTimeRange)
+      ? value.selectedTimeRange
+      : "24h",
+  };
+}
+
+function isUsageStatisticsStorageEnvelope(value: unknown): value is UsageStatisticsStorageEnvelope {
+  return (
+    isRecord(value) &&
+    value.version === USAGE_STATISTICS_STORAGE_VERSION &&
+    isRecord(value.state)
+  );
+}
+
+if (typeof window !== "undefined" && !isStorageLike(window.localStorage)) {
+  installStorageCompat(createMemoryStorage());
+}
+
+export function readUsageStatisticsPageState(): UsageStatisticsPageState {
+  const storage = getLocalStorage();
+  if (!storage) {
+    return getDefaultUsageStatisticsPageState();
+  }
+
+  const raw = storage.getItem(USAGE_STATISTICS_STORAGE_KEY);
   if (!raw) {
     return getDefaultUsageStatisticsPageState();
   }
 
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed)) {
+    if (!isUsageStatisticsStorageEnvelope(parsed)) {
       return getDefaultUsageStatisticsPageState();
     }
 
-    return {
-      chartGranularity: parseChartGranularity(parsed.chartGranularity),
-      selectedModelLines: Array.isArray(parsed.selectedModelLines)
-        ? parsed.selectedModelLines.filter((value): value is string => typeof value === "string")
-        : [],
-      selectedTimeRange: isUsageSnapshotPreset(parsed.selectedTimeRange)
-        ? parsed.selectedTimeRange
-        : "24h",
-    };
+    return parseUsageStatisticsPageState(parsed.state);
   } catch {
     return getDefaultUsageStatisticsPageState();
   }
 }
 
 export function writeUsageStatisticsPageState(state: UsageStatisticsPageState): void {
-  if (typeof window === "undefined") {
+  const storage = getLocalStorage();
+  if (!storage) {
     return;
   }
 
-  window.localStorage.setItem(USAGE_STATISTICS_STORAGE_KEY, JSON.stringify(state));
+  storage.setItem(
+    USAGE_STATISTICS_STORAGE_KEY,
+    JSON.stringify({ state, version: USAGE_STATISTICS_STORAGE_VERSION }),
+  );
 }

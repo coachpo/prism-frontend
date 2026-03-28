@@ -5,6 +5,7 @@ import { useLocale } from "@/i18n/useLocale";
 import { UsageStatisticsPageSkeleton } from "./statistics/UsageStatisticsPageSkeleton";
 import { UsageControlsBar } from "./statistics/sections/UsageControlsBar";
 import { UsageOverviewSection } from "./statistics/sections/UsageOverviewSection";
+import { UsageModelLineSelectorSection } from "./statistics/sections/UsageModelLineSelectorSection";
 import { UsageServiceHealthSection } from "./statistics/sections/UsageServiceHealthSection";
 import { UsageTrendsSection } from "./statistics/sections/UsageTrendsSection";
 import { UsageBreakdownSection } from "./statistics/sections/UsageBreakdownSection";
@@ -41,7 +42,7 @@ export function StatisticsPage() {
   const snapshot = data.snapshot;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         description={messages.statistics.statisticsDescription}
         title={messages.statistics.statisticsTitle}
@@ -72,7 +73,7 @@ export function StatisticsPage() {
       ) : null}
 
       {snapshot ? (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <UsageOverviewSection
             currency={snapshot.currency}
             overview={snapshot.overview}
@@ -80,18 +81,21 @@ export function StatisticsPage() {
             tokenUsageTrendSeries={data.tokenUsageTrendSeries}
           />
 
+          <UsageModelLineSelectorSection
+            availableModelLineIds={data.availableModelLineIds}
+            onSetSelectedModelLines={state.setSelectedModelLines}
+            selectedModelLineIds={data.selectedModelLineIds}
+          />
+
           <UsageServiceHealthSection serviceHealth={snapshot.service_health} />
 
           <UsageTrendsSection
-            availableModelLineIds={data.availableModelLineIds}
             chartGranularity={{
               requestTrends: state.state.chartGranularity.requestTrends,
               tokenUsageTrends: state.state.chartGranularity.tokenUsageTrends,
             }}
             onSetChartGranularity={state.setChartGranularity}
-            onSetSelectedModelLines={state.setSelectedModelLines}
             requestTrendSeries={data.requestTrendSeries}
-            selectedModelLineIds={data.selectedModelLineIds}
             tokenUsageTrendSeries={data.tokenUsageTrendSeries}
           />
 
@@ -115,8 +119,11 @@ export function StatisticsPage() {
           </div>
 
           <RequestEventsTable
+            availableFilters={data.requestEventAvailableFilters}
             currency={snapshot.currency}
             items={data.requestEvents}
+            renderLimit={data.requestEventsRenderLimit}
+            shownCount={data.requestEventsShownCount}
             total={snapshot.request_events.total}
           />
           <ProxyApiKeyStatisticsTable

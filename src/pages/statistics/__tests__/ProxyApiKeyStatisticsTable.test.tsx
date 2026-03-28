@@ -44,6 +44,8 @@ describe("ProxyApiKeyStatisticsTable", () => {
     );
 
     expect(screen.getByText("Proxy API Key Statistics")).toBeInTheDocument();
+    expect(screen.getByTestId("proxy-key-summary-grid")).toBeInTheDocument();
+    expect(screen.getAllByTestId("proxy-key-summary-card")).toHaveLength(3);
     expect(screen.getByText("Primary runtime key")).toBeInTheDocument();
     expect(screen.getByText("prism_pk_primary_1234")).toBeInTheDocument();
     expect(screen.queryByText("Credential Statistics")).not.toBeInTheDocument();

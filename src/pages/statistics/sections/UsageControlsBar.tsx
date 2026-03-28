@@ -37,25 +37,31 @@ export function UsageControlsBar({
   const { formatRelativeTimeFromNow, messages } = useLocale();
 
   return (
-    <Card className="border-border/70 bg-card/95 shadow-none">
-      <CardContent className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          {(["all", "7h", "24h", "7d"] as const).map((preset) => (
-            <Button
-              key={preset}
-              onClick={() => onSelectTimeRange(preset)}
-              size="sm"
-              variant={selectedTimeRange === preset ? "default" : "outline"}
-            >
-              {TIME_RANGE_LABELS[preset](messages)}
-            </Button>
-          ))}
+    <Card className="overflow-hidden border-border/70 bg-card/95 shadow-none">
+      <CardContent
+        className="flex flex-col gap-2.5 p-2.5 lg:flex-row lg:items-center lg:justify-between"
+        data-testid="usage-controls-toolbar"
+      >
+        <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
+          <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            {messages.statistics.timeWindow}
+          </span>
+
+          <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border/70 bg-muted/35 p-1">
+            {(["all", "7h", "24h", "7d"] as const).map((preset) => (
+              <Button
+                key={preset}
+                onClick={() => onSelectTimeRange(preset)}
+                size="xs"
+                variant={selectedTimeRange === preset ? "default" : "ghost"}
+              >
+                {TIME_RANGE_LABELS[preset](messages)}
+              </Button>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-          <p className="mr-2 text-sm text-muted-foreground">
-            {messages.statistics.updated} {generatedAt ? formatRelativeTimeFromNow(generatedAt) : "—"}
-          </p>
           <Button onClick={onExportSnapshot} size="sm" variant="outline">
             <Download className="mr-2 h-4 w-4" />
             {messages.statistics.exportSnapshotJson}
@@ -71,6 +77,13 @@ export function UsageControlsBar({
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             {messages.statistics.refreshUsageStatistics}
           </Button>
+          <div
+            className="rounded-xl border border-border/70 bg-background/80 px-3 py-1.5 text-sm text-muted-foreground"
+            data-testid="usage-controls-updated"
+          >
+            <span className="mr-1 text-[11px] uppercase tracking-[0.18em]">{messages.statistics.updated}</span>
+            <span>{generatedAt ? formatRelativeTimeFromNow(generatedAt) : "—"}</span>
+          </div>
         </div>
       </CardContent>
     </Card>

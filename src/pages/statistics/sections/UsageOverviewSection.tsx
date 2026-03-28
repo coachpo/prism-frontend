@@ -1,4 +1,4 @@
-import { Activity, Coins, DollarSign, Gauge } from "lucide-react";
+import { Activity, Coins, DollarSign, Gauge, TrendingUp } from "lucide-react";
 import { useLocale } from "@/i18n/useLocale";
 import { formatMoneyMicros } from "@/lib/costing";
 import type {
@@ -27,6 +27,9 @@ export function UsageOverviewSection({
   tokenUsageTrendSeries,
 }: UsageOverviewSectionProps) {
   const { formatNumber, locale, messages } = useLocale();
+  const rollingWindowLabel = overview.rolling_window_minutes
+    ? `${formatNumber(overview.rolling_window_minutes)}m`
+    : null;
 
   const requestSparkline = resolveTrendSeriesLabel(requestTrendSeries)?.points.map((point) => ({
     label: point.bucket_start,
@@ -38,6 +41,15 @@ export function UsageOverviewSection({
     value: point.total_tokens,
   }));
 
+  const formattedAverageRpm = formatNumber(overview.average_rpm, { maximumFractionDigits: 2 });
+  const formattedAverageTpm = formatNumber(overview.average_tpm, { maximumFractionDigits: 2 });
+  const formattedRollingRpm = overview.rolling_rpm == null
+    ? null
+    : formatNumber(overview.rolling_rpm, { maximumFractionDigits: 2 });
+  const formattedRollingTpm = overview.rolling_tpm == null
+    ? null
+    : formatNumber(overview.rolling_tpm, { maximumFractionDigits: 2 });
+
   return (
     <section className="space-y-4">
       <div className="space-y-1">
@@ -45,49 +57,91 @@ export function UsageOverviewSection({
         <p className="text-sm text-muted-foreground">{messages.statistics.statisticsDescription}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <UsageKpiCard
-          detail={messages.statistics.totalRequests(formatNumber(overview.total_requests))}
-          icon={<Activity className="h-4 w-4" />}
-          label={messages.statistics.requests}
-          sparkline={requestSparkline}
-          sparklineColor="var(--color-chart-1)"
-          value={formatNumber(overview.total_requests)}
-        />
-        <UsageKpiCard
-          accentClassName="bg-emerald-500/10 text-emerald-500"
-          detail={`${formatNumber(overview.input_tokens)} in · ${formatNumber(overview.output_tokens)} out`}
-          icon={<Coins className="h-4 w-4" />}
-          label={messages.statistics.totalTokens}
-          sparkline={tokenSparkline}
-          sparklineColor="var(--color-chart-2)"
-          value={formatNumber(overview.total_tokens)}
-        />
-        <UsageKpiCard
-          accentClassName="bg-amber-500/10 text-amber-500"
-          detail={messages.statistics.successful(formatNumber(overview.success_requests))}
-          icon={<Gauge className="h-4 w-4" />}
-          label={messages.statistics.successRate}
-          sparkline={requestSparkline}
-          sparklineColor="var(--color-chart-4)"
-          value={`${overview.success_rate.toFixed(1)}%`}
-        />
-        <UsageKpiCard
-          accentClassName="bg-cyan-500/10 text-cyan-500"
-          detail={`${messages.statistics.averageRpm}: ${overview.average_rpm.toFixed(2)}`}
-          icon={<DollarSign className="h-4 w-4" />}
-          label={messages.statistics.totalSpend}
-          sparkline={tokenSparkline}
-          sparklineColor="var(--color-chart-3)"
-          value={formatMoneyMicros(
-            overview.total_cost_micros,
-            currency.symbol,
-            currency.code,
-            2,
-            6,
-            locale,
-          )}
-        />
+      <div className="grid gap-4 xl:grid-cols-12" data-testid="usage-kpi-grid">
+        <div className="rounded-[calc(var(--radius-xl)+2px)] bg-linear-to-br from-primary/12 via-primary/4 to-transparent p-px md:col-span-2 xl:col-span-6" data-testid="usage-kpi-dominant-card">
+          <div data-testid="usage-kpi-card">
+            <UsageKpiCard
+              accentClassName="bg-primary/10 text-primary"
+              detail={`${overview.success_rate.toFixed(1)}% ${messages.statistics.successRate.toLowerCase()} · ${messages.statistics.totalRequests(formatNumber(overview.total_requests))}`}
+              icon={<Activity className="h-4 w-4" />}
+              label={messages.statistics.requests}
+              sparkline={requestSparkline}
+              sparklineColor="var(--color-chart-1)"
+              value={formatNumber(overview.total_requests)}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-[calc(var(--radius-xl)+2px)] bg-linear-to-br from-success/14 via-success/5 to-transparent p-px md:col-span-2 xl:col-span-6" data-testid="usage-kpi-dominant-card">
+          <div data-testid="usage-kpi-card">
+            <UsageKpiCard
+              accentClassName="bg-success/10 text-success"
+              detail={`${formatNumber(overview.input_tokens)} in · ${formatNumber(overview.output_tokens)} out · ${formatNumber(overview.cached_tokens)} cached`}
+              icon={<Coins className="h-4 w-4" />}
+              label={messages.statistics.totalTokens}
+              sparkline={tokenSparkline}
+              sparklineColor="var(--color-chart-2)"
+              value={formatNumber(overview.total_tokens)}
+            />
+          </div>
+        </div>
+
+        <div className="md:col-span-1 xl:col-span-4" data-testid="usage-kpi-supporting-card">
+          <div data-testid="usage-kpi-card">
+            <UsageKpiCard
+              accentClassName="bg-info/10 text-info"
+              detail={
+                formattedRollingRpm && rollingWindowLabel
+                  ? `${messages.statistics.currentRpm}: ${formattedRollingRpm} · ${rollingWindowLabel}`
+                  : messages.statistics.averageRpm
+              }
+              icon={<Gauge className="h-4 w-4" />}
+              label="RPM"
+              sparkline={requestSparkline}
+              sparklineColor="var(--color-info)"
+              value={formattedAverageRpm}
+            />
+          </div>
+        </div>
+
+        <div className="md:col-span-1 xl:col-span-4" data-testid="usage-kpi-supporting-card">
+          <div data-testid="usage-kpi-card">
+            <UsageKpiCard
+              accentClassName="bg-warning/15 text-warning-foreground dark:text-warning"
+              detail={
+                formattedRollingTpm && rollingWindowLabel
+                  ? `${messages.statistics.tokenThroughput}: ${formattedRollingTpm} · ${rollingWindowLabel}`
+                  : messages.statistics.tokenThroughput
+              }
+              icon={<TrendingUp className="h-4 w-4" />}
+              label="TPM"
+              sparkline={tokenSparkline}
+              sparklineColor="var(--color-warning)"
+              value={formattedAverageTpm}
+            />
+          </div>
+        </div>
+
+        <div className="md:col-span-2 xl:col-span-4" data-testid="usage-kpi-supporting-card">
+          <div data-testid="usage-kpi-card">
+            <UsageKpiCard
+              accentClassName="bg-chart-3/10 text-foreground"
+              detail={messages.statistics.successful(formatNumber(overview.success_requests))}
+              icon={<DollarSign className="h-4 w-4" />}
+              label={messages.statistics.totalSpend}
+              sparkline={tokenSparkline}
+              sparklineColor="var(--color-chart-3)"
+              value={formatMoneyMicros(
+                overview.total_cost_micros,
+                currency.symbol,
+                currency.code,
+                2,
+                6,
+                locale,
+              )}
+            />
+          </div>
+        </div>
       </div>
     </section>
   );

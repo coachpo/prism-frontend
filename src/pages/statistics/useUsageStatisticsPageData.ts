@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { useLocale } from "@/i18n/useLocale";
 import type {
   UsageCostOverviewPoint,
+  UsageRequestEventAvailableFilters,
   UsageRequestTrendSeries,
   UsageSnapshotRequestEventItem,
   UsageSnapshotResponse,
@@ -20,6 +22,17 @@ interface UseUsageStatisticsPageDataParams {
 export interface UsageStatisticsRequestEventRow extends UsageSnapshotRequestEventItem {
   request_logs_href: string;
 }
+
+const EMPTY_REQUEST_EVENT_AVAILABLE_FILTERS: UsageRequestEventAvailableFilters = {
+  api_families: [],
+  endpoints: [],
+  models: [],
+  proxy_api_keys: [],
+};
+
+const ALL_MODELS_LABEL = "All Models";
+const UNKNOWN_ENDPOINT_LABEL = "Unknown Endpoint";
+const UNKNOWN_PROXY_API_KEY_LABEL = "Unknown Proxy API Key";
 
 function collectModelLineIds(snapshot: UsageSnapshotResponse | null): string[] {
   if (!snapshot) {
@@ -65,6 +78,7 @@ export function useUsageStatisticsPageData({
   selectedProfileId,
   state,
 }: UseUsageStatisticsPageDataParams) {
+  const { messages } = useLocale();
   const [snapshot, setSnapshot] = useState<UsageSnapshotResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +103,9 @@ export function useUsageStatisticsPageData({
       }
 
       setError(
-        fetchError instanceof Error ? fetchError.message : "Failed to load usage statistics",
+        fetchError instanceof Error
+          ? fetchError.message
+          : messages.statistics.failedToLoadUsageStatistics,
       );
       setSnapshot(null);
     } finally {
@@ -97,7 +113,95 @@ export function useUsageStatisticsPageData({
         setLoading(false);
       }
     }
-  }, [state.selectedTimeRange]);
+  }, [messages.statistics.failedToLoadUsageStatistics, state.selectedTimeRange]);
+
+  const localizedSnapshot = useMemo<UsageSnapshotResponse | null>(() => {
+    if (!snapshot) {
+      return null;
+    }
+
+    const localizeSeriesLabel = (label: string, key: string) => {
+      if (key === "all" || label === ALL_MODELS_LABEL) {
+        return messages.statistics.allModels;
+      }
+      return label;
+    };
+
+    const localizeEndpointLabel = (label: string) => {
+      if (label === UNKNOWN_ENDPOINT_LABEL) {
+        return messages.modelDetail.unknownEndpoint;
+      }
+      return label;
+    };
+
+    const localizeProxyApiKeyLabel = (label: string | null) => {
+      if (!label || label === UNKNOWN_PROXY_API_KEY_LABEL) {
+        return messages.statistics.unknownProxyApiKey;
+      }
+      return label;
+    };
+
+    const availableFilters =
+      snapshot.request_events.available_filters ?? EMPTY_REQUEST_EVENT_AVAILABLE_FILTERS;
+
+    return {
+      ...snapshot,
+      endpoint_statistics: snapshot.endpoint_statistics.map((item) => ({
+        ...item,
+        endpoint_label: localizeEndpointLabel(item.endpoint_label),
+      })),
+      proxy_api_key_statistics: snapshot.proxy_api_key_statistics.map((item) => ({
+        ...item,
+        proxy_api_key_label: localizeProxyApiKeyLabel(item.proxy_api_key_label),
+      })),
+      request_events: {
+        ...snapshot.request_events,
+        available_filters: {
+          ...availableFilters,
+          endpoints: availableFilters.endpoints.map((item) => ({
+            ...item,
+            label: localizeEndpointLabel(item.label),
+          })),
+          models: availableFilters.models.map((item) => ({
+            ...item,
+            label: item.model_id === "all" || item.label === ALL_MODELS_LABEL ? messages.statistics.allModels : item.label,
+          })),
+          proxy_api_keys: availableFilters.proxy_api_keys.map((item) => ({
+            ...item,
+            label: localizeProxyApiKeyLabel(item.label),
+          })),
+        },
+        items: snapshot.request_events.items.map((item) => ({
+          ...item,
+          endpoint_label: localizeEndpointLabel(item.endpoint_label),
+          proxy_api_key: {
+            ...item.proxy_api_key,
+            label: localizeProxyApiKeyLabel(item.proxy_api_key.label),
+          },
+        })),
+      },
+      request_trends: {
+        hourly: snapshot.request_trends.hourly.map((series) => ({
+          ...series,
+          label: localizeSeriesLabel(series.label, series.key),
+        })),
+        daily: snapshot.request_trends.daily.map((series) => ({
+          ...series,
+          label: localizeSeriesLabel(series.label, series.key),
+        })),
+      },
+      token_usage_trends: {
+        hourly: snapshot.token_usage_trends.hourly.map((series) => ({
+          ...series,
+          label: localizeSeriesLabel(series.label, series.key),
+        })),
+        daily: snapshot.token_usage_trends.daily.map((series) => ({
+          ...series,
+          label: localizeSeriesLabel(series.label, series.key),
+        })),
+      },
+    };
+  }, [messages.modelDetail.unknownEndpoint, messages.statistics.allModels, messages.statistics.unknownProxyApiKey, snapshot]);
 
   useEffect(() => {
     void revision;
@@ -117,53 +221,59 @@ export function useUsageStatisticsPageData({
   );
 
   const requestTrendSeries = useMemo<UsageRequestTrendSeries[]>(() => {
-    if (!snapshot) {
+    if (!localizedSnapshot) {
       return [];
     }
 
     return filterSeriesBySelectedModels(
-      snapshot.request_trends[state.chartGranularity.requestTrends],
+      localizedSnapshot.request_trends[state.chartGranularity.requestTrends],
       selectedModelLineIds,
     );
-  }, [selectedModelLineIds, snapshot, state.chartGranularity.requestTrends]);
+  }, [localizedSnapshot, selectedModelLineIds, state.chartGranularity.requestTrends]);
 
   const tokenUsageTrendSeries = useMemo<UsageTokenTrendSeries[]>(() => {
-    if (!snapshot) {
+    if (!localizedSnapshot) {
       return [];
     }
 
     return filterSeriesBySelectedModels(
-      snapshot.token_usage_trends[state.chartGranularity.tokenUsageTrends],
+      localizedSnapshot.token_usage_trends[state.chartGranularity.tokenUsageTrends],
       selectedModelLineIds,
     );
-  }, [selectedModelLineIds, snapshot, state.chartGranularity.tokenUsageTrends]);
+  }, [localizedSnapshot, selectedModelLineIds, state.chartGranularity.tokenUsageTrends]);
 
   const tokenTypeBreakdown = useMemo<UsageTokenTypeBreakdownPoint[]>(() => {
-    if (!snapshot) {
+    if (!localizedSnapshot) {
       return [];
     }
 
-    return snapshot.token_type_breakdown[state.chartGranularity.tokenTypeBreakdown];
-  }, [snapshot, state.chartGranularity.tokenTypeBreakdown]);
+    return localizedSnapshot.token_type_breakdown[state.chartGranularity.tokenTypeBreakdown];
+  }, [localizedSnapshot, state.chartGranularity.tokenTypeBreakdown]);
 
   const costOverviewSeries = useMemo<UsageCostOverviewPoint[]>(() => {
-    if (!snapshot) {
+    if (!localizedSnapshot) {
       return [];
     }
 
-    return snapshot.cost_overview[state.chartGranularity.costOverview];
-  }, [snapshot, state.chartGranularity.costOverview]);
+    return localizedSnapshot.cost_overview[state.chartGranularity.costOverview];
+  }, [localizedSnapshot, state.chartGranularity.costOverview]);
 
   const requestEvents = useMemo<UsageStatisticsRequestEventRow[]>(() => {
-    if (!snapshot) {
+    if (!localizedSnapshot) {
       return [];
     }
 
-    return snapshot.request_events.items.map((item) => ({
+    return localizedSnapshot.request_events.items.map((item) => ({
       ...item,
       request_logs_href: buildRequestLogIngressLink(item.ingress_request_id),
     }));
-  }, [snapshot]);
+  }, [localizedSnapshot]);
+
+  const requestEventsTotal = localizedSnapshot?.request_events.total ?? 0;
+  const requestEventsShownCount = localizedSnapshot?.request_events.shown_count ?? 0;
+  const requestEventsRenderLimit = localizedSnapshot?.request_events.render_limit ?? 0;
+  const requestEventAvailableFilters =
+    localizedSnapshot?.request_events.available_filters ?? EMPTY_REQUEST_EVENT_AVAILABLE_FILTERS;
 
   return {
     availableModelLineIds,
@@ -171,10 +281,14 @@ export function useUsageStatisticsPageData({
     error,
     loading,
     refresh,
+    requestEventAvailableFilters,
     requestEvents,
+    requestEventsRenderLimit,
+    requestEventsShownCount,
+    requestEventsTotal,
     requestTrendSeries,
     selectedModelLineIds,
-    snapshot,
+    snapshot: localizedSnapshot,
     tokenTypeBreakdown,
     tokenUsageTrendSeries,
   };

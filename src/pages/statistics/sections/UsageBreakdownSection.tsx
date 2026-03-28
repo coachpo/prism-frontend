@@ -37,17 +37,6 @@ interface UsageBreakdownSectionProps {
   tokenTypeBreakdown: UsageTokenTypeBreakdownPoint[];
 }
 
-const TOKEN_BREAKDOWN_CONFIG: ChartConfig = {
-  cached_tokens: { color: "var(--color-chart-4)", label: "Cached" },
-  input_tokens: { color: "var(--color-chart-1)", label: "Input" },
-  output_tokens: { color: "var(--color-chart-2)", label: "Output" },
-  reasoning_tokens: { color: "var(--color-chart-3)", label: "Reasoning" },
-};
-
-const COST_CONFIG: ChartConfig = {
-  total_cost_micros: { color: "var(--color-chart-3)", label: "Cost" },
-};
-
 export function UsageBreakdownSection({
   chartGranularity,
   costOverview,
@@ -59,6 +48,21 @@ export function UsageBreakdownSection({
   tokenTypeBreakdown,
 }: UsageBreakdownSectionProps) {
   const { formatNumber, locale, messages } = useLocale();
+  const tokenBreakdownConfig = useMemo<ChartConfig>(
+    () => ({
+      cached_tokens: { color: "var(--color-chart-4)", label: messages.statistics.cachedPrefix },
+      input_tokens: { color: "var(--color-chart-1)", label: messages.statistics.input },
+      output_tokens: { color: "var(--color-chart-2)", label: messages.statistics.output },
+      reasoning_tokens: { color: "var(--color-chart-3)", label: messages.requestLogs.reasoning },
+    }),
+    [messages.requestLogs.reasoning, messages.statistics.cachedPrefix, messages.statistics.input, messages.statistics.output],
+  );
+  const costConfig = useMemo<ChartConfig>(
+    () => ({
+      total_cost_micros: { color: "var(--color-chart-3)", label: messages.statistics.totalSpend },
+    }),
+    [messages.statistics.totalSpend],
+  );
 
   const tokenData = tokenTypeBreakdown;
   const topEndpointItems = useMemo(
@@ -124,7 +128,7 @@ export function UsageBreakdownSection({
           {tokenData.length === 0 ? (
             <EmptyState className="py-10" description={messages.statistics.adjustFiltersOrTimeRange} title={messages.statistics.noTokenUsage} />
           ) : (
-            <ChartContainer className="mt-6 h-80 w-full" config={TOKEN_BREAKDOWN_CONFIG}>
+            <ChartContainer className="mt-6 h-80 w-full" config={tokenBreakdownConfig}>
               <BarChart data={tokenData} margin={{ bottom: 0, left: 0, right: 12, top: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis
@@ -201,7 +205,7 @@ export function UsageBreakdownSection({
                 </div>
               </div>
 
-              <ChartContainer className="h-56 w-full" config={COST_CONFIG}>
+              <ChartContainer className="h-56 w-full" config={costConfig}>
                 <AreaChart data={costOverviewSeries} margin={{ bottom: 0, left: 0, right: 12, top: 8 }}>
                   <defs>
                     <linearGradient id="usage-cost-fill" x1="0" x2="0" y1="0" y2="1">

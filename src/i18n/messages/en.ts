@@ -37,6 +37,7 @@ export interface Messages {
   common: {
     apiFamily: string;
     loadingApplication: string;
+    notApplicable: string;
     vendor: string;
   };
   dashboard: {
@@ -640,6 +641,7 @@ export interface Messages {
     proxyApiKeyStatisticsTitle: string;
     removeLine: (label: string) => string;
     requestEventsTitle: string;
+    showingRequestEvents: (shown: string, total: string) => string;
     requestTrendsTitle: string;
     requestsTab: string;
     requests: string;
@@ -668,8 +670,15 @@ export interface Messages {
     noDataAvailable: string;
     reasoningCaptured: string;
     anySpecialCaptured: string;
+    failedCount: (count: string) => string;
+    failedToLoadUsageStatistics: string;
+    healthStatusDegraded: string;
+    healthStatusDown: string;
+    healthStatusIdle: string;
+    healthStatusOk: string;
     noTokenUsage: string;
     successful: (count: string) => string;
+    successfulCount: (count: string) => string;
     successOnly: string;
     successRate: string;
     specialTokens: string;
@@ -692,6 +701,7 @@ export interface Messages {
     updated: string;
     unpriced: (count: string) => string;
     unpricedBreakdown: string;
+    unknownProxyApiKey: string;
     usageAndCost: string;
     performance: string;
     requestOutcomeOverTime: string;
@@ -747,6 +757,7 @@ export const enMessages: Messages = {
   common: {
     apiFamily: "API Family",
     loadingApplication: "Loading application...",
+    notApplicable: "N/A",
     vendor: "Vendor",
   },
   dashboard: {
@@ -1372,6 +1383,7 @@ export const enMessages: Messages = {
     proxyApiKeyStatisticsTitle: "Proxy API Key Statistics",
     removeLine: (label) => `Remove line ${label}`,
     requestEventsTitle: "Request Events",
+    showingRequestEvents: (shown, total) => `Showing ${shown} of ${total} request events`,
     requestTrendsTitle: "Request Trends",
     requestsInWindow: (count) => `${count} reqs in window`,
     requestsTab: "Requests",
@@ -1398,8 +1410,15 @@ export const enMessages: Messages = {
     noDataAvailable: "No data available",
     reasoningCaptured: "Reasoning captured",
     anySpecialCaptured: "Any special captured",
+    failedCount: (count) => `${count} failed`,
+    failedToLoadUsageStatistics: "Failed to load usage statistics",
+    healthStatusDegraded: "Degraded",
+    healthStatusDown: "Down",
+    healthStatusIdle: "Idle",
+    healthStatusOk: "OK",
     noTokenUsage: "No token usage",
     successful: (count) => `${count} successful`,
+    successfulCount: (count) => `${count} successful`,
     successOnly: "Successful only",
     successRate: "Success Rate",
     specialTokens: "Special Tokens",
@@ -1425,6 +1444,7 @@ export const enMessages: Messages = {
     updated: "Updated",
     unpriced: (count) => `${count} unpriced`,
     unpricedBreakdown: "Unpriced Breakdown",
+    unknownProxyApiKey: "Unknown proxy API key",
     usageAndCost: "Usage & Cost",
     performance: "Performance",
     requestOutcomeOverTime: "Request Outcome Over Time",

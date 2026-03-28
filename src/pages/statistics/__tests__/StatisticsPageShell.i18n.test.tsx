@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
@@ -147,6 +147,11 @@ function createSnapshot(): UsageSnapshotResponse {
       input_tokens: 140,
       output_tokens: 70,
       reasoning_tokens: 10,
+      rolling_request_count: 4,
+      rolling_rpm: 4,
+      rolling_token_count: 245,
+      rolling_tpm: 245,
+      rolling_window_minutes: 60,
       success_rate: 100,
       success_requests: 4,
       total_cost_micros: 4200,
@@ -260,6 +265,40 @@ function createSnapshot(): UsageSnapshotResponse {
     },
     service_health: {
       availability_percentage: 100,
+      cells: [
+        {
+          availability_percentage: 100,
+          bucket_start: "2026-03-27T00:00:00Z",
+          failed_count: 0,
+          request_count: 2,
+          status: "ok",
+          success_count: 2,
+        },
+        {
+          availability_percentage: 50,
+          bucket_start: "2026-03-27T00:15:00Z",
+          failed_count: 1,
+          request_count: 2,
+          status: "degraded",
+          success_count: 1,
+        },
+        {
+          availability_percentage: 0,
+          bucket_start: "2026-03-27T00:30:00Z",
+          failed_count: 1,
+          request_count: 1,
+          status: "down",
+          success_count: 0,
+        },
+        {
+          availability_percentage: null,
+          bucket_start: "2026-03-27T00:45:00Z",
+          failed_count: 0,
+          request_count: 0,
+          status: "empty",
+          success_count: 0,
+        },
+      ],
       daily: [
         {
           availability_percentage: 100,
@@ -269,7 +308,9 @@ function createSnapshot(): UsageSnapshotResponse {
           success_count: 4,
         },
       ],
+      days: 7,
       failed_count: 0,
+      interval_minutes: 15,
       request_count: 4,
       success_count: 4,
     },
@@ -406,13 +447,14 @@ describe("StatisticsPage shell i18n", () => {
     };
   });
 
-  it("renders the single-page shell with loading, refresh, and the Task 6 statistics sections", () => {
+  it("renders the single-page shell with loading, compact toolbar, and the Task 3 statistics hierarchy", () => {
     const { rerender } = renderPage();
 
     expect(screen.getByRole("heading", { name: "用量统计" })).toBeInTheDocument();
     expect(screen.getByText("基于最终请求的一体化用量快照，覆盖请求、令牌、成本、端点、模型和代理 API 密钥。"))
       .toBeInTheDocument();
     expect(screen.getByRole("button", { name: "刷新用量统计" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /json/i })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "usage-statistics-page-skeleton" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "运营" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "吞吐量" })).not.toBeInTheDocument();
@@ -443,17 +485,43 @@ describe("StatisticsPage shell i18n", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("总览")).toBeInTheDocument();
-    expect(screen.getAllByText("显示线路").length).toBeGreaterThan(0);
-    expect(screen.getByText("1 / 9")).toBeInTheDocument();
-    expect(screen.getByText("服务健康")).toBeInTheDocument();
-    expect(screen.getAllByText("请求趋势").length).toBeGreaterThan(0);
+    const overviewHeading = screen.getByRole("heading", { level: 2, name: "总览" });
+    const modelLinesHeading = screen.getByRole("heading", { level: 2, name: "显示线路" });
+    const serviceHealthHeading = screen.getByRole("heading", { level: 2, name: "服务健康" });
+    const requestTrendsHeading = screen.getByRole("heading", { level: 2, name: "请求趋势" });
+    const tokenBreakdownHeading = screen.getByRole("heading", { level: 2, name: "令牌类型拆分" });
+
+    expect(screen.getAllByTestId("usage-kpi-card")).toHaveLength(5);
+    expect(screen.getByTestId("usage-controls-toolbar")).toBeInTheDocument();
+    const toolbar = screen.getByTestId("usage-controls-toolbar");
+    expect(within(toolbar).getByRole("button", { name: /导出快照 json/i })).toBeInTheDocument();
+    expect(within(toolbar).getByRole("button", { name: "刷新用量统计" })).toBeInTheDocument();
+    expect(within(toolbar).getByTestId("usage-controls-updated").textContent).toContain("更新时间");
+    expect(screen.getByTestId("usage-kpi-grid")).toBeInTheDocument();
+    expect(screen.getAllByTestId("usage-kpi-dominant-card")).toHaveLength(2);
+    expect(screen.getAllByTestId("usage-kpi-supporting-card")).toHaveLength(3);
+    expect(screen.getByTestId("usage-model-line-section")).toBeInTheDocument();
+    expect(screen.getByTestId("usage-trends-grid")).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "显示线路" })).toHaveLength(1);
+    expect(screen.getAllByText("1 / 9").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId("usage-health-heatmap")).toBeInTheDocument();
+    expect(screen.getByTestId("usage-health-strip")).toBeInTheDocument();
     expect(screen.getByText("令牌用量趋势")).toBeInTheDocument();
-    expect(screen.getAllByText("令牌类型拆分").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("成本概览").length).toBeGreaterThan(0);
+    const tpmCard = screen
+      .getAllByTestId("usage-kpi-card")
+      .find((card) => within(card).queryByText("TPM"));
+    expect(tpmCard).toBeDefined();
+    expect(within(tpmCard as HTMLElement).getByText("令牌吞吐量: 245 · 60m")).toBeInTheDocument();
+    expect(within(tpmCard as HTMLElement).queryByText("Current TPM: 245 · 60m")).not.toBeInTheDocument();
+    expect(screen.getAllByText("成本概览")[0]).toBeInTheDocument();
     expect(screen.getByText("端点统计")).toBeInTheDocument();
     expect(screen.getByText("模型统计")).toBeInTheDocument();
     expect(screen.getByText("请求事件")).toBeInTheDocument();
     expect(screen.getByText("代理 API 密钥统计")).toBeInTheDocument();
+
+    expect(overviewHeading.compareDocumentPosition(modelLinesHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(modelLinesHeading.compareDocumentPosition(serviceHealthHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(serviceHealthHeading.compareDocumentPosition(requestTrendsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(requestTrendsHeading.compareDocumentPosition(tokenBreakdownHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

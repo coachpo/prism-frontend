@@ -34,14 +34,17 @@ describe("useUsageStatisticsPageState", () => {
     });
 
     expect(JSON.parse(localStorage.getItem(USAGE_STATISTICS_STORAGE_KEY) ?? "null")).toEqual({
-      chartGranularity: {
-        costOverview: "daily",
-        requestTrends: "daily",
-        tokenTypeBreakdown: "hourly",
-        tokenUsageTrends: "hourly",
+      state: {
+        chartGranularity: {
+          costOverview: "daily",
+          requestTrends: "daily",
+          tokenTypeBreakdown: "hourly",
+          tokenUsageTrends: "hourly",
+        },
+        selectedModelLines: ["gpt-5.4", "claude-sonnet-4-6"],
+        selectedTimeRange: "7d",
       },
-      selectedModelLines: ["gpt-5.4", "claude-sonnet-4-6"],
-      selectedTimeRange: "7d",
+      version: 2,
     });
 
     unmount();
@@ -53,6 +56,33 @@ describe("useUsageStatisticsPageState", () => {
     expect(nextResult.current.state.chartGranularity).toEqual({
       costOverview: "daily",
       requestTrends: "daily",
+      tokenTypeBreakdown: "hourly",
+      tokenUsageTrends: "hourly",
+    });
+  });
+
+  it("resets to defaults when the stored shape is from the pre-versioned contract", () => {
+    localStorage.setItem(
+      USAGE_STATISTICS_STORAGE_KEY,
+      JSON.stringify({
+        chartGranularity: {
+          costOverview: "daily",
+          requestTrends: "daily",
+          tokenTypeBreakdown: "daily",
+          tokenUsageTrends: "daily",
+        },
+        selectedModelLines: ["legacy-model"],
+        selectedTimeRange: "7d",
+      }),
+    );
+
+    const { result } = renderHook(() => useUsageStatisticsPageState());
+
+    expect(result.current.state.selectedTimeRange).toBe("24h");
+    expect(result.current.state.selectedModelLines).toEqual([]);
+    expect(result.current.state.chartGranularity).toEqual({
+      costOverview: "hourly",
+      requestTrends: "hourly",
       tokenTypeBreakdown: "hourly",
       tokenUsageTrends: "hourly",
     });

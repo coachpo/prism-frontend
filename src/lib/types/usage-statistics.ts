@@ -45,6 +45,11 @@ export interface UsageSnapshotOverview {
   average_rpm: number;
   average_tpm: number;
   total_cost_micros: number;
+  rolling_window_minutes?: number;
+  rolling_request_count?: number;
+  rolling_token_count?: number;
+  rolling_rpm?: number;
+  rolling_tpm?: number;
 }
 
 export interface UsageServiceHealthPoint {
@@ -55,12 +60,26 @@ export interface UsageServiceHealthPoint {
   availability_percentage: number | null;
 }
 
+export type UsageServiceHealthCellStatus = "ok" | "degraded" | "down" | "empty";
+
+export interface UsageServiceHealthCell {
+  bucket_start: string;
+  request_count: number;
+  success_count: number;
+  failed_count: number;
+  availability_percentage: number | null;
+  status: UsageServiceHealthCellStatus;
+}
+
 export interface UsageServiceHealth {
   availability_percentage: number | null;
   request_count: number;
   success_count: number;
   failed_count: number;
+  days?: number;
+  interval_minutes?: number;
   daily: UsageServiceHealthPoint[];
+  cells?: UsageServiceHealthCell[];
 }
 
 export interface UsageRequestTrendPoint {
@@ -171,6 +190,34 @@ export interface UsageProxyApiKeyReference {
   key_prefix: string | null;
 }
 
+export interface UsageRequestEventModelFilter {
+  model_id: string;
+  label: string;
+}
+
+export interface UsageRequestEventEndpointFilter {
+  endpoint_id: number | null;
+  label: string;
+}
+
+export interface UsageRequestEventApiFamilyFilter {
+  api_family: ApiFamily;
+  label: string;
+}
+
+export interface UsageRequestEventProxyApiKeyFilter {
+  proxy_api_key_id: number | null;
+  label: string;
+  key_prefix: string | null;
+}
+
+export interface UsageRequestEventAvailableFilters {
+  models: UsageRequestEventModelFilter[];
+  endpoints: UsageRequestEventEndpointFilter[];
+  api_families: UsageRequestEventApiFamilyFilter[];
+  proxy_api_keys: UsageRequestEventProxyApiKeyFilter[];
+}
+
 export interface UsageSnapshotRequestEventItem {
   ingress_request_id: string;
   created_at: string;
@@ -196,6 +243,9 @@ export interface UsageSnapshotRequestEventItem {
 
 export interface UsageRequestEventsSection {
   total: number;
+  shown_count?: number;
+  render_limit?: number;
+  available_filters?: UsageRequestEventAvailableFilters;
   items: UsageSnapshotRequestEventItem[];
 }
 
