@@ -1,8 +1,30 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { LoadbalanceStrategy } from "@/lib/types";
+import type { AutoRecoveryEnabled, LoadbalanceStrategy } from "@/lib/types";
 import { LoadbalanceStrategiesTable } from "../LoadbalanceStrategiesTable";
+
+function buildAutoRecoveryEnabled(
+  overrides: Partial<AutoRecoveryEnabled> = {},
+): AutoRecoveryEnabled {
+  return {
+    mode: "enabled",
+    status_codes: [429, 503],
+    cooldown: {
+      base_seconds: 45,
+      failure_threshold: 4,
+      backoff_multiplier: 3.5,
+      max_cooldown_seconds: 720,
+      jitter_ratio: 0.35,
+    },
+    ban: {
+      mode: "temporary",
+      max_cooldown_strikes_before_ban: 3,
+      ban_duration_seconds: 1800,
+    },
+    ...overrides,
+  };
+}
 
 function buildStrategy(overrides: Partial<LoadbalanceStrategy> = {}): LoadbalanceStrategy {
   return {
@@ -10,16 +32,7 @@ function buildStrategy(overrides: Partial<LoadbalanceStrategy> = {}): Loadbalanc
     profile_id: 3,
     name: "Primary failover",
     strategy_type: "failover",
-    failover_recovery_enabled: true,
-    failover_cooldown_seconds: 45,
-    failover_failure_threshold: 4,
-    failover_backoff_multiplier: 3.5,
-    failover_max_cooldown_seconds: 720,
-    failover_jitter_ratio: 0.35,
-    failover_status_codes: [429, 503],
-    failover_ban_mode: "temporary",
-    failover_max_cooldown_strikes_before_ban: 3,
-    failover_ban_duration_seconds: 1800,
+    auto_recovery: buildAutoRecoveryEnabled(),
     attached_model_count: 4,
     created_at: "2026-03-25T08:00:00Z",
     updated_at: "2026-03-25T08:00:00Z",
@@ -112,7 +125,7 @@ describe("LoadbalanceStrategiesTable", () => {
     const strategy = buildStrategy({
       name: "Primary fill-first",
       strategy_type: "fill-first",
-      failover_recovery_enabled: true,
+      auto_recovery: buildAutoRecoveryEnabled(),
     });
 
     render(
@@ -178,5 +191,29 @@ describe("LoadbalanceStrategiesTable", () => {
     expect(screen.getByText("已启用")).toBeInTheDocument();
     expect(screen.getByText(/阈值 4/)).toBeInTheDocument();
     expect(screen.getByText(/退避 ×3.5/)).toBeInTheDocument();
+  });
+
+  it("derives disabled recovery state from the nested auto_recovery branch", () => {
+    const strategy = buildStrategy({
+      strategy_type: "fill-first",
+      auto_recovery: { mode: "disabled" },
+    });
+
+    render(
+      <LocaleProvider>
+        <LoadbalanceStrategiesTable
+          loadbalanceStrategies={[strategy]}
+          loadbalanceStrategiesLoading={false}
+          loadbalanceStrategyPreparingEditId={null}
+          onCreate={vi.fn()}
+          onDelete={vi.fn()}
+          onEdit={vi.fn().mockResolvedValue(undefined)}
+        />
+      </LocaleProvider>
+    );
+
+    expect(screen.getByText("Disabled")).toBeInTheDocument();
+    expect(screen.queryByText(/Threshold 4/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Backoff ×3.5/)).not.toBeInTheDocument();
   });
 });

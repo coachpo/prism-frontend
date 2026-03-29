@@ -23,18 +23,20 @@ function getBanSummary(
   },
   formatNumber: (value: number) => string,
 ) {
-  if (strategy.failover_ban_mode === "off") {
+  if (strategy.auto_recovery.mode !== "enabled" || strategy.auto_recovery.ban.mode === "off") {
     return copy.banOff;
   }
 
-  if (strategy.failover_ban_mode === "temporary") {
+  if (strategy.auto_recovery.ban.mode === "temporary") {
     return copy.banTemporary(
-      formatNumber(strategy.failover_max_cooldown_strikes_before_ban),
-      formatNumber(strategy.failover_ban_duration_seconds),
+      formatNumber(strategy.auto_recovery.ban.max_cooldown_strikes_before_ban),
+      formatNumber(strategy.auto_recovery.ban.ban_duration_seconds),
     );
   }
 
-  return copy.banManualDismiss(formatNumber(strategy.failover_max_cooldown_strikes_before_ban));
+  return copy.banManualDismiss(
+    formatNumber(strategy.auto_recovery.ban.max_cooldown_strikes_before_ban),
+  );
 }
 
 function getStrategyLabel(
@@ -180,20 +182,24 @@ export function LoadbalanceStrategiesTable({
                           <span className="text-xs text-muted-foreground">
                             {getStrategySummary(strategy.strategy_type, strategyCopy)}
                           </span>
-                          {strategy.strategy_type !== "single" ? (
+                          {strategy.strategy_type !== "single" &&
+                          strategy.auto_recovery.mode === "enabled" ? (
                             <>
                               <span className="text-xs text-muted-foreground">
                                 {tableCopy.thresholdBaseMax(
-                                  formatNumber(strategy.failover_failure_threshold),
-                                  formatNumber(strategy.failover_cooldown_seconds),
-                                  formatNumber(strategy.failover_max_cooldown_seconds),
+                                  formatNumber(strategy.auto_recovery.cooldown.failure_threshold),
+                                  formatNumber(strategy.auto_recovery.cooldown.base_seconds),
+                                  formatNumber(strategy.auto_recovery.cooldown.max_cooldown_seconds),
                                 )}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {tableCopy.backoffJitterStatusCodes(
-                                  String(strategy.failover_backoff_multiplier),
-                                  String(strategy.failover_jitter_ratio),
-                                  getStatusCodeSummary(strategy.failover_status_codes, tableCopy),
+                                  String(strategy.auto_recovery.cooldown.backoff_multiplier),
+                                  String(strategy.auto_recovery.cooldown.jitter_ratio),
+                                  getStatusCodeSummary(
+                                    strategy.auto_recovery.status_codes,
+                                    tableCopy,
+                                  ),
                                 )}
                               </span>
                               <span className="text-xs text-muted-foreground">
@@ -210,12 +216,16 @@ export function LoadbalanceStrategiesTable({
                         />
                       </TableCell>
                       <TableCell>
-                        <StatusBadge
-                          label={
-                            strategy.failover_recovery_enabled ? tableCopy.enabled : tableCopy.disabled
-                          }
-                          intent={strategy.failover_recovery_enabled ? "success" : "muted"}
-                        />
+                          <StatusBadge
+                            label={
+                              strategy.auto_recovery.mode === "enabled"
+                                ? tableCopy.enabled
+                                : tableCopy.disabled
+                            }
+                            intent={
+                              strategy.auto_recovery.mode === "enabled" ? "success" : "muted"
+                            }
+                          />
                       </TableCell>
                       <TableCell>
                         <span className="text-sm tabular-nums">{formatNumber(strategy.attached_model_count)}</span>

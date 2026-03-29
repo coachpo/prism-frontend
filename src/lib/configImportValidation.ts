@@ -42,19 +42,45 @@ const FailoverStatusCodesImportSchema = z
   })
   .transform((codes) => [...codes].sort((left, right) => left - right));
 
+const AutoRecoveryCooldownImportSchema = z.strictObject({
+  base_seconds: z.number().int().min(0),
+  failure_threshold: z.number().int().min(1).max(10),
+  backoff_multiplier: z.number().min(1).max(10),
+  max_cooldown_seconds: z.number().int().min(1).max(86_400),
+  jitter_ratio: z.number().min(0).max(1),
+});
+
+const AutoRecoveryBanImportSchema = z.discriminatedUnion("mode", [
+  z.strictObject({
+    mode: z.literal("off"),
+  }),
+  z.strictObject({
+    mode: z.literal("manual"),
+    max_cooldown_strikes_before_ban: z.number().int().min(1).max(100),
+  }),
+  z.strictObject({
+    mode: z.literal("temporary"),
+    max_cooldown_strikes_before_ban: z.number().int().min(1).max(100),
+    ban_duration_seconds: z.number().int().min(1).max(86_400),
+  }),
+]);
+
+const AutoRecoveryImportSchema = z.discriminatedUnion("mode", [
+  z.strictObject({
+    mode: z.literal("disabled"),
+  }),
+  z.strictObject({
+    mode: z.literal("enabled"),
+    status_codes: FailoverStatusCodesImportSchema,
+    cooldown: AutoRecoveryCooldownImportSchema,
+    ban: AutoRecoveryBanImportSchema,
+  }),
+]);
+
 const LoadbalanceStrategyImportSchema = z.strictObject({
   name: z.string(),
   strategy_type: z.enum(["single", "fill-first", "round-robin", "failover"]),
-  failover_recovery_enabled: z.boolean(),
-  failover_cooldown_seconds: z.number().int().min(0).optional(),
-  failover_failure_threshold: z.number().int().min(1).max(10).optional(),
-  failover_backoff_multiplier: z.number().min(1).max(10).optional(),
-  failover_max_cooldown_seconds: z.number().int().min(1).max(86_400).optional(),
-  failover_jitter_ratio: z.number().min(0).max(1).optional(),
-  failover_status_codes: FailoverStatusCodesImportSchema,
-  failover_ban_mode: z.enum(["off", "temporary", "manual"]).optional(),
-  failover_max_cooldown_strikes_before_ban: z.number().int().min(0).max(100).optional(),
-  failover_ban_duration_seconds: z.number().int().min(0).max(86_400).optional(),
+  auto_recovery: AutoRecoveryImportSchema,
 });
 
 const VendorImportSchema = z.strictObject({
@@ -118,7 +144,7 @@ const UserSettingsImportSchema = z.strictObject({
 
 export const ConfigImportSchema = z
   .strictObject({
-    version: z.literal(8),
+    version: z.literal(9),
     exported_at: z.string().optional(),
     vendors: z.array(VendorImportSchema),
     endpoints: z.array(EndpointImportSchema),
@@ -160,10 +186,10 @@ export const ConfigImportSchema = z
     });
 
     data.loadbalance_strategies.forEach((strategy, index) => {
-      if (strategy.strategy_type === "single" && strategy.failover_recovery_enabled) {
+      if (strategy.strategy_type === "single" && strategy.auto_recovery.mode === "enabled") {
         addCustomIssue(
           ctx,
-          ["loadbalance_strategies", index, "failover_recovery_enabled"],
+          ["loadbalance_strategies", index, "auto_recovery"],
           validationMessages.singleStrategyNoRecovery,
         );
       }

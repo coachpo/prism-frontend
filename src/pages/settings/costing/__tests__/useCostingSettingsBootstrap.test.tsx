@@ -49,7 +49,7 @@ describe("useCostingSettingsBootstrap", () => {
           id: 100,
           name: "single-primary",
           strategy_type: "single",
-          failover_recovery_enabled: false,
+          auto_recovery: { mode: "disabled" },
         },
         is_enabled: true,
         connection_count: 1,

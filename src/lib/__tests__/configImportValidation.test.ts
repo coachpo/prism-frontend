@@ -2,9 +2,42 @@ import { describe, expect, it } from "vitest";
 import type { ApiFamily, Vendor } from "../types";
 import { ConfigImportSchema } from "../configImportValidation";
 
+function buildAutoRecoveryEnabled(options?: {
+  status_codes?: number[];
+  cooldown?: Partial<{
+    base_seconds: number;
+    failure_threshold: number;
+    backoff_multiplier: number;
+    max_cooldown_seconds: number;
+    jitter_ratio: number;
+  }>;
+  ban?:
+    | { mode: "off" }
+    | { mode: "manual"; max_cooldown_strikes_before_ban: number }
+    | {
+        mode: "temporary";
+        max_cooldown_strikes_before_ban: number;
+        ban_duration_seconds: number;
+      };
+}) {
+  return {
+    mode: "enabled" as const,
+    status_codes: options?.status_codes ?? [503, 429],
+    cooldown: {
+      base_seconds: 60,
+      failure_threshold: 2,
+      backoff_multiplier: 2,
+      max_cooldown_seconds: 900,
+      jitter_ratio: 0.2,
+      ...(options?.cooldown ?? {}),
+    },
+    ban: options?.ban ?? ({ mode: "off" } as const),
+  };
+}
+
 function buildImportPayload() {
   return {
-    version: 8,
+    version: 9,
     exported_at: "2026-03-25T08:00:00Z",
     vendors: [
       {
@@ -29,8 +62,7 @@ function buildImportPayload() {
       {
         name: "failover-primary",
         strategy_type: "failover",
-        failover_recovery_enabled: true,
-        failover_status_codes: [503, 429],
+        auto_recovery: buildAutoRecoveryEnabled(),
       },
     ],
     models: [
@@ -71,7 +103,7 @@ function getIssuePairs(payload: unknown) {
 }
 
 describe("ConfigImportSchema", () => {
-  it("accepts version 8 imports and exposes vendor/api-family shared types", () => {
+  it("accepts version 9 imports and exposes vendor/api-family shared types", () => {
     const vendor: Vendor = {
       id: 1,
       key: "openai",
@@ -93,7 +125,7 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts explicit null vendor icon keys in version 8 imports", () => {
+  it("accepts explicit null vendor icon keys in version 9 imports", () => {
     const payload = {
       ...buildImportPayload(),
       vendors: [
@@ -123,7 +155,7 @@ describe("ConfigImportSchema", () => {
     }
   });
 
-  it("accepts proxy models with empty proxy_targets in version 8 imports", () => {
+  it("accepts proxy models with empty proxy_targets in version 9 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       models: [
@@ -152,20 +184,23 @@ describe("ConfigImportSchema", () => {
     expect(normalizeReferenceName(null)).toBeNull();
   });
 
-  it("accepts explicit failover policy fields on imported strategies", () => {
+  it("accepts explicit nested auto_recovery fields on imported strategies", () => {
     const explicitPayload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
           name: "failover-primary",
           strategy_type: "failover",
-          failover_recovery_enabled: true,
-          failover_cooldown_seconds: 45,
-          failover_failure_threshold: 4,
-          failover_backoff_multiplier: 3.5,
-          failover_max_cooldown_seconds: 720,
-          failover_jitter_ratio: 0.35,
-          failover_status_codes: [504, 429, 503],
+          auto_recovery: buildAutoRecoveryEnabled({
+            status_codes: [504, 429, 503],
+            cooldown: {
+              base_seconds: 45,
+              failure_threshold: 4,
+              backoff_multiplier: 3.5,
+              max_cooldown_seconds: 720,
+              jitter_ratio: 0.35,
+            },
+          }),
         },
       ],
     };
@@ -173,18 +208,23 @@ describe("ConfigImportSchema", () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-        expect(result.data.loadbalance_strategies[0]).toMatchObject({
-          failover_cooldown_seconds: 45,
-          failover_failure_threshold: 4,
-          failover_backoff_multiplier: 3.5,
-          failover_max_cooldown_seconds: 720,
-          failover_jitter_ratio: 0.35,
-          failover_status_codes: [429, 503, 504],
-        });
-      }
+      expect(result.data.loadbalance_strategies[0]).toMatchObject({
+        auto_recovery: {
+          mode: "enabled",
+          status_codes: [429, 503, 504],
+          cooldown: {
+            base_seconds: 45,
+            failure_threshold: 4,
+            backoff_multiplier: 3.5,
+            max_cooldown_seconds: 720,
+            jitter_ratio: 0.35,
+          },
+        },
+      });
+    }
   });
 
-  it("requires explicit vendor icon_key fields on version 8 imports", () => {
+  it("requires explicit vendor icon_key fields on version 9 imports", () => {
     const payload = {
       ...buildImportPayload(),
       vendors: [
@@ -206,36 +246,35 @@ describe("ConfigImportSchema", () => {
     ]);
   });
 
-  it("rejects legacy version 7 imports", () => {
+  it("rejects legacy version 8 imports", () => {
     const payload = {
       ...buildImportPayload(),
-      version: 7,
+      version: 8,
     };
 
     expect(getIssuePairs(payload)).toEqual([
       {
         path: ["version"],
-        message: "Invalid input: expected 8",
+        message: "Invalid input: expected 9",
       },
     ]);
   });
 
-  it("requires explicit failover status codes on version 8 strategies", () => {
+  it("requires explicit auto_recovery on version 9 strategies", () => {
     const payload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
           name: "failover-primary",
           strategy_type: "failover",
-          failover_recovery_enabled: true,
         },
       ],
     };
 
     expect(getIssuePairs(payload)).toEqual([
       {
-        path: ["loadbalance_strategies", 0, "failover_status_codes"],
-        message: "Invalid input: expected array, received undefined",
+        path: ["loadbalance_strategies", 0, "auto_recovery"],
+        message: "Invalid input: expected object, received undefined",
       },
     ]);
   });
@@ -246,33 +285,42 @@ describe("ConfigImportSchema", () => {
       loadbalance_strategies: [
         {
           ...buildImportPayload().loadbalance_strategies[0],
-          failover_auth_error_cooldown_seconds: 2400,
+          auto_recovery: {
+            ...buildImportPayload().loadbalance_strategies[0].auto_recovery,
+            cooldown: {
+              ...buildImportPayload().loadbalance_strategies[0].auto_recovery.cooldown,
+              failover_auth_error_cooldown_seconds: 2400,
+            },
+          },
         },
       ],
     };
 
     expect(getIssuePairs(payload)).toEqual([
       {
-        path: ["loadbalance_strategies", 0],
+        path: ["loadbalance_strategies", 0, "auto_recovery", "cooldown"],
         message: 'Unrecognized key: "failover_auth_error_cooldown_seconds"',
       },
     ]);
   });
 
-  it("accepts fill-first strategies in version 8 imports", () => {
+  it("accepts fill-first strategies in version 9 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
           name: "fill-first-primary",
           strategy_type: "fill-first",
-          failover_recovery_enabled: true,
-          failover_cooldown_seconds: 45,
-          failover_failure_threshold: 4,
-          failover_backoff_multiplier: 3.5,
-          failover_max_cooldown_seconds: 720,
-          failover_jitter_ratio: 0.35,
-          failover_status_codes: [503, 429],
+          auto_recovery: buildAutoRecoveryEnabled({
+            cooldown: {
+              base_seconds: 45,
+              failure_threshold: 4,
+              backoff_multiplier: 3.5,
+              max_cooldown_seconds: 720,
+              jitter_ratio: 0.35,
+            },
+            status_codes: [503, 429],
+          }),
         },
       ],
       models: [
@@ -286,20 +334,23 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts round-robin strategies in version 8 imports", () => {
+  it("accepts round-robin strategies in version 9 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
           name: "round-robin-primary",
           strategy_type: "round-robin",
-          failover_recovery_enabled: true,
-          failover_cooldown_seconds: 45,
-          failover_failure_threshold: 4,
-          failover_backoff_multiplier: 3.5,
-          failover_max_cooldown_seconds: 720,
-          failover_jitter_ratio: 0.35,
-          failover_status_codes: [503, 429],
+          auto_recovery: buildAutoRecoveryEnabled({
+            cooldown: {
+              base_seconds: 45,
+              failure_threshold: 4,
+              backoff_multiplier: 3.5,
+              max_cooldown_seconds: 720,
+              jitter_ratio: 0.35,
+            },
+            status_codes: [503, 429],
+          }),
         },
       ],
       models: [
@@ -320,14 +371,12 @@ describe("ConfigImportSchema", () => {
         {
           name: "failover-primary",
           strategy_type: "failover",
-          failover_recovery_enabled: true,
-          failover_status_codes: [503, 429],
+          auto_recovery: buildAutoRecoveryEnabled({ status_codes: [503, 429] }),
         },
         {
           name: "  failover-primary  ",
           strategy_type: "single",
-          failover_recovery_enabled: false,
-          failover_status_codes: [503, 429],
+          auto_recovery: { mode: "disabled" },
         },
       ],
     };

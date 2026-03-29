@@ -25,7 +25,10 @@ import type { LoadbalanceStrategy } from "@/lib/types";
 import {
   addFailoverStatusCode,
   getFailoverStatusCodeInputError,
+  getDefaultEnabledAutoRecoveryDraft,
   removeFailoverStatusCode,
+  setLoadbalanceStrategyBanMode,
+  setLoadbalanceStrategyType,
   type LoadbalanceStrategyFormState,
 } from "./loadbalanceStrategyFormState";
 
@@ -84,21 +87,67 @@ export function LoadbalanceStrategyDialog({
 }: LoadbalanceStrategyDialogProps) {
   const { messages } = useLocale();
   const dialogMessages = messages.loadbalanceStrategyDialog;
+  const autoRecovery = loadbalanceStrategyForm.auto_recovery ?? { mode: "disabled" as const };
+  const enabledAutoRecovery = autoRecovery.mode === "enabled" ? autoRecovery : null;
+  const autoRecoveryEnabled = autoRecovery.mode === "enabled";
+  const showRecoveryPolicy =
+    loadbalanceStrategyForm.strategy_type !== "single" && autoRecoveryEnabled;
   const setNumericField = (
     field:
-      | "failover_cooldown_seconds"
-      | "failover_failure_threshold"
-      | "failover_backoff_multiplier"
-      | "failover_max_cooldown_seconds"
-      | "failover_jitter_ratio"
-      | "failover_max_cooldown_strikes_before_ban"
-      | "failover_ban_duration_seconds",
+      | "base_seconds"
+      | "failure_threshold"
+      | "backoff_multiplier"
+      | "max_cooldown_seconds"
+      | "jitter_ratio",
     nextValue: number,
   ) => {
     setLoadbalanceStrategyForm((prev) => ({
       ...prev,
-      [field]: nextValue,
+      auto_recovery:
+        prev.auto_recovery.mode !== "enabled"
+          ? prev.auto_recovery
+          : {
+              ...prev.auto_recovery,
+              cooldown:
+                field === "base_seconds" ||
+                field === "failure_threshold" ||
+                field === "backoff_multiplier" ||
+                field === "max_cooldown_seconds" ||
+                field === "jitter_ratio"
+                  ? {
+                      ...prev.auto_recovery.cooldown,
+                      [field]: nextValue,
+                    }
+                  : prev.auto_recovery.cooldown,
+              ban: prev.auto_recovery.ban,
+            },
     }));
+  };
+
+  const setBanNumericField = (
+    field: "max_cooldown_strikes_before_ban" | "ban_duration_seconds",
+    nextValue: number,
+  ) => {
+    setLoadbalanceStrategyForm((prev) => {
+      if (prev.auto_recovery.mode !== "enabled" || prev.auto_recovery.ban.mode === "off") {
+        return prev;
+      }
+
+      if (field === "ban_duration_seconds" && prev.auto_recovery.ban.mode !== "temporary") {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        auto_recovery: {
+          ...prev.auto_recovery,
+          ban: {
+            ...prev.auto_recovery.ban,
+            [field]: nextValue,
+          },
+        },
+      };
+    });
   };
 
   const parseNumericInput = (value: string, fallback: number) => {
@@ -114,7 +163,17 @@ export function LoadbalanceStrategyDialog({
     return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
   };
 
-  const failoverStatusCodeInputError = getFailoverStatusCodeInputError(loadbalanceStrategyForm);
+  const failoverStatusCodeInputError = enabledAutoRecovery
+    ? getFailoverStatusCodeInputError(enabledAutoRecovery)
+    : null;
+  const maxCooldownStrikesBeforeBan =
+    enabledAutoRecovery && enabledAutoRecovery.ban.mode !== "off"
+      ? enabledAutoRecovery.ban.max_cooldown_strikes_before_ban
+      : 0;
+  const banDurationSeconds =
+    enabledAutoRecovery?.ban.mode === "temporary"
+      ? enabledAutoRecovery.ban.ban_duration_seconds
+      : 0;
 
   return (
     <Dialog
@@ -153,11 +212,7 @@ export function LoadbalanceStrategyDialog({
               <Select
                 value={loadbalanceStrategyForm.strategy_type}
                 onValueChange={(value: "single" | "fill-first" | "round-robin" | "failover") =>
-                  setLoadbalanceStrategyForm((prev) => ({
-                    ...prev,
-                    strategy_type: value,
-                    failover_recovery_enabled: value === "single" ? false : prev.failover_recovery_enabled,
-                  }))
+                  setLoadbalanceStrategyForm((prev) => setLoadbalanceStrategyType(prev, value))
                 }
               >
                 <SelectTrigger>
@@ -177,16 +232,22 @@ export function LoadbalanceStrategyDialog({
               <SwitchController
                 label={dialogMessages.autoRecoveryLabel}
                 description={dialogMessages.autoRecoveryDescription}
-                checked={loadbalanceStrategyForm.failover_recovery_enabled}
+                checked={autoRecoveryEnabled}
                 onCheckedChange={(checked) =>
                   setLoadbalanceStrategyForm((prev) => ({
                     ...prev,
-                    failover_recovery_enabled: checked,
+                    auto_recovery: checked
+                      ? prev.auto_recovery.mode === "enabled"
+                        ? prev.auto_recovery
+                        : getDefaultEnabledAutoRecoveryDraft()
+                      : { mode: "disabled" },
                   }))
                 }
               />
 
-              <div className="grid gap-4 rounded-md border bg-muted/20 p-4 sm:grid-cols-2">
+              {showRecoveryPolicy ? (
+                <>
+                  <div className="grid gap-4 rounded-md border bg-muted/20 p-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <FailoverFieldLabel
                     htmlFor="failover-cooldown-seconds"
@@ -199,13 +260,13 @@ export function LoadbalanceStrategyDialog({
                     type="number"
                     min={0}
                     step={1}
-                    value={loadbalanceStrategyForm.failover_cooldown_seconds}
+                    value={enabledAutoRecovery?.cooldown.base_seconds ?? 60}
                     onChange={(event) =>
                       setNumericField(
-                        "failover_cooldown_seconds",
+                        "base_seconds",
                         parseIntegerInput(
                           event.target.value,
-                          loadbalanceStrategyForm.failover_cooldown_seconds,
+                          enabledAutoRecovery?.cooldown.base_seconds ?? 60,
                         ),
                       )
                     }
@@ -224,13 +285,13 @@ export function LoadbalanceStrategyDialog({
                     min={1}
                     max={10}
                     step={1}
-                    value={loadbalanceStrategyForm.failover_failure_threshold}
+                    value={enabledAutoRecovery?.cooldown.failure_threshold ?? 2}
                     onChange={(event) =>
                       setNumericField(
-                        "failover_failure_threshold",
+                        "failure_threshold",
                         parseIntegerInput(
                           event.target.value,
-                          loadbalanceStrategyForm.failover_failure_threshold,
+                          enabledAutoRecovery?.cooldown.failure_threshold ?? 2,
                         ),
                       )
                     }
@@ -249,13 +310,13 @@ export function LoadbalanceStrategyDialog({
                     min={1}
                     max={10}
                     step={0.1}
-                    value={loadbalanceStrategyForm.failover_backoff_multiplier}
+                    value={enabledAutoRecovery?.cooldown.backoff_multiplier ?? 2}
                     onChange={(event) =>
                       setNumericField(
-                        "failover_backoff_multiplier",
+                        "backoff_multiplier",
                         parseNumericInput(
                           event.target.value,
-                          loadbalanceStrategyForm.failover_backoff_multiplier,
+                          enabledAutoRecovery?.cooldown.backoff_multiplier ?? 2,
                         ),
                       )
                     }
@@ -274,13 +335,13 @@ export function LoadbalanceStrategyDialog({
                     min={1}
                     max={86400}
                     step={1}
-                    value={loadbalanceStrategyForm.failover_max_cooldown_seconds}
+                    value={enabledAutoRecovery?.cooldown.max_cooldown_seconds ?? 900}
                     onChange={(event) =>
                       setNumericField(
-                        "failover_max_cooldown_seconds",
+                        "max_cooldown_seconds",
                         parseIntegerInput(
                           event.target.value,
-                          loadbalanceStrategyForm.failover_max_cooldown_seconds,
+                          enabledAutoRecovery?.cooldown.max_cooldown_seconds ?? 900,
                         ),
                       )
                     }
@@ -299,13 +360,13 @@ export function LoadbalanceStrategyDialog({
                     min={0}
                     max={1}
                     step={0.01}
-                    value={loadbalanceStrategyForm.failover_jitter_ratio}
+                    value={enabledAutoRecovery?.cooldown.jitter_ratio ?? 0.2}
                     onChange={(event) =>
                       setNumericField(
-                        "failover_jitter_ratio",
+                        "jitter_ratio",
                         parseNumericInput(
                           event.target.value,
-                          loadbalanceStrategyForm.failover_jitter_ratio,
+                          enabledAutoRecovery?.cooldown.jitter_ratio ?? 0.2,
                         ),
                       )
                     }
@@ -330,11 +391,17 @@ export function LoadbalanceStrategyDialog({
                         min={100}
                         max={599}
                         step={1}
-                        value={loadbalanceStrategyForm.failover_status_code_input}
+                        value={enabledAutoRecovery?.status_code_input ?? ""}
                         onChange={(event) =>
                           setLoadbalanceStrategyForm((prev) => ({
                             ...prev,
-                            failover_status_code_input: event.target.value,
+                            auto_recovery:
+                              prev.auto_recovery.mode !== "enabled"
+                                ? prev.auto_recovery
+                                : {
+                                    ...prev.auto_recovery,
+                                    status_code_input: event.target.value,
+                                  },
                           }))
                         }
                       />
@@ -344,9 +411,9 @@ export function LoadbalanceStrategyDialog({
                         size="sm"
                         className="sm:self-start"
                         disabled={
-                          !loadbalanceStrategyForm.failover_status_code_input.trim() ||
-                          Boolean(failoverStatusCodeInputError)
-                        }
+                           !(enabledAutoRecovery?.status_code_input ?? "").trim() ||
+                           Boolean(failoverStatusCodeInputError)
+                         }
                         onClick={() =>
                           setLoadbalanceStrategyForm((prev) => addFailoverStatusCode(prev))
                         }
@@ -364,7 +431,7 @@ export function LoadbalanceStrategyDialog({
                       </p>
                     ) : null}
                     <div className="flex flex-wrap gap-2">
-                      {loadbalanceStrategyForm.failover_status_codes.map((statusCode) => (
+                      {(enabledAutoRecovery?.status_codes ?? []).map((statusCode) => (
                         <Button
                           key={statusCode}
                           type="button"
@@ -405,20 +472,11 @@ export function LoadbalanceStrategyDialog({
                       description={dialogMessages.banModeDescription}
                     />
                     <Select
-                      value={loadbalanceStrategyForm.failover_ban_mode}
+                      value={enabledAutoRecovery?.ban.mode ?? "off"}
                       onValueChange={(value: "off" | "temporary" | "manual") =>
-                        setLoadbalanceStrategyForm((prev) => ({
-                          ...prev,
-                          failover_ban_mode: value,
-                          failover_max_cooldown_strikes_before_ban:
-                            value === "off"
-                              ? 0
-                              : Math.max(prev.failover_max_cooldown_strikes_before_ban, 1),
-                          failover_ban_duration_seconds:
-                            value === "temporary"
-                              ? Math.max(prev.failover_ban_duration_seconds, 1)
-                              : 0,
-                        }))
+                        setLoadbalanceStrategyForm((prev) =>
+                          setLoadbalanceStrategyBanMode(prev, value),
+                        )
                       }
                     >
                       <SelectTrigger id="failover-ban-mode">
@@ -448,20 +506,17 @@ export function LoadbalanceStrategyDialog({
                       type="number"
                       min={0}
                       step={1}
-                      value={loadbalanceStrategyForm.failover_max_cooldown_strikes_before_ban}
+                      value={maxCooldownStrikesBeforeBan}
                       onChange={(event) =>
-                        setNumericField(
-                          "failover_max_cooldown_strikes_before_ban",
-                          parseIntegerInput(
-                            event.target.value,
-                            loadbalanceStrategyForm.failover_max_cooldown_strikes_before_ban,
-                          ),
+                        setBanNumericField(
+                          "max_cooldown_strikes_before_ban",
+                          parseIntegerInput(event.target.value, maxCooldownStrikesBeforeBan),
                         )
                       }
                     />
                   </div>
 
-                  {loadbalanceStrategyForm.failover_ban_mode === "temporary" ? (
+                  {enabledAutoRecovery?.ban.mode === "temporary" ? (
                     <div className="space-y-2 sm:col-span-2">
                       <FailoverFieldLabel
                         htmlFor="failover-ban-duration-seconds"
@@ -476,14 +531,11 @@ export function LoadbalanceStrategyDialog({
                         type="number"
                         min={1}
                         step={1}
-                        value={loadbalanceStrategyForm.failover_ban_duration_seconds}
+                        value={banDurationSeconds}
                         onChange={(event) =>
-                          setNumericField(
-                            "failover_ban_duration_seconds",
-                            parseIntegerInput(
-                              event.target.value,
-                              loadbalanceStrategyForm.failover_ban_duration_seconds,
-                            ),
+                          setBanNumericField(
+                            "ban_duration_seconds",
+                            parseIntegerInput(event.target.value, banDurationSeconds),
                           )
                         }
                       />
@@ -491,6 +543,8 @@ export function LoadbalanceStrategyDialog({
                   ) : null}
                 </div>
               </div>
+                </>
+              ) : null}
             </>
           ) : (
             <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">

@@ -110,7 +110,7 @@ export function OverviewCards({
                   {model.model_type === "native" && model.loadbalance_strategy ? (
                     model.loadbalance_strategy.strategy_type === "single" ? (
                       <span className="text-muted-foreground">{copy.notApplicableForSingleStrategies}</span>
-                    ) : model.loadbalance_strategy.failover_recovery_enabled ? (
+                    ) : model.loadbalance_strategy.auto_recovery.mode === "enabled" ? (
                       <span className="text-emerald-600 dark:text-emerald-400">{copy.enabled}</span>
                     ) : (
                       <span className="text-muted-foreground">{copy.disabled}</span>

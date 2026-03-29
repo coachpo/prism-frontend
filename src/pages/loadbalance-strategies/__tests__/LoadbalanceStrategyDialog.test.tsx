@@ -3,6 +3,50 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LoadbalanceStrategyDialog } from "../LoadbalanceStrategyDialog";
+import {
+  DEFAULT_LOADBALANCE_STRATEGY_FORM,
+  type LoadbalanceStrategyFormState,
+} from "../loadbalanceStrategyFormState";
+
+function buildEnabledForm(
+  overrides: Partial<LoadbalanceStrategyFormState> = {},
+): LoadbalanceStrategyFormState {
+  return {
+    ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+    name: "failover-primary",
+    strategy_type: "failover",
+    auto_recovery: {
+      mode: "enabled",
+      status_codes: [429, 503],
+      status_code_input: "",
+      cooldown: {
+        base_seconds: 60,
+        failure_threshold: 2,
+        backoff_multiplier: 2,
+        max_cooldown_seconds: 900,
+        jitter_ratio: 0.2,
+      },
+      ban: {
+        mode: "temporary",
+        max_cooldown_strikes_before_ban: 3,
+        ban_duration_seconds: 1200,
+      },
+    },
+    ...overrides,
+  };
+}
+
+function buildDisabledForm(
+  overrides: Partial<LoadbalanceStrategyFormState> = {},
+): LoadbalanceStrategyFormState {
+  return {
+    ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+    name: "fill-first-primary",
+    strategy_type: "fill-first",
+    auto_recovery: { mode: "disabled" },
+    ...overrides,
+  };
+}
 
 describe("LoadbalanceStrategyDialog", () => {
   beforeEach(() => {
@@ -24,21 +68,7 @@ describe("LoadbalanceStrategyDialog", () => {
         <TooltipProvider>
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={{
-              name: "failover-primary",
-              strategy_type: "failover",
-              failover_recovery_enabled: true,
-              failover_cooldown_seconds: 60,
-              failover_failure_threshold: 2,
-              failover_backoff_multiplier: 2,
-              failover_max_cooldown_seconds: 900,
-              failover_jitter_ratio: 0.2,
-              failover_status_codes: [429, 503],
-              failover_status_code_input: "",
-              failover_ban_mode: "temporary",
-              failover_max_cooldown_strikes_before_ban: 3,
-              failover_ban_duration_seconds: 1200,
-            }}
+            loadbalanceStrategyForm={buildEnabledForm()}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
             onOpenChange={vi.fn()}
@@ -108,19 +138,8 @@ describe("LoadbalanceStrategyDialog", () => {
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
             loadbalanceStrategyForm={{
+              ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
               name: "single-primary",
-              strategy_type: "single",
-              failover_recovery_enabled: false,
-              failover_cooldown_seconds: 60,
-              failover_failure_threshold: 2,
-              failover_backoff_multiplier: 2,
-              failover_max_cooldown_seconds: 900,
-              failover_jitter_ratio: 0.2,
-              failover_status_codes: [429, 503],
-              failover_status_code_input: "",
-              failover_ban_mode: "off",
-              failover_max_cooldown_strikes_before_ban: 0,
-              failover_ban_duration_seconds: 0,
             }}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
@@ -153,21 +172,7 @@ describe("LoadbalanceStrategyDialog", () => {
         <TooltipProvider>
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={{
-              name: "failover-primary",
-              strategy_type: "failover",
-              failover_recovery_enabled: true,
-              failover_cooldown_seconds: 60,
-              failover_failure_threshold: 2,
-              failover_backoff_multiplier: 2,
-              failover_max_cooldown_seconds: 900,
-              failover_jitter_ratio: 0.2,
-              failover_status_codes: [429, 503],
-              failover_status_code_input: "",
-              failover_ban_mode: "temporary",
-              failover_max_cooldown_strikes_before_ban: 3,
-              failover_ban_duration_seconds: 1200,
-            }}
+            loadbalanceStrategyForm={buildEnabledForm()}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
             onOpenChange={vi.fn()}
@@ -206,21 +211,7 @@ describe("LoadbalanceStrategyDialog", () => {
         <TooltipProvider>
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={{
-              name: "failover-primary",
-              strategy_type: "failover",
-              failover_recovery_enabled: true,
-              failover_cooldown_seconds: 60,
-              failover_failure_threshold: 2,
-              failover_backoff_multiplier: 2,
-              failover_max_cooldown_seconds: 900,
-              failover_jitter_ratio: 0.2,
-              failover_status_codes: [429, 503],
-              failover_status_code_input: "",
-              failover_ban_mode: "temporary",
-              failover_max_cooldown_strikes_before_ban: 3,
-              failover_ban_duration_seconds: 1200,
-            }}
+            loadbalanceStrategyForm={buildEnabledForm()}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
             onOpenChange={vi.fn()}
@@ -239,21 +230,24 @@ describe("LoadbalanceStrategyDialog", () => {
         <TooltipProvider>
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={{
-              name: "failover-primary",
-              strategy_type: "failover",
-              failover_recovery_enabled: true,
-              failover_cooldown_seconds: 60,
-              failover_failure_threshold: 2,
-              failover_backoff_multiplier: 2,
-              failover_max_cooldown_seconds: 900,
-              failover_jitter_ratio: 0.2,
-              failover_status_codes: [429, 503],
-              failover_status_code_input: "",
-              failover_ban_mode: "manual",
-              failover_max_cooldown_strikes_before_ban: 3,
-              failover_ban_duration_seconds: 0,
-            }}
+            loadbalanceStrategyForm={buildEnabledForm({
+              auto_recovery: {
+                mode: "enabled",
+                status_codes: [429, 503],
+                status_code_input: "",
+                cooldown: {
+                  base_seconds: 60,
+                  failure_threshold: 2,
+                  backoff_multiplier: 2,
+                  max_cooldown_seconds: 900,
+                  jitter_ratio: 0.2,
+                },
+                ban: {
+                  mode: "manual",
+                  max_cooldown_strikes_before_ban: 3,
+                },
+              },
+            })}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
             onOpenChange={vi.fn()}
@@ -268,7 +262,7 @@ describe("LoadbalanceStrategyDialog", () => {
     expect(screen.queryByLabelText("Ban Duration (seconds)")).not.toBeInTheDocument();
   });
 
-  it("shows failover status code editing controls for non-single strategies", () => {
+  it("keeps the auto-recovery switch visible for non-single strategies even when the branch is disabled", () => {
     const setLoadbalanceStrategyForm = vi.fn();
 
     render(
@@ -276,21 +270,63 @@ describe("LoadbalanceStrategyDialog", () => {
         <TooltipProvider>
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={{
-              name: "fill-first-primary",
-              strategy_type: "fill-first",
-              failover_recovery_enabled: true,
-              failover_cooldown_seconds: 60,
-              failover_failure_threshold: 2,
-              failover_backoff_multiplier: 2,
-              failover_max_cooldown_seconds: 900,
-              failover_jitter_ratio: 0.2,
-              failover_status_codes: [429, 503],
-              failover_status_code_input: "",
-              failover_ban_mode: "off",
-              failover_max_cooldown_strikes_before_ban: 0,
-              failover_ban_duration_seconds: 0,
-            }}
+            loadbalanceStrategyForm={buildDisabledForm()}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={setLoadbalanceStrategyForm}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("Auto-Recovery")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Failover Status Codes")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ban Escalation")).not.toBeInTheDocument();
+  });
+
+  it("removes the enabled auto_recovery branch when the switch is turned off", () => {
+    const setLoadbalanceStrategyForm = vi.fn();
+    const currentForm = buildEnabledForm({ strategy_type: "fill-first" });
+
+    render(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={currentForm}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={setLoadbalanceStrategyForm}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("switch"));
+    const disableRecovery = setLoadbalanceStrategyForm.mock.calls.at(-1)?.[0] as
+      | ((state: typeof currentForm) => typeof currentForm)
+      | undefined;
+
+    expect(disableRecovery?.(currentForm)).toMatchObject({
+      auto_recovery: { mode: "disabled" },
+    });
+  });
+
+  it("shows failover status code editing controls only when auto-recovery is enabled", () => {
+    const setLoadbalanceStrategyForm = vi.fn();
+
+    render(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={buildEnabledForm({ strategy_type: "fill-first" })}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
             onOpenChange={vi.fn()}
@@ -321,21 +357,23 @@ describe("LoadbalanceStrategyDialog", () => {
     HTMLElement.prototype.scrollIntoView = vi.fn();
 
     const setLoadbalanceStrategyForm = vi.fn();
-    const currentForm = {
+    const currentForm = buildEnabledForm({
       name: "fill-first-primary",
-      strategy_type: "fill-first" as const,
-      failover_recovery_enabled: true,
-      failover_cooldown_seconds: 60,
-      failover_failure_threshold: 2,
-      failover_backoff_multiplier: 2,
-      failover_max_cooldown_seconds: 900,
-      failover_jitter_ratio: 0.2,
-      failover_status_codes: [429, 503],
-      failover_status_code_input: "",
-      failover_ban_mode: "off" as const,
-      failover_max_cooldown_strikes_before_ban: 0,
-      failover_ban_duration_seconds: 0,
-    };
+      strategy_type: "fill-first",
+      auto_recovery: {
+        mode: "enabled",
+        status_codes: [429, 503],
+        status_code_input: "",
+        cooldown: {
+          base_seconds: 60,
+          failure_threshold: 2,
+          backoff_multiplier: 2,
+          max_cooldown_seconds: 900,
+          jitter_ratio: 0.2,
+        },
+        ban: { mode: "off" },
+      },
+    });
 
     render(
       <LocaleProvider>
@@ -365,17 +403,22 @@ describe("LoadbalanceStrategyDialog", () => {
       | undefined;
     expect(switchToFailover?.(currentForm)).toMatchObject({
       strategy_type: "failover",
-      failover_recovery_enabled: true,
+      auto_recovery: { mode: "enabled" },
     });
 
     fireEvent.click(strategyTypeSelect);
     fireEvent.click(screen.getByText("Single"));
-    const switchToSingle = setLoadbalanceStrategyForm.mock.calls.at(-1)?.[0] as
-      | ((state: typeof currentForm) => typeof currentForm)
-      | undefined;
+    const switchToSingle = setLoadbalanceStrategyForm.mock.calls
+      .map((call) => call[0])
+      .find(
+        (updater): updater is (state: typeof currentForm) => typeof currentForm =>
+          typeof updater === "function" &&
+          updater(currentForm).strategy_type === "single" &&
+          updater(currentForm).auto_recovery.mode === "disabled",
+      );
     expect(switchToSingle?.(currentForm)).toMatchObject({
       strategy_type: "single",
-      failover_recovery_enabled: false,
+      auto_recovery: { mode: "disabled" },
     });
 
     vi.unstubAllGlobals();
@@ -396,19 +439,8 @@ describe("LoadbalanceStrategyDialog", () => {
 
     const setLoadbalanceStrategyForm = vi.fn();
     const currentForm = {
+      ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
       name: "single-primary",
-      strategy_type: "single" as const,
-      failover_recovery_enabled: false,
-      failover_cooldown_seconds: 60,
-      failover_failure_threshold: 2,
-      failover_backoff_multiplier: 2,
-      failover_max_cooldown_seconds: 900,
-      failover_jitter_ratio: 0.2,
-      failover_status_codes: [429, 503],
-      failover_status_code_input: "",
-      failover_ban_mode: "off" as const,
-      failover_max_cooldown_strikes_before_ban: 0,
-      failover_ban_duration_seconds: 0,
     };
 
     render(
@@ -438,7 +470,7 @@ describe("LoadbalanceStrategyDialog", () => {
       | undefined;
     expect(switchToRoundRobin?.(currentForm)).toMatchObject({
       strategy_type: "round-robin",
-      failover_recovery_enabled: false,
+      auto_recovery: { mode: "disabled" },
     });
 
     vi.unstubAllGlobals();

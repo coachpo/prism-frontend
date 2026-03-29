@@ -62,7 +62,7 @@ function buildLoadbalanceStrategySummary(overrides: Record<string, unknown> = {}
     id: 100,
     name: "single-primary",
     strategy_type: "single",
-    failover_recovery_enabled: false,
+    auto_recovery: { mode: "disabled" },
     ...overrides,
   };
 }

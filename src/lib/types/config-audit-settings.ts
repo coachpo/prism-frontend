@@ -1,4 +1,9 @@
-import type { LoadBalancingStrategy, ModelType, ProxyTarget } from "./model-stats";
+import type {
+  AutoRecovery,
+  LoadBalancingStrategy,
+  ModelType,
+  ProxyTarget,
+} from "./model-stats";
 import type { ApiFamily } from "./vendor";
 
 export interface ConfigEndpointExport {
@@ -29,25 +34,13 @@ export type ConfigPricingTemplateImport = ConfigPricingTemplateExport;
 export interface ConfigLoadbalanceStrategyExport {
   name: string;
   strategy_type: LoadBalancingStrategy;
-  failover_recovery_enabled: boolean;
-  failover_cooldown_seconds: number;
-  failover_failure_threshold: number;
-  failover_backoff_multiplier: number;
-  failover_max_cooldown_seconds: number;
-  failover_jitter_ratio: number;
-  failover_status_codes: number[];
+  auto_recovery: AutoRecovery;
 }
 
 export interface ConfigLoadbalanceStrategyImport {
   name: string;
   strategy_type: LoadBalancingStrategy;
-  failover_recovery_enabled: boolean;
-  failover_cooldown_seconds?: number;
-  failover_failure_threshold?: number;
-  failover_backoff_multiplier?: number;
-  failover_max_cooldown_seconds?: number;
-  failover_jitter_ratio?: number;
-  failover_status_codes: number[];
+  auto_recovery: AutoRecovery;
 }
 
 export interface ConfigConnectionExport {
@@ -138,7 +131,7 @@ export interface ConfigVendorExport {
 export type ConfigVendorImport = ConfigVendorExport;
 
 export interface ConfigExportResponse {
-  version: 8;
+  version: 9;
   exported_at: string;
   vendors: ConfigVendorExport[];
   endpoints: ConfigEndpointExport[];
@@ -150,7 +143,7 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 8;
+  version: 9;
   exported_at?: string;
   vendors: ConfigVendorImport[];
   endpoints: ConfigEndpointImport[];

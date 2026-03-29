@@ -1,9 +1,49 @@
 import type { ApiFamily, Vendor } from "./vendor";
 import type { Connection } from "./routing";
-import type { LoadbalanceBanMode } from "./loadbalance";
 
 export type ModelType = "native" | "proxy";
 export type LoadBalancingStrategy = "single" | "fill-first" | "round-robin" | "failover";
+
+export interface AutoRecoveryDisabled {
+  mode: "disabled";
+}
+
+export interface AutoRecoveryCooldown {
+  base_seconds: number;
+  failure_threshold: number;
+  backoff_multiplier: number;
+  max_cooldown_seconds: number;
+  jitter_ratio: number;
+}
+
+export interface AutoRecoveryBanOff {
+  mode: "off";
+}
+
+export interface AutoRecoveryBanManual {
+  mode: "manual";
+  max_cooldown_strikes_before_ban: number;
+}
+
+export interface AutoRecoveryBanTemporary {
+  mode: "temporary";
+  max_cooldown_strikes_before_ban: number;
+  ban_duration_seconds: number;
+}
+
+export type AutoRecoveryBan =
+  | AutoRecoveryBanOff
+  | AutoRecoveryBanManual
+  | AutoRecoveryBanTemporary;
+
+export interface AutoRecoveryEnabled {
+  mode: "enabled";
+  status_codes: number[];
+  cooldown: AutoRecoveryCooldown;
+  ban: AutoRecoveryBan;
+}
+
+export type AutoRecovery = AutoRecoveryDisabled | AutoRecoveryEnabled;
 
 export interface ProxyTarget {
   target_model_id: string;
@@ -14,16 +54,7 @@ export interface LoadbalanceStrategySummary {
   id: number;
   name: string;
   strategy_type: LoadBalancingStrategy;
-  failover_recovery_enabled: boolean;
-  failover_cooldown_seconds: number;
-  failover_failure_threshold: number;
-  failover_backoff_multiplier: number;
-  failover_max_cooldown_seconds: number;
-  failover_jitter_ratio: number;
-  failover_status_codes: number[];
-  failover_ban_mode: LoadbalanceBanMode;
-  failover_max_cooldown_strikes_before_ban: number;
-  failover_ban_duration_seconds: number;
+  auto_recovery: AutoRecovery;
 }
 
 export interface LoadbalanceStrategy {
@@ -31,16 +62,7 @@ export interface LoadbalanceStrategy {
   profile_id: number;
   name: string;
   strategy_type: LoadBalancingStrategy;
-  failover_recovery_enabled: boolean;
-  failover_cooldown_seconds: number;
-  failover_failure_threshold: number;
-  failover_backoff_multiplier: number;
-  failover_max_cooldown_seconds: number;
-  failover_jitter_ratio: number;
-  failover_status_codes: number[];
-  failover_ban_mode: LoadbalanceBanMode;
-  failover_max_cooldown_strikes_before_ban: number;
-  failover_ban_duration_seconds: number;
+  auto_recovery: AutoRecovery;
   attached_model_count: number;
   created_at: string;
   updated_at: string;
@@ -48,32 +70,14 @@ export interface LoadbalanceStrategy {
 
 export interface LoadbalanceStrategyCreate {
   name: string;
-  strategy_type?: LoadBalancingStrategy;
-  failover_recovery_enabled?: boolean;
-  failover_cooldown_seconds?: number;
-  failover_failure_threshold?: number;
-  failover_backoff_multiplier?: number;
-  failover_max_cooldown_seconds?: number;
-  failover_jitter_ratio?: number;
-  failover_status_codes?: number[];
-  failover_ban_mode?: LoadbalanceBanMode;
-  failover_max_cooldown_strikes_before_ban?: number;
-  failover_ban_duration_seconds?: number;
+  strategy_type: LoadBalancingStrategy;
+  auto_recovery: AutoRecovery;
 }
 
 export interface LoadbalanceStrategyUpdate {
-  name?: string;
-  strategy_type?: LoadBalancingStrategy;
-  failover_recovery_enabled?: boolean;
-  failover_cooldown_seconds?: number;
-  failover_failure_threshold?: number;
-  failover_backoff_multiplier?: number;
-  failover_max_cooldown_seconds?: number;
-  failover_jitter_ratio?: number;
-  failover_status_codes?: number[];
-  failover_ban_mode?: LoadbalanceBanMode;
-  failover_max_cooldown_strikes_before_ban?: number;
-  failover_ban_duration_seconds?: number;
+  name: string;
+  strategy_type: LoadBalancingStrategy;
+  auto_recovery: AutoRecovery;
 }
 
 export interface ModelConfig {
