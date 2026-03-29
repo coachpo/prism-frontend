@@ -87,4 +87,10 @@ describe("AppSidebar", () => {
 
     expect(screen.getByRole("link", { name: "Loadbalance Strategies" })).toBeInTheDocument();
   });
+
+  it("includes the monitoring navigation entry", async () => {
+    await renderSidebar();
+
+    expect(screen.getByRole("link", { name: "Monitoring" })).toBeInTheDocument();
+  });
 });

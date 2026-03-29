@@ -138,6 +138,7 @@ export interface Messages {
     dashboard: string;
     endpoints: string;
     loadbalanceStrategies: string;
+    monitoring: string;
     models: string;
     pricingTemplates: string;
     requestLogs: string;
@@ -396,6 +397,7 @@ export interface Messages {
     globalSettings: string;
     globalSettingsDescription: string;
     globalTab: string;
+    monitoring: string;
     profileScopedDescription: (profileLabel: string) => string;
     profileScopedSettings: string;
     profileTab: string;
@@ -684,6 +686,19 @@ export interface Messages {
     timezoneAuto: (zone: string) => string;
     usedForSpendingReports: string;
   };
+  settingsMonitoring: {
+    description: string;
+    intervalHint: string;
+    intervalLabel: string;
+    save: string;
+    title: string;
+    unavailable: string;
+  };
+  settingsMonitoringData: {
+    invalidInterval: string;
+    loadFailed: string;
+    saveFailed: string;
+  };
   settingsCostingData: {
     billingSaved: string;
     endpointSelectionInvalid: string;
@@ -918,6 +933,10 @@ export interface Messages {
     notCheckedYet: string;
     notApplicableForSingleStrategies: string;
     orderedPriorityRouting: string;
+    openaiProbeChatCompletions: string;
+    openaiProbeEndpointVariant: string;
+    openaiProbeEndpointVariantHint: string;
+    openaiProbeResponses: string;
     p95Latency24h: string;
     pricingOff: string;
     pricingOn: string;
@@ -1157,6 +1176,50 @@ export interface Messages {
     toggleConnectionFailed: string;
     updateModelFailed: string;
     updateProxyTargetsFailed: string;
+  };
+  monitoring: {
+    actions: string;
+    checkedAt: string;
+    connection: string;
+    connectionCount: (count: string) => string;
+    connections: string;
+    conversationDelay: string;
+    degradedCount: (count: string) => string;
+    endpointPing: string;
+    failureKind: string;
+    fusedStatus: string;
+    generatedAt: (value: string) => string;
+    healthyCount: (count: string) => string;
+    invalidModelId: string;
+    invalidVendorId: string;
+    lastProbeSummary: (connectionId: string, checkedAt: string, detail: string) => string;
+    loadModelFailed: string;
+    loadOverviewFailed: string;
+    loadVendorFailed: string;
+    manualProbeFailed: string;
+    modelConnectionsDescription: string;
+    modelConnectionsTitle: string;
+    modelCount: (count: string) => string;
+    modelMonitoringDescription: string;
+    modelMonitoringTitle: string;
+    monitoringDescription: string;
+    monitoringTitle: string;
+    noModelConnections: string;
+    noRecentHistory: string;
+    noVendorModels: string;
+    noVendorMonitoringData: string;
+    probing: string;
+    recentHistoryDescription: string;
+    recentHistoryTitle: string;
+    refresh: string;
+    runProbe: string;
+    vendorGroupsDescription: string;
+    vendorGroupsTitle: string;
+    vendorLabel: (name: string) => string;
+    vendorModelsDescription: string;
+    vendorModelsTitle: string;
+    vendorMonitoringDescription: string;
+    vendorMonitoringTitle: string;
   };
   requestLogs: {
     allColumns: string;
@@ -1625,6 +1688,7 @@ export const enMessages: Messages = {
     dashboard: "Dashboard",
     endpoints: "Endpoints",
     loadbalanceStrategies: "Loadbalance Strategies",
+    monitoring: "Monitoring",
     models: "Models",
     pricingTemplates: "Pricing Templates",
     requestLogs: "Request Logs",
@@ -1901,6 +1965,7 @@ export const enMessages: Messages = {
     globalSettings: "Global settings",
     globalSettingsDescription: "Changes here apply to all profiles and the entire Prism instance.",
     globalTab: "Global",
+    monitoring: "Monitoring",
     profileScopedDescription: (profileLabel) => `Changes here affect ${profileLabel} and its runtime traffic.`,
     profileScopedSettings: "Profile-scoped settings",
     profileTab: "Profile",
@@ -2210,6 +2275,20 @@ export const enMessages: Messages = {
     timezoneAuto: (zone) => `Auto (Browser: ${zone})`,
     usedForSpendingReports: "Used for spending reports and dashboards.",
   },
+  settingsMonitoring: {
+    description:
+      "Set how often the backend scheduler runs synthetic monitoring for this profile. The browser only saves and displays this backend-owned cadence.",
+    intervalHint: "Backend clamps values to 30-3600 seconds. Monitoring pages poll backend-produced data only.",
+    intervalLabel: "Probe interval (seconds)",
+    save: "Save cadence",
+    title: "Monitoring cadence",
+    unavailable: "Monitoring settings are currently unavailable.",
+  },
+  settingsMonitoringData: {
+    invalidInterval: "Enter a positive interval in whole seconds.",
+    loadFailed: "Failed to load monitoring settings",
+    saveFailed: "Failed to save monitoring settings",
+  },
   settingsCostingData: {
     billingSaved: "Billing and currency settings saved",
     endpointSelectionInvalid: "Invalid endpoint selection",
@@ -2399,6 +2478,11 @@ export const enMessages: Messages = {
     notCheckedYet: "Not checked yet",
     notApplicableForSingleStrategies: "Not applicable for single strategies",
     orderedPriorityRouting: "Ordered priority routing",
+    openaiProbeChatCompletions: "POST /v1/chat/completions",
+    openaiProbeEndpointVariant: "OpenAI probe endpoint",
+    openaiProbeEndpointVariantHint:
+      "Choose which OpenAI endpoint backend-managed monitoring should use for synthetic probes on this connection.",
+    openaiProbeResponses: "POST /v1/responses",
     p95Latency24h: "P95 latency (24h)",
     pricingOff: "Pricing Off",
     pricingOn: "Pricing On",
@@ -2476,6 +2560,51 @@ export const enMessages: Messages = {
     toggleConnectionFailed: "Failed to toggle connection",
     updateModelFailed: "Failed to update model",
     updateProxyTargetsFailed: "Failed to update proxy targets",
+  },
+  monitoring: {
+    actions: "Actions",
+    checkedAt: "Checked at",
+    connection: "Connection",
+    connectionCount: (count) => `${count} connections`,
+    connections: "Connections",
+    conversationDelay: "Conversation delay",
+    degradedCount: (count) => `${count} degraded`,
+    endpointPing: "Endpoint ping",
+    failureKind: "Failure kind",
+    fusedStatus: "Fused status",
+    generatedAt: (value) => `Updated ${value}`,
+    healthyCount: (count) => `${count} healthy`,
+    invalidModelId: "Invalid monitoring model id.",
+    invalidVendorId: "Invalid monitoring vendor id.",
+    lastProbeSummary: (connectionId, checkedAt, detail) =>
+      `Latest manual probe for connection #${connectionId} completed at ${checkedAt}: ${detail}`,
+    loadModelFailed: "Failed to load monitoring model data",
+    loadOverviewFailed: "Failed to load monitoring overview",
+    loadVendorFailed: "Failed to load monitoring vendor data",
+    manualProbeFailed: "Failed to run manual probe",
+    modelConnectionsDescription: "Per-connection synthetic monitoring results and manual probe actions.",
+    modelConnectionsTitle: "Model connections",
+    modelCount: (count) => `${count} models`,
+    modelMonitoringDescription: "Inspect backend-produced health, latency, and recent probe history for one model.",
+    modelMonitoringTitle: "Model monitoring",
+    monitoringDescription: "Track backend-produced vendor, model, and connection monitoring status.",
+    monitoringTitle: "Monitoring",
+    noModelConnections: "No monitored connections were returned for this model.",
+    noRecentHistory: "No recent monitoring history is available yet.",
+    noVendorModels: "No monitored models were returned for this vendor.",
+    noVendorMonitoringData: "No vendor monitoring data is available yet.",
+    probing: "Probing...",
+    recentHistoryDescription: "Recent synthetic probe samples returned by the backend.",
+    recentHistoryTitle: "Recent history",
+    refresh: "Refresh monitoring",
+    runProbe: "Run probe",
+    vendorGroupsDescription: "Start at the vendor rollup, then drill down into models and connection history.",
+    vendorGroupsTitle: "Vendor groups",
+    vendorLabel: (name) => `Vendor: ${name}`,
+    vendorModelsDescription: "Model rollup for the selected vendor.",
+    vendorModelsTitle: "Vendor models",
+    vendorMonitoringDescription: "Inspect model-level monitoring status for one vendor.",
+    vendorMonitoringTitle: "Vendor monitoring",
   },
   modelDetailTabs: {
     connections: "Connections",

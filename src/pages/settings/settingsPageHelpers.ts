@@ -20,6 +20,7 @@ export const SETTINGS_SECTIONS = [
   { id: "backup" },
   { id: "billing-currency" },
   { id: "timezone" },
+  { id: "monitoring" },
   { id: "audit-configuration" },
   { id: "retention-deletion" },
 ] as const;

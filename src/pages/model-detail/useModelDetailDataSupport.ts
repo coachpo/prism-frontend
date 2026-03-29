@@ -7,6 +7,7 @@ import type {
   HealthCheckResponse,
   ModelConfig,
   ModelConfigListItem,
+  OpenAiProbeEndpointVariant,
 } from "@/lib/types";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import { normalizeProxyTargets } from "../models/modelFormState";
@@ -35,10 +36,22 @@ export const createDefaultConnectionForm = (): ConnectionCreate => ({
   is_active: true,
   custom_headers: null,
   pricing_template_id: null,
+  openai_probe_endpoint_variant: "responses",
   qps_limit: null,
   max_in_flight_non_stream: null,
   max_in_flight_stream: null,
 });
+
+export function resolveConnectionProbeEndpointVariant(
+  apiFamily: ApiFamily | undefined,
+  variant: OpenAiProbeEndpointVariant | null | undefined,
+): OpenAiProbeEndpointVariant {
+  if (apiFamily !== "openai") {
+    return "responses";
+  }
+
+  return variant === "chat_completions" ? "chat_completions" : "responses";
+}
 
 export function resequenceConnections(connections: Connection[]): Connection[] {
   return connections.map((connection, index) => {

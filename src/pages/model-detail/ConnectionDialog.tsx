@@ -22,7 +22,14 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useLocale } from "@/i18n/useLocale";
 import { Loader2, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Connection, ConnectionCreate, Endpoint, EndpointCreate, PricingTemplate } from "@/lib/types";
+import type {
+  ApiFamily,
+  Connection,
+  ConnectionCreate,
+  Endpoint,
+  EndpointCreate,
+  PricingTemplate,
+} from "@/lib/types";
 
 interface ConnectionDialogProps {
   isOpen: boolean;
@@ -44,6 +51,7 @@ interface ConnectionDialogProps {
   dialogTestResult: { status: string; detail: string } | null;
   handleDialogTestConnection: () => Promise<void>;
   endpointSourceDefaultName: string | null;
+  modelApiFamily: ApiFamily | undefined;
   pricingTemplates: PricingTemplate[];
 }
 
@@ -67,6 +75,7 @@ export function ConnectionDialog({
   dialogTestResult,
   handleDialogTestConnection,
   endpointSourceDefaultName,
+  modelApiFamily,
   pricingTemplates,
 }: ConnectionDialogProps) {
   const selectedEndpoint = globalEndpoints.find(
@@ -74,6 +83,7 @@ export function ConnectionDialog({
   );
   const { messages } = useLocale();
   const copy = messages.modelDetail;
+  const showOpenAiProbeEndpointVariant = modelApiFamily === "openai";
 
   const limiterFields: Array<{
     field: "qps_limit" | "max_in_flight_non_stream" | "max_in_flight_stream";
@@ -254,6 +264,30 @@ export function ConnectionDialog({
               {copy.pricingTemplateHint}
             </p>
           </div>
+
+          {showOpenAiProbeEndpointVariant ? (
+            <div className="space-y-2">
+              <Label>{copy.openaiProbeEndpointVariant}</Label>
+              <Select
+                value={connectionForm.openai_probe_endpoint_variant ?? "responses"}
+                onValueChange={(value) => {
+                  setConnectionForm({
+                    ...connectionForm,
+                    openai_probe_endpoint_variant: value === "chat_completions" ? "chat_completions" : "responses",
+                  });
+                }}
+              >
+                <SelectTrigger aria-label={copy.openaiProbeEndpointVariant}>
+                  <SelectValue placeholder={copy.openaiProbeEndpointVariant} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="responses">{copy.openaiProbeResponses}</SelectItem>
+                  <SelectItem value="chat_completions">{copy.openaiProbeChatCompletions}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">{copy.openaiProbeEndpointVariantHint}</p>
+            </div>
+          ) : null}
 
           <div className="grid gap-4 sm:grid-cols-3">
             {limiterFields.map((field) => (

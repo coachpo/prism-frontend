@@ -55,6 +55,7 @@ const connection: Connection = {
   custom_headers: null,
   is_active: true,
   priority: 0,
+  openai_probe_endpoint_variant: "responses",
   qps_limit: null,
   max_in_flight_non_stream: null,
   max_in_flight_stream: null,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
@@ -181,10 +181,6 @@ export function RequestEventsTable({
   const pageEnd = filteredRows.length === 0 ? 0 : pageStartIndex + pageRows.length;
   const hasPreviousPage = clampedPage > 0;
   const hasNextPage = clampedPage + 1 < totalPages;
-
-  useEffect(() => {
-    setCurrentPage((current) => Math.min(current, totalPages - 1));
-  }, [totalPages]);
 
   const clearFilters = () => {
     setCurrentPage(0);

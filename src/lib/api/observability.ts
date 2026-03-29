@@ -34,6 +34,12 @@ import type {
   TimezonePreferenceResponse,
   TimezonePreferenceUpdate,
   ThroughputStatsResponse,
+  MonitoringManualProbeResult,
+  MonitoringModelResponse,
+  MonitoringOverviewResponse,
+  MonitoringSettingsResponse,
+  MonitoringSettingsUpdate,
+  MonitoringVendorResponse,
 } from "../types";
 import { buildQuery, request } from "./core";
 
@@ -107,6 +113,15 @@ export const settingsTimezone = {
     }),
 };
 
+export const settingsMonitoring = {
+  get: () => request<MonitoringSettingsResponse>("/api/settings/monitoring"),
+  update: (data: MonitoringSettingsUpdate) =>
+    request<MonitoringSettingsResponse>("/api/settings/monitoring", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+};
+
 export const config = {
   export: () => request<ConfigExportResponse>("/api/config/export"),
   import: (data: ConfigImportRequest) =>
@@ -174,4 +189,15 @@ export const loadbalance = {
     const query = buildQuery(params);
     return request<LoadbalanceEventDeleteResponse>(`/api/loadbalance/events?${query}`, { method: "DELETE" });
   },
+};
+
+export const monitoring = {
+  overview: () => request<MonitoringOverviewResponse>("/api/monitoring/overview"),
+  vendor: (vendorId: number) => request<MonitoringVendorResponse>(`/api/monitoring/vendors/${vendorId}`),
+  model: (modelConfigId: number) =>
+    request<MonitoringModelResponse>(`/api/monitoring/models/${modelConfigId}`),
+  probe: (connectionId: number) =>
+    request<MonitoringManualProbeResult>(`/api/monitoring/connections/${connectionId}/probe`, {
+      method: "POST",
+    }),
 };

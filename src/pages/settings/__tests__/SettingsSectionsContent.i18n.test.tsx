@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { BackupSection } from "../sections/BackupSection";
 import { BillingCurrencySection } from "../sections/BillingCurrencySection";
+import { MonitoringSection } from "../sections/MonitoringSection";
 import { RetentionDeletionSection } from "../sections/RetentionDeletionSection";
 import { TimezoneSection } from "../sections/TimezoneSection";
 
@@ -101,6 +102,17 @@ describe("settings sections content i18n", () => {
             timezonePreviewText="2026-02-27 23:39"
             timezonePreviewZone="Europe/Helsinki"
           />
+          <MonitoringSection
+            handleSaveMonitoringSettings={vi.fn()}
+            monitoringDirty={false}
+            monitoringError={null}
+            monitoringIntervalSeconds="300"
+            monitoringLoading={false}
+            monitoringSaving={false}
+            monitoringUnavailable={false}
+            renderSectionSaveState={() => null}
+            setMonitoringIntervalSeconds={vi.fn()}
+          />
         </>
       </LocaleProvider>,
     );
@@ -109,6 +121,7 @@ describe("settings sections content i18n", () => {
     expect(screen.getByText("报告货币")).toBeInTheDocument();
     expect(screen.getByText("FX 映射")).toBeInTheDocument();
     expect(screen.getByText("时区")).toBeInTheDocument();
+    expect(screen.getByText("监控频率")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存时区" })).toBeInTheDocument();
   });
 

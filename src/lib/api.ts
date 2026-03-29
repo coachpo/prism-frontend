@@ -4,6 +4,8 @@ import {
   audit,
   config,
   loadbalance,
+  monitoring,
+  settingsMonitoring,
   settingsCosting,
   settingsTimezone,
   stats,
@@ -35,8 +37,10 @@ export const api = {
   vendors,
   settings: {
     ...settings,
-    costing: settingsCosting,
-    timezone: settingsTimezone,
-  },
-  stats,
+     costing: settingsCosting,
+     monitoring: settingsMonitoring,
+     timezone: settingsTimezone,
+   },
+   monitoring,
+   stats,
 };

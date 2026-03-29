@@ -158,6 +158,7 @@ export function ModelDetailPage() {
         dialogTestResult={dialogTestResult}
         handleDialogTestConnection={handleDialogTestConnection}
         endpointSourceDefaultName={endpointSourceDefaultName}
+        modelApiFamily={model.api_family}
         pricingTemplates={pricingTemplates}
       />
 

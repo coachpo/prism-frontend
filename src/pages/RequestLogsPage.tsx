@@ -75,9 +75,12 @@ export function RequestLogsPage() {
   );
 
   const resolveModelLabel = useMemo<RequestLogModelResolver>(() => {
-    const resolver = ((modelId: string) => modelLabelById.get(modelId) ?? modelId) as RequestLogModelResolver;
-    resolver.getModelMetadata = (modelId: string) => modelMetadataById.get(modelId);
-    return resolver;
+    return Object.assign(
+      (modelId: string) => modelLabelById.get(modelId) ?? modelId,
+      {
+        getModelMetadata: (modelId: string) => modelMetadataById.get(modelId),
+      },
+    ) as RequestLogModelResolver;
   }, [modelLabelById, modelMetadataById]);
 
   const sheetOpen = selectedRequest !== null;

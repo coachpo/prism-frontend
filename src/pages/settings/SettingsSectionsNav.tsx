@@ -17,6 +17,7 @@ export function SettingsSectionsNav({
     backup: messages.settingsPage.backup,
     "billing-currency": messages.settingsPage.billingCurrency,
     timezone: messages.settingsPage.timezone,
+    monitoring: messages.settingsPage.monitoring,
     "audit-configuration": messages.settingsPage.auditPrivacy,
     "retention-deletion": messages.settingsPage.retentionDeletion,
   };

@@ -79,7 +79,10 @@ export function useModelDetailData(id: string | undefined) {
     setHeaderRows,
     endpointSourceDefaultName,
     openConnectionDialog,
-  } = useModelDetailDialogState({ globalEndpoints });
+  } = useModelDetailDialogState({
+    modelApiFamily: model?.api_family,
+    globalEndpoints,
+  });
 
   useModelDetailBootstrap({
     id,
@@ -137,6 +140,7 @@ export function useModelDetailData(id: string | undefined) {
   } = useModelDetailConnectionMutations({
     id,
     revision,
+    modelApiFamily: model?.api_family,
     createMode,
     selectedEndpointId,
     newEndpointForm,

@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import { clearSharedReferenceData } from "@/lib/referenceData";
 import type {
+  ApiFamily,
   Connection,
   ConnectionCreate,
   Endpoint,
@@ -15,6 +16,7 @@ import type { HeaderRow } from "./useModelDetailDialogState";
 import {
   patchModelListConnectionCounts,
   removeConnectionFromList,
+  resolveConnectionProbeEndpointVariant,
   upsertConnectionInList,
   upsertEndpointInList,
 } from "./useModelDetailDataSupport";
@@ -22,6 +24,7 @@ import {
 interface UseModelDetailConnectionMutationsInput {
   id: string | undefined;
   revision: number;
+  modelApiFamily: ApiFamily | undefined;
   createMode: "select" | "new";
   selectedEndpointId: string;
   newEndpointForm: EndpointCreate;
@@ -40,6 +43,7 @@ interface UseModelDetailConnectionMutationsInput {
 export function useModelDetailConnectionMutations({
   id,
   revision,
+  modelApiFamily,
   createMode,
   selectedEndpointId,
   newEndpointForm,
@@ -81,6 +85,7 @@ export function useModelDetailConnectionMutations({
       }
 
       const payload = buildConnectionPayload({
+        modelApiFamily,
         createMode,
         selectedEndpointId,
         newEndpointForm,
@@ -124,6 +129,7 @@ export function useModelDetailConnectionMutations({
       newEndpointForm,
       refreshCurrentState,
       revision,
+      modelApiFamily,
       selectedEndpointId,
       commitConnections,
       setGlobalEndpoints,
@@ -171,6 +177,7 @@ export function useModelDetailConnectionMutations({
 }
 
 interface BuildConnectionPayloadInput {
+  modelApiFamily: ApiFamily | undefined;
   createMode: "select" | "new";
   selectedEndpointId: string;
   newEndpointForm: EndpointCreate;
@@ -181,6 +188,7 @@ interface BuildConnectionPayloadInput {
 }
 
 function buildConnectionPayload({
+  modelApiFamily,
   createMode,
   selectedEndpointId,
   newEndpointForm,
@@ -208,6 +216,10 @@ function buildConnectionPayload({
     ...connectionForm,
     name: resolvedConnectionName,
     custom_headers: customHeaders,
+    openai_probe_endpoint_variant: resolveConnectionProbeEndpointVariant(
+      modelApiFamily,
+      connectionForm.openai_probe_endpoint_variant,
+    ),
     pricing_template_id: connectionForm.pricing_template_id,
     qps_limit: normalizeLimiterField(connectionForm.qps_limit),
     max_in_flight_non_stream: normalizeLimiterField(connectionForm.max_in_flight_non_stream),

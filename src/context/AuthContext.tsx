@@ -37,14 +37,20 @@ export function AuthProvider({
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const authStateVersionRef = useRef(0);
   const authMutationInFlightRef = useRef(false);
+  const authEnabledRef = useRef(authEnabled);
+  const authenticatedRef = useRef(authenticated);
 
   const applySessionState = useCallback((session: SessionResponse) => {
+    authEnabledRef.current = session.auth_enabled;
+    authenticatedRef.current = session.authenticated;
     setAuthEnabled(session.auth_enabled);
     setAuthenticated(session.authenticated);
     setUsername(session.username);
   }, []);
 
   const applyBootstrapState = useCallback((state: AuthBootstrapState) => {
+    authEnabledRef.current = state.authEnabled;
+    authenticatedRef.current = state.authenticated;
     setAuthEnabled(state.authEnabled);
     setAuthenticated(state.authenticated);
     setUsername(state.username);
@@ -123,8 +129,8 @@ export function AuthProvider({
       if (
         shouldRefreshOnVisibilityChange(
           document.visibilityState,
-          authenticated,
-          authEnabled
+          authenticatedRef.current,
+          authEnabledRef.current,
         )
       ) {
         void runPassiveSessionRefresh();
@@ -132,7 +138,7 @@ export function AuthProvider({
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [authenticated, authEnabled, runPassiveSessionRefresh]);
+  }, [runPassiveSessionRefresh]);
 
   useEffect(() => {
     void runAuthBootstrap(true);

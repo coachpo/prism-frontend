@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { Connection, Endpoint, ModelConfig, ModelConfigListItem } from "@/lib/types";
+import type { ApiFamily, Connection, Endpoint, ModelConfig, ModelConfigListItem } from "@/lib/types";
 import { ConnectionDialog } from "../ConnectionDialog";
 import { createDefaultConnectionForm } from "../useModelDetailDataSupport";
 import { useModelDetailConnectionMutations } from "../useModelDetailConnectionMutations";
@@ -15,6 +15,7 @@ class ResizeObserverMock {
 }
 
 vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
 const api = vi.hoisted(() => ({
   connections: {
@@ -60,6 +61,7 @@ function buildConnection(overrides: Partial<Connection> = {}): Connection {
     auth_type: null,
     custom_headers: null,
     pricing_template_id: null,
+    openai_probe_endpoint_variant: "responses",
     qps_limit: null,
     max_in_flight_non_stream: null,
     max_in_flight_stream: null,
@@ -75,8 +77,10 @@ function buildConnection(overrides: Partial<Connection> = {}): Connection {
 
 function ConnectionDialogHarness({
   editingConnection,
+  modelApiFamily = "openai",
 }: {
   editingConnection?: Connection;
+  modelApiFamily?: ApiFamily;
 }) {
   const [, setConnections] = useState<Connection[]>(editingConnection ? [editingConnection] : []);
   const [globalEndpoints, setGlobalEndpoints] = useState<Endpoint[]>([buildEndpoint()]);
@@ -101,11 +105,12 @@ function ConnectionDialogHarness({
     setHeaderRows,
     endpointSourceDefaultName,
     openConnectionDialog,
-  } = useModelDetailDialogState({ globalEndpoints });
+  } = useModelDetailDialogState({ globalEndpoints, modelApiFamily });
 
   const { handleConnectionSubmit } = useModelDetailConnectionMutations({
     id: "5",
     revision: 1,
+    modelApiFamily,
     createMode,
     selectedEndpointId,
     newEndpointForm,
@@ -154,6 +159,7 @@ function ConnectionDialogHarness({
         dialogTestResult={dialogTestResult}
         handleDialogTestConnection={vi.fn()}
         endpointSourceDefaultName={endpointSourceDefaultName}
+        modelApiFamily={modelApiFamily}
         pricingTemplates={[]}
       />
     </>
@@ -178,6 +184,7 @@ describe("ConnectionDialog limiter fields", () => {
       is_active: true,
       custom_headers: null,
       pricing_template_id: null,
+      openai_probe_endpoint_variant: "responses",
       qps_limit: null,
       max_in_flight_non_stream: null,
       max_in_flight_stream: null,
@@ -194,6 +201,7 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByRole("tab", { name: "Select Existing" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Create New" })).toBeInTheDocument();
     expect(screen.getByLabelText("QPS Limit")).toBeInTheDocument();
+    expect(screen.getByText("OpenAI probe endpoint")).toBeInTheDocument();
     expect(screen.getAllByText("Leave blank for unlimited.")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "Save Connection" })).toBeInTheDocument();
   });
@@ -214,6 +222,15 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByLabelText("最大并发（流式）")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "测试连接" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存连接" })).toBeInTheDocument();
+  });
+
+  it("shows the OpenAI probe variant selector only for OpenAI models", async () => {
+    renderWithLocale(<ConnectionDialogHarness modelApiFamily="anthropic" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
+    expect(screen.queryByText("OpenAI probe endpoint")).not.toBeInTheDocument();
   });
 
   it("hydrates existing limiter values when editing a connection", async () => {
@@ -257,6 +274,8 @@ describe("ConnectionDialog limiter fields", () => {
     fireEvent.change(screen.getByLabelText("Max In-Flight (Stream)"), {
       target: { value: "2" },
     });
+    fireEvent.click(screen.getByRole("combobox", { name: "OpenAI probe endpoint" }));
+    fireEvent.click(screen.getByRole("option", { name: "POST /v1/chat/completions" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
 
@@ -264,6 +283,7 @@ describe("ConnectionDialog limiter fields", () => {
       expect(api.connections.create).toHaveBeenCalledWith(
         5,
         expect.objectContaining({
+          openai_probe_endpoint_variant: "chat_completions",
           qps_limit: 9,
           max_in_flight_non_stream: 5,
           max_in_flight_stream: 2,
@@ -274,11 +294,12 @@ describe("ConnectionDialog limiter fields", () => {
 
   it("submits null limiter values after clearing existing inputs", async () => {
     renderWithLocale(
-      <ConnectionDialogHarness
-        editingConnection={buildConnection({
-          qps_limit: 20,
-          max_in_flight_non_stream: 7,
-          max_in_flight_stream: 3,
+        <ConnectionDialogHarness
+          editingConnection={buildConnection({
+            openai_probe_endpoint_variant: "chat_completions",
+            qps_limit: 20,
+            max_in_flight_non_stream: 7,
+            max_in_flight_stream: 3,
         })}
       />,
     );
@@ -301,6 +322,7 @@ describe("ConnectionDialog limiter fields", () => {
       expect(api.connections.update).toHaveBeenCalledWith(
         11,
         expect.objectContaining({
+          openai_probe_endpoint_variant: "chat_completions",
           qps_limit: null,
           max_in_flight_non_stream: null,
           max_in_flight_stream: null,

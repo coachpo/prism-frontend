@@ -86,6 +86,7 @@ function buildConnection(): Connection {
     auth_type: null,
     custom_headers: null,
     pricing_template_id: null,
+    openai_probe_endpoint_variant: "responses",
     qps_limit: null,
     max_in_flight_non_stream: null,
     max_in_flight_stream: null,

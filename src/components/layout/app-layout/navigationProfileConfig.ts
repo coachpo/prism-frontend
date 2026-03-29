@@ -8,6 +8,7 @@ import {
   KeyRound,
   FileText,
   Scale,
+  Activity,
 } from "lucide-react";
 import type { Messages } from "@/i18n/messages/en";
 import { APP_VERSION, formatVersionLabel } from "@/lib/appVersion";
@@ -25,6 +26,7 @@ export const NAV_LINKS: NavLinkConfig[] = [
   { to: "/loadbalance-strategies", icon: Scale, labelKey: "loadbalanceStrategies" },
   { to: "/pricing-templates", icon: Coins, labelKey: "pricingTemplates" },
   { to: "/statistics", icon: BarChart3, labelKey: "statistics" },
+  { to: "/monitoring", icon: Activity, labelKey: "monitoring" },
   { to: "/request-logs", icon: FileText, labelKey: "requestLogs" },
   { to: "/proxy-api-keys", icon: KeyRound, labelKey: "apiKeys" },
   { to: "/settings", icon: Settings, labelKey: "settings" },
@@ -38,6 +40,7 @@ export const PROFILE_SCOPED_PREFIXES = [
   "/loadbalance-strategies",
   "/pricing-templates",
   "/statistics",
+  "/monitoring",
   "/request-logs",
 ];
 

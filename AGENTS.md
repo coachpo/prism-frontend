@@ -25,7 +25,7 @@ frontend/
 
 ## ROUTE MAP
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
-- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/models/:id/proxy`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
+- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/models/:id/proxy`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/monitoring`, `/monitoring/vendors/:vendorId`, `/monitoring/models/:modelConfigId`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
 - `/` redirects to `/dashboard`
 
 ## HIERARCHY
@@ -35,7 +35,7 @@ frontend/
 - `src/components/loadbalance/AGENTS.md` and `src/components/statistics/AGENTS.md` own the shared cross-route renderers in those folders.
 
 ## WHERE TO LOOK
-- Mounted routes, auth/public split, protected shell mounts: `src/App.tsx`
+- Mounted routes, auth/public split, monitoring routes, and protected shell mounts: `src/App.tsx`
 - Shell chrome, sidebar entries, profile-prefixed navigation, visible version label, and profile-switcher dialog state: `src/components/AGENTS.md`, `src/components/layout/app-layout/AGENTS.md`
 - Selected-profile state, revision bumps, auth bootstrap, and `X-Profile-Id` management scoping: `src/context/AGENTS.md`, `src/context/auth/AGENTS.md`, `src/context/profile/AGENTS.md`
 - Typed API boundary and shared request plumbing: `src/lib/AGENTS.md`, `src/lib/api/AGENTS.md`, `src/lib/api.ts`

@@ -10,6 +10,7 @@ const {
   mockUseConfigBackupData,
   mockUseAuthenticationSettingsData,
   mockUseCostingSettingsData,
+  mockUseMonitoringSettingsData,
   mockUseAuditConfigurationData,
   mockUseRetentionDeletionData,
   mockUseVendorManagementData,
@@ -21,6 +22,7 @@ const {
   mockUseConfigBackupData: vi.fn(),
   mockUseAuthenticationSettingsData: vi.fn(),
   mockUseCostingSettingsData: vi.fn(),
+  mockUseMonitoringSettingsData: vi.fn(),
   mockUseAuditConfigurationData: vi.fn(),
   mockUseRetentionDeletionData: vi.fn(),
   mockUseVendorManagementData: vi.fn(),
@@ -53,6 +55,10 @@ vi.mock("../useAuthenticationSettingsData", () => ({
 
 vi.mock("../useCostingSettingsData", () => ({
   useCostingSettingsData: mockUseCostingSettingsData,
+}));
+
+vi.mock("../useMonitoringSettingsData", () => ({
+  useMonitoringSettingsData: mockUseMonitoringSettingsData,
 }));
 
 vi.mock("../useAuditConfigurationData", () => ({
@@ -107,6 +113,7 @@ describe("useSettingsPageData", () => {
     mockUseConfigBackupData.mockReturnValue({ backupToken: "backup" });
     mockUseAuthenticationSettingsData.mockReturnValue({ authToken: "auth" });
     mockUseCostingSettingsData.mockReturnValue({ costingToken: "costing" });
+    mockUseMonitoringSettingsData.mockReturnValue({ monitoringToken: "monitoring" });
     mockUseAuditConfigurationData.mockReturnValue({
       vendors: auditVendors,
       toggleAudit,
@@ -122,6 +129,7 @@ describe("useSettingsPageData", () => {
     expect(result.current.selectedProfileLabel).toBe("Primary (#7)");
     expect(result.current.auditVendors).toEqual(auditVendors);
     expect(result.current.vendors).toEqual(vendorManagementVendors);
+    expect(result.current).toMatchObject({ monitoringToken: "monitoring" });
     expect(result.current.toggleAudit).toBe(toggleAudit);
   });
 });
