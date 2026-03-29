@@ -12,7 +12,7 @@ lib/
 │   ├── core.ts                   # API base, X-Profile-Id injection, auth refresh, query builder
 │   ├── authSettings.ts           # Auth bootstrap, proxy keys, WebAuthn methods
 │   ├── management.ts             # Profiles, vendors, models, endpoints, connections, pricing templates
-│   └── observability.ts          # Usage snapshot, summary, spending, throughput, metrics, timezone, config v9, audit, loadbalance
+│   └── observability.ts          # Usage snapshot, summary, spending, throughput, metrics, timezone, config v1, audit, loadbalance
 ├── websocket.ts                  # Singleton WebSocket client with channel ref-counts and reconnects
 ├── websocket/                    # Protocol parsing, subscription bookkeeping, transport/reconnect helpers
 ├── referenceData.ts              # Shared reference-data cache keyed by profile revision
@@ -50,7 +50,7 @@ lib/
 - `request()` handles cookie credentials, `ApiError`, and one refresh retry for eligible `/api/*` paths.
 - Let `api/AGENTS.md` own the typed client split instead of expanding this parent with module-by-module endpoint detail.
 - `referenceData.ts` and `referenceDataRegistry.ts` own shared cache reuse, request dedupe, and revision-keyed invalidation for lookup datasets.
-- `configImportValidation.ts` owns frontend-side validation of the version-9 import payload shape, including nested `auto_recovery` strategy data and vendor `icon_key` presence, instead of leaving that logic in page components.
+- `configImportValidation.ts` owns frontend-side validation of the version-1 import payload shape, including nested `auto_recovery` strategy data and vendor `icon_key` presence, instead of leaving that logic in page components.
 - `appVersion.ts` owns the browser-facing frontend version contract so shell chrome reads the synced `frontend/package.json` version through Vite instead of hard-coded literals.
 - `websocket.ts` owns the singleton client, while `websocket/` owns protocol parsing, subscription bookkeeping, and reconnect transport helpers. Consumers should use `useRealtimeData()` instead of creating clients directly.
 - Keep browser WebAuthn ceremony code in `webauthn.ts`.
