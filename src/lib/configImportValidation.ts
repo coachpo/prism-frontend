@@ -144,7 +144,7 @@ const UserSettingsImportSchema = z.strictObject({
 
 export const ConfigImportSchema = z
   .strictObject({
-    version: z.literal(9),
+    version: z.literal(1),
     exported_at: z.string().optional(),
     vendors: z.array(VendorImportSchema),
     endpoints: z.array(EndpointImportSchema),

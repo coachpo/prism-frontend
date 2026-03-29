@@ -131,7 +131,7 @@ export interface ConfigVendorExport {
 export type ConfigVendorImport = ConfigVendorExport;
 
 export interface ConfigExportResponse {
-  version: 9;
+  version: 1;
   exported_at: string;
   vendors: ConfigVendorExport[];
   endpoints: ConfigEndpointExport[];
@@ -143,7 +143,7 @@ export interface ConfigExportResponse {
 }
 
 export interface ConfigImportRequest {
-  version: 9;
+  version: 1;
   exported_at?: string;
   vendors: ConfigVendorImport[];
   endpoints: ConfigEndpointImport[];

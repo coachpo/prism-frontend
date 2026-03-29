@@ -37,7 +37,7 @@ function buildAutoRecoveryEnabled(options?: {
 
 function buildImportPayload() {
   return {
-    version: 9,
+    version: 1,
     exported_at: "2026-03-25T08:00:00Z",
     vendors: [
       {
@@ -103,7 +103,7 @@ function getIssuePairs(payload: unknown) {
 }
 
 describe("ConfigImportSchema", () => {
-  it("accepts version 9 imports and exposes vendor/api-family shared types", () => {
+  it("accepts version 1 imports and exposes vendor/api-family shared types", () => {
     const vendor: Vendor = {
       id: 1,
       key: "openai",
@@ -125,7 +125,7 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts explicit null vendor icon keys in version 9 imports", () => {
+  it("accepts explicit null vendor icon keys in version 1 imports", () => {
     const payload = {
       ...buildImportPayload(),
       vendors: [
@@ -155,7 +155,7 @@ describe("ConfigImportSchema", () => {
     }
   });
 
-  it("accepts proxy models with empty proxy_targets in version 9 imports", () => {
+  it("accepts proxy models with empty proxy_targets in version 1 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       models: [
@@ -224,7 +224,7 @@ describe("ConfigImportSchema", () => {
     }
   });
 
-  it("requires explicit vendor icon_key fields on version 9 imports", () => {
+  it("requires explicit vendor icon_key fields on version 1 imports", () => {
     const payload = {
       ...buildImportPayload(),
       vendors: [
@@ -255,12 +255,12 @@ describe("ConfigImportSchema", () => {
     expect(getIssuePairs(payload)).toEqual([
       {
         path: ["version"],
-        message: "Invalid input: expected 9",
+        message: "Invalid input: expected 1",
       },
     ]);
   });
 
-  it("requires explicit auto_recovery on version 9 strategies", () => {
+  it("requires explicit auto_recovery on version 1 strategies", () => {
     const payload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
@@ -304,7 +304,7 @@ describe("ConfigImportSchema", () => {
     ]);
   });
 
-  it("accepts fill-first strategies in version 9 imports", () => {
+  it("accepts fill-first strategies in version 1 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
@@ -334,7 +334,7 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts round-robin strategies in version 9 imports", () => {
+  it("accepts round-robin strategies in version 1 imports", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
