@@ -62,7 +62,7 @@ describe("settings hooks i18n", () => {
       name: "config.json",
       text: vi.fn().mockResolvedValue(
         JSON.stringify({
-          version: 9,
+          version: 1,
           vendors: [
             {
               key: "openai",

@@ -2113,7 +2113,7 @@ export const enMessages: Messages = {
     exportsContainApiKeys: "Exports include decrypted endpoint API keys. Handle backup files as sensitive credentials.",
     import: "Import",
     importConfiguration: "Import Configuration",
-    importDescription: "Upload a version 3 JSON backup file and restore this profile's configuration.",
+    importDescription: "Upload a version 1 JSON backup file and restore this profile's configuration.",
     importInProgress: "Importing...",
     loadedSummary: (fileName, endpoints, strategies, models, connections) =>
       `Loaded ${fileName}: ${endpoints} endpoints, ${strategies} strategies, ${models} models, ${connections} connections.`,
