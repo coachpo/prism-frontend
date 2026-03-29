@@ -1,7 +1,7 @@
 # FRONTEND COMPONENTS KNOWLEDGE BASE
 
 ## OVERVIEW
-`src/components/` holds Prism's shared shell chrome and reusable UI. Keep it presentation-first, with navigation config, app layout, and small cross-route widgets here. Anything that fetches data, owns realtime state, or depends on route-specific query logic belongs elsewhere. The old statistics tab widgets are gone; the current statistics page only reuses a small shared rendering subset from this package.
+`src/components/` holds Prism's shared shell chrome and reusable UI. Keep it presentation-first, with navigation config, app layout, and small cross-route widgets here. Anything that fetches data, owns realtime state, or depends on route-specific query logic belongs elsewhere. The current statistics page only reuses a small shared rendering subset from this package.
 
 ## STRUCTURE
 ```

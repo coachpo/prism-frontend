@@ -82,7 +82,7 @@ describe("RequestLogOverviewTab tracking fields", () => {
           onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `formatted:${iso}`}
           resolveModelLabel={createResolveModelLabel(
-            { "gpt-5.4": "Gateway alias" },
+            { "gpt-5.4": "Gateway proxy" },
             { "gpt-5.4": "proxy" },
           )}
         />

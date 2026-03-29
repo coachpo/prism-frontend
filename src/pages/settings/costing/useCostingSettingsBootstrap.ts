@@ -51,11 +51,7 @@ export function useCostingSettingsBootstrap(revision: number) {
       if (requestId !== costingRequestIdRef.current) {
         return;
       }
-      if (error instanceof Error && /not found/i.test(error.message)) {
-        setCostingUnavailable(true);
-      } else {
-        toast.error(error instanceof Error ? error.message : getMessages().settingsCostingData.loadCostingFailed);
-      }
+      toast.error(error instanceof Error ? error.message : getMessages().settingsCostingData.loadCostingFailed);
     } finally {
       if (requestId === costingRequestIdRef.current) {
         setCostingLoading(false);

@@ -26,7 +26,6 @@ vi.mock("../useModelsPageData", () => ({
       model_id: "",
       display_name: null,
       model_type: "native",
-      redirect_to: null,
       loadbalance_strategy_id: null,
       is_enabled: true,
     },

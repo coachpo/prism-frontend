@@ -307,7 +307,6 @@ describe("useModelsPageData", () => {
       loadbalance_strategy_id: null,
       is_enabled: true,
     });
-    expect(createPayload).not.toHaveProperty("redirect_to");
     const createdModel = result.current.models.find((model) => model.id === 3);
 
     expect(createdModel).toBeDefined();

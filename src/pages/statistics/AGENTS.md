@@ -10,7 +10,7 @@ statistics/
 ├── sections/                       # Page sections and snapshot summaries
 ├── tables/                         # Drilldown tables and request-event views
 ├── UsageStatisticsPageSkeleton.tsx # Page-level loading shell for the unified route
-├── StatisticsPageSkeleton.tsx      # Legacy skeleton still available for local fallback/test coverage
+├── StatisticsPageSkeleton.tsx      # Secondary skeleton kept for local fallback/test coverage
 ├── useUsageStatisticsPageData.ts   # Snapshot loading and page-data orchestration
 ├── useUsageStatisticsPageState.ts  # Local persisted presentation state
 ├── usageStatisticsStorage.ts       # localStorage persistence helpers
@@ -33,13 +33,13 @@ statistics/
 
 - Treat local persisted presentation state as the source of truth for page preferences that should survive reloads. The current unified statistics page does not expose a dedicated route-level query-param contract.
 - Keep unified usage-snapshot orchestration in `useUsageStatisticsPageData.ts`, not in section or table components.
-- Preserve the request-centric model. Request-event drilldown should use `ingress_request_id`, not the retired operations tab contract.
+- Preserve the request-centric model. Request-event drilldown should use `ingress_request_id` directly.
 - Keep route-shell and section copy on the shared locale boundary through `useLocale()`, and keep locale-aware formatting on the shared helpers rather than page-local string logic.
 - The dense `charts/`, `sections/`, and `tables/` subfolders stay parent-covered. Do not add extra AGENTS files for them.
 - Keep null-vs-zero rendering differences visible in helpers and copy, so missing data stays distinct from a true zero value.
 
 ## ANTI-PATTERNS
 
-- Do not recreate the retired tab/query-param model inside section or table components.
+- Do not recreate the tab/query-param model inside section or table components.
 - Do not regress null-vs-zero rendering for usage or cost metrics. Statistics depends on that distinction for triage.
 - Do not create standalone AGENTS files for `charts/`, `sections/`, or `tables/`. This parent doc owns those local clusters.

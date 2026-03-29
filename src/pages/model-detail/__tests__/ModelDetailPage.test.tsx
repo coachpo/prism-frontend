@@ -42,11 +42,11 @@ vi.mock("../ModelSettingsDialog", () => ({
 }));
 
 vi.mock("../ConnectionsList", () => ({
-  ConnectionsList: () => <div>legacy-connections-list</div>,
+  ConnectionsList: () => <div>mock-connections-list</div>,
 }));
 
 vi.mock("../LoadbalanceEventsTab", () => ({
-  LoadbalanceEventsTab: () => <div>legacy-loadbalance-events-tab</div>,
+  LoadbalanceEventsTab: () => <div>mock-loadbalance-events-tab</div>,
 }));
 
 vi.mock("../ModelDetailHeader", () => ({

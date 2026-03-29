@@ -11,41 +11,41 @@ export function getStaticLocaleMessages(): Messages {
   return getStaticMessages();
 }
 
-function normalizeLegacyLabel(label: string | null | undefined) {
+function normalizeKnownLabel(label: string | null | undefined) {
   return label?.trim().toLocaleLowerCase() ?? "";
 }
 
-export function isLegacyAllModelsLabel(label: string, key: string) {
-  const normalizedLabel = normalizeLegacyLabel(label);
+export function isKnownAllModelsLabel(label: string, key: string) {
+  const normalizedLabel = normalizeKnownLabel(label);
   return (
     key === "all" ||
-    normalizedLabel === normalizeLegacyLabel(enMessages.statistics.allModels) ||
-    normalizedLabel === normalizeLegacyLabel(getStaticMessages().statistics.allModels)
+    normalizedLabel === normalizeKnownLabel(enMessages.statistics.allModels) ||
+    normalizedLabel === normalizeKnownLabel(getStaticMessages().statistics.allModels)
   );
 }
 
-export function isLegacyUnknownEndpointLabel(label: string) {
-  const normalizedLabel = normalizeLegacyLabel(label);
+export function isKnownUnknownEndpointLabel(label: string) {
+  const normalizedLabel = normalizeKnownLabel(label);
   return (
-    normalizedLabel === normalizeLegacyLabel(enMessages.modelDetail.unknownEndpoint) ||
-    normalizedLabel === normalizeLegacyLabel(getStaticMessages().modelDetail.unknownEndpoint)
+    normalizedLabel === normalizeKnownLabel(enMessages.modelDetail.unknownEndpoint) ||
+    normalizedLabel === normalizeKnownLabel(getStaticMessages().modelDetail.unknownEndpoint)
   );
 }
 
-export function isLegacyUnknownProxyApiKeyLabel(label: string | null) {
-  const normalizedLabel = normalizeLegacyLabel(label);
-  return (
-    !label ||
-    normalizedLabel === normalizeLegacyLabel(enMessages.statistics.unknownProxyApiKey) ||
-    normalizedLabel === normalizeLegacyLabel(getStaticMessages().statistics.unknownProxyApiKey)
-  );
-}
-
-export function isLegacyUnknownVendorLabel(label: string | null | undefined) {
-  const normalizedLabel = normalizeLegacyLabel(label);
+export function isKnownUnknownProxyApiKeyLabel(label: string | null) {
+  const normalizedLabel = normalizeKnownLabel(label);
   return (
     !label ||
-    normalizedLabel === normalizeLegacyLabel(enMessages.modelsUi.unknownVendor) ||
-    normalizedLabel === normalizeLegacyLabel(getStaticMessages().modelsUi.unknownVendor)
+    normalizedLabel === normalizeKnownLabel(enMessages.statistics.unknownProxyApiKey) ||
+    normalizedLabel === normalizeKnownLabel(getStaticMessages().statistics.unknownProxyApiKey)
+  );
+}
+
+export function isKnownUnknownVendorLabel(label: string | null | undefined) {
+  const normalizedLabel = normalizeKnownLabel(label);
+  return (
+    !label ||
+    normalizedLabel === normalizeKnownLabel(enMessages.modelsUi.unknownVendor) ||
+    normalizedLabel === normalizeKnownLabel(getStaticMessages().modelsUi.unknownVendor)
   );
 }

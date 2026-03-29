@@ -5,7 +5,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { EmptyState } from "@/components/EmptyState";
 import { VendorIcon } from "@/components/VendorIcon";
 import { useLocale } from "@/i18n/useLocale";
-import { isLegacyUnknownVendorLabel } from "@/i18n/staticMessages";
+import { isKnownUnknownVendorLabel } from "@/i18n/staticMessages";
 import {
   IconActionButton,
   IconActionGroup,
@@ -78,7 +78,7 @@ function resolveApiFamily(model: ModelConfigListItem) {
 }
 
 function isUnknownVendor(model: ModelConfigListItem) {
-  return !model.vendor || model.vendor.key === UNKNOWN_VENDOR_KEY || isLegacyUnknownVendorLabel(model.vendor.name);
+  return !model.vendor || model.vendor.key === UNKNOWN_VENDOR_KEY || isKnownUnknownVendorLabel(model.vendor.name);
 }
 
 function resolveVendorName(model: ModelConfigListItem, unknownVendorLabel: string) {

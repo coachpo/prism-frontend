@@ -1,7 +1,7 @@
-// Keep the textarea + execCommand fallback for browsers that still do not expose
+// Keep the textarea + execCommand fallback for browsers that do not expose
 // navigator.clipboard.writeText. There is not a broadly supported text-only
-// fallback with meaningfully better compatibility today, so Prism intentionally
-// retains this path to preserve existing copy behavior in older environments.
+// fallback with meaningfully better compatibility today, so Prism keeps this
+// path to preserve copy behavior across supported environments.
 function fallbackCopyText(text: string): boolean {
   if (typeof document === "undefined") return false;
 

@@ -58,7 +58,6 @@ describe("useDashboardPageData", () => {
         model_id: "gpt-5.4",
         display_name: "GPT-5.4",
         model_type: "native",
-        redirect_to: null,
         loadbalance_strategy_id: 100,
         loadbalance_strategy: {
           id: 100,
@@ -91,7 +90,6 @@ describe("useDashboardPageData", () => {
         model_id: "claude-sonnet-4-6",
         display_name: "Claude Sonnet 4.6",
         model_type: "native",
-        redirect_to: null,
         loadbalance_strategy_id: 101,
         loadbalance_strategy: {
           id: 101,

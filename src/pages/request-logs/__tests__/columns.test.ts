@@ -172,12 +172,12 @@ describe("formatCost", () => {
         created_at: "2026-03-16T00:00:00.000Z",
       } as RequestLogEntry,
       createResolveModelLabel(
-        { "claude-sonnet-4-5": "Gateway alias" },
+        { "claude-sonnet-4-5": "Gateway proxy" },
         { "claude-sonnet-4-5": "proxy" },
       ),
     );
 
-    expect(screen.getByText("Gateway alias")).toBeInTheDocument();
+    expect(screen.getByText("Gateway proxy")).toBeInTheDocument();
     expect(screen.getByText(/proxy origin/i)).toBeInTheDocument();
     expect(screen.queryByText(/Resolved target/i)).not.toBeInTheDocument();
   });

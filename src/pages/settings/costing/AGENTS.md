@@ -26,12 +26,12 @@ costing/
 - `costing/` owns stateful hooks, normalization, validation, and save orchestration.
 - `sections/BillingCurrencySection.tsx` owns the section shell that wires those hooks into the settings page.
 - `sections/billing-currency/` owns presentation widgets such as the reporting currency card, FX mapping form, summary, and table.
-- Timezone saving stays in this hook cluster because it shares the costing-form baseline and dirty-state model, even though the rendered section lives in `../sections/TimezoneSection.tsx`.
+- Timezone saving stays in this hook cluster because it shares the costing-form saved-state model, even though the rendered section lives in `../sections/TimezoneSection.tsx`.
 
 ## CONVENTIONS
 
 - Keep costing data normalized through `normalizeCostingForm()` before dirty checks or saves.
-- Preserve the split between billing saves and timezone saves. Timezone save depends on a valid saved billing baseline.
+- Preserve the split between billing saves and timezone saves. Timezone save depends on a valid saved billing state.
 - Load FX mapping endpoint choices from the selected model's connections inside the CRUD hook, not inside presentation components.
 - Reuse `settingsPageHelpers.ts` for mapping keys, validation, formatting, and default state.
 

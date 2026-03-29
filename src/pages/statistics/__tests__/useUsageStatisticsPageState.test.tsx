@@ -44,7 +44,7 @@ describe("useUsageStatisticsPageState", () => {
         selectedModelLines: ["gpt-5.4", "claude-sonnet-4-6"],
         selectedTimeRange: "7d",
       },
-      version: 2,
+      version: 1,
     });
 
     unmount();
@@ -61,7 +61,7 @@ describe("useUsageStatisticsPageState", () => {
     });
   });
 
-  it("resets to defaults when the stored shape is from the pre-versioned contract", () => {
+  it("resets to defaults when the stored shape is unsupported", () => {
     localStorage.setItem(
       USAGE_STATISTICS_STORAGE_KEY,
       JSON.stringify({
@@ -71,7 +71,7 @@ describe("useUsageStatisticsPageState", () => {
           tokenTypeBreakdown: "daily",
           tokenUsageTrends: "daily",
         },
-        selectedModelLines: ["legacy-model"],
+        selectedModelLines: ["stale-model"],
         selectedTimeRange: "7d",
       }),
     );

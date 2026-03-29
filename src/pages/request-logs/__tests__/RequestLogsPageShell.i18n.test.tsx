@@ -105,7 +105,7 @@ describe("RequestLogsPage shell i18n", () => {
     );
 
     expect(screen.getByRole("heading", { name: "请求日志" })).toBeInTheDocument();
-    expect(screen.getByText("浏览并调查代理请求历史")).toBeInTheDocument();
+    expect(screen.getByText("浏览并调查代理请求")).toBeInTheDocument();
     expect(screen.getByText("未找到请求")).toBeInTheDocument();
     expect(screen.getByText("找不到请求 #404。它可能已被删除，或者你无权访问它。")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "返回请求列表" })).toBeInTheDocument();

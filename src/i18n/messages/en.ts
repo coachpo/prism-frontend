@@ -1351,7 +1351,7 @@ export interface Messages {
     p99Latency: string;
     percentTotal: string;
     pricedPercent: string;
-    provider: string;
+    vendorLabel: string;
     refreshThroughputStatistics: string;
     refreshOperationsStatistics: string;
     refreshSpendingStatistics: string;
@@ -1972,7 +1972,7 @@ export const enMessages: Messages = {
     deletionFailed: "Deletion failed",
     deletionRequested: (label) => `${label} deletion requested`,
     description: (profileLabel) =>
-      `Delete historical data in ${profileLabel} with explicit retention and confirmation controls.`,
+      `Delete stored data in ${profileLabel} with explicit retention and confirmation controls.`,
     invalidRetentionOption: "Select a valid retention option",
     retentionDays: (days) => `${days} days`,
     selectDataType: "Select data type",
@@ -2113,7 +2113,7 @@ export const enMessages: Messages = {
     exportsContainApiKeys: "Exports include decrypted endpoint API keys. Handle backup files as sensitive credentials.",
     import: "Import",
     importConfiguration: "Import Configuration",
-    importDescription: "Upload a version 1 JSON backup file and restore this profile's configuration.",
+    importDescription: "Upload a configuration JSON backup file and restore this profile's configuration.",
     importInProgress: "Importing...",
     loadedSummary: (fileName, endpoints, strategies, models, connections) =>
       `Loaded ${fileName}: ${endpoints} endpoints, ${strategies} strategies, ${models} models, ${connections} connections.`,
@@ -2179,7 +2179,7 @@ export const enMessages: Messages = {
     billingAndCurrency: "Billing & Currency",
     cancelFxMappingEdit: "Cancel FX mapping edit",
     code: "Code",
-    costApiUnavailable: "Costing settings API is currently unavailable. Upgrade the backend to enable this feature.",
+    costApiUnavailable: "Costing settings API is currently unavailable.",
     currencyCodePlaceholder: "USD",
     currencySymbolPlaceholder: "$",
     deleteFxMapping: "Delete FX mapping",
@@ -2736,7 +2736,7 @@ export const enMessages: Messages = {
     requestNotFound: "Request Not Found",
     requestNotFoundDescription: (id) => `Request #${id} could not be found. It may have been deleted or you might not have access to it.`,
     requestLogsAllTime: "All time",
-    requestLogsDescription: "Browse and investigate proxied request history",
+    requestLogsDescription: "Browse and investigate proxied requests",
     requestLogsTitle: "Request Logs",
     noCaptured: (title) => `No ${title.toLowerCase()} captured.`,
     noRequestLogsMatchSlice: "No request logs match this slice",
@@ -2884,7 +2884,7 @@ export const enMessages: Messages = {
     p99Latency: "P99 Latency",
     percentTotal: "% Total",
     pricedPercent: "Priced %",
-    provider: "Provider",
+    vendorLabel: "Vendor",
     refreshThroughputStatistics: "Refresh throughput statistics",
     refreshOperationsStatistics: "Refresh operations statistics",
     refreshSpendingStatistics: "Refresh spending statistics",

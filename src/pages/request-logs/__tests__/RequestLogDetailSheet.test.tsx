@@ -218,7 +218,7 @@ describe("RequestLogDetailSheet", () => {
           onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `formatted:${iso}`}
           resolveModelLabel={createResolveModelLabel(
-            { "claude-sonnet-4-5": "Gateway alias" },
+            { "claude-sonnet-4-5": "Gateway proxy" },
             { "claude-sonnet-4-5": "proxy" },
           )}
         />
@@ -226,7 +226,7 @@ describe("RequestLogDetailSheet", () => {
     );
 
     expect(screen.getByText(/proxy origin/i)).toBeInTheDocument();
-    expect(screen.getAllByText("Gateway alias").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Gateway proxy").length).toBeGreaterThan(0);
     expect(screen.queryByText("Resolved target")).not.toBeInTheDocument();
   });
 
@@ -333,7 +333,7 @@ describe("RequestLogDetailSheet", () => {
     renderSheet({
       request: {
         ...baseRequest,
-        model_id: "provider/super-long-model-id-with-many-segments-and-qualifiers",
+        model_id: "vendor/super-long-model-id-with-many-segments-and-qualifiers",
         request_path: "/v1/responses/really/long/path/segment/that/should/wrap/in/the/drawer/without/overflow",
         endpoint_base_url:
           "https://api.example.com/v1/really/long/base/url/with/many/path/segments/and/query/like/values/that/should/wrap",

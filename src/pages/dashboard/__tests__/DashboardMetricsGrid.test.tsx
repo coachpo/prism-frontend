@@ -12,7 +12,7 @@ describe("DashboardMetricsGrid", () => {
     localStorage.clear();
   });
 
-  it("shows Average RPM instead of the old system health card", () => {
+  it("shows Average RPM as the primary throughput card", () => {
     renderWithLocale(
       <DashboardMetricsGrid
         highlighted={false}

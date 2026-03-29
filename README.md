@@ -51,7 +51,7 @@ For deeper implementation boundaries, use `src/pages/AGENTS.md`,
 
 ## shadcn workflow
 
-Prism still uses the checked-in shadcn registry configuration in
+Prism uses the checked-in shadcn registry configuration in
 `components.json`, and `src/index.css` still imports `shadcn/tailwind.css`.
 Keep that workflow intact when adding or updating UI primitives.
 

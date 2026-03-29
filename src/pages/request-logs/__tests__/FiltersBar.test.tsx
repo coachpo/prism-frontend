@@ -183,7 +183,7 @@ describe("request log filter split components", () => {
     expect(screen.queryByText("gpt-4o-mini")).not.toBeInTheDocument();
   });
 
-  it("renders API Family copy instead of provider-era labels", () => {
+  it("renders API Family copy instead of vendor labels", () => {
     renderWithLocale(
       <FiltersBarPrimaryFilters
         filterOptions={{ apiFamilies: ["openai", "anthropic"], connections: [], endpoints: [], models: [] }}

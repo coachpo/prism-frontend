@@ -8,7 +8,7 @@ import {
 } from "@/lib/types";
 
 export const USAGE_STATISTICS_STORAGE_KEY = "prism.statistics.usage-state";
-const USAGE_STATISTICS_STORAGE_VERSION = 2;
+const USAGE_STATISTICS_STORAGE_VERSION = 1;
 
 const DEFAULT_CHART_GRANULARITY: UsageStatisticsChartGranularityState = {
   costOverview: "hourly",

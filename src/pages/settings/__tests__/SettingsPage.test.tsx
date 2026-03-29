@@ -37,31 +37,31 @@ vi.mock("../useSettingsPageData", () => ({
 }));
 
 vi.mock("../SettingsSectionsNav", () => ({
-  SettingsSectionsNav: () => <div>legacy-settings-sections-nav</div>,
+  SettingsSectionsNav: () => <div>mock-settings-sections-nav</div>,
 }));
 
 vi.mock("../sections/BackupSection", () => ({
-  BackupSection: () => <div>legacy-backup-section</div>,
+  BackupSection: () => <div>mock-backup-section</div>,
 }));
 
 vi.mock("../sections/BillingCurrencySection", () => ({
-  BillingCurrencySection: () => <div>legacy-billing-currency-section</div>,
+  BillingCurrencySection: () => <div>mock-billing-currency-section</div>,
 }));
 
 vi.mock("../sections/TimezoneSection", () => ({
-  TimezoneSection: () => <div>legacy-timezone-section</div>,
+  TimezoneSection: () => <div>mock-timezone-section</div>,
 }));
 
 vi.mock("../sections/AuditConfigurationSection", () => ({
-  AuditConfigurationSection: () => <div>legacy-audit-configuration-section</div>,
+  AuditConfigurationSection: () => <div>mock-audit-configuration-section</div>,
 }));
 
 vi.mock("../sections/AuthenticationSection", () => ({
-  AuthenticationSection: () => <div>legacy-authentication-section</div>,
+  AuthenticationSection: () => <div>mock-authentication-section</div>,
 }));
 
 vi.mock("../sections/RetentionDeletionSection", () => ({
-  RetentionDeletionSection: () => <div>legacy-retention-deletion-section</div>,
+  RetentionDeletionSection: () => <div>mock-retention-deletion-section</div>,
 }));
 
 vi.mock("../dialogs/DeleteConfirmDialog", () => ({

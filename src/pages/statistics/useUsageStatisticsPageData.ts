@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import {
-  isLegacyAllModelsLabel,
-  isLegacyUnknownEndpointLabel,
-  isLegacyUnknownProxyApiKeyLabel,
+  isKnownAllModelsLabel,
+  isKnownUnknownEndpointLabel,
+  isKnownUnknownProxyApiKeyLabel,
 } from "@/i18n/staticMessages";
 import { useLocale } from "@/i18n/useLocale";
 import type {
@@ -122,21 +122,21 @@ export function useUsageStatisticsPageData({
     }
 
     const localizeSeriesLabel = (label: string, key: string) => {
-      if (isLegacyAllModelsLabel(label, key)) {
+      if (isKnownAllModelsLabel(label, key)) {
         return messages.statistics.allModels;
       }
       return label;
     };
 
     const localizeEndpointLabel = (label: string) => {
-      if (isLegacyUnknownEndpointLabel(label)) {
+      if (isKnownUnknownEndpointLabel(label)) {
         return messages.modelDetail.unknownEndpoint;
       }
       return label;
     };
 
     const localizeProxyApiKeyLabel = (label: string | null) => {
-      if (isLegacyUnknownProxyApiKeyLabel(label)) {
+      if (isKnownUnknownProxyApiKeyLabel(label)) {
         return messages.statistics.unknownProxyApiKey;
       }
       return label ?? messages.statistics.unknownProxyApiKey;
@@ -165,7 +165,7 @@ export function useUsageStatisticsPageData({
           })),
           models: availableFilters.models.map((item) => ({
             ...item,
-              label: isLegacyAllModelsLabel(item.label, item.model_id)
+              label: isKnownAllModelsLabel(item.label, item.model_id)
                 ? messages.statistics.allModels
                 : item.label,
             })),

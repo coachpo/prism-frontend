@@ -103,7 +103,7 @@ function getIssuePairs(payload: unknown) {
 }
 
 describe("ConfigImportSchema", () => {
-  it("accepts version 1 imports and exposes vendor/api-family shared types", () => {
+  it("accepts the current config format and exposes vendor/api-family shared types", () => {
     const vendor: Vendor = {
       id: 1,
       key: "openai",
@@ -125,7 +125,7 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts explicit null vendor icon keys in version 1 imports", () => {
+  it("accepts explicit null vendor icon keys in the current config format", () => {
     const payload = {
       ...buildImportPayload(),
       vendors: [
@@ -155,7 +155,7 @@ describe("ConfigImportSchema", () => {
     }
   });
 
-  it("accepts proxy models with empty proxy_targets in version 1 imports", () => {
+  it("accepts proxy models with empty proxy_targets in the current config format", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       models: [
@@ -224,7 +224,7 @@ describe("ConfigImportSchema", () => {
     }
   });
 
-  it("requires explicit vendor icon_key fields on version 1 imports", () => {
+  it("requires explicit vendor icon_key fields in the current config format", () => {
     const payload = {
       ...buildImportPayload(),
       vendors: [
@@ -246,10 +246,10 @@ describe("ConfigImportSchema", () => {
     ]);
   });
 
-  it("rejects legacy version 8 imports", () => {
+  it("rejects unsupported config versions", () => {
     const payload = {
       ...buildImportPayload(),
-      version: 8,
+      version: 2,
     };
 
     expect(getIssuePairs(payload)).toEqual([
@@ -260,7 +260,7 @@ describe("ConfigImportSchema", () => {
     ]);
   });
 
-  it("requires explicit auto_recovery on version 1 strategies", () => {
+  it("requires explicit auto_recovery in the current strategy format", () => {
     const payload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
@@ -279,7 +279,7 @@ describe("ConfigImportSchema", () => {
     ]);
   });
 
-  it("rejects the removed auth cooldown field in strategy imports", () => {
+  it("rejects unrecognized cooldown fields in strategy imports", () => {
     const payload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
@@ -289,7 +289,7 @@ describe("ConfigImportSchema", () => {
             ...buildImportPayload().loadbalance_strategies[0].auto_recovery,
             cooldown: {
               ...buildImportPayload().loadbalance_strategies[0].auto_recovery.cooldown,
-              failover_auth_error_cooldown_seconds: 2400,
+              unexpected_cooldown_seconds: 2400,
             },
           },
         },
@@ -299,12 +299,12 @@ describe("ConfigImportSchema", () => {
     expect(getIssuePairs(payload)).toEqual([
       {
         path: ["loadbalance_strategies", 0, "auto_recovery", "cooldown"],
-        message: 'Unrecognized key: "failover_auth_error_cooldown_seconds"',
+        message: 'Unrecognized key: "unexpected_cooldown_seconds"',
       },
     ]);
   });
 
-  it("accepts fill-first strategies in version 1 imports", () => {
+  it("accepts fill-first strategies in the current config format", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
@@ -334,7 +334,7 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts round-robin strategies in version 1 imports", () => {
+  it("accepts round-robin strategies in the current config format", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
