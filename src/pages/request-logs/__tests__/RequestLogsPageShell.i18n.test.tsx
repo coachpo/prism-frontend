@@ -4,6 +4,7 @@ import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { RequestLogsPage } from "@/pages/RequestLogsPage";
 
 const mockNavigate = vi.hoisted(() => vi.fn());
+const mockUseRequestLogDetail = vi.hoisted(() => vi.fn());
 const mockUseRequestLogPageState = vi.hoisted(() => vi.fn());
 const mockUseRequestLogsPageData = vi.hoisted(() => vi.fn());
 
@@ -36,6 +37,10 @@ vi.mock("../useRequestLogsPageData", () => ({
   useRequestLogsPageData: () => mockUseRequestLogsPageData(),
 }));
 
+vi.mock("../useRequestLogDetail", () => ({
+  useRequestLogDetail: () => mockUseRequestLogDetail(),
+}));
+
 vi.mock("../RequestFocusBanner", () => ({
   RequestFocusBanner: () => <div>request-focus-banner</div>,
 }));
@@ -57,6 +62,7 @@ describe("RequestLogsPage shell i18n", () => {
     localStorage.clear();
     localStorage.setItem("prism.locale", "zh-CN");
     mockNavigate.mockReset();
+    mockUseRequestLogDetail.mockReset();
     mockUseRequestLogPageState.mockReset();
     mockUseRequestLogsPageData.mockReset();
 
@@ -68,9 +74,6 @@ describe("RequestLogsPage shell i18n", () => {
         latency_bucket: "all",
         token_min: "",
         token_max: "",
-        priced_only: false,
-        billable_only: false,
-        special_token_filter: "",
         triage: false,
         request_id: "404",
         detail_tab: "overview",
@@ -93,6 +96,14 @@ describe("RequestLogsPage shell i18n", () => {
       error: null,
       filterOptions: { models: [] },
       filterOptionsLoaded: true,
+      refresh: vi.fn(),
+    });
+
+    mockUseRequestLogDetail.mockReturnValue({
+      request: null,
+      loading: false,
+      error: null,
+      notFound: true,
       refresh: vi.fn(),
     });
   });

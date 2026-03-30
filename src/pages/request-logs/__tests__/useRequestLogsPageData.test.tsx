@@ -33,9 +33,6 @@ function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPa
     latency_bucket: DEFAULTS.latency_bucket,
     token_min: "",
     token_max: "",
-    priced_only: DEFAULTS.priced_only,
-    billable_only: DEFAULTS.billable_only,
-    special_token_filter: "",
     view: DEFAULTS.view,
     triage: DEFAULTS.triage,
     limit: DEFAULTS.limit,
@@ -56,7 +53,7 @@ describe("useRequestLogsPageData", () => {
     api.stats.requests.mockResolvedValue({
       items: [],
       total: 0,
-      limit: 1,
+      limit: 100,
       offset: 0,
     });
   });
@@ -66,37 +63,7 @@ describe("useRequestLogsPageData", () => {
     vi.useRealTimers();
   });
 
-  it("sends only request_id and limit during exact-request mode", async () => {
-    renderHook(() =>
-      useRequestLogsPageData({
-        revision: 1,
-        state: createState({
-          model_id: "gpt-5.4",
-          api_family: "openai",
-          connection_id: "42",
-          endpoint_id: "99",
-          status_family: "5xx",
-          request_id: "123",
-          limit: 25,
-          offset: 50,
-        }),
-      })
-    );
-
-    await act(async () => {
-      vi.advanceTimersByTime(0);
-      await Promise.resolve();
-    });
-
-    await act(async () => {
-      vi.advanceTimersByTime(300);
-      await Promise.resolve();
-    });
-
-    expect(api.stats.requests).toHaveBeenCalledWith({ request_id: 123, limit: 1 });
-  });
-
-  it("propagates ingress_request_id alongside other server-backed filters", async () => {
+  it("does not send request_id to the list endpoint after the split", async () => {
     renderHook(() =>
       useRequestLogsPageData({
         revision: 1,
@@ -107,8 +74,9 @@ describe("useRequestLogsPageData", () => {
           connection_id: "42",
           endpoint_id: "99",
           status_family: "5xx",
-          limit: 25,
-          offset: 50,
+          request_id: "123",
+          limit: 300,
+          offset: 600,
         }),
       })
     );
@@ -131,8 +99,48 @@ describe("useRequestLogsPageData", () => {
       connection_id: 42,
       endpoint_id: 99,
       from_time: expect.any(String),
-      limit: 25,
-      offset: 50,
+      limit: 300,
+      offset: 600,
+    });
+  });
+
+  it("propagates ingress_request_id alongside other server-backed filters", async () => {
+    renderHook(() =>
+      useRequestLogsPageData({
+        revision: 1,
+        state: createState({
+          ingress_request_id: "ingress_req_42",
+          model_id: "gpt-5.4",
+          api_family: "openai",
+          connection_id: "42",
+          endpoint_id: "99",
+          status_family: "5xx",
+          limit: 300,
+          offset: 600,
+        }),
+      })
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(0);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+      await Promise.resolve();
+    });
+
+    expect(api.stats.requests).toHaveBeenCalledWith({
+      ingress_request_id: "ingress_req_42",
+      model_id: "gpt-5.4",
+      api_family: "openai",
+      status_family: "5xx",
+      connection_id: 42,
+      endpoint_id: 99,
+      from_time: expect.any(String),
+      limit: 300,
+      offset: 600,
     });
   });
 });

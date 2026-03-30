@@ -6,14 +6,14 @@ import { ValueBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMoneyMicros } from "@/lib/costing";
 import { cn } from "@/lib/utils";
-import type { RequestLogEntry } from "@/lib/types";
+import type { RequestLogListItem } from "@/lib/types";
 
 interface RecentActivityCardProps {
   clearRecentRequestHighlight: (requestId: number) => void;
   formatTime: (isoString: string, options?: Intl.DateTimeFormatOptions) => string;
   modelDisplayNames: Map<string, string>;
   recentNewIds: Set<number>;
-  recentRequests: RequestLogEntry[];
+  recentRequests: RequestLogListItem[];
 }
 
 export function RecentActivityCard({
@@ -86,7 +86,14 @@ export function RecentActivityCard({
                       {messages.requestLogs.totalTokens}: {formatNumber(request.total_tokens || 0)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatMoneyMicros(request.total_cost_original_micros, "$", undefined, 2, 6, locale)}
+                      {formatMoneyMicros(
+                        request.total_cost_user_currency_micros,
+                        request.report_currency_symbol ?? "$",
+                        undefined,
+                        2,
+                        6,
+                        locale,
+                      )}
                     </p>
                   </div>
                   <ValueBadge

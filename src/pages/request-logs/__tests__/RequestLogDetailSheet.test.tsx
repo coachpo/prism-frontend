@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { AuditLogDetail, ModelConfigListItem, RequestLogEntry } from "@/lib/types";
+import type { AuditLogDetail, ModelConfigListItem, RequestLogDetail } from "@/lib/types";
 import { RequestLogDetailSheet } from "../RequestLogDetailSheet";
 import { useAuditDetail } from "../useAuditDetail";
 
@@ -9,59 +9,79 @@ vi.mock("../useAuditDetail", () => ({
   useAuditDetail: vi.fn(),
 }));
 
-const baseRequest = {
-  id: 42,
-  model_id: "gpt-5.4",
-  resolved_target_model_id: null,
-  profile_id: 7,
-  api_family: "openai",
-  vendor_id: 1,
-  vendor_key: "openai",
-  vendor_name: "OpenAI",
-  endpoint_id: 12,
-  connection_id: 34,
-  ingress_request_id: null,
-  attempt_number: null,
-  provider_correlation_id: null,
-  endpoint_base_url: "https://api.example.com/v1",
-  endpoint_description: "Primary endpoint",
-  status_code: 200,
-  response_time_ms: 912,
-  is_stream: true,
-  input_tokens: 100,
-  output_tokens: 50,
-  total_tokens: 150,
-  success_flag: true,
-  billable_flag: true,
-  priced_flag: true,
-  unpriced_reason: null,
-  cache_read_input_tokens: 0,
-  cache_creation_input_tokens: 0,
-  reasoning_tokens: 0,
-  input_cost_micros: 1000,
-  output_cost_micros: 2000,
-  cache_read_input_cost_micros: 0,
-  cache_creation_input_cost_micros: 0,
-  reasoning_cost_micros: 0,
-  total_cost_original_micros: 3000,
-  total_cost_user_currency_micros: 3000,
-  currency_code_original: "USD",
-  report_currency_code: "USD",
-  report_currency_symbol: "$",
-  fx_rate_used: null,
-  fx_rate_source: null,
-  pricing_snapshot_unit: null,
-  pricing_snapshot_input: null,
-  pricing_snapshot_output: null,
-  pricing_snapshot_cache_read_input: null,
-  pricing_snapshot_cache_creation_input: null,
-  pricing_snapshot_reasoning: null,
-  pricing_snapshot_missing_special_token_price_policy: null,
-  pricing_config_version_used: 1,
-  request_path: "/v1/chat/completions",
-  error_detail: null,
-  created_at: "2026-03-16T00:00:00.000Z",
-} as unknown as RequestLogEntry;
+const baseRequest: RequestLogDetail = {
+  summary: {
+    id: 42,
+    created_at: "2026-03-16T00:00:00.000Z",
+    model_id: "gpt-5.4",
+    resolved_target_model_id: null,
+    api_family: "openai",
+    vendor_id: 1,
+    vendor_key: "openai",
+    vendor_name: "OpenAI",
+    status_code: 200,
+    response_time_ms: 912,
+    is_stream: true,
+  },
+  request: {
+    request_path: "/v1/chat/completions",
+    ingress_request_id: null,
+    attempt_number: null,
+    provider_correlation_id: null,
+    proxy_api_key_id: null,
+    proxy_api_key_name_snapshot: null,
+    error_detail: null,
+  },
+  routing: {
+    profile_id: 7,
+    model_id: "gpt-5.4",
+    resolved_target_model_id: null,
+    api_family: "openai",
+    vendor_id: 1,
+    vendor_key: "openai",
+    vendor_name: "OpenAI",
+    endpoint_id: 12,
+    connection_id: 34,
+    endpoint_base_url: "https://api.example.com/v1",
+    endpoint_description: "Primary endpoint",
+  },
+  usage: {
+    input_tokens: 100,
+    output_tokens: 50,
+    total_tokens: 150,
+    success_flag: true,
+    billable_flag: true,
+    priced_flag: true,
+    unpriced_reason: null,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+    reasoning_tokens: 0,
+  },
+  costing: {
+    input_cost_micros: 1000,
+    output_cost_micros: 2000,
+    cache_read_input_cost_micros: 0,
+    cache_creation_input_cost_micros: 0,
+    reasoning_cost_micros: 0,
+    total_cost_original_micros: 3000,
+    total_cost_user_currency_micros: 3000,
+    currency_code_original: "USD",
+    report_currency_code: "USD",
+    report_currency_symbol: "$",
+    fx_rate_used: null,
+    fx_rate_source: null,
+  },
+  pricing: {
+    pricing_snapshot_unit: null,
+    pricing_snapshot_input: null,
+    pricing_snapshot_output: null,
+    pricing_snapshot_cache_read_input: null,
+    pricing_snapshot_cache_creation_input: null,
+    pricing_snapshot_reasoning: null,
+    pricing_snapshot_missing_special_token_price_policy: null,
+    pricing_config_version_used: 1,
+  },
+};
 
 const baseAudit: AuditLogDetail = {
   id: 9,
@@ -107,7 +127,7 @@ function createResolveModelLabel(
 
 function renderSheet(
   overrides?: Partial<React.ComponentProps<typeof RequestLogDetailSheet>> & {
-    request?: RequestLogEntry;
+    request?: RequestLogDetail;
   }
 ) {
   const onClose = vi.fn();
@@ -146,6 +166,9 @@ describe("RequestLogDetailSheet", () => {
   it("renders overview content and forwards navigation/tab/close actions", () => {
     const { onClose, onNavigateToConnection, onTabChange } = renderSheet();
 
+    expect(screen.getByTestId("request-log-detail-sheet")).toBeInTheDocument();
+    expect(screen.getByTestId("request-log-summary-strip")).toBeInTheDocument();
+    expect(screen.getByTestId("request-log-overview-grid")).toBeInTheDocument();
     expect(screen.getByText("Request #42")).toBeInTheDocument();
     expect(screen.getAllByText("GPT 5.4")).toHaveLength(2);
     expect(screen.getAllByText("/v1/chat/completions")).toHaveLength(2);
@@ -170,9 +193,17 @@ describe("RequestLogDetailSheet", () => {
         <RequestLogDetailSheet
           request={{
             ...baseRequest,
-            model_id: "claude-sonnet-4-5",
-            resolved_target_model_id: "claude-sonnet-4-5-20250929",
-          } as RequestLogEntry}
+            summary: {
+              ...baseRequest.summary,
+              model_id: "claude-sonnet-4-5",
+              resolved_target_model_id: "claude-sonnet-4-5-20250929",
+            },
+            routing: {
+              ...baseRequest.routing,
+              model_id: "claude-sonnet-4-5",
+              resolved_target_model_id: "claude-sonnet-4-5-20250929",
+            },
+          }}
           open
           activeTab="overview"
           onTabChange={vi.fn()}
@@ -203,14 +234,28 @@ describe("RequestLogDetailSheet", () => {
         <RequestLogDetailSheet
           request={{
             ...baseRequest,
-            model_id: "claude-sonnet-4-5",
-            resolved_target_model_id: null,
-            endpoint_id: null,
-            connection_id: null,
-            endpoint_base_url: null,
-            endpoint_description: null,
-            status_code: 503,
-          } as RequestLogEntry}
+            summary: {
+              ...baseRequest.summary,
+              model_id: "claude-sonnet-4-5",
+              resolved_target_model_id: null,
+              status_code: 503,
+            },
+            routing: {
+              ...baseRequest.routing,
+              model_id: "claude-sonnet-4-5",
+              resolved_target_model_id: null,
+              endpoint_id: null,
+              connection_id: null,
+              endpoint_base_url: null,
+              endpoint_description: null,
+            },
+            usage: {
+              ...baseRequest.usage,
+              success_flag: false,
+              billable_flag: false,
+              priced_flag: false,
+            },
+          }}
           open
           activeTab="overview"
           onTabChange={vi.fn()}
@@ -259,7 +304,10 @@ describe("RequestLogDetailSheet", () => {
     renderSheet({
       request: {
         ...baseRequest,
-        total_cost_user_currency_micros: 23_412,
+        costing: {
+          ...baseRequest.costing,
+          total_cost_user_currency_micros: 23_412,
+        },
       },
     });
 
@@ -271,9 +319,15 @@ describe("RequestLogDetailSheet", () => {
     renderSheet({
       request: {
         ...baseRequest,
-        status_code: 429,
-        error_detail:
-          '{"error":{"message":"The usage limit has been reached","type":"usage_limit_reached","param":null,"code":null,"plan_type":"basic","resets_in_seconds":28797}}',
+        summary: {
+          ...baseRequest.summary,
+          status_code: 429,
+        },
+        request: {
+          ...baseRequest.request,
+          error_detail:
+            '{"error":{"message":"The usage limit has been reached","type":"usage_limit_reached","param":null,"code":null,"plan_type":"basic","resets_in_seconds":28797}}',
+        },
       },
     });
 
@@ -302,9 +356,15 @@ describe("RequestLogDetailSheet", () => {
       renderSheet({
         request: {
           ...baseRequest,
-          status_code: 429,
-          error_detail:
-            '{"error":{"message":"The usage limit has been reached","type":"usage_limit_reached","param":null,"code":null,"plan_type":"basic","resets_in_seconds":28797}}',
+          summary: {
+            ...baseRequest.summary,
+            status_code: 429,
+          },
+          request: {
+            ...baseRequest.request,
+            error_detail:
+              '{"error":{"message":"The usage limit has been reached","type":"usage_limit_reached","param":null,"code":null,"plan_type":"basic","resets_in_seconds":28797}}',
+          },
         },
       });
 
@@ -333,10 +393,20 @@ describe("RequestLogDetailSheet", () => {
     renderSheet({
       request: {
         ...baseRequest,
-        model_id: "vendor/super-long-model-id-with-many-segments-and-qualifiers",
-        request_path: "/v1/responses/really/long/path/segment/that/should/wrap/in/the/drawer/without/overflow",
-        endpoint_base_url:
-          "https://api.example.com/v1/really/long/base/url/with/many/path/segments/and/query/like/values/that/should/wrap",
+        summary: {
+          ...baseRequest.summary,
+          model_id: "vendor/super-long-model-id-with-many-segments-and-qualifiers",
+        },
+        routing: {
+          ...baseRequest.routing,
+          model_id: "vendor/super-long-model-id-with-many-segments-and-qualifiers",
+          endpoint_base_url:
+            "https://api.example.com/v1/really/long/base/url/with/many/path/segments/and/query/like/values/that/should/wrap",
+        },
+        request: {
+          ...baseRequest.request,
+          request_path: "/v1/responses/really/long/path/segment/that/should/wrap/in/the/drawer/without/overflow",
+        },
       },
     });
 
@@ -454,12 +524,29 @@ describe("RequestLogDetailSheet", () => {
     renderSheet({
       request: {
         ...baseRequest,
-        vendor_id: null,
-        vendor_key: null,
-        vendor_name: null,
+        summary: {
+          ...baseRequest.summary,
+          vendor_id: null,
+          vendor_key: null,
+          vendor_name: null,
+        },
+        routing: {
+          ...baseRequest.routing,
+          vendor_id: null,
+          vendor_key: null,
+          vendor_name: null,
+        },
       },
     });
 
     expect(screen.queryByText("Vendor")).not.toBeInTheDocument();
+  });
+
+  it("renders the denser overview summary strip and section grid when the sheet opens on overview", () => {
+    renderSheet();
+
+    expect(screen.getByTestId("request-log-summary-strip")).toHaveTextContent("Latency");
+    expect(screen.getByTestId("request-log-overview-grid")).toHaveTextContent("Request details");
+    expect(screen.getByTestId("request-log-overview-grid")).toHaveTextContent("Cost breakdown");
   });
 });

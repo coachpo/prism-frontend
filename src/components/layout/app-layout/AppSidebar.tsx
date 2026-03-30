@@ -1,80 +1,163 @@
 import { NavLink } from "react-router-dom";
 import { ChevronsLeft, ChevronsRight, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarSeparator,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import { useLocale } from "@/i18n/useLocale";
 import { cn } from "@/lib/utils";
-import { NAV_LINKS, VERSION_LABEL, type NavLabelKey } from "./navigationProfileConfig";
+import {
+  SHELL_SIDEBAR_ITEMS,
+  VERSION_LABEL,
+  type ShellSidebarGroupId,
+} from "./navigationProfileConfig";
+import type { LocalizedShellSidebarItem } from "./useShellNavigation";
 
 type Props = {
   activeProfileName: string;
   closeProfileSwitcher: () => void;
-  desktopSidebarCollapsed?: boolean;
   hasMismatch: boolean;
   selectedProfileName: string;
-  setSidebarOpen: (open: boolean) => void;
-  sidebarOpen: boolean;
-  toggleDesktopSidebar?: () => void;
+  sidebarItems?: LocalizedShellSidebarItem[];
 };
+
+const SIDEBAR_GROUP_ORDER: ShellSidebarGroupId[] = [
+  "overview",
+  "configuration",
+  "observability",
+  "access",
+];
 
 export function AppSidebar({
   activeProfileName,
   closeProfileSwitcher,
-  desktopSidebarCollapsed = false,
   hasMismatch,
   selectedProfileName,
-  setSidebarOpen,
-  sidebarOpen,
-  toggleDesktopSidebar,
+  sidebarItems,
 }: Props) {
   const { messages } = useLocale();
-  const localizedNavLabels: Record<NavLabelKey, string> = messages.nav;
-  const DesktopSidebarToggleIcon = desktopSidebarCollapsed ? ChevronsRight : ChevronsLeft;
-  const desktopSidebarToggleLabel = desktopSidebarCollapsed
-    ? messages.shell.expandSidebar
-    : messages.shell.collapseSidebar;
+  const { isMobile, setOpenMobile, state, toggleSidebar } = useSidebar();
+  const resolvedSidebarItems =
+    sidebarItems ??
+    SHELL_SIDEBAR_ITEMS.map((item) => ({
+      ...item,
+      current: false,
+      label: messages.nav[item.labelKey],
+    }));
+
+  const groupedItems = SIDEBAR_GROUP_ORDER.map((groupId) => ({
+    groupId,
+    items: resolvedSidebarItems.filter((item) => item.groupId === groupId),
+  })).filter((group) => group.items.length > 0);
+
+  const DesktopSidebarToggleIcon = state === "collapsed" ? ChevronsRight : ChevronsLeft;
+  const desktopSidebarToggleLabel =
+    state === "collapsed" ? messages.shell.expandSidebar : messages.shell.collapseSidebar;
+
+  const handleNavigate = () => {
+    closeProfileSwitcher();
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
-    <aside
+    <Sidebar
+      data-testid="shell-sidebar"
       aria-label={messages.shell.primaryNavigation}
-      className={cn(
-        "fixed left-0 top-0 z-50 flex h-full w-[min(88vw,320px)] flex-col overflow-x-hidden bg-sidebar text-sidebar-foreground shadow-2xl transition-[width,transform] duration-200 ease-in-out will-change-transform lg:w-[320px]",
-        "pointer-events-auto translate-x-0 lg:pointer-events-auto lg:translate-x-0",
-        desktopSidebarCollapsed && "lg:w-[72px]",
-        !sidebarOpen && "max-lg:pointer-events-none max-lg:-translate-x-full"
-      )}
+      collapsible="icon"
+      className="border-r border-sidebar-border/60"
     >
-      <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-sidebar-primary to-sidebar-primary/70">
-          <Zap className="h-3.5 w-3.5 text-sidebar-primary-foreground" />
+      <SidebarHeader className="gap-3 border-b border-sidebar-border/70 p-3">
+        <div className="flex items-center gap-3 px-1">
+          <div className="flex size-8 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
+            <Zap className="h-4 w-4" />
+          </div>
+          <div className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-sm font-semibold">Prism</span>
+            <span className="truncate text-[11px] text-sidebar-foreground/55">{VERSION_LABEL}</span>
+          </div>
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              data-testid="shell-sidebar-collapse-toggle"
+              onClick={toggleSidebar}
+              aria-label={desktopSidebarToggleLabel}
+              title={desktopSidebarToggleLabel}
+              className="hidden text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground lg:inline-flex"
+            >
+              <DesktopSidebarToggleIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setOpenMobile(false)}
+              aria-label={messages.shell.closeSidebar}
+              title={messages.shell.closeSidebar}
+              className="text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground lg:hidden"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <span className={cn("text-sm font-semibold tracking-tight", desktopSidebarCollapsed && "lg:hidden")}>
-          Prism
-        </span>
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={toggleDesktopSidebar}
-            aria-label={desktopSidebarToggleLabel}
-            title={desktopSidebarToggleLabel}
-            className="hidden touch-manipulation text-sidebar-foreground/50 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground lg:inline-flex"
-          >
-            <DesktopSidebarToggleIcon className="h-4 w-4" />
-          </Button>
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(false)}
-            className="touch-manipulation text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground lg:hidden"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">{messages.shell.closeSidebar}</span>
-          </button>
-        </div>
-      </div>
+      </SidebarHeader>
 
-      <div className={cn("border-b border-sidebar-border px-3 py-3", desktopSidebarCollapsed && "lg:hidden")}>
-        <div className="rounded-lg border border-sidebar-border/80 bg-sidebar-accent/35 px-3 py-2.5">
+      <SidebarContent className="gap-4 px-0 py-3">
+        {groupedItems.map(({ groupId, items }) => (
+          <SidebarGroup key={groupId} className="px-2">
+            <SidebarGroupLabel>
+              {groupId.replace(/-/g, " ")}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {items.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton asChild isActive={item.current} tooltip={item.label}>
+                        <NavLink
+                          to={item.to}
+                          onClick={handleNavigate}
+                          aria-label={state === "collapsed" ? item.label : undefined}
+                          title={state === "collapsed" ? item.label : undefined}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+      </SidebarContent>
+
+      <SidebarSeparator />
+
+      <SidebarFooter className="gap-3 p-3">
+        <div
+          className={cn(
+            "rounded-xl border border-sidebar-border/70 bg-sidebar-accent/40 p-3 text-sidebar-foreground",
+            "group-data-[collapsible=icon]:hidden"
+          )}
+        >
           <div className="flex items-center justify-between gap-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/55">
               {messages.shell.profileRuntime}
@@ -97,42 +180,8 @@ export function AppSidebar({
             <dd className="truncate font-medium text-sidebar-foreground/95">{activeProfileName}</dd>
           </dl>
         </div>
-      </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
-        {NAV_LINKS.map(({ to, icon: Icon, labelKey }) => {
-          const navLabel = localizedNavLabels[labelKey];
-
-          return (
-            <NavLink
-              key={to}
-              to={to}
-              aria-label={desktopSidebarCollapsed ? navLabel : undefined}
-              title={desktopSidebarCollapsed ? navLabel : undefined}
-              onClick={() => {
-                closeProfileSwitcher();
-                setSidebarOpen(false);
-              }}
-              className={({ isActive }) =>
-                cn(
-                  "flex w-full touch-manipulation items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
-                  desktopSidebarCollapsed && "lg:justify-center lg:gap-0 lg:px-2",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/55 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                )
-              }
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className={cn("truncate", desktopSidebarCollapsed && "lg:hidden")}>{navLabel}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
-
-      <div className={cn("border-t border-sidebar-border px-3 py-2.5", desktopSidebarCollapsed && "lg:hidden")}>
-        <span className="text-[11px] font-medium text-sidebar-foreground/35">{VERSION_LABEL}</span>
-      </div>
-    </aside>
+      </SidebarFooter>
+    </Sidebar>
   );
 }

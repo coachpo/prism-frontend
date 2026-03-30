@@ -9,7 +9,6 @@ import type {
   UsageTokenTrendSeries,
   UsageTokenTypeBreakdownPoint,
 } from "@/lib/types";
-import type { UsageStatisticsRequestEventRow } from "../useUsageStatisticsPageData";
 import { StatisticsPage } from "@/pages/StatisticsPage";
 import { installLocalStorageMock } from "./storage";
 
@@ -44,7 +43,6 @@ let mockUsageData: {
   error: string | null;
   loading: boolean;
   refresh: ReturnType<typeof vi.fn>;
-  requestEvents: UsageStatisticsRequestEventRow[];
   requestTrendSeries: UsageRequestTrendSeries[];
   selectedModelLineIds: string[];
   snapshot: UsageSnapshotResponse | null;
@@ -56,7 +54,6 @@ let mockUsageData: {
   error: null,
   loading: true,
   refresh: vi.fn(),
-  requestEvents: [],
   requestTrendSeries: [],
   selectedModelLineIds: ["gpt-5.4"],
   snapshot: null,
@@ -68,12 +65,6 @@ vi.mock("@/context/ProfileContext", () => ({
   useProfileContext: () => ({
     revision: 1,
     selectedProfile: { id: 1 },
-  }),
-}));
-
-vi.mock("@/context/useAuth", () => ({
-  useAuth: () => ({
-    authEnabled: true,
   }),
 }));
 
@@ -105,21 +96,17 @@ function createSnapshot(): UsageSnapshotResponse {
       {
         endpoint_id: 10,
         endpoint_label: "Primary Endpoint",
-        failed_count: 0,
         models: [
           {
-            failed_count: 0,
             model_id: "gpt-5.4",
             model_label: "GPT-5.4",
             request_count: 4,
-            success_count: 4,
             success_rate: 100,
             total_cost_micros: 4200,
             total_tokens: 185,
           },
         ],
         request_count: 4,
-        success_count: 4,
         success_rate: 100,
         total_cost_micros: 4200,
         total_tokens: 185,
@@ -128,12 +115,9 @@ function createSnapshot(): UsageSnapshotResponse {
     generated_at: "2026-03-27T12:00:00Z",
     model_statistics: [
       {
-        api_family: "openai",
-        failed_count: 0,
         model_id: "gpt-5.4",
         model_label: "GPT-5.4",
         request_count: 4,
-        success_count: 4,
         success_rate: 100,
         total_cost_micros: 4200,
         total_tokens: 185,
@@ -160,47 +144,14 @@ function createSnapshot(): UsageSnapshotResponse {
     },
     proxy_api_key_statistics: [
       {
-        failed_count: 0,
-        key_prefix: "prism_pk_primary_1234",
         proxy_api_key_id: 77,
         proxy_api_key_label: "Primary runtime key",
         request_count: 4,
-        success_count: 4,
         success_rate: 100,
         total_cost_micros: 4200,
         total_tokens: 245,
       },
     ],
-    request_events: {
-      items: [
-        {
-          api_family: "openai",
-          attempt_count: 1,
-          cached_tokens: 25,
-          connection_id: 12,
-          created_at: "2026-03-27T11:00:00Z",
-          endpoint_id: 10,
-          endpoint_label: "Primary Endpoint",
-          ingress_request_id: "ingress-success-1",
-          input_tokens: 100,
-          model_id: "gpt-5.4",
-          model_label: "GPT-5.4",
-          output_tokens: 50,
-          proxy_api_key: {
-            key_prefix: "prism_pk_primary_1234",
-            label: "Primary runtime key",
-          },
-          reasoning_tokens: 10,
-          request_path: "/v1/chat/completions",
-          resolved_target_model_id: "gpt-5.4",
-          status_code: 200,
-          success_flag: true,
-          total_cost_micros: 4200,
-          total_tokens: 185,
-        },
-      ],
-      total: 1,
-    },
     request_trends: {
       daily: [
         {
@@ -273,30 +224,6 @@ function createSnapshot(): UsageSnapshotResponse {
           request_count: 2,
           status: "ok",
           success_count: 2,
-        },
-        {
-          availability_percentage: 50,
-          bucket_start: "2026-03-27T00:15:00Z",
-          failed_count: 1,
-          request_count: 2,
-          status: "degraded",
-          success_count: 1,
-        },
-        {
-          availability_percentage: 0,
-          bucket_start: "2026-03-27T00:30:00Z",
-          failed_count: 1,
-          request_count: 1,
-          status: "down",
-          success_count: 0,
-        },
-        {
-          availability_percentage: null,
-          bucket_start: "2026-03-27T00:45:00Z",
-          failed_count: 0,
-          request_count: 0,
-          status: "empty",
-          success_count: 0,
         },
       ],
       daily: [
@@ -438,7 +365,6 @@ describe("StatisticsPage shell i18n", () => {
       error: null,
       loading: true,
       refresh: vi.fn(),
-      requestEvents: [],
       requestTrendSeries: [],
       selectedModelLineIds: ["gpt-5.4"],
       snapshot: null,
@@ -447,29 +373,22 @@ describe("StatisticsPage shell i18n", () => {
     };
   });
 
-  it("renders the single-page shell with loading, compact toolbar, and the Task 3 statistics hierarchy", () => {
+  it("renders the localized statistics shell and the request-events removal note", () => {
     const { rerender } = renderPage();
 
     expect(screen.getByRole("heading", { name: "用量统计" })).toBeInTheDocument();
-    expect(screen.getByText("基于最终请求的一体化用量快照，覆盖请求、令牌、成本、端点、模型和代理 API 密钥。"))
-      .toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "基于最终请求的一体化用量快照，覆盖请求、令牌、成本、端点、模型和代理 API 密钥。",
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "刷新用量统计" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /json/i })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "用量统计页面占位中" })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "运营" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "吞吐量" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "支出" })).not.toBeInTheDocument();
 
     mockUsageData = {
       ...mockUsageData,
       costOverviewSeries: createSnapshot().cost_overview.hourly,
       loading: false,
-      requestEvents: [
-        {
-          ...createSnapshot().request_events.items[0],
-          request_logs_href: "/request-logs?ingress_request_id=ingress-success-1",
-        },
-      ],
       requestTrendSeries: createSnapshot().request_trends.hourly,
       selectedModelLineIds: ["gpt-5.4"],
       snapshot: createSnapshot(),
@@ -485,43 +404,16 @@ describe("StatisticsPage shell i18n", () => {
       </MemoryRouter>,
     );
 
-    const overviewHeading = screen.getByRole("heading", { level: 2, name: "总览" });
-    const modelLinesHeading = screen.getByRole("heading", { level: 2, name: "显示线路" });
-    const serviceHealthHeading = screen.getByRole("heading", { level: 2, name: "服务健康" });
-    const requestTrendsHeading = screen.getByRole("heading", { level: 2, name: "请求趋势" });
-    const tokenBreakdownHeading = screen.getByRole("heading", { level: 2, name: "令牌类型拆分" });
-
-    expect(screen.getAllByTestId("usage-kpi-card")).toHaveLength(5);
     expect(screen.getByTestId("usage-controls-toolbar")).toBeInTheDocument();
-    const toolbar = screen.getByTestId("usage-controls-toolbar");
-    expect(within(toolbar).getByRole("button", { name: /导出快照 json/i })).toBeInTheDocument();
-    expect(within(toolbar).getByRole("button", { name: "刷新用量统计" })).toBeInTheDocument();
-    expect(within(toolbar).getByTestId("usage-controls-updated").textContent).toContain("更新时间");
     expect(screen.getByTestId("usage-kpi-grid")).toBeInTheDocument();
-    expect(screen.getAllByTestId("usage-kpi-dominant-card")).toHaveLength(2);
-    expect(screen.getAllByTestId("usage-kpi-supporting-card")).toHaveLength(3);
-    expect(screen.getByTestId("usage-model-line-section")).toBeInTheDocument();
-    expect(screen.getByTestId("usage-trends-grid")).toBeInTheDocument();
-    expect(screen.getAllByRole("heading", { name: "显示线路" })).toHaveLength(1);
-    expect(screen.getAllByText("1 / 9").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByTestId("usage-health-heatmap")).toBeInTheDocument();
-    expect(screen.getByTestId("usage-health-strip")).toBeInTheDocument();
-    expect(screen.getByText("令牌用量趋势")).toBeInTheDocument();
-    const tpmCard = screen
-      .getAllByTestId("usage-kpi-card")
-      .find((card) => within(card).queryByText("TPM"));
-    expect(tpmCard).toBeDefined();
-    expect(within(tpmCard as HTMLElement).getByText("令牌吞吐量: 245 · 60m")).toBeInTheDocument();
-    expect(within(tpmCard as HTMLElement).queryByText("Current TPM: 245 · 60m")).not.toBeInTheDocument();
-    expect(screen.getAllByText("成本概览")[0]).toBeInTheDocument();
-    expect(screen.getByText("端点统计")).toBeInTheDocument();
-    expect(screen.getByText("模型统计")).toBeInTheDocument();
-    expect(screen.getByText("请求事件")).toBeInTheDocument();
-    expect(screen.getByText("代理 API 密钥统计")).toBeInTheDocument();
+    expect(screen.getByTestId("statistics-endpoint-table")).toBeInTheDocument();
+    expect(screen.getByTestId("statistics-model-table")).toBeInTheDocument();
+    expect(screen.getByTestId("statistics-proxy-key-table")).toBeInTheDocument();
+    expect(screen.getByTestId("statistics-no-request-events")).toBeInTheDocument();
+    expect(screen.queryByText("请求事件")).not.toBeInTheDocument();
 
-    expect(overviewHeading.compareDocumentPosition(modelLinesHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(modelLinesHeading.compareDocumentPosition(serviceHealthHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(serviceHealthHeading.compareDocumentPosition(requestTrendsHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(requestTrendsHeading.compareDocumentPosition(tokenBreakdownHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const note = screen.getByTestId("statistics-no-request-events");
+    expect(within(note).getByText("统计页现在只保留聚合汇总")).toBeInTheDocument();
+    expect(within(note).getByText("为该页面提供数据的用量快照已不再包含请求事件。")).toBeInTheDocument();
   });
 });

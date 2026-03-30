@@ -5,7 +5,7 @@ import type {
   ApiFamily,
   Endpoint,
   ModelConfigListItem,
-  RequestLogEntry,
+  RequestLogListItem,
 } from "@/lib/types";
 import type { RequestLogPageState } from "./queryParams";
 import { timeRangeToFromTime } from "./queryParams";
@@ -35,7 +35,7 @@ interface UseRequestLogsPageDataParams {
 
 export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDataParams) {
   const messages = getStaticMessages();
-  const [items, setItems] = useState<RequestLogEntry[]>([]);
+  const [items, setItems] = useState<RequestLogListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,22 +91,19 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     setLoading(true);
     setError(null);
 
-    const isExact = state.request_id !== "";
     const fromTime = timeRangeToFromTime(state.time_range);
 
-    const params = isExact
-      ? { request_id: parseInt(state.request_id, 10), limit: 1 }
-        : {
-          ingress_request_id: state.ingress_request_id || undefined,
-          model_id: state.model_id || undefined,
-          api_family: state.api_family ? toApiFamily(state.api_family) : undefined,
-          status_family: state.status_family === "all" ? undefined : state.status_family,
-          connection_id: state.connection_id ? parseInt(state.connection_id, 10) : undefined,
-          endpoint_id: state.endpoint_id ? parseInt(state.endpoint_id, 10) : undefined,
-          from_time: fromTime,
-          limit: state.limit,
-          offset: state.offset,
-        };
+    const params = {
+      ingress_request_id: state.ingress_request_id || undefined,
+      model_id: state.model_id || undefined,
+      api_family: state.api_family ? toApiFamily(state.api_family) : undefined,
+      status_family: state.status_family === "all" ? undefined : state.status_family,
+      connection_id: state.connection_id ? parseInt(state.connection_id, 10) : undefined,
+      endpoint_id: state.endpoint_id ? parseInt(state.endpoint_id, 10) : undefined,
+      from_time: fromTime,
+      limit: state.limit,
+      offset: state.offset,
+    };
 
     api.stats
       .requests(params)
@@ -126,7 +123,6 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
         setLoading(false);
       });
   }, [
-    state.request_id,
     state.ingress_request_id,
     state.model_id,
     state.api_family,

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
@@ -29,19 +29,18 @@ vi.mock("@/context/ProfileContext", () => ({
   }),
 }));
 
-vi.mock("@/context/useAuth", () => ({
-  useAuth: () => ({
-    authEnabled: true,
-  }),
-}));
-
 class ResizeObserverMock {
   disconnect() {}
   observe() {}
   unobserve() {}
 }
 
-function createSnapshot(totalRequests: number, ingressRequestId: string, statusCode: number): UsageSnapshotResponse {
+function createSnapshot(
+  totalRequests: number,
+  endpointLabel: string,
+  proxyLabel: string,
+  statusCode: number,
+): UsageSnapshotResponse {
   return {
     cost_overview: {
       daily: [{ bucket_start: "2026-03-27T00:00:00Z", total_cost_micros: totalRequests * 1000 }],
@@ -54,22 +53,18 @@ function createSnapshot(totalRequests: number, ingressRequestId: string, statusC
     endpoint_statistics: [
       {
         endpoint_id: 10,
-        endpoint_label: "Primary Endpoint",
-        failed_count: statusCode >= 400 ? 1 : 0,
+        endpoint_label: endpointLabel,
         models: [
           {
-            failed_count: statusCode >= 400 ? 1 : 0,
             model_id: "gpt-5.4",
             model_label: "GPT-5.4",
             request_count: totalRequests,
-            success_count: statusCode >= 400 ? Math.max(0, totalRequests - 1) : totalRequests,
             success_rate: statusCode >= 400 ? 50 : 100,
             total_cost_micros: totalRequests * 1000,
             total_tokens: totalRequests * 100,
           },
         ],
         request_count: totalRequests,
-        success_count: statusCode >= 400 ? Math.max(0, totalRequests - 1) : totalRequests,
         success_rate: statusCode >= 400 ? 50 : 100,
         total_cost_micros: totalRequests * 1000,
         total_tokens: totalRequests * 100,
@@ -78,12 +73,9 @@ function createSnapshot(totalRequests: number, ingressRequestId: string, statusC
     generated_at: "2026-03-27T12:00:00Z",
     model_statistics: [
       {
-        api_family: "openai",
-        failed_count: statusCode >= 400 ? 1 : 0,
         model_id: "gpt-5.4",
         model_label: "GPT-5.4",
         request_count: totalRequests,
-        success_count: statusCode >= 400 ? Math.max(0, totalRequests - 1) : totalRequests,
         success_rate: statusCode >= 400 ? 50 : 100,
         total_cost_micros: totalRequests * 1000,
         total_tokens: totalRequests * 100,
@@ -105,47 +97,14 @@ function createSnapshot(totalRequests: number, ingressRequestId: string, statusC
     },
     proxy_api_key_statistics: [
       {
-        failed_count: statusCode >= 400 ? 1 : 0,
-        key_prefix: "prism_pk_primary_1234",
         proxy_api_key_id: 77,
-        proxy_api_key_label: "Primary runtime key",
+        proxy_api_key_label: proxyLabel,
         request_count: totalRequests,
-        success_count: statusCode >= 400 ? Math.max(0, totalRequests - 1) : totalRequests,
         success_rate: statusCode >= 400 ? 50 : 100,
         total_cost_micros: totalRequests * 1000,
         total_tokens: totalRequests * 100,
       },
     ],
-    request_events: {
-      items: [
-        {
-          api_family: "openai",
-          attempt_count: statusCode >= 400 ? 2 : 1,
-          cached_tokens: 0,
-          connection_id: 12,
-          created_at: "2026-03-27T11:00:00Z",
-          endpoint_id: 10,
-          endpoint_label: "Primary Endpoint",
-          ingress_request_id: ingressRequestId,
-          input_tokens: totalRequests * 60,
-          model_id: "gpt-5.4",
-          model_label: "GPT-5.4",
-          output_tokens: totalRequests * 40,
-          proxy_api_key: {
-            key_prefix: "prism_pk_primary_1234",
-            label: "Primary runtime key",
-          },
-          reasoning_tokens: 0,
-          request_path: "/v1/chat/completions",
-          resolved_target_model_id: "gpt-5.4",
-          status_code: statusCode,
-          success_flag: statusCode < 400,
-          total_cost_micros: totalRequests * 1000,
-          total_tokens: totalRequests * 100,
-        },
-      ],
-      total: 1,
-    },
     request_trends: {
       daily: [
         {
@@ -257,10 +216,10 @@ describe("StatisticsPage refresh flow", () => {
     });
   });
 
-  it("re-fetches the usage snapshot and updates the visible request-event data when refreshed", async () => {
+  it("re-fetches the usage snapshot and updates the surviving table surfaces when refreshed", async () => {
     api.stats.usageSnapshot
-      .mockResolvedValueOnce(createSnapshot(2, "ingress-success-1", 200))
-      .mockResolvedValueOnce(createSnapshot(9, "ingress-success-2", 503));
+      .mockResolvedValueOnce(createSnapshot(2, "Primary Endpoint", "Primary runtime key", 200))
+      .mockResolvedValueOnce(createSnapshot(9, "Fallback Endpoint", "Fallback runtime key", 503));
 
     render(
       <MemoryRouter>
@@ -270,8 +229,12 @@ describe("StatisticsPage refresh flow", () => {
       </MemoryRouter>,
     );
 
+    const endpointTable = await screen.findByTestId("statistics-endpoint-table");
+    const proxyKeyTable = await screen.findByTestId("statistics-proxy-key-table");
+
     await waitFor(() => {
-      expect(screen.getByText("ingress-success-1")).toBeInTheDocument();
+      expect(within(endpointTable).getByText("Primary Endpoint")).toBeInTheDocument();
+      expect(within(proxyKeyTable).getByText("Primary runtime key")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh usage statistics" }));
@@ -281,10 +244,11 @@ describe("StatisticsPage refresh flow", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("ingress-success-2")).toBeInTheDocument();
-      expect(screen.getByText("503")).toBeInTheDocument();
+      expect(within(endpointTable).getByText("Fallback Endpoint")).toBeInTheDocument();
+      expect(within(proxyKeyTable).getByText("Fallback runtime key")).toBeInTheDocument();
     });
 
-    expect(screen.queryByText("ingress-success-1")).not.toBeInTheDocument();
+    expect(within(endpointTable).queryByText("Primary Endpoint")).not.toBeInTheDocument();
+    expect(within(proxyKeyTable).queryByText("Primary runtime key")).not.toBeInTheDocument();
   });
 });

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, formatApiFamily } from "@/lib/utils";
-import type { RequestLogEntry } from "@/lib/types";
+import type { RequestLogDetail } from "@/lib/types";
 import {
   formatCost,
   formatTokens,
@@ -22,7 +22,7 @@ import {
 import { copyRequestLogText, getStatusIntent, getStatusTone } from "./requestLogDetailUtils";
 
 interface RequestLogOverviewTabProps {
-  request: RequestLogEntry;
+  request: RequestLogDetail;
   onNavigateToConnection: (id: number) => void;
   formatTimestamp: (iso: string) => string;
   resolveModelLabel: RequestLogModelResolver;
@@ -48,63 +48,82 @@ export function RequestLogOverviewTab({
   resolveModelLabel,
 }: RequestLogOverviewTabProps) {
   const { formatNumber, messages } = useLocale();
-  const tone = getStatusTone(request.status_code);
-  const connectionId = request.connection_id;
-  const requestedModelLabel = resolveModelLabel(request.model_id);
-  const resolvedTargetLabel = request.resolved_target_model_id
-    ? resolveModelLabel(request.resolved_target_model_id)
+  const summary = request.summary;
+  const requestInfo = request.request;
+  const routing = request.routing;
+  const usage = request.usage;
+  const costing = request.costing;
+  const tone = getStatusTone(summary.status_code);
+  const connectionId = routing.connection_id;
+  const requestedModelLabel = resolveModelLabel(summary.model_id);
+  const resolvedTargetLabel = summary.resolved_target_model_id
+    ? resolveModelLabel(summary.resolved_target_model_id)
     : null;
-  const formattedErrorDetail = request.error_detail ? formatErrorDetail(request.error_detail) : null;
-  const hasFormattedErrorDetail = formattedErrorDetail !== null && formattedErrorDetail !== request.error_detail;
-  const apiFamily = request.api_family;
-  const isProxyOrigin = isProxyOriginRequest(request, resolveModelLabel);
+  const formattedErrorDetail = requestInfo.error_detail ? formatErrorDetail(requestInfo.error_detail) : null;
+  const hasFormattedErrorDetail = formattedErrorDetail !== null && formattedErrorDetail !== requestInfo.error_detail;
+  const apiFamily = summary.api_family;
+  const isProxyOrigin = isProxyOriginRequest(summary, resolveModelLabel);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Card className={cn("overflow-hidden border-l-4 shadow-sm", tone.card)}>
-        <CardContent className="space-y-4 p-5">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <ValueBadge label={String(request.status_code)} intent={getStatusIntent(request.status_code)} className="px-1.5 py-0 font-mono" />
-              {request.is_stream && <TypeBadge label={messages.requestLogs.streaming} intent="blue" className="px-2 py-0.5" />}
-              {isProxyOrigin && (
-                <TypeBadge label={messages.requestLogs.proxyOrigin} intent="accent" className="px-2 py-0.5" />
-              )}
-              <ApiFamilyPill apiFamily={apiFamily} />
+        <CardContent className="space-y-3 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <ValueBadge label={String(summary.status_code)} intent={getStatusIntent(summary.status_code)} className="px-1.5 py-0 font-mono" />
+                {summary.is_stream && <TypeBadge label={messages.requestLogs.streaming} intent="blue" className="px-2 py-0.5" />}
+                {isProxyOrigin && (
+                  <TypeBadge label={messages.requestLogs.proxyOrigin} intent="accent" className="px-2 py-0.5" />
+                )}
+                <ApiFamilyPill apiFamily={apiFamily} />
+              </div>
+
+              <div className="min-w-0">
+                <h3 className="truncate text-lg font-semibold tracking-tight sm:text-xl">{requestedModelLabel}</h3>
+                {requestedModelLabel !== summary.model_id && (
+                  <p className="mt-1 font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                    {summary.model_id}
+                  </p>
+                )}
+                {resolvedTargetLabel && summary.resolved_target_model_id !== summary.model_id ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {messages.requestLogs.resolvedTarget}: {resolvedTargetLabel}
+                  </p>
+                ) : null}
+                <p className="mt-1 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                  {requestInfo.request_path}
+                </p>
+              </div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold tracking-tight">{requestedModelLabel}</h3>
-              {requestedModelLabel !== request.model_id && (
-                <p className="mt-1 font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                  {request.model_id}
-                </p>
-              )}
-              {resolvedTargetLabel && request.resolved_target_model_id !== request.model_id ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {messages.requestLogs.resolvedTarget}: {resolvedTargetLabel}
-                </p>
-              ) : null}
-              <p className="mt-1 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                {request.request_path}
-              </p>
-            </div>
+            {summary.vendor_name ? (
+              <ValueBadge
+                label={summary.vendor_name}
+                intent="muted"
+                className="max-w-full self-start px-2 py-0.5 text-[11px]"
+              />
+            ) : null}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <SummaryStat label={messages.requestLogs.latency} value={<span className="font-mono">{formatNumber(request.response_time_ms)}ms</span>} />
-            <SummaryStat label={messages.requestLogs.totalTokens} value={<span className="font-mono">{formatTokens(request.total_tokens)}</span>} />
-            <SummaryStat label={messages.requestLogs.totalCost} value={<span className="font-mono">{formatCost(request.total_cost_user_currency_micros, request.report_currency_symbol)}</span>} />
-            <SummaryStat label={messages.requestLogs.timestamp} value={<span className="font-mono text-xs">{formatTimestamp(request.created_at)}</span>} />
+          <div
+            className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
+            data-testid="request-log-summary-strip"
+          >
+            <SummaryStat label={messages.requestLogs.latency} value={<span className="font-mono">{formatNumber(summary.response_time_ms)}ms</span>} />
+            <SummaryStat label={messages.requestLogs.totalTokens} value={<span className="font-mono">{formatTokens(usage.total_tokens)}</span>} />
+            <SummaryStat label={messages.requestLogs.totalCost} value={<span className="font-mono">{formatCost(costing.total_cost_user_currency_micros, costing.report_currency_symbol)}</span>} />
+            <SummaryStat label={messages.requestLogs.timestamp} value={<span className="font-mono text-xs">{formatTimestamp(summary.created_at)}</span>} />
           </div>
         </CardContent>
       </Card>
 
       {formattedErrorDetail && (
-        <div className="rounded-xl border border-red-500/25 bg-red-500/10 p-4 shadow-sm">
+        <div className="rounded-xl border border-red-500/25 bg-red-500/10 p-3 shadow-sm sm:p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
             <div className="min-w-0 flex-1 space-y-3">
+              <ValueBadge label={String(summary.status_code)} intent={getStatusIntent(summary.status_code)} className="px-1.5 py-0 font-mono" />
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="space-y-1">
                   <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-700 dark:text-red-300">{messages.requestLogs.errorDetail}</p>
@@ -117,17 +136,17 @@ export function RequestLogOverviewTab({
                 <Button
                   variant="outline"
                   size="sm"
-                    className="h-7 rounded-full border-red-500/20 px-2.5 text-[11px] text-red-700 hover:border-red-500/40 hover:bg-red-500/10 dark:text-red-200"
-                    onClick={() => {
-                      void copyRequestLogText(formattedErrorDetail, messages.requestLogs.errorDetail);
-                    }}
-                  >
-                    <Copy className="h-3 w-3" />
-                    {messages.requestLogs.copy}
-                  </Button>
+                  className="h-7 rounded-full border-red-500/20 px-2.5 text-[11px] text-red-700 hover:border-red-500/40 hover:bg-red-500/10 dark:text-red-200"
+                  onClick={() => {
+                    void copyRequestLogText(formattedErrorDetail, messages.requestLogs.errorDetail);
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                  {messages.requestLogs.copy}
+                </Button>
               </div>
 
-              <ScrollArea className="max-h-64 rounded-lg border border-red-500/15 bg-background/85 shadow-inner">
+              <ScrollArea className="max-h-56 rounded-lg border border-red-500/15 bg-background/85 shadow-inner">
                 <pre className="max-w-full whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-5 text-foreground [overflow-wrap:anywhere]">
                   {formattedErrorDetail}
                 </pre>
@@ -137,46 +156,46 @@ export function RequestLogOverviewTab({
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="grid gap-3 xl:grid-cols-2" data-testid="request-log-overview-grid">
         <SectionCard icon={FileText} title={messages.requestLogs.requestDetails}>
-          <DetailRow label={messages.requestLogs.requestId}><span className="font-mono">#{request.id}</span></DetailRow>
-          {request.ingress_request_id && (
+          <DetailRow label={messages.requestLogs.requestId}><span className="font-mono">#{summary.id}</span></DetailRow>
+          {requestInfo.ingress_request_id && (
             <DetailRow label={messages.requestLogs.ingressRequestId}>
               <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                {request.ingress_request_id}
+                {requestInfo.ingress_request_id}
               </span>
             </DetailRow>
           )}
-          {request.attempt_number !== null && (
+          {requestInfo.attempt_number !== null && (
             <DetailRow label={messages.requestLogs.attemptNumber}>
-              <span className="font-mono">{formatNumber(request.attempt_number)}</span>
+              <span className="font-mono">{formatNumber(requestInfo.attempt_number)}</span>
             </DetailRow>
           )}
-          {request.provider_correlation_id && (
+          {requestInfo.provider_correlation_id && (
             <DetailRow label={messages.requestLogs.providerCorrelationId}>
               <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                {request.provider_correlation_id}
+                {requestInfo.provider_correlation_id}
               </span>
             </DetailRow>
           )}
-          <DetailRow label={messages.requestLogs.time}><span className="font-mono text-xs">{formatTimestamp(request.created_at)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.time}><span className="font-mono text-xs">{formatTimestamp(summary.created_at)}</span></DetailRow>
           <DetailRow label={messages.requestLogs.requestedModel}>
             <div className="space-y-1">
               <p>{requestedModelLabel}</p>
-               {requestedModelLabel !== request.model_id && (
+                {requestedModelLabel !== summary.model_id && (
                   <p className="font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                    {request.model_id}
+                    {summary.model_id}
                   </p>
                 )}
               </div>
             </DetailRow>
-            {resolvedTargetLabel && request.resolved_target_model_id !== request.model_id ? (
+            {resolvedTargetLabel && summary.resolved_target_model_id !== summary.model_id ? (
               <DetailRow label={messages.requestLogs.resolvedTarget}>
                 <div className="space-y-1">
                   <p>{resolvedTargetLabel}</p>
-                  {resolvedTargetLabel !== request.resolved_target_model_id ? (
+                  {resolvedTargetLabel !== summary.resolved_target_model_id ? (
                     <p className="font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                      {request.resolved_target_model_id}
+                      {summary.resolved_target_model_id}
                     </p>
                   ) : null}
                 </div>
@@ -185,26 +204,26 @@ export function RequestLogOverviewTab({
             <DetailRow label={messages.common.apiFamily}>
               <span className="flex items-center gap-2">
                 <ApiFamilyIcon apiFamily={apiFamily ?? ""} size={16} />
-               {formatApiFamily(apiFamily ?? "")}
-             </span>
-           </DetailRow>
-            {request.vendor_name ? (
-              <DetailRow label={messages.common.vendor}>{request.vendor_name}</DetailRow>
-            ) : null}
+                {formatApiFamily(apiFamily ?? "")}
+               </span>
+             </DetailRow>
+             {summary.vendor_name ? (
+               <DetailRow label={messages.common.vendor}>{summary.vendor_name}</DetailRow>
+             ) : null}
             <DetailRow label={messages.requestLogs.path}>
-            <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-              {request.request_path}
-            </span>
-          </DetailRow>
-           <DetailRow label={messages.requestLogs.stream}>{request.is_stream ? <TypeBadge label={messages.requestLogs.streaming} intent="blue" /> : messages.requestLogs.no}</DetailRow>
+              <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                {requestInfo.request_path}
+              </span>
+            </DetailRow>
+            <DetailRow label={messages.requestLogs.stream}>{summary.is_stream ? <TypeBadge label={messages.requestLogs.streaming} intent="blue" /> : messages.requestLogs.no}</DetailRow>
         </SectionCard>
 
         <SectionCard icon={Route} title={messages.requestLogs.routingContext}>
-          {request.endpoint_id !== null && (
+          {routing.endpoint_id !== null && (
             <DetailRow label={messages.requestLogs.endpoint}>
               <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                #{request.endpoint_id}
-                {request.endpoint_description ? ` - ${request.endpoint_description}` : ""}
+                #{routing.endpoint_id}
+                {routing.endpoint_description ? ` - ${routing.endpoint_description}` : ""}
               </span>
             </DetailRow>
           )}
@@ -212,8 +231,9 @@ export function RequestLogOverviewTab({
             <DetailRow label={messages.requestLogs.connection}>
               <Button
                 variant="link"
-                size="sm"
+                size="xs"
                 className="h-auto gap-1.5 p-0 text-sm"
+                data-testid="request-log-connection-link"
                 onClick={() => onNavigateToConnection(connectionId)}
               >
                 <span className="font-mono">#{connectionId}</span>
@@ -221,37 +241,37 @@ export function RequestLogOverviewTab({
               </Button>
             </DetailRow>
           )}
-          {request.endpoint_base_url && (
+          {routing.endpoint_base_url && (
             <DetailRow label={messages.requestLogs.baseUrl}>
               <span className="font-mono text-[12px] whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                {request.endpoint_base_url}
+                {routing.endpoint_base_url}
               </span>
             </DetailRow>
           )}
         </SectionCard>
 
         <SectionCard icon={Gauge} title={messages.requestLogs.tokenUsage}>
-          <DetailRow label={messages.requestLogs.input}><span className="font-mono">{formatTokens(request.input_tokens)}</span></DetailRow>
-          <DetailRow label={messages.requestLogs.output}><span className="font-mono">{formatTokens(request.output_tokens)}</span></DetailRow>
-          <DetailRow label={messages.requestLogs.total}><span className="font-mono">{formatTokens(request.total_tokens)}</span></DetailRow>
-          {(request.cache_read_input_tokens ?? 0) > 0 && (
-            <DetailRow label={messages.requestLogs.cacheRead}><span className="font-mono">{formatTokens(request.cache_read_input_tokens)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.input}><span className="font-mono">{formatTokens(usage.input_tokens)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.output}><span className="font-mono">{formatTokens(usage.output_tokens)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.total}><span className="font-mono">{formatTokens(usage.total_tokens)}</span></DetailRow>
+          {(usage.cache_read_input_tokens ?? 0) > 0 && (
+            <DetailRow label={messages.requestLogs.cacheRead}><span className="font-mono">{formatTokens(usage.cache_read_input_tokens)}</span></DetailRow>
           )}
-          {(request.cache_creation_input_tokens ?? 0) > 0 && (
-            <DetailRow label={messages.requestLogs.cacheCreation}><span className="font-mono">{formatTokens(request.cache_creation_input_tokens)}</span></DetailRow>
+          {(usage.cache_creation_input_tokens ?? 0) > 0 && (
+            <DetailRow label={messages.requestLogs.cacheCreation}><span className="font-mono">{formatTokens(usage.cache_creation_input_tokens)}</span></DetailRow>
           )}
-          {(request.reasoning_tokens ?? 0) > 0 && (
-            <DetailRow label={messages.requestLogs.reasoning}><span className="font-mono">{formatTokens(request.reasoning_tokens)}</span></DetailRow>
+          {(usage.reasoning_tokens ?? 0) > 0 && (
+            <DetailRow label={messages.requestLogs.reasoning}><span className="font-mono">{formatTokens(usage.reasoning_tokens)}</span></DetailRow>
           )}
         </SectionCard>
 
         <SectionCard icon={Coins} title={messages.requestLogs.costBreakdown}>
-          <DetailRow label={messages.requestLogs.input}><span className="font-mono">{formatCost(request.input_cost_micros, request.report_currency_symbol)}</span></DetailRow>
-          <DetailRow label={messages.requestLogs.output}><span className="font-mono">{formatCost(request.output_cost_micros, request.report_currency_symbol)}</span></DetailRow>
-          <DetailRow label={messages.requestLogs.total}><span className="font-mono">{formatCost(request.total_cost_user_currency_micros, request.report_currency_symbol)}</span></DetailRow>
-          <DetailRow label={messages.requestLogs.priced}>{request.priced_flag ? messages.requestLogs.yes : messages.requestLogs.no}</DetailRow>
-          <DetailRow label={messages.requestLogs.billable}>{request.billable_flag ? messages.requestLogs.yes : messages.requestLogs.no}</DetailRow>
-          {request.unpriced_reason && <DetailRow label={messages.requestLogs.whyUnpriced}>{request.unpriced_reason}</DetailRow>}
+          <DetailRow label={messages.requestLogs.input}><span className="font-mono">{formatCost(costing.input_cost_micros, costing.report_currency_symbol)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.output}><span className="font-mono">{formatCost(costing.output_cost_micros, costing.report_currency_symbol)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.total}><span className="font-mono">{formatCost(costing.total_cost_user_currency_micros, costing.report_currency_symbol)}</span></DetailRow>
+          <DetailRow label={messages.requestLogs.priced}>{usage.priced_flag ? messages.requestLogs.yes : messages.requestLogs.no}</DetailRow>
+          <DetailRow label={messages.requestLogs.billable}>{usage.billable_flag ? messages.requestLogs.yes : messages.requestLogs.no}</DetailRow>
+          {usage.unpriced_reason && <DetailRow label={messages.requestLogs.whyUnpriced}>{usage.unpriced_reason}</DetailRow>}
         </SectionCard>
       </div>
     </div>

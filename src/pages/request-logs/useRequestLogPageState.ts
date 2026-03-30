@@ -45,9 +45,6 @@ export function useRequestLogPageState() {
   const setLatencyBucket = useCallback((v: LatencyBucket) => update({ latency_bucket: v }, false), [update]);
   const setTokenMin = useCallback((v: string) => update({ token_min: v }, false), [update]);
   const setTokenMax = useCallback((v: string) => update({ token_max: v }, false), [update]);
-  const setSpecialTokenFilter = useCallback((v: string) => update({ special_token_filter: v }, false), [update]);
-  const setPricedOnly = useCallback((v: boolean) => update({ priced_only: v }, false), [update]);
-  const setBillableOnly = useCallback((v: boolean) => update({ billable_only: v }, false), [update]);
   const setView = useCallback((v: ViewMode) => update({ view: v }, false), [update]);
   const setTriage = useCallback((v: boolean) => update({ triage: v }, false), [update]);
   const setLimit = useCallback((v: number) => update({ limit: v, offset: DEFAULTS.offset }), [update]);
@@ -103,9 +100,6 @@ export function useRequestLogPageState() {
     state.latency_bucket !== DEFAULTS.latency_bucket ||
     state.token_min ||
     state.token_max ||
-    state.priced_only ||
-    state.billable_only ||
-    state.special_token_filter ||
     state.triage
   );
 
@@ -125,9 +119,6 @@ export function useRequestLogPageState() {
     setLatencyBucket,
     setTokenMin,
     setTokenMax,
-    setSpecialTokenFilter,
-    setPricedOnly,
-    setBillableOnly,
     setView,
     setTriage,
     setLimit,

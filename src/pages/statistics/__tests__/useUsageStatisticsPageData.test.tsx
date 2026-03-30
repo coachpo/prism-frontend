@@ -35,45 +35,28 @@ function createState(
 function createSnapshot(): UsageSnapshotResponse {
   return {
     cost_overview: {
-      daily: [
-        {
-          bucket_start: "2026-03-27T00:00:00Z",
-          total_cost_micros: 4200,
-        },
-      ],
-      hourly: [
-        {
-          bucket_start: "2026-03-27T11:00:00Z",
-          total_cost_micros: 4200,
-        },
-      ],
+      daily: [{ bucket_start: "2026-03-27T00:00:00Z", total_cost_micros: 4200 }],
+      hourly: [{ bucket_start: "2026-03-27T11:00:00Z", total_cost_micros: 4200 }],
       priced_request_count: 1,
       total_cost_micros: 4200,
       unpriced_request_count: 1,
     },
-    currency: {
-      code: "USD",
-      symbol: "$",
-    },
+    currency: { code: "USD", symbol: "$" },
     endpoint_statistics: [
       {
         endpoint_id: 10,
         endpoint_label: "Primary Endpoint",
-        failed_count: 0,
         models: [
           {
-            failed_count: 0,
             model_id: "gpt-5.4",
             model_label: "GPT-5.4",
             request_count: 1,
-            success_count: 1,
             success_rate: 100,
             total_cost_micros: 4200,
             total_tokens: 185,
           },
         ],
         request_count: 1,
-        success_count: 1,
         success_rate: 100,
         total_cost_micros: 4200,
         total_tokens: 185,
@@ -81,10 +64,8 @@ function createSnapshot(): UsageSnapshotResponse {
       {
         endpoint_id: 11,
         endpoint_label: "Unknown Endpoint",
-        failed_count: 1,
         models: [],
         request_count: 1,
-        success_count: 0,
         success_rate: 0,
         total_cost_micros: 0,
         total_tokens: 60,
@@ -93,23 +74,17 @@ function createSnapshot(): UsageSnapshotResponse {
     generated_at: "2026-03-27T12:00:00Z",
     model_statistics: [
       {
-        api_family: "openai",
-        failed_count: 0,
         model_id: "gpt-5.4",
         model_label: "GPT-5.4",
         request_count: 1,
-        success_count: 1,
         success_rate: 100,
         total_cost_micros: 4200,
         total_tokens: 185,
       },
       {
-        api_family: "anthropic",
-        failed_count: 1,
         model_id: "claude-sonnet-4-6",
         model_label: "Claude Sonnet 4.6",
         request_count: 1,
-        success_count: 0,
         success_rate: 0,
         total_cost_micros: 0,
         total_tokens: 60,
@@ -136,80 +111,22 @@ function createSnapshot(): UsageSnapshotResponse {
     },
     proxy_api_key_statistics: [
       {
-        failed_count: 1,
-        key_prefix: "prism_pk_primary_1234",
         proxy_api_key_id: 77,
         proxy_api_key_label: "Primary runtime key",
         request_count: 2,
-        success_count: 1,
         success_rate: 50,
         total_cost_micros: 4200,
         total_tokens: 245,
       },
       {
-        failed_count: 1,
-        key_prefix: null,
         proxy_api_key_id: null,
         proxy_api_key_label: "Unknown Proxy API Key",
         request_count: 1,
-        success_count: 0,
         success_rate: 0,
         total_cost_micros: 0,
         total_tokens: 60,
       },
     ],
-    request_events: {
-      available_filters: {
-        api_families: [{ api_family: "openai", label: "openai" }],
-        endpoints: [
-          { endpoint_id: 10, label: "Primary Endpoint" },
-          { endpoint_id: 11, label: "Unknown Endpoint" },
-        ],
-        models: [{ label: "GPT-5.4", model_id: "gpt-5.4" }],
-        proxy_api_keys: [
-          {
-            key_prefix: "prism_pk_primary_1234",
-            label: "Primary runtime key",
-            proxy_api_key_id: 77,
-          },
-          {
-            key_prefix: null,
-            label: "Unknown Proxy API Key",
-            proxy_api_key_id: null,
-          },
-        ],
-      },
-      items: [
-        {
-          api_family: "openai",
-          attempt_count: 3,
-          cached_tokens: 25,
-          connection_id: 12,
-          created_at: "2026-03-27T11:00:00Z",
-          endpoint_id: 10,
-          endpoint_label: "Unknown Endpoint",
-          ingress_request_id: "ingress-success-1",
-          input_tokens: 100,
-          model_id: "gpt-5.4",
-          model_label: "GPT-5.4",
-          output_tokens: 50,
-          proxy_api_key: {
-            key_prefix: "prism_pk_primary_1234",
-            label: "Primary runtime key",
-          },
-          reasoning_tokens: 10,
-          request_path: "/v1/chat/completions",
-          resolved_target_model_id: "gpt-5.4",
-          status_code: 200,
-          success_flag: true,
-          total_cost_micros: 4200,
-          total_tokens: 185,
-        },
-      ],
-      render_limit: 500,
-      shown_count: 1,
-      total: 1,
-    },
     request_trends: {
       daily: [
         {
@@ -405,7 +322,7 @@ describe("useUsageStatisticsPageData", () => {
     return <LocaleProvider>{children}</LocaleProvider>;
   }
 
-  it("keeps request-event snapshot metadata intact while filtering visible model lines from local page state", async () => {
+  it("filters visible model lines and localizes the surviving statistics payload", async () => {
     const { result } = renderHook(
       () =>
         useUsageStatisticsPageData({
@@ -441,40 +358,13 @@ describe("useUsageStatisticsPageData", () => {
       "all",
       "gpt-5.4",
     ]);
-    expect(result.current.requestEvents[0]).toMatchObject({
-      endpoint_label: "Unknown endpoint",
-      ingress_request_id: "ingress-success-1",
-      request_logs_href: "/request-logs?ingress_request_id=ingress-success-1",
-    });
-    expect(result.current.requestEvents).toHaveLength(1);
-    expect(result.current.requestEventsTotal).toBe(1);
-    expect(result.current.requestEventsShownCount).toBe(1);
-    expect(result.current.requestEventsRenderLimit).toBe(500);
-    expect(result.current.requestEventAvailableFilters).toEqual({
-      api_families: [{ api_family: "openai", label: "openai" }],
-      endpoints: [
-        { endpoint_id: 10, label: "Primary Endpoint" },
-        { endpoint_id: 11, label: "Unknown endpoint" },
-      ],
-      models: [{ label: "GPT-5.4", model_id: "gpt-5.4" }],
-      proxy_api_keys: [
-        {
-          key_prefix: "prism_pk_primary_1234",
-          label: "Primary runtime key",
-          proxy_api_key_id: 77,
-        },
-        {
-          key_prefix: null,
-          label: "Unknown proxy API key",
-          proxy_api_key_id: null,
-        },
-      ],
-    });
     expect(result.current.snapshot?.overview.rolling_window_minutes).toBe(30);
     expect(result.current.snapshot?.service_health.interval_minutes).toBe(15);
     expect(result.current.snapshot?.endpoint_statistics[1]?.endpoint_label).toBe("Unknown endpoint");
     expect(result.current.snapshot?.proxy_api_key_statistics[1]?.proxy_api_key_label).toBe(
       "Unknown proxy API key",
     );
+    expect(result.current).not.toHaveProperty("requestEvents");
+    expect(result.current).not.toHaveProperty("requestEventsTotal");
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULTS,
+  PAGE_SIZE_OPTIONS,
   parsePageState,
   stateToParams,
   timeRangeToFromTime,
@@ -22,9 +23,6 @@ function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPa
     latency_bucket: DEFAULTS.latency_bucket,
     token_min: "",
     token_max: "",
-    priced_only: DEFAULTS.priced_only,
-    billable_only: DEFAULTS.billable_only,
-    special_token_filter: "",
     view: DEFAULTS.view,
     triage: DEFAULTS.triage,
     limit: DEFAULTS.limit,
@@ -36,7 +34,7 @@ function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPa
 }
 
 describe("request log query params", () => {
-  it("round-trips non-default state, including new filter controls", () => {
+  it("round-trips supported non-default request-log state", () => {
     const state = createState({
       model_id: "gpt-5.4",
       ingress_request_id: "ingress_req_42",
@@ -51,24 +49,18 @@ describe("request log query params", () => {
       latency_bucket: "slow",
       token_min: "100",
       token_max: "500",
-      priced_only: true,
-      billable_only: true,
-      special_token_filter: "reasoning",
       view: "compact",
       triage: true,
-      limit: 25,
-      offset: 50,
+      limit: 300,
+      offset: 600,
       request_id: "1234",
       detail_tab: "audit",
     });
 
     const params = stateToParams(state);
 
-    expect(params.get("special_token_filter")).toBe("reasoning");
     expect(params.get("status_family")).toBe("5xx");
     expect(params.get("api_family")).toBe("openai");
-    expect(params.get("priced_only")).toBe("true");
-    expect(params.get("billable_only")).toBe("true");
     expect(params.get("triage")).toBe("true");
     expect(parsePageState(params)).toEqual(state);
   });
@@ -77,6 +69,14 @@ describe("request log query params", () => {
     const params = stateToParams(createState());
 
     expect(params.toString()).toBe("");
+  });
+
+  it("enforces the request-log page-size contract", () => {
+    expect(PAGE_SIZE_OPTIONS).toEqual([100, 300, 500]);
+    expect(DEFAULTS.limit).toBe(100);
+
+    const parsed = parsePageState(new URLSearchParams("limit=25"));
+    expect(parsed.limit).toBe(100);
   });
 
   it("returns undefined for the all-time range", () => {

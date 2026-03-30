@@ -39,6 +39,7 @@ import type {
   MonitoringOverviewResponse,
   MonitoringSettingsResponse,
   MonitoringSettingsUpdate,
+  RequestLogDetail,
   MonitoringVendorResponse,
 } from "../types";
 import { buildQuery, request } from "./core";
@@ -52,6 +53,7 @@ export const stats = {
     const query = buildStatsQuery(params);
     return request<RequestLogListResponse>(`/api/stats/requests${query ? `?${query}` : ""}`);
   },
+  requestDetail: (requestId: number) => request<RequestLogDetail>(`/api/stats/requests/${requestId}`),
   usageSnapshot: (params?: { preset?: UsageSnapshotPreset }) => {
     const query = buildQuery(params);
     return request<UsageSnapshotResponse>(`/api/stats/usage-snapshot${query ? `?${query}` : ""}`);

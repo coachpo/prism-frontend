@@ -9,7 +9,7 @@ import { ProfileProvider, useProfileContext } from "../ProfileContext";
 
 const api = vi.hoisted(() => ({
   profiles: {
-    getActive: vi.fn(),
+    bootstrap: vi.fn(),
     list: vi.fn(),
   },
 }));
@@ -69,8 +69,11 @@ describe("ProfileProvider", () => {
       updated_at: "",
     };
 
-    api.profiles.list.mockResolvedValue([profile]);
-    api.profiles.getActive.mockResolvedValue(profile);
+    api.profiles.bootstrap.mockResolvedValue({
+      profiles: [profile],
+      active_profile: profile,
+      profile_limits: { max_profiles: 10 },
+    });
   });
 
   afterEach(() => {
@@ -92,8 +95,7 @@ describe("ProfileProvider", () => {
       expect(screen.getByText("Default/Default")).toBeInTheDocument();
     });
 
-    expect(api.profiles.list).toHaveBeenCalledTimes(1);
-    expect(api.profiles.getActive).toHaveBeenCalledTimes(1);
+    expect(api.profiles.bootstrap).toHaveBeenCalledTimes(1);
     expect(setApiProfileId).toHaveBeenCalledWith(1);
   });
 
@@ -125,8 +127,11 @@ describe("ProfileProvider", () => {
       },
     ];
 
-    api.profiles.list.mockResolvedValue(profiles);
-    api.profiles.getActive.mockResolvedValue(profiles[0]);
+    api.profiles.bootstrap.mockResolvedValue({
+      profiles,
+      active_profile: profiles[0],
+      profile_limits: { max_profiles: 10 },
+    });
 
     render(
       <LocaleProvider>
@@ -148,8 +153,7 @@ describe("ProfileProvider", () => {
       expect(screen.getByText("Secondary/Default")).toBeInTheDocument();
     });
 
-    expect(api.profiles.list).toHaveBeenCalledTimes(1);
-    expect(api.profiles.getActive).toHaveBeenCalledTimes(1);
+    expect(api.profiles.bootstrap).toHaveBeenCalledTimes(1);
   });
 
   it("fetches fresh profile snapshots after provider remounts", async () => {
@@ -178,8 +182,17 @@ describe("ProfileProvider", () => {
       updated_at: "",
     };
 
-    api.profiles.list.mockResolvedValueOnce([firstProfile]).mockResolvedValueOnce([secondProfile]);
-    api.profiles.getActive.mockResolvedValueOnce(firstProfile).mockResolvedValueOnce(secondProfile);
+    api.profiles.bootstrap
+      .mockResolvedValueOnce({
+        profiles: [firstProfile],
+        active_profile: firstProfile,
+        profile_limits: { max_profiles: 10 },
+      })
+      .mockResolvedValueOnce({
+        profiles: [secondProfile],
+        active_profile: secondProfile,
+        profile_limits: { max_profiles: 10 },
+      });
 
     const firstRender = render(
       <LocaleProvider>
@@ -207,43 +220,43 @@ describe("ProfileProvider", () => {
       expect(screen.getByText("Second login/Second login")).toBeInTheDocument();
     });
 
-    expect(api.profiles.list).toHaveBeenCalledTimes(2);
-    expect(api.profiles.getActive).toHaveBeenCalledTimes(2);
+    expect(api.profiles.bootstrap).toHaveBeenCalledTimes(2);
   });
 
   it("reuses the in-flight bootstrap request when StrictMode bootstraps twice", async () => {
-    const profilesDeferred = Promise.resolve([
-      {
+    const bootstrapDeferred = Promise.resolve({
+      profiles: [
+        {
+          id: 1,
+          name: "Default",
+          description: null,
+          is_active: true,
+          is_default: true,
+          is_editable: true,
+          version: 1,
+          created_at: "",
+          deleted_at: null,
+          updated_at: "",
+        },
+      ],
+      active_profile: {
         id: 1,
         name: "Default",
         description: null,
-        is_active: true,
-        is_default: true,
-        is_editable: true,
+      is_active: true,
+      is_default: true,
+      is_editable: true,
         version: 1,
         created_at: "",
         deleted_at: null,
         updated_at: "",
       },
-    ]);
-    const activeDeferred = Promise.resolve({
-      id: 1,
-      name: "Default",
-      description: null,
-      is_active: true,
-      is_default: true,
-      is_editable: true,
-      version: 1,
-      created_at: "",
-      deleted_at: null,
-      updated_at: "",
+      profile_limits: { max_profiles: 10 },
     });
 
-    const listProfiles = vi.fn(() => profilesDeferred);
-    const getActiveProfile = vi.fn(() => activeDeferred);
+    const bootstrap = vi.fn(() => bootstrapDeferred);
     const loadBootstrapState = createProfileBootstrapLoader({
-      listProfiles,
-      getActiveProfile,
+      bootstrap,
     });
 
     const [first, second] = await Promise.all([
@@ -252,8 +265,7 @@ describe("ProfileProvider", () => {
     ]);
 
     expect(first).toEqual(second);
-    expect(listProfiles).toHaveBeenCalledTimes(1);
-    expect(getActiveProfile).toHaveBeenCalledTimes(1);
+    expect(bootstrap).toHaveBeenCalledTimes(1);
   });
 
   it("parses stored profile ids conservatively", () => {
@@ -297,8 +309,7 @@ describe("ProfileProvider", () => {
 
   it("renders localized loading copy while profile bootstrap is pending", () => {
     localStorage.setItem("prism.locale", "zh-CN");
-    api.profiles.list.mockImplementation(() => new Promise(() => {}));
-    api.profiles.getActive.mockImplementation(() => new Promise(() => {}));
+    api.profiles.bootstrap.mockImplementation(() => new Promise(() => {}));
 
     render(
       <LocaleProvider>

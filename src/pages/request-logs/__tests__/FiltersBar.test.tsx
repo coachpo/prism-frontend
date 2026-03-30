@@ -50,17 +50,14 @@ describe("request log filter split components", () => {
     expect(setSearch).toHaveBeenCalledWith("gateway error");
   });
 
-  it("renders the secondary refinement controls and reset actions", () => {
+  it("renders only supported secondary refinement controls", () => {
     renderWithLocale(
       <FiltersBarSecondaryFilters
         localRefinementOpen={true}
         onLocalRefinementOpenChange={vi.fn()}
         state={{
-          billable_only: false,
           latency_bucket: "all",
           outcome_filter: "all",
-          priced_only: false,
-          special_token_filter: "",
           stream_filter: "all",
           token_max: "",
           token_min: "",
@@ -68,11 +65,8 @@ describe("request log filter split components", () => {
           view: "all",
         }}
         actions={{
-          setBillableOnly: vi.fn(),
           setLatencyBucket: vi.fn(),
           setOutcomeFilter: vi.fn(),
-          setPricedOnly: vi.fn(),
-          setSpecialTokenFilter: vi.fn(),
           setStreamFilter: vi.fn(),
           setTokenMax: vi.fn(),
           setTokenMin: vi.fn(),
@@ -84,7 +78,9 @@ describe("request log filter split components", () => {
 
     expect(screen.getByText("Local refinement")).toBeInTheDocument();
     expect(screen.getByText("Triage")).toBeInTheDocument();
-    expect(screen.getByText("Priced only")).toBeInTheDocument();
+    expect(screen.queryByText("Priced only")).not.toBeInTheDocument();
+    expect(screen.queryByText("Billable only")).not.toBeInTheDocument();
+    expect(screen.queryByText("Special tokens")).not.toBeInTheDocument();
   });
 
   it("renders localized request-log filter copy when the saved locale is Chinese", () => {

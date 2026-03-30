@@ -6,6 +6,7 @@ import { useProfileContext } from "@/context/ProfileContext";
 import { useTimezone } from "@/hooks/useTimezone";
 import { useLocale } from "@/i18n/useLocale";
 import { useRequestLogPageState } from "./request-logs/useRequestLogPageState";
+import { useRequestLogDetail } from "./request-logs/useRequestLogDetail";
 import { useRequestLogsPageData } from "./request-logs/useRequestLogsPageData";
 import { applyClientFilters } from "./request-logs/clientFilters";
 import { createConnectionNavigator } from "./request-logs/connectionNavigation";
@@ -15,7 +16,7 @@ import { RequestLogsTable } from "./request-logs/RequestLogsTable";
 import { RequestLogDetailSheet } from "./request-logs/RequestLogDetailSheet";
 import { SearchX, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { RequestLogEntry } from "@/lib/types";
+import type { RequestLogDetail } from "@/lib/types";
 import type { DetailTab } from "./request-logs/queryParams";
 import type { RequestLogModelResolver } from "./request-logs/columns";
 
@@ -26,7 +27,7 @@ export function RequestLogsPage() {
   const { messages } = useLocale();
   const [tableSelectedRequestId, setTableSelectedRequestId] = useState<number | null>(null);
   const [tableSelectedTab, setTableSelectedTab] = useState<DetailTab>("overview");
-  const [sheetRequest, setSheetRequest] = useState<RequestLogEntry | null>(null);
+  const [sheetRequest, setSheetRequest] = useState<RequestLogDetail | null>(null);
   const [sheetActiveTab, setSheetActiveTab] = useState<DetailTab>("overview");
   const actions = useRequestLogPageState();
   const { state, isExactMode } = actions;
@@ -47,27 +48,37 @@ export function RequestLogsPage() {
         latency_bucket: state.latency_bucket,
         token_min: state.token_min,
         token_max: state.token_max,
-        priced_only: state.priced_only,
-        billable_only: state.billable_only,
-        special_token_filter: state.special_token_filter,
         triage: state.triage,
       }),
-    [items, state.search, state.outcome_filter, state.stream_filter, state.latency_bucket, state.token_min, state.token_max, state.priced_only, state.billable_only, state.special_token_filter, state.triage]
+    [items, state.search, state.outcome_filter, state.stream_filter, state.latency_bucket, state.token_min, state.token_max, state.triage]
   );
 
-  const exactRequest = useMemo(() => {
-    if (!state.request_id) return null;
-    const id = parseInt(state.request_id, 10);
-    return items.find((r) => r.id === id) ?? null;
-  }, [items, state.request_id]);
+  const selectedRequestId = useMemo(() => {
+    if (isExactMode) {
+      const parsedRequestId = parseInt(state.request_id, 10);
+      return Number.isFinite(parsedRequestId) ? parsedRequestId : null;
+    }
 
-  const tableSelectedRequest = useMemo(
-    () => items.find((r) => r.id === tableSelectedRequestId) ?? null,
-    [items, tableSelectedRequestId]
-  );
+    return tableSelectedRequestId;
+  }, [isExactMode, state.request_id, tableSelectedRequestId]);
 
-  const selectedRequest = isExactMode ? exactRequest : tableSelectedRequest;
+  const {
+    request: selectedRequest,
+    loading: detailLoading,
+    error: detailError,
+    notFound: detailNotFound,
+  } = useRequestLogDetail({
+    requestId: selectedRequestId,
+    enabled: selectedRequestId !== null,
+  });
+
   const currentActiveTab = isExactMode ? state.detail_tab : tableSelectedTab;
+  const surfaceError = error ?? detailError;
+  const showExactNotFound = isExactMode && !detailLoading && detailNotFound;
+  const listVisibleRequestId = useMemo(
+    () => items.find((item) => item.id === selectedRequestId)?.id ?? selectedRequestId,
+    [items, selectedRequestId],
+  );
   const modelLabelById = useMemo(
     () => new Map(filterOptions.models.map((model) => [model.model_id, model.display_name || model.model_id])),
     [filterOptions.models]
@@ -144,15 +155,18 @@ export function RequestLogsPage() {
           />
         )}
 
-        {error && (
+        {surfaceError && (
           <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <p>{error}</p>
+            <p>{surfaceError}</p>
           </div>
         )}
 
-        {isExactMode && !loading && items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border bg-card py-24 text-center shadow-sm">
+        {showExactNotFound ? (
+          <div
+            className="flex flex-col items-center justify-center gap-3 rounded-lg border bg-card py-24 text-center shadow-sm"
+            data-testid="request-log-not-found"
+          >
             <div className="rounded-full bg-muted p-4 mb-2">
               <SearchX className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -176,7 +190,7 @@ export function RequestLogsPage() {
             view={state.view}
             limit={state.limit}
             offset={state.offset}
-            activeRequestId={selectedRequest?.id ?? null}
+            activeRequestId={listVisibleRequestId ?? null}
             onSelectRequest={handleSelectRequest}
             onSetLimit={actions.setLimit}
             onNextPage={() => actions.goToNextPage(total)}

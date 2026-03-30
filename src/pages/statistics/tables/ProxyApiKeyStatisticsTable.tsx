@@ -1,62 +1,81 @@
 import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useLocale } from "@/i18n/useLocale";
 import { formatMoneyMicros } from "@/lib/costing";
 import type { UsageProxyApiKeyStatistic, UsageSnapshotCurrency } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { DataTable, type DataTableColumn } from "./data-table";
 
 interface ProxyApiKeyStatisticsTableProps {
-  authEnabled?: boolean;
   currency?: UsageSnapshotCurrency;
   items: UsageProxyApiKeyStatistic[];
 }
 
-function SummaryCard({
-  label,
-  value,
-  supporting,
-}: {
-  label: string;
-  value: string;
-  supporting?: string;
-}) {
-  return (
-    <div
-      data-testid="proxy-key-summary-card"
-      className="rounded-2xl border border-border/60 bg-background/80 p-4"
-    >
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-      {supporting ? <p className="mt-1 text-xs text-muted-foreground">{supporting}</p> : null}
-    </div>
-  );
-}
-
 export function ProxyApiKeyStatisticsTable({
-  authEnabled,
   currency = { code: "USD", symbol: "$" },
   items,
 }: ProxyApiKeyStatisticsTableProps) {
   const { formatNumber, locale, messages } = useLocale();
   const rows = [...items].sort((left, right) => right.request_count - left.request_count);
-  const totalRequests = rows.reduce((sum, item) => sum + item.request_count, 0);
-  const totalTokens = rows.reduce((sum, item) => sum + item.total_tokens, 0);
-  const totalSpendMicros = rows.reduce((sum, item) => sum + item.total_cost_micros, 0);
+
+  const columns: DataTableColumn<UsageProxyApiKeyStatistic>[] = [
+    {
+      cell: (item) => <span className="font-medium text-foreground">{item.proxy_api_key_label}</span>,
+      header: messages.statistics.proxyApiKey,
+      id: "label",
+      sortValue: (item) => item.proxy_api_key_label,
+    },
+    {
+      cell: (item) => formatNumber(item.request_count),
+      className: "text-right tabular-nums",
+      header: messages.statistics.requests,
+      headerClassName: "text-right",
+      id: "requests",
+      sortValue: (item) => item.request_count,
+    },
+    {
+      cell: (item) => (
+        <span className={cn("tabular-nums font-medium", getSuccessRateClass(item.success_rate))}>
+          {formatNumber(item.success_rate, {
+            maximumFractionDigits: 1,
+            minimumFractionDigits: 1,
+          })}
+          %
+        </span>
+      ),
+      className: "text-right tabular-nums",
+      header: messages.statistics.successRate,
+      headerClassName: "text-right",
+      id: "success-rate",
+      sortValue: (item) => item.success_rate,
+    },
+    {
+      cell: (item) => formatNumber(item.total_tokens),
+      className: "text-right tabular-nums",
+      header: messages.statistics.totalTokens,
+      headerClassName: "text-right",
+      id: "tokens",
+      sortValue: (item) => item.total_tokens,
+    },
+    {
+      cell: (item) =>
+        item.total_cost_micros > 0
+          ? formatMoneyMicros(
+              item.total_cost_micros,
+              currency.symbol,
+              currency.code,
+              2,
+              6,
+              locale,
+            )
+          : "—",
+      className: "text-right tabular-nums",
+      header: messages.statistics.totalSpend,
+      headerClassName: "text-right",
+      id: "spend",
+      sortValue: (item) => item.total_cost_micros,
+    },
+  ];
 
   return (
     <Card className="border-border/70 bg-card/95 shadow-none">
@@ -70,85 +89,29 @@ export function ProxyApiKeyStatisticsTable({
       </CardHeader>
 
       <CardContent className="pt-6">
-        {rows.length === 0 ? (
-          <EmptyState
-            className="py-10"
-            description={messages.statistics.noProxyApiKeyUsageDescription}
-            title={messages.statistics.noProxyApiKeyUsageTitle}
-          />
-        ) : (
-          <div className="space-y-4">
-            <div data-testid="proxy-key-summary-grid" className="grid gap-3 md:grid-cols-3">
-              <SummaryCard
-                label={messages.statistics.proxyApiKey}
-                value={formatNumber(rows.length)}
-              />
-              <SummaryCard
-                label={messages.statistics.requests}
-                value={formatNumber(totalRequests)}
-                supporting={`${formatNumber(totalTokens)} ${messages.statistics.totalTokens}`}
-              />
-              <SummaryCard
-                label={messages.statistics.totalSpend}
-                value={formatMoneyMicros(totalSpendMicros, currency.symbol, currency.code, 2, 6, locale)}
-              />
-            </div>
-
-            <div className="rounded-xl border border-border/60">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{messages.statistics.proxyApiKey}</TableHead>
-                    <TableHead>{messages.statistics.apiKeyPrefix}</TableHead>
-                    <TableHead>{messages.statistics.requests}</TableHead>
-                    <TableHead>{messages.statistics.successRate}</TableHead>
-                    <TableHead>{messages.statistics.totalTokens}</TableHead>
-                    <TableHead>{messages.statistics.totalSpend}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((item) => (
-                    <TableRow key={item.proxy_api_key_id ?? item.proxy_api_key_label}>
-                      <TableCell className="font-medium">
-                        {authEnabled === false && item.proxy_api_key_id === null ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help text-muted-foreground/80">
-                                  {messages.common.notApplicable}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                {messages.statistics.proxyApiKeyNotApplicableAuthDisabledTooltip}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          item.proxy_api_key_label
-                        )}
-                      </TableCell>
-                      <TableCell>{item.key_prefix ?? "—"}</TableCell>
-                      <TableCell>{formatNumber(item.request_count)}</TableCell>
-                      <TableCell>{formatNumber(item.success_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</TableCell>
-                      <TableCell>{formatNumber(item.total_tokens)}</TableCell>
-                      <TableCell>
-                        {formatMoneyMicros(
-                          item.total_cost_micros,
-                          currency.symbol,
-                          currency.code,
-                          2,
-                          6,
-                          locale,
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        )}
+        <DataTable
+          columns={columns}
+          emptyState={
+            <EmptyState
+              className="py-10"
+              description={messages.statistics.noProxyApiKeyUsageDescription}
+              title={messages.statistics.noProxyApiKeyUsageTitle}
+            />
+          }
+          getRowId={(item) => String(item.proxy_api_key_id ?? item.proxy_api_key_label)}
+          initialSort={{ columnId: "requests", direction: "desc" }}
+          items={rows}
+          testId="statistics-proxy-key-table"
+        />
       </CardContent>
     </Card>
   );
+}
+
+function getSuccessRateClass(successRate: number) {
+  return successRate >= 95
+    ? "text-emerald-600 dark:text-emerald-400"
+    : successRate >= 80
+      ? "text-amber-600 dark:text-amber-400"
+      : "text-red-600 dark:text-red-400";
 }

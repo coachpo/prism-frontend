@@ -29,7 +29,6 @@ let mockUsageData = {
   error: null as string | null,
   loading: false,
   refresh: vi.fn(),
-  requestEvents: [],
   requestTrendSeries: [],
   selectedModelLineIds: [],
   snapshot: null as UsageSnapshotResponse | null,
@@ -41,12 +40,6 @@ vi.mock("@/context/ProfileContext", () => ({
   useProfileContext: () => ({
     revision: 1,
     selectedProfile: { id: 1 },
-  }),
-}));
-
-vi.mock("@/context/useAuth", () => ({
-  useAuth: () => ({
-    authEnabled: true,
   }),
 }));
 
@@ -86,7 +79,6 @@ function createEmptySnapshot(): UsageSnapshotResponse {
       total_tokens: 0,
     },
     proxy_api_key_statistics: [],
-    request_events: { items: [], total: 0 },
     request_trends: { daily: [], hourly: [] },
     service_health: {
       availability_percentage: null,
@@ -115,7 +107,6 @@ describe("StatisticsPage empty states", () => {
       error: null,
       loading: false,
       refresh: vi.fn(),
-      requestEvents: [],
       requestTrendSeries: [],
       selectedModelLineIds: [],
       snapshot: createEmptySnapshot(),
@@ -124,7 +115,7 @@ describe("StatisticsPage empty states", () => {
     };
   });
 
-  it("shows pricing guidance and graceful empty states when usage data is sparse", () => {
+  it("shows pricing guidance, empty surviving tables, and the request-events removal note", () => {
     render(
       <MemoryRouter>
         <LocaleProvider>
@@ -134,10 +125,17 @@ describe("StatisticsPage empty states", () => {
     );
 
     expect(screen.getByText("Pricing data is missing for this time range")).toBeInTheDocument();
-    expect(screen.getByText("Attach pricing templates to connections to unlock cost coverage on the statistics page."))
-      .toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open Pricing Templates" })).toHaveAttribute("href", "/pricing-templates");
-    expect(screen.getByText("No request events in this time range")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Attach pricing templates to connections to unlock cost coverage on the statistics page.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Pricing Templates" })).toHaveAttribute(
+      "href",
+      "/pricing-templates",
+    );
     expect(screen.getByText("No proxy API key usage in this time range")).toBeInTheDocument();
+    expect(screen.getByTestId("statistics-no-request-events")).toBeInTheDocument();
+    expect(screen.queryByText("No request events in this time range")).not.toBeInTheDocument();
   });
 });

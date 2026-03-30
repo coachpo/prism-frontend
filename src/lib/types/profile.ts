@@ -24,3 +24,13 @@ export interface ProfileUpdate {
 export interface ProfileActivateRequest {
   expected_active_profile_id: number;
 }
+
+export interface ProfileLimits {
+  max_profiles: number;
+}
+
+export interface ProfileBootstrapResponse {
+  profiles: Profile[];
+  active_profile: Profile | null;
+  profile_limits: ProfileLimits;
+}

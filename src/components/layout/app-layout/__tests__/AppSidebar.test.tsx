@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { Fragment } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -6,16 +7,20 @@ const TEST_APP_VERSION = "9.8.7";
 const TEST_GIT_RUN_NUMBER = "123";
 const TEST_GIT_REVISION = "deadbee";
 
-async function renderSidebar(overrides: Record<string, unknown> = {}) {
+async function renderSidebar({
+  path = "/dashboard",
+  ...overrides
+}: Record<string, unknown> & { path?: string } = {}) {
   vi.stubEnv("VITE_APP_VERSION", TEST_APP_VERSION);
   vi.stubEnv("VITE_GIT_RUN_NUMBER", TEST_GIT_RUN_NUMBER);
   vi.stubEnv("VITE_GIT_REVISION", TEST_GIT_REVISION);
   vi.resetModules();
 
-  const [{ AppSidebar }, { VERSION_LABEL }, { LocaleProvider }] = await Promise.all([
+  const [{ AppSidebar }, { VERSION_LABEL }, { LocaleProvider }, sidebarUiModule] = await Promise.all([
     import("../AppSidebar"),
     import("../navigationProfileConfig"),
     import("@/i18n/LocaleProvider"),
+    import("@/components/ui/sidebar").catch(() => null),
   ]);
 
   const props = {
@@ -23,15 +28,23 @@ async function renderSidebar(overrides: Record<string, unknown> = {}) {
     closeProfileSwitcher: vi.fn(),
     hasMismatch: false,
     selectedProfileName: "Production",
-    setSidebarOpen: vi.fn(),
-    sidebarOpen: true,
     ...overrides,
   };
 
+  const Sidebar = AppSidebar as React.ComponentType<Record<string, unknown>>;
+  const sidebarTree = <Sidebar {...props} />;
+  const tree = sidebarUiModule ? (
+    <sidebarUiModule.SidebarProvider defaultOpen>
+      {sidebarTree}
+    </sidebarUiModule.SidebarProvider>
+  ) : (
+    <Fragment>{sidebarTree}</Fragment>
+  );
+
   const view = render(
     <LocaleProvider>
-      <MemoryRouter initialEntries={["/dashboard"]}>
-        <AppSidebar {...props} />
+      <MemoryRouter initialEntries={[path]}>
+        {tree}
       </MemoryRouter>
     </LocaleProvider>
   );
@@ -49,30 +62,11 @@ afterEach(() => {
 });
 
 describe("AppSidebar", () => {
-  it("uses mobile-only hit testing disablement while hidden", async () => {
-    await renderSidebar({ sidebarOpen: false });
+  it("renders the provider sidebar shell selectors and desktop collapse toggle", async () => {
+    await renderSidebar();
 
-    const sidebar = screen.getByRole("complementary", { name: "Primary navigation" });
-
-    expect(sidebar).toHaveClass("pointer-events-auto");
-    expect(sidebar).toHaveClass("translate-x-0");
-    expect(sidebar).toHaveClass("max-lg:pointer-events-none");
-    expect(sidebar).toHaveClass("max-lg:-translate-x-full");
-    expect(sidebar).toHaveClass("lg:pointer-events-auto");
-  });
-
-  it("stays interactive when open and closes on navigation click", async () => {
-    const { props } = await renderSidebar();
-
-    const sidebar = screen.getByRole("complementary", { name: "Primary navigation" });
-    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
-
-    expect(sidebar).toHaveClass("pointer-events-auto");
-
-    fireEvent.click(dashboardLink);
-
-    expect(props.closeProfileSwitcher).toHaveBeenCalledTimes(1);
-    expect(props.setSidebarOpen).toHaveBeenCalledWith(false);
+    expect(screen.getByTestId("shell-sidebar")).toBeInTheDocument();
+    expect(screen.getByTestId("shell-sidebar-collapse-toggle")).toBeInTheDocument();
   });
 
   it("renders the version label with the app version first and git metadata second", async () => {
@@ -92,5 +86,11 @@ describe("AppSidebar", () => {
     await renderSidebar();
 
     expect(screen.getByRole("link", { name: "Monitoring" })).toBeInTheDocument();
+  });
+
+  it("keeps the current route visible inside the sidebar shell", async () => {
+    await renderSidebar({ path: "/request-logs" });
+
+    expect(screen.getByRole("link", { name: "Request Logs" })).toHaveAttribute("aria-current", "page");
   });
 });

@@ -5,7 +5,7 @@ import { getSharedModels } from "@/lib/referenceData";
 import type {
   ModelConfigListItem,
   NonEmptyArray,
-  RequestLogEntry,
+  RequestLogListItem,
   RequestLogListResponse,
   SpendingReportResponse,
   StatsSummary,
@@ -162,7 +162,7 @@ export function useDashboardBootstrapData({
   const [apiFamilyStats, setApiFamilyStats] = useState<StatsSummary | null>(null);
   const [spending, setSpending] = useState<SpendingReportResponse | null>(null);
   const [throughput, setThroughput] = useState<ThroughputStatsResponse | null>(null);
-  const [recentRequests, setRecentRequests] = useState<RequestLogEntry[]>([]);
+  const [recentRequests, setRecentRequests] = useState<RequestLogListItem[]>([]);
   const [routingDiagramData, setRoutingDiagramData] = useState<RoutingDiagramData | null>(null);
   const [routingDiagramLoading, setRoutingDiagramLoading] = useState(true);
   const [routingDiagramError, setRoutingDiagramError] = useState<string | null>(null);

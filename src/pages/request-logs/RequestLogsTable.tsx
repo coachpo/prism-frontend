@@ -11,12 +11,12 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { RequestLogEntry } from "@/lib/types";
+import type { RequestLogListItem } from "@/lib/types";
 import { getColumns, ROW_HEIGHT, type ColumnDef } from "./columns";
 import { PAGE_SIZE_OPTIONS, type ViewMode } from "./queryParams";
 
 interface RequestLogsTableProps {
-  items: RequestLogEntry[];
+  items: RequestLogListItem[];
   total: number;
   loading: boolean;
   view: ViewMode;
@@ -36,6 +36,7 @@ interface ResolvedColumn extends ColumnDef {
 }
 
 const OVERSCAN = 10;
+const TABLE_VIEWPORT_HEIGHT = 640;
 const SKELETON_ROW_KEYS = [
   "request-log-skeleton-1",
   "request-log-skeleton-2",
@@ -47,7 +48,7 @@ const SKELETON_ROW_KEYS = [
   "request-log-skeleton-8",
 ];
 
-function getRowTone(row: RequestLogEntry, isSelected: boolean) {
+function getRowTone(row: RequestLogListItem, isSelected: boolean) {
   if (isSelected) {
     return {
       row: "border-sky-500/20 bg-sky-500/[0.08] hover:bg-sky-500/[0.12]",
@@ -150,13 +151,19 @@ export function RequestLogsTable({
   const hasNext = offset + limit < total;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
-      <div ref={containerRef} className="max-h-[68vh] overflow-auto" onScroll={handleScroll}>
+    <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm" data-testid="request-logs-table">
+      <div
+        ref={containerRef}
+        className="overflow-auto scrollbar-thin"
+        style={{ height: TABLE_VIEWPORT_HEIGHT }}
+        onScroll={handleScroll}
+      >
         <div className="w-full" style={{ minWidth: totalWidth }}>
           <div className="sticky top-0 z-10 flex border-b border-border/70 bg-background/92 backdrop-blur-md">
             {resolvedColumns.map((col) => (
               <div
                 key={col.key}
+                data-testid={col.headerTestId}
                 className={cn(
                   "shrink-0 px-3 py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground",
                   col.align === "right" && "text-right",
@@ -247,7 +254,10 @@ export function RequestLogsTable({
               : messages.requestLogs.zeroResults}
           </span>
           <Select value={String(limit)} onValueChange={(v) => onSetLimit(Number(v))}>
-            <SelectTrigger className="h-8 w-[84px] rounded-full border-border/70 bg-background text-xs">
+            <SelectTrigger
+              className="h-8 w-[92px] rounded-full border-border/70 bg-background text-xs"
+              data-testid="request-log-page-size-select"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

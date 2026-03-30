@@ -3,18 +3,40 @@ import { useRealtimeData } from "@/hooks/useRealtimeData";
 import type {
   DashboardRealtimeUpdatePayload,
   RequestLogEntry,
+  RequestLogListItem,
   SpendingReportResponse,
   StatsSummary,
   ThroughputStatsResponse,
 } from "@/lib/types";
 import { applyRoutingDiagramRealtimeUpdate, type RoutingDiagramData } from "./routingDiagram";
 
+function toRequestLogListItem(entry: RequestLogEntry): RequestLogListItem {
+  return {
+    id: entry.id,
+    created_at: entry.created_at,
+    model_id: entry.model_id,
+    resolved_target_model_id: entry.resolved_target_model_id,
+    api_family: entry.api_family ?? "openai",
+    vendor_id: entry.vendor_id,
+    vendor_key: entry.vendor_key,
+    vendor_name: entry.vendor_name,
+    endpoint_id: entry.endpoint_id,
+    connection_id: entry.connection_id,
+    status_code: entry.status_code,
+    response_time_ms: entry.response_time_ms,
+    is_stream: entry.is_stream,
+    total_tokens: entry.total_tokens,
+    total_cost_user_currency_micros: entry.total_cost_user_currency_micros,
+    report_currency_symbol: entry.report_currency_symbol,
+  };
+}
+
 type Params = {
   fetchDashboardData: (args?: { forceRefresh?: boolean; silent?: boolean }) => Promise<void>;
   latestDashboardRequestIdRef: React.MutableRefObject<number>;
   selectedProfileId: number | null;
   setApiFamilyStats: React.Dispatch<React.SetStateAction<StatsSummary | null>>;
-  setRecentRequests: React.Dispatch<React.SetStateAction<RequestLogEntry[]>>;
+  setRecentRequests: React.Dispatch<React.SetStateAction<RequestLogListItem[]>>;
   setRoutingDiagramData: React.Dispatch<React.SetStateAction<RoutingDiagramData | null>>;
   setRoutingDiagramError: React.Dispatch<React.SetStateAction<string | null>>;
   setSpending: React.Dispatch<React.SetStateAction<SpendingReportResponse | null>>;
@@ -54,6 +76,7 @@ export function useDashboardRealtime({
   const applyDashboardUpdate = useCallback(
     (update: DashboardRealtimeUpdatePayload) => {
       const entry = update.request_log;
+      const summary = toRequestLogListItem(entry);
 
       if (entry.id <= latestDashboardRequestIdRef.current) {
         return;
@@ -61,7 +84,7 @@ export function useDashboardRealtime({
 
       latestDashboardRequestIdRef.current = entry.id;
 
-      setRecentRequests((prev) => [entry, ...prev].slice(0, 12));
+      setRecentRequests((prev) => [summary, ...prev].slice(0, 12));
       setRecentNewIds((prev) => new Set(prev).add(entry.id));
 
       setStats(update.stats_summary_24h);

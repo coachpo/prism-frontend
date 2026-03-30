@@ -1,6 +1,7 @@
+import type { CSSProperties } from "react";
 import { Outlet } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { useLocale } from "@/i18n/useLocale";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ProfileDialogs } from "./app-layout/ProfileDialogs";
 import { AppHeader } from "./app-layout/AppHeader";
 import { AppSidebar } from "./app-layout/AppSidebar";
@@ -12,36 +13,30 @@ export function AppLayout() {
 
   return (
     <>
-      <div className="flex h-screen w-full bg-background text-foreground">
-        {state.sidebarOpen ? (
-          <button
-            type="button"
-            aria-label={messages.shell.closeSidebar}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
-            onClick={() => state.setSidebarOpen(false)}
-          />
-        ) : null}
-
+      <SidebarProvider
+        open={!state.desktopSidebarCollapsed}
+        onOpenChange={state.setDesktopSidebarOpen}
+        style={
+          {
+            "--sidebar-width": "20rem",
+            "--sidebar-width-icon": "4.5rem",
+            "--sidebar-width-mobile": "min(88vw, 20rem)",
+          } as CSSProperties
+        }
+      >
         <AppSidebar
           activeProfileName={state.activeProfileName}
           closeProfileSwitcher={state.closeProfileSwitcher}
-          desktopSidebarCollapsed={state.desktopSidebarCollapsed}
           hasMismatch={state.hasMismatch}
           selectedProfileName={state.selectedProfileName}
-          setSidebarOpen={state.setSidebarOpen}
-          sidebarOpen={state.sidebarOpen}
-          toggleDesktopSidebar={state.toggleDesktopSidebar}
+          sidebarItems={state.sidebarItems}
         />
 
-        <div
-          className={cn(
-            "flex flex-1 flex-col transition-[margin] duration-200 ease-in-out",
-            state.desktopSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[320px]"
-          )}
-        >
+        <SidebarInset className="min-h-screen">
           <AppHeader
             activeProfileName={state.activeProfileName}
             authEnabled={state.authEnabled}
+            breadcrumbs={state.breadcrumbs}
             canCreateProfile={state.canCreateProfile}
             deleteDisabledReason={state.deleteDisabledReason}
             editDisabledReason={state.editDisabledReason}
@@ -67,7 +62,6 @@ export function AppLayout() {
             selectedProfileName={state.selectedProfileName}
             setProfileQuery={state.setProfileQuery}
             setProfileSwitcherOpen={state.setProfileSwitcherOpen}
-            setSidebarOpen={state.setSidebarOpen}
             username={state.username}
           />
 
@@ -76,8 +70,8 @@ export function AppLayout() {
               <Outlet />
             </div>
           </main>
-        </div>
-      </div>
+        </SidebarInset>
+      </SidebarProvider>
 
       <ProfileDialogs
         activateOpen={state.activateOpen}

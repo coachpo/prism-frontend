@@ -1357,7 +1357,6 @@ export interface Messages {
   };
   statistics: {
     addLine: string;
-    apiKeyPrefix: string;
     averageRpm: string;
     adjustFiltersOrTimeRange: string;
     aggregation: string;
@@ -1432,8 +1431,6 @@ export interface Messages {
     month: string;
     endpointGroup: string;
     endpointStatisticsTitle: string;
-    exportRequestEventsCsv: string;
-    exportRequestEventsJson: string;
     exportSnapshotJson: string;
     modelGroup: string;
     lineLimitReached: string;
@@ -1448,22 +1445,15 @@ export interface Messages {
     requestsInWindow: (count: string) => string;
     noProxyApiKeyUsageDescription: string;
     noProxyApiKeyUsageTitle: string;
-    noRequestEventsDescription: string;
-    noRequestEventsTitle: string;
     openPricingTemplates: string;
     overviewTitle: string;
     pricingDataMissingDescription: string;
     pricingDataMissingTitle: string;
     proxyApiKey: string;
-    proxyApiKeyNotApplicableAuthDisabledTooltip: string;
     proxyApiKeyStatisticsTitle: string;
     removeLine: (label: string) => string;
     previousPage: string;
     nextPage: string;
-    requestEventsPage: (page: string, totalPages: string) => string;
-    requestEventsPaginationSummary: (start: string, end: string, total: string) => string;
-    requestEventsTitle: string;
-    showingRequestEvents: (shown: string, total: string) => string;
     requestTrendsTitle: string;
     requestsTab: string;
     requests: string;
@@ -1505,6 +1495,8 @@ export interface Messages {
     successRate: string;
     specialTokens: string;
     statisticsDescription: string;
+    statisticsScopeNoteDescription: string;
+    statisticsScopeNoteTitle: string;
     statisticsTitle: string;
     topHttpErrors: string;
     timeWindow: string;
@@ -1528,9 +1520,6 @@ export interface Messages {
     usageStatisticsPagePlaceholder: string;
     performance: string;
     requestOutcomeOverTime: string;
-    viewInRequestLogs: string;
-    visibleRequestRows: (count: string) => string;
-    investigate: string;
   };
   theme: {
     changeTheme: string;
@@ -2957,7 +2946,6 @@ export const enMessages: Messages = {
   },
   statistics: {
     addLine: "Add Line",
-    apiKeyPrefix: "Key Prefix",
     averageRpm: "Average RPM",
     adjustFiltersOrTimeRange: "Try adjusting your filters or time range.",
     aggregation: "Aggregation",
@@ -3031,8 +3019,6 @@ export const enMessages: Messages = {
     month: "Month",
     endpointGroup: "Endpoint",
     endpointStatisticsTitle: "Endpoint Statistics",
-    exportRequestEventsCsv: "Export request events CSV",
-    exportRequestEventsJson: "Export request events JSON",
     exportSnapshotJson: "Export snapshot JSON",
     lineLimitReached: "You can compare up to 9 model lines at once.",
     linesSelected: (count, max) => `${count} / ${max}`,
@@ -3046,23 +3032,15 @@ export const enMessages: Messages = {
     noModelStatisticsTitle: "No model statistics in this time range",
     noProxyApiKeyUsageDescription: "Runtime-auth usage will appear here after proxy API keys are used.",
     noProxyApiKeyUsageTitle: "No proxy API key usage in this time range",
-    noRequestEventsDescription: "Final request events will appear here after the gateway processes traffic.",
-    noRequestEventsTitle: "No request events in this time range",
     openPricingTemplates: "Open Pricing Templates",
     overviewTitle: "Overview",
     pricingDataMissingDescription: "Attach pricing templates to connections to unlock cost coverage on the statistics page.",
     pricingDataMissingTitle: "Pricing data is missing for this time range",
     proxyApiKey: "Proxy API Key",
-    proxyApiKeyNotApplicableAuthDisabledTooltip:
-      "Not applicable because proxy authentication is disabled in Settings.",
     proxyApiKeyStatisticsTitle: "Proxy API Key Statistics",
     removeLine: (label) => `Remove line ${label}`,
     previousPage: "Previous Page",
     nextPage: "Next Page",
-    requestEventsPage: (page, totalPages) => `Page ${page} of ${totalPages}`,
-    requestEventsPaginationSummary: (start, end, total) => `Rows ${start}-${end} of ${total}`,
-    requestEventsTitle: "Request Events",
-    showingRequestEvents: (shown, total) => `Showing ${shown} of ${total} request events`,
     requestTrendsTitle: "Request Trends",
     requestsInWindow: (count) => `${count} reqs in window`,
     requestsTab: "Requests",
@@ -3102,6 +3080,9 @@ export const enMessages: Messages = {
     successRate: "Success Rate",
     specialTokens: "Special Tokens",
     statisticsDescription: "One request-based usage snapshot across requests, tokens, cost, endpoints, models, and proxy API keys.",
+    statisticsScopeNoteDescription:
+      "Request events are no longer included in the usage snapshot that powers this page.",
+    statisticsScopeNoteTitle: "Statistics now stop at aggregate rollups",
     statisticsTitle: "Usage Statistics",
     tokenTypeBreakdownTitle: "Token Type Breakdown",
     tokenUsageTrendsTitle: "Token Usage Trends",
@@ -3117,8 +3098,8 @@ export const enMessages: Messages = {
     tokens: "Tokens",
     tokenThroughput: "Token Throughput",
     topN: "Top N",
-    topEndpointsByCost: "Top Endpoints by Cost",
-    topModelsByCost: "Top Models by Cost",
+    topEndpointsByCost: "Top Endpoints by Requests",
+    topModelsByCost: "Top Models by Requests",
     totalRequests: (count) => `${count} total requests`,
     updated: "Updated",
     unpriced: (count) => `${count} unpriced`,
@@ -3128,9 +3109,6 @@ export const enMessages: Messages = {
     usageStatisticsPagePlaceholder: "Usage statistics page placeholder",
     performance: "Performance",
     requestOutcomeOverTime: "Request Outcome Over Time",
-    viewInRequestLogs: "View in Request Logs",
-    visibleRequestRows: (count) => `Visible request rows: ${count}`,
-    investigate: "Investigate",
   },
   theme: {
     changeTheme: "Change theme",

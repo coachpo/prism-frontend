@@ -1,21 +1,23 @@
-import { useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/useAuth";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useLocale } from "@/i18n/useLocale";
-import { MAX_PROFILES, PROFILE_SCOPED_PREFIXES } from "./navigationProfileConfig";
+import { readSidebarCollapsed, writeSidebarCollapsed } from "./sidebarPersistence";
+import { useShellNavigation } from "./useShellNavigation";
 import { useProfileDialogState } from "./useProfileDialogState";
 import { useProfileSwitcherState } from "./useProfileSwitcherState";
 
 export function useAppLayoutState() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { authEnabled, username, logout } = useAuth();
   const { messages } = useLocale();
+  const shellNavigation = useShellNavigation();
   const {
     profiles,
     activeProfile,
+    maxProfiles,
     selectedProfile,
     selectedProfileId,
     selectProfile,
@@ -25,10 +27,9 @@ export function useAppLayoutState() {
     deleteProfile,
   } = useProfileContext();
 
-  const [sidebarOpen, setSidebarOpenState] = useState(false);
-  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(() => readSidebarCollapsed());
 
-  const canCreateProfile = profiles.length < MAX_PROFILES;
+  const canCreateProfile = profiles.length < maxProfiles;
   const selectedIsActive =
     selectedProfile !== null && activeProfile !== null && selectedProfile.id === activeProfile.id;
   const hasMismatch = selectedProfile !== null && activeProfile !== null && !selectedIsActive;
@@ -50,13 +51,7 @@ export function useAppLayoutState() {
       ? messages.profiles.lockedProfileEditDisabled
       : null;
 
-  const isProfileScopedPage = useMemo(
-    () =>
-      PROFILE_SCOPED_PREFIXES.some(
-        (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`)
-      ),
-    [location.pathname]
-  );
+  const isProfileScopedPage = shellNavigation.isProfileScopedPage;
 
   const switcherState = useProfileSwitcherState({
     profiles,
@@ -78,11 +73,16 @@ export function useAppLayoutState() {
     updateProfile,
   });
 
-  const setSidebarOpen = (open: boolean) => {
+  useEffect(() => {
+    writeSidebarCollapsed(desktopSidebarCollapsed);
+  }, [desktopSidebarCollapsed]);
+
+  const setDesktopSidebarOpen = (open: boolean) => {
     if (open) {
       switcherState.closeProfileSwitcher();
     }
-    setSidebarOpenState(open);
+
+    setDesktopSidebarCollapsed(!open);
   };
 
   const toggleDesktopSidebar = () => {
@@ -106,6 +106,7 @@ export function useAppLayoutState() {
   return {
     activeProfileName,
     authEnabled,
+    breadcrumbs: shellNavigation.breadcrumbs,
     canCreateProfile,
     desktopSidebarCollapsed,
     deleteDisabledReason,
@@ -118,8 +119,8 @@ export function useAppLayoutState() {
     selectedProfile,
     selectedProfileId,
     selectedProfileName,
-    setSidebarOpen,
-    sidebarOpen,
+    setDesktopSidebarOpen,
+    sidebarItems: shellNavigation.sidebarItems,
     toggleDesktopSidebar,
     username,
     ...switcherState,

@@ -27,6 +27,7 @@ import type {
   PricingTemplateUpdate,
   Profile,
   ProfileActivateRequest,
+  ProfileBootstrapResponse,
   ProfileCreate,
   ProfileUpdate,
   VendorModelUsageItem,
@@ -230,6 +231,7 @@ function normalizeModelConfig(model: RawModelConfig): ModelConfig {
 }
 
 export const profiles = {
+  bootstrap: () => request<ProfileBootstrapResponse>("/api/profiles/bootstrap"),
   list: () => request<Profile[]>("/api/profiles"),
   getActive: () => request<Profile>("/api/profiles/active"),
   create: (data: ProfileCreate) =>

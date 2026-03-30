@@ -1,8 +1,22 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { ModelConfigListItem, RequestLogEntry } from "@/lib/types";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
+import type { ModelConfigListItem, RequestLogListItem } from "@/lib/types";
+import { RequestLogsTable } from "../RequestLogsTable";
 import { formatCost, getColumns } from "../columns";
+
+class ResizeObserverMock {
+  observe() {}
+  disconnect() {}
+  unobserve() {}
+}
+
+Object.defineProperty(window, "ResizeObserver", {
+  writable: true,
+  configurable: true,
+  value: ResizeObserverMock,
+});
 
 function createResolveModelLabel(
   labels: Record<string, string>,
@@ -23,7 +37,7 @@ function createResolveModelLabel(
 }
 
 function renderModelCell(
-  row: RequestLogEntry,
+  row: RequestLogListItem,
   resolveModelLabel: ReturnType<typeof createResolveModelLabel>,
 ) {
   const modelColumn = getColumns("all").find((column) => column.key === "model_id");
@@ -43,6 +57,28 @@ function renderModelCell(
   );
 }
 
+function buildRow(overrides: Partial<RequestLogListItem> = {}): RequestLogListItem {
+  return {
+    id: 42,
+    model_id: "claude-sonnet-4-5",
+    resolved_target_model_id: null,
+    created_at: "2026-03-16T00:00:00.000Z",
+    api_family: "anthropic",
+    vendor_id: 1,
+    vendor_key: "anthropic",
+    vendor_name: "Anthropic",
+    endpoint_id: null,
+    connection_id: null,
+    status_code: 200,
+    response_time_ms: 123,
+    is_stream: false,
+    total_tokens: null,
+    total_cost_user_currency_micros: null,
+    report_currency_symbol: null,
+    ...overrides,
+  } as RequestLogListItem;
+}
+
 describe("formatCost", () => {
   it("preserves up to six fractional digits for small costs", () => {
     expect(formatCost(23_412, "$" )).toBe("$0.023412");
@@ -55,56 +91,12 @@ describe("formatCost", () => {
 
   it("renders a proxy-origin sign for routed proxy rows", () => {
     renderModelCell(
-      {
-        id: 42,
-        model_id: "claude-sonnet-4-5",
+      buildRow({
         resolved_target_model_id: "claude-sonnet-4-5-20250929",
-        profile_id: 7,
-        api_family: "anthropic",
-        endpoint_id: null,
-        connection_id: null,
-        ingress_request_id: null,
-        attempt_number: null,
-        provider_correlation_id: null,
-        endpoint_base_url: null,
-        endpoint_description: null,
-        status_code: 200,
-        response_time_ms: 123,
-        is_stream: false,
-        input_tokens: null,
-        output_tokens: null,
-        total_tokens: null,
-        success_flag: true,
-        billable_flag: true,
-        priced_flag: true,
-        unpriced_reason: null,
-        cache_read_input_tokens: null,
-        cache_creation_input_tokens: null,
-        reasoning_tokens: null,
-        input_cost_micros: null,
-        output_cost_micros: null,
-        cache_read_input_cost_micros: null,
-        cache_creation_input_cost_micros: null,
-        reasoning_cost_micros: null,
-        total_cost_original_micros: null,
-        total_cost_user_currency_micros: null,
-        currency_code_original: null,
-        report_currency_code: null,
-        report_currency_symbol: null,
-        fx_rate_used: null,
-        fx_rate_source: null,
-        pricing_snapshot_unit: null,
-        pricing_snapshot_input: null,
-        pricing_snapshot_output: null,
-        pricing_snapshot_cache_read_input: null,
-        pricing_snapshot_cache_creation_input: null,
-        pricing_snapshot_reasoning: null,
-        pricing_snapshot_missing_special_token_price_policy: null,
-        pricing_config_version_used: null,
-        request_path: "/v1/messages",
-        error_detail: null,
-        created_at: "2026-03-16T00:00:00.000Z",
-      } as RequestLogEntry,
+        vendor_id: null,
+        vendor_key: null,
+        vendor_name: null,
+      }),
       createResolveModelLabel(
         {
           "claude-sonnet-4-5": "Claude Sonnet 4.5 Proxy",
@@ -121,56 +113,15 @@ describe("formatCost", () => {
 
   it("renders a proxy-origin sign for unroutable proxy rows from current model metadata", () => {
     renderModelCell(
-      {
+      buildRow({
         id: 43,
-        model_id: "claude-sonnet-4-5",
         resolved_target_model_id: null,
-        profile_id: 7,
-        api_family: "anthropic",
-        endpoint_id: null,
-        connection_id: null,
-        ingress_request_id: null,
-        attempt_number: null,
-        provider_correlation_id: null,
-        endpoint_base_url: null,
-        endpoint_description: null,
         status_code: 503,
         response_time_ms: 45,
-        is_stream: false,
-        input_tokens: null,
-        output_tokens: null,
-        total_tokens: null,
-        success_flag: false,
-        billable_flag: false,
-        priced_flag: false,
-        unpriced_reason: null,
-        cache_read_input_tokens: null,
-        cache_creation_input_tokens: null,
-        reasoning_tokens: null,
-        input_cost_micros: null,
-        output_cost_micros: null,
-        cache_read_input_cost_micros: null,
-        cache_creation_input_cost_micros: null,
-        reasoning_cost_micros: null,
-        total_cost_original_micros: null,
-        total_cost_user_currency_micros: null,
-        currency_code_original: null,
-        report_currency_code: null,
-        report_currency_symbol: null,
-        fx_rate_used: null,
-        fx_rate_source: null,
-        pricing_snapshot_unit: null,
-        pricing_snapshot_input: null,
-        pricing_snapshot_output: null,
-        pricing_snapshot_cache_read_input: null,
-        pricing_snapshot_cache_creation_input: null,
-        pricing_snapshot_reasoning: null,
-        pricing_snapshot_missing_special_token_price_policy: null,
-        pricing_config_version_used: null,
-        request_path: "/v1/messages",
-        error_detail: null,
-        created_at: "2026-03-16T00:00:00.000Z",
-      } as RequestLogEntry,
+        vendor_id: null,
+        vendor_key: null,
+        vendor_name: null,
+      }),
       createResolveModelLabel(
         { "claude-sonnet-4-5": "Gateway proxy" },
         { "claude-sonnet-4-5": "proxy" },
@@ -180,5 +131,42 @@ describe("formatCost", () => {
     expect(screen.getByText("Gateway proxy")).toBeInTheDocument();
     expect(screen.getByText(/proxy origin/i)).toBeInTheDocument();
     expect(screen.queryByText(/Resolved target/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the vendor column next to api family and renders an em dash when vendor metadata is missing", () => {
+    const columns = getColumns("all");
+    const apiFamilyIndex = columns.findIndex((column) => column.key === "api_family");
+    const vendorIndex = columns.findIndex((column) => column.key === "vendor_name");
+    const vendorColumn = columns[vendorIndex];
+
+    expect(apiFamilyIndex).toBeGreaterThan(-1);
+    expect(vendorIndex).toBe(apiFamilyIndex + 1);
+    expect(vendorColumn.headerTestId).toBe("request-log-vendor-column");
+
+    render(
+      React.createElement(
+        LocaleProvider,
+        null,
+        React.createElement(RequestLogsTable, {
+          items: [buildRow({ vendor_name: null, vendor_key: null, vendor_id: null })],
+          total: 1,
+          loading: false,
+          view: "all",
+          limit: 100,
+          offset: 0,
+          activeRequestId: null,
+          onSelectRequest: () => undefined,
+          onSetLimit: () => undefined,
+          onNextPage: () => undefined,
+          onPreviousPage: () => undefined,
+          formatTimestamp: () => "formatted:2026-03-16T00:00:00.000Z",
+          resolveModelLabel: createResolveModelLabel({ "claude-sonnet-4-5": "Claude Sonnet 4.5 Proxy" }),
+        })
+      )
+    );
+
+    expect(screen.getByTestId("request-log-vendor-column")).toBeInTheDocument();
+    expect(screen.getByTestId("request-log-page-size-select")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 });

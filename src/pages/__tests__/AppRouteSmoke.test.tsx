@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SHELL_ROUTE_METADATA } from "@/components/layout/app-layout/navigationProfileConfig";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 
 const { authState } = vi.hoisted(() => ({
@@ -139,5 +140,24 @@ describe("App protected route smoke", () => {
     expect(window.location.pathname).toBe(path);
 
     view.unmount();
+  });
+
+  it("keeps shell route metadata aligned with the protected route surface", () => {
+    expect(SHELL_ROUTE_METADATA.map((route) => route.pathPattern)).toEqual([
+      "/dashboard",
+      "/models",
+      "/models/:id/proxy",
+      "/models/:id",
+      "/endpoints",
+      "/loadbalance-strategies",
+      "/statistics",
+      "/monitoring",
+      "/monitoring/vendors/:vendorId",
+      "/monitoring/models/:modelConfigId",
+      "/settings",
+      "/proxy-api-keys",
+      "/pricing-templates",
+      "/request-logs",
+    ]);
   });
 });

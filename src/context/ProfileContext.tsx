@@ -19,6 +19,7 @@ import { resolveSelectedProfile } from "./profile/selection";
 interface ProfileContextType {
   profiles: Profile[];
   activeProfile: Profile | null;
+  maxProfiles: number;
   selectedProfile: Profile | null;
   selectedProfileId: number | null;
   isLoading: boolean;
@@ -36,14 +37,14 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 const loadProfileBootstrapState = createProfileBootstrapLoader({
-  getActiveProfile: () => api.profiles.getActive(),
-  listProfiles: () => api.profiles.list(),
+  bootstrap: () => api.profiles.bootstrap(),
 });
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { messages } = useLocale();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
+  const [maxProfiles, setMaxProfiles] = useState(0);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -144,10 +145,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       try {
-        const { profiles: fetchedProfiles, activeProfile: fetchedActiveProfile } =
+        const {
+          profiles: fetchedProfiles,
+          activeProfile: fetchedActiveProfile,
+          maxProfiles: fetchedMaxProfiles,
+        } =
           await loadProfileBootstrapState(true);
         if (!mounted) return;
 
+        setMaxProfiles(fetchedMaxProfiles);
         applyProfiles(fetchedProfiles);
         applyActiveProfile(fetchedActiveProfile);
 
@@ -194,6 +200,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       value={{
         profiles,
         activeProfile,
+        maxProfiles,
         selectedProfile,
         selectedProfileId,
         isLoading,

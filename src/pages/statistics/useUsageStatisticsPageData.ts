@@ -8,32 +8,18 @@ import {
 import { useLocale } from "@/i18n/useLocale";
 import type {
   UsageCostOverviewPoint,
-  UsageRequestEventAvailableFilters,
   UsageRequestTrendSeries,
-  UsageSnapshotRequestEventItem,
   UsageSnapshotResponse,
   UsageStatisticsPageState,
   UsageTokenTrendSeries,
   UsageTokenTypeBreakdownPoint,
 } from "@/lib/types";
-import { buildRequestLogIngressLink } from "./requestLogLinks";
 
 interface UseUsageStatisticsPageDataParams {
   revision: number;
   selectedProfileId: number | null;
   state: UsageStatisticsPageState;
 }
-
-export interface UsageStatisticsRequestEventRow extends UsageSnapshotRequestEventItem {
-  request_logs_href: string;
-}
-
-const EMPTY_REQUEST_EVENT_AVAILABLE_FILTERS: UsageRequestEventAvailableFilters = {
-  api_families: [],
-  endpoints: [],
-  models: [],
-  proxy_api_keys: [],
-};
 
 function collectModelLineIds(snapshot: UsageSnapshotResponse | null): string[] {
   if (!snapshot) {
@@ -142,9 +128,6 @@ export function useUsageStatisticsPageData({
       return label ?? messages.statistics.unknownProxyApiKey;
     };
 
-    const availableFilters =
-      snapshot.request_events.available_filters ?? EMPTY_REQUEST_EVENT_AVAILABLE_FILTERS;
-
     return {
       ...snapshot,
       endpoint_statistics: snapshot.endpoint_statistics.map((item) => ({
@@ -155,34 +138,6 @@ export function useUsageStatisticsPageData({
         ...item,
         proxy_api_key_label: localizeProxyApiKeyLabel(item.proxy_api_key_label),
       })),
-      request_events: {
-        ...snapshot.request_events,
-        available_filters: {
-          ...availableFilters,
-          endpoints: availableFilters.endpoints.map((item) => ({
-            ...item,
-            label: localizeEndpointLabel(item.label),
-          })),
-          models: availableFilters.models.map((item) => ({
-            ...item,
-              label: isKnownAllModelsLabel(item.label, item.model_id)
-                ? messages.statistics.allModels
-                : item.label,
-            })),
-          proxy_api_keys: availableFilters.proxy_api_keys.map((item) => ({
-            ...item,
-            label: localizeProxyApiKeyLabel(item.label),
-          })),
-        },
-        items: snapshot.request_events.items.map((item) => ({
-          ...item,
-          endpoint_label: localizeEndpointLabel(item.endpoint_label),
-          proxy_api_key: {
-            ...item.proxy_api_key,
-            label: localizeProxyApiKeyLabel(item.proxy_api_key.label),
-          },
-        })),
-      },
       request_trends: {
         hourly: snapshot.request_trends.hourly.map((series) => ({
           ...series,
@@ -204,7 +159,12 @@ export function useUsageStatisticsPageData({
         })),
       },
     };
-  }, [messages.modelDetail.unknownEndpoint, messages.statistics.allModels, messages.statistics.unknownProxyApiKey, snapshot]);
+  }, [
+    messages.modelDetail.unknownEndpoint,
+    messages.statistics.allModels,
+    messages.statistics.unknownProxyApiKey,
+    snapshot,
+  ]);
 
   useEffect(() => {
     void revision;
@@ -261,34 +221,12 @@ export function useUsageStatisticsPageData({
     return localizedSnapshot.cost_overview[state.chartGranularity.costOverview];
   }, [localizedSnapshot, state.chartGranularity.costOverview]);
 
-  const requestEvents = useMemo<UsageStatisticsRequestEventRow[]>(() => {
-    if (!localizedSnapshot) {
-      return [];
-    }
-
-    return localizedSnapshot.request_events.items.map((item) => ({
-      ...item,
-      request_logs_href: buildRequestLogIngressLink(item.ingress_request_id),
-    }));
-  }, [localizedSnapshot]);
-
-  const requestEventsTotal = localizedSnapshot?.request_events.total ?? 0;
-  const requestEventsShownCount = localizedSnapshot?.request_events.shown_count ?? 0;
-  const requestEventsRenderLimit = localizedSnapshot?.request_events.render_limit ?? 0;
-  const requestEventAvailableFilters =
-    localizedSnapshot?.request_events.available_filters ?? EMPTY_REQUEST_EVENT_AVAILABLE_FILTERS;
-
   return {
     availableModelLineIds,
     costOverviewSeries,
     error,
     loading,
     refresh,
-    requestEventAvailableFilters,
-    requestEvents,
-    requestEventsRenderLimit,
-    requestEventsShownCount,
-    requestEventsTotal,
     requestTrendSeries,
     selectedModelLineIds,
     snapshot: localizedSnapshot,

@@ -19,10 +19,10 @@ export type ViewMode = (typeof VIEW_OPTIONS)[number];
 export const DETAIL_TAB_OPTIONS = ["overview", "audit"] as const;
 export type DetailTab = (typeof DETAIL_TAB_OPTIONS)[number];
 
-export const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
+export const PAGE_SIZE_OPTIONS = [100, 300, 500] as const;
 
 export const DEFAULTS = {
-  limit: 50,
+  limit: 100,
   offset: 0,
   time_range: "24h" as TimeRange,
   status_family: "all" as StatusFamilyFilter,
@@ -31,8 +31,6 @@ export const DEFAULTS = {
   latency_bucket: "all" as LatencyBucket,
   view: "all" as ViewMode,
   detail_tab: "overview" as DetailTab,
-  priced_only: false,
-  billable_only: false,
   triage: false,
 } as const;
 
@@ -52,9 +50,6 @@ export interface RequestLogPageState {
   latency_bucket: LatencyBucket;
   token_min: string;
   token_max: string;
-  priced_only: boolean;
-  billable_only: boolean;
-  special_token_filter: string;
   // Presentation
   view: ViewMode;
   triage: boolean;
@@ -77,6 +72,12 @@ function parseIntParam(value: string | null, fallback: number): number {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
+function parsePageSize(value: string | null): number {
+  const fallback = DEFAULTS.limit;
+  const parsed = parseIntParam(value, fallback);
+  return PAGE_SIZE_OPTIONS.includes(parsed as (typeof PAGE_SIZE_OPTIONS)[number]) ? parsed : fallback;
+}
+
 export function parsePageState(params: URLSearchParams): RequestLogPageState {
   return {
     ingress_request_id: params.get("ingress_request_id") ?? "",
@@ -92,12 +93,9 @@ export function parsePageState(params: URLSearchParams): RequestLogPageState {
     latency_bucket: parseEnum(params.get("latency_bucket"), LATENCY_BUCKET_OPTIONS, DEFAULTS.latency_bucket),
     token_min: params.get("token_min") ?? "",
     token_max: params.get("token_max") ?? "",
-    priced_only: params.get("priced_only") === "true",
-    billable_only: params.get("billable_only") === "true",
-    special_token_filter: params.get("special_token_filter") ?? "",
     view: parseEnum(params.get("view"), VIEW_OPTIONS, DEFAULTS.view),
     triage: params.get("triage") === "true",
-    limit: parseIntParam(params.get("limit"), DEFAULTS.limit),
+    limit: parsePageSize(params.get("limit")),
     offset: parseIntParam(params.get("offset"), DEFAULTS.offset),
     request_id: params.get("request_id") ?? "",
     detail_tab: parseEnum(params.get("detail_tab"), DETAIL_TAB_OPTIONS, DEFAULTS.detail_tab),
@@ -119,9 +117,6 @@ export function stateToParams(state: RequestLogPageState): URLSearchParams {
   if (state.latency_bucket !== DEFAULTS.latency_bucket) p.set("latency_bucket", state.latency_bucket);
   if (state.token_min) p.set("token_min", state.token_min);
   if (state.token_max) p.set("token_max", state.token_max);
-  if (state.priced_only) p.set("priced_only", "true");
-  if (state.billable_only) p.set("billable_only", "true");
-  if (state.special_token_filter) p.set("special_token_filter", state.special_token_filter);
   if (state.view !== DEFAULTS.view) p.set("view", state.view);
   if (state.triage) p.set("triage", "true");
   if (state.limit !== DEFAULTS.limit) p.set("limit", String(state.limit));

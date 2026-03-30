@@ -4,7 +4,7 @@ import { formatNumber, getCurrentLocale } from "@/i18n/format";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import { formatMoneyMicros } from "@/lib/costing";
 import { cn, formatApiFamily } from "@/lib/utils";
-import type { ModelConfigListItem, RequestLogEntry } from "@/lib/types";
+import type { ModelConfigListItem, RequestLogListItem } from "@/lib/types";
 import { AlertCircle, Clock } from "lucide-react";
 
 export const ROW_HEIGHT = 45;
@@ -37,9 +37,10 @@ export interface ColumnDef {
   label: string;
   width: number;
   grow?: number;
+  headerTestId?: string;
   align?: "left" | "right" | "center";
   render: (
-    row: RequestLogEntry,
+    row: RequestLogListItem,
     formatTimestamp: (iso: string) => string,
     resolveModelLabel: RequestLogModelResolver
   ) => React.ReactNode;
@@ -57,7 +58,7 @@ function getRequestModelMetadata(
 }
 
 export function isProxyOriginRequest(
-  row: RequestLogEntry,
+  row: Pick<RequestLogListItem, "model_id" | "resolved_target_model_id">,
   resolveModelLabel: RequestLogModelResolver,
 ): boolean {
   if (
@@ -118,12 +119,24 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
     {
       key: "api_family",
       label: getStaticMessages().common.apiFamily,
-      width: 150,
+      width: 138,
       grow: 1,
       render: (row) => (
         <span className="flex items-center gap-2 overflow-hidden text-xs text-muted-foreground">
           <ApiFamilyIcon apiFamily={row.api_family ?? ""} size={14} className="text-muted-foreground" />
           <span className="truncate">{formatApiFamily(row.api_family ?? "")}</span>
+        </span>
+      ),
+    },
+    {
+      key: "vendor_name",
+      label: getStaticMessages().common.vendor,
+      width: 152,
+      grow: 1,
+      headerTestId: "request-log-vendor-column",
+      render: (row) => (
+        <span className="truncate text-xs text-muted-foreground">
+          {row.vendor_name ?? "—"}
         </span>
       ),
     },

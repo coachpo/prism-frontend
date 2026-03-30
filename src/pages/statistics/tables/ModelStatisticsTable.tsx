@@ -1,10 +1,10 @@
 import { EmptyState } from "@/components/EmptyState";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useLocale } from "@/i18n/useLocale";
 import { formatMoneyMicros } from "@/lib/costing";
 import type { UsageModelStatistic, UsageSnapshotCurrency } from "@/lib/types";
-import { formatApiFamily } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { DataTable, type DataTableColumn } from "./data-table";
 
 interface ModelStatisticsTableProps {
   currency: UsageSnapshotCurrency;
@@ -14,6 +14,65 @@ interface ModelStatisticsTableProps {
 export function ModelStatisticsTable({ currency, items }: ModelStatisticsTableProps) {
   const { formatNumber, locale, messages } = useLocale();
   const rows = [...items].sort((left, right) => right.request_count - left.request_count);
+
+  const columns: DataTableColumn<UsageModelStatistic>[] = [
+    {
+      cell: (item) => <span className="font-medium text-foreground">{item.model_label}</span>,
+      header: messages.nav.models,
+      id: "model",
+      sortValue: (item) => item.model_label,
+    },
+    {
+      cell: (item) => formatNumber(item.request_count),
+      className: "text-right tabular-nums",
+      header: messages.statistics.requests,
+      headerClassName: "text-right",
+      id: "requests",
+      sortValue: (item) => item.request_count,
+    },
+    {
+      cell: (item) => (
+        <span className={cn("tabular-nums font-medium", getSuccessRateClass(item.success_rate))}>
+          {formatNumber(item.success_rate, {
+            maximumFractionDigits: 1,
+            minimumFractionDigits: 1,
+          })}
+          %
+        </span>
+      ),
+      className: "text-right tabular-nums",
+      header: messages.statistics.successRate,
+      headerClassName: "text-right",
+      id: "success-rate",
+      sortValue: (item) => item.success_rate,
+    },
+    {
+      cell: (item) => formatNumber(item.total_tokens),
+      className: "text-right tabular-nums",
+      header: messages.statistics.totalTokens,
+      headerClassName: "text-right",
+      id: "tokens",
+      sortValue: (item) => item.total_tokens,
+    },
+    {
+      cell: (item) =>
+        item.total_cost_micros > 0
+          ? formatMoneyMicros(
+              item.total_cost_micros,
+              currency.symbol,
+              currency.code,
+              2,
+              6,
+              locale,
+            )
+          : "—",
+      className: "text-right tabular-nums",
+      header: messages.statistics.totalSpend,
+      headerClassName: "text-right",
+      id: "spend",
+      sortValue: (item) => item.total_cost_micros,
+    },
+  ];
 
   return (
     <Card className="border-border/70 bg-card/95 shadow-none">
@@ -29,85 +88,29 @@ export function ModelStatisticsTable({ currency, items }: ModelStatisticsTablePr
       </CardHeader>
 
       <CardContent className="pt-6">
-        {rows.length === 0 ? (
-          <EmptyState
-            className="py-10"
-            description={messages.statistics.noModelStatisticsDescription}
-            title={messages.statistics.noModelStatisticsTitle}
-          />
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {rows.map((item) => (
-              <div
-                key={item.model_id}
-                data-testid="model-stat-card"
-                className="rounded-xl border border-border/70 bg-muted/15 p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-foreground">
-                      {item.model_label}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className="rounded-full border-border/70 bg-background/80 text-[10px] font-medium"
-                      >
-                        {formatApiFamily(item.api_family)}
-                      </Badge>
-
-                      {item.total_cost_micros > 0 ? (
-                        <div
-                          data-testid="model-stat-cost"
-                          className="rounded-full border border-border/70 bg-background/80 px-2.5 py-1 text-[11px] font-medium text-foreground"
-                        >
-                          {formatMoneyMicros(
-                            item.total_cost_micros,
-                            currency.symbol,
-                            currency.code,
-                            2,
-                            6,
-                            locale,
-                          )}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      {messages.statistics.requests}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">
-                      {formatNumber(item.request_count)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      {messages.statistics.successRate}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">
-                      {formatNumber(item.success_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      {messages.statistics.totalTokens}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">
-                      {formatNumber(item.total_tokens)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <DataTable
+          columns={columns}
+          emptyState={
+            <EmptyState
+              className="py-10"
+              description={messages.statistics.noModelStatisticsDescription}
+              title={messages.statistics.noModelStatisticsTitle}
+            />
+          }
+          getRowId={(item) => item.model_id}
+          initialSort={{ columnId: "requests", direction: "desc" }}
+          items={rows}
+          testId="statistics-model-table"
+        />
       </CardContent>
     </Card>
   );
+}
+
+function getSuccessRateClass(successRate: number) {
+  return successRate >= 95
+    ? "text-emerald-600 dark:text-emerald-400"
+    : successRate >= 80
+      ? "text-amber-600 dark:text-amber-400"
+      : "text-red-600 dark:text-red-400";
 }

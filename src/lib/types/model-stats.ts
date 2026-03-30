@@ -193,8 +193,113 @@ export interface RequestLogEntry {
   created_at: string;
 }
 
+export interface RequestLogListItem {
+  id: number;
+  created_at: string;
+  model_id: string;
+  resolved_target_model_id: string | null;
+  api_family: ApiFamily;
+  vendor_id?: number | null;
+  vendor_key?: string | null;
+  vendor_name?: string | null;
+  endpoint_id: number | null;
+  connection_id: number | null;
+  status_code: number;
+  response_time_ms: number;
+  is_stream: boolean;
+  total_tokens: number | null;
+  total_cost_user_currency_micros: number | null;
+  report_currency_symbol: string | null;
+}
+
+export interface RequestLogDetailSummary {
+  id: number;
+  created_at: string;
+  model_id: string;
+  resolved_target_model_id: string | null;
+  api_family: ApiFamily;
+  vendor_id?: number | null;
+  vendor_key?: string | null;
+  vendor_name?: string | null;
+  status_code: number;
+  response_time_ms: number;
+  is_stream: boolean;
+}
+
+export interface RequestLogDetailRequest {
+  request_path: string;
+  ingress_request_id: string | null;
+  attempt_number: number | null;
+  provider_correlation_id: string | null;
+  proxy_api_key_id: number | null;
+  proxy_api_key_name_snapshot: string | null;
+  error_detail: string | null;
+}
+
+export interface RequestLogDetailRouting {
+  profile_id: number;
+  model_id: string;
+  resolved_target_model_id: string | null;
+  api_family: ApiFamily;
+  vendor_id?: number | null;
+  vendor_key?: string | null;
+  vendor_name?: string | null;
+  endpoint_id: number | null;
+  connection_id: number | null;
+  endpoint_base_url: string | null;
+  endpoint_description: string | null;
+}
+
+export interface RequestLogDetailUsage {
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
+  success_flag: boolean | null;
+  billable_flag: boolean | null;
+  priced_flag: boolean | null;
+  unpriced_reason: string | null;
+  cache_read_input_tokens: number | null;
+  cache_creation_input_tokens: number | null;
+  reasoning_tokens: number | null;
+}
+
+export interface RequestLogDetailCosting {
+  input_cost_micros: number | null;
+  output_cost_micros: number | null;
+  cache_read_input_cost_micros: number | null;
+  cache_creation_input_cost_micros: number | null;
+  reasoning_cost_micros: number | null;
+  total_cost_original_micros: number | null;
+  total_cost_user_currency_micros: number | null;
+  currency_code_original: string | null;
+  report_currency_code: string | null;
+  report_currency_symbol: string | null;
+  fx_rate_used: string | null;
+  fx_rate_source: string | null;
+}
+
+export interface RequestLogDetailPricing {
+  pricing_snapshot_unit: string | null;
+  pricing_snapshot_input: string | null;
+  pricing_snapshot_output: string | null;
+  pricing_snapshot_cache_read_input: string | null;
+  pricing_snapshot_cache_creation_input: string | null;
+  pricing_snapshot_reasoning: string | null;
+  pricing_snapshot_missing_special_token_price_policy: string | null;
+  pricing_config_version_used: number | null;
+}
+
+export interface RequestLogDetail {
+  summary: RequestLogDetailSummary;
+  request: RequestLogDetailRequest;
+  routing: RequestLogDetailRouting;
+  usage: RequestLogDetailUsage;
+  costing: RequestLogDetailCosting;
+  pricing: RequestLogDetailPricing;
+}
+
 export interface RequestLogListResponse {
-  items: RequestLogEntry[];
+  items: RequestLogListItem[];
   total: number;
   limit: number;
   offset: number;

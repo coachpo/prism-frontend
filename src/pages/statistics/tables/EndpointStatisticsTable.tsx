@@ -6,18 +6,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useLocale } from "@/i18n/useLocale";
 import { formatMoneyMicros } from "@/lib/costing";
 import { cn } from "@/lib/utils";
-import type { UsageEndpointStatistic, UsageSnapshotCurrency } from "@/lib/types";
+import type {
+  UsageEndpointModelStatistic,
+  UsageEndpointStatistic,
+  UsageSnapshotCurrency,
+} from "@/lib/types";
+import { DataTable, type DataTableColumn } from "./data-table";
 
 interface EndpointStatisticsTableProps {
   currency: UsageSnapshotCurrency;
@@ -28,8 +25,67 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
   const { formatNumber, locale, messages } = useLocale();
   const rows = [...items].sort((left, right) => right.request_count - left.request_count);
 
+  const modelColumns: DataTableColumn<UsageEndpointModelStatistic>[] = [
+    {
+      cell: (item) => <span className="font-medium text-foreground">{item.model_label}</span>,
+      header: messages.nav.models,
+      id: "model",
+      sortValue: (item) => item.model_label,
+    },
+    {
+      cell: (item) => formatNumber(item.request_count),
+      className: "text-right tabular-nums",
+      header: messages.statistics.requests,
+      headerClassName: "text-right",
+      id: "requests",
+      sortValue: (item) => item.request_count,
+    },
+    {
+      cell: (item) => (
+        <span className={cn("tabular-nums font-medium", getSuccessRateClass(item.success_rate))}>
+          {formatNumber(item.success_rate, {
+            maximumFractionDigits: 1,
+            minimumFractionDigits: 1,
+          })}
+          %
+        </span>
+      ),
+      className: "text-right tabular-nums",
+      header: messages.statistics.successRate,
+      headerClassName: "text-right",
+      id: "success-rate",
+      sortValue: (item) => item.success_rate,
+    },
+    {
+      cell: (item) => formatNumber(item.total_tokens),
+      className: "text-right tabular-nums",
+      header: messages.statistics.totalTokens,
+      headerClassName: "text-right",
+      id: "tokens",
+      sortValue: (item) => item.total_tokens,
+    },
+    {
+      cell: (item) =>
+        item.total_cost_micros > 0
+          ? formatMoneyMicros(
+              item.total_cost_micros,
+              currency.symbol,
+              currency.code,
+              2,
+              6,
+              locale,
+            )
+          : "—",
+      className: "text-right tabular-nums",
+      header: messages.statistics.totalSpend,
+      headerClassName: "text-right",
+      id: "spend",
+      sortValue: (item) => item.total_cost_micros,
+    },
+  ];
+
   return (
-    <Card className="border-border/70 bg-card/95 shadow-none">
+    <Card className="border-border/70 bg-card/95 shadow-none" data-testid="statistics-endpoint-table">
       <CardHeader className="border-b border-border/60 pb-4">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold tracking-tight">
@@ -60,8 +116,8 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
                 <Collapsible key={detailId}>
                   <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/15">
                     <CollapsibleTrigger
-                      data-testid="endpoint-stat-trigger"
                       className="group flex w-full items-start justify-between gap-4 px-4 py-4 text-left transition-colors hover:bg-muted/30"
+                      data-testid="statistics-endpoint-collapsible"
                     >
                       <div className="min-w-0 space-y-3">
                         <div className="space-y-1">
@@ -81,57 +137,30 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
                         </div>
 
                         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                              {messages.statistics.requests}
-                            </p>
-                            <p className="mt-1 text-sm font-semibold text-foreground">
-                              {formatNumber(item.request_count)}
-                            </p>
-                          </div>
-
-                          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                              {messages.statistics.successRate}
-                            </p>
-                            <p
-                              className={cn(
-                                "mt-1 text-sm font-semibold",
-                                item.success_rate >= 95
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : item.success_rate >= 80
-                                    ? "text-amber-600 dark:text-amber-400"
-                                    : "text-red-600 dark:text-red-400",
-                              )}
-                            >
-                              {formatNumber(item.success_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                            </p>
-                          </div>
-
-                          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                              {messages.statistics.totalTokens}
-                            </p>
-                            <p className="mt-1 text-sm font-semibold text-foreground">
-                              {formatNumber(item.total_tokens)}
-                            </p>
-                          </div>
-
-                          <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                              {messages.statistics.totalSpend}
-                            </p>
-                            <p className="mt-1 text-sm font-semibold text-foreground">
-                              {formatMoneyMicros(
-                                item.total_cost_micros,
-                                currency.symbol,
-                                currency.code,
-                                2,
-                                6,
-                                locale,
-                              )}
-                            </p>
-                          </div>
+                          <SummaryMetric
+                            label={messages.statistics.requests}
+                            value={formatNumber(item.request_count)}
+                          />
+                          <SummaryMetric
+                            className={getSuccessRateClass(item.success_rate)}
+                            label={messages.statistics.successRate}
+                            value={`${formatNumber(item.success_rate, { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%`}
+                          />
+                          <SummaryMetric
+                            label={messages.statistics.totalTokens}
+                            value={formatNumber(item.total_tokens)}
+                          />
+                          <SummaryMetric
+                            label={messages.statistics.totalSpend}
+                            value={formatMoneyMicros(
+                              item.total_cost_micros,
+                              currency.symbol,
+                              currency.code,
+                              2,
+                              6,
+                              locale,
+                            )}
+                          />
                         </div>
                       </div>
 
@@ -139,47 +168,24 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
                     </CollapsibleTrigger>
 
                     <CollapsibleContent
-                      data-testid={`endpoint-stat-details-${detailId}`}
                       className="border-t border-border/60 bg-background/70"
+                      data-testid={`statistics-endpoint-details-${detailId}`}
                     >
                       <div className="px-4 py-4">
-                        <div className="overflow-hidden rounded-xl border border-border/60 bg-background/80">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>{messages.nav.models}</TableHead>
-                                <TableHead>{messages.statistics.requests}</TableHead>
-                                <TableHead>{messages.statistics.successRate}</TableHead>
-                                <TableHead>{messages.statistics.totalTokens}</TableHead>
-                                <TableHead>{messages.statistics.totalSpend}</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {modelRows.map((model) => (
-                                <TableRow key={model.model_id}>
-                                  <TableCell className="font-medium">
-                                    {model.model_label}
-                                  </TableCell>
-                                  <TableCell>{formatNumber(model.request_count)}</TableCell>
-                                  <TableCell>{formatNumber(model.success_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</TableCell>
-                                  <TableCell>{formatNumber(model.total_tokens)}</TableCell>
-                                  <TableCell>
-                                    {model.total_cost_micros > 0
-                                      ? formatMoneyMicros(
-                                          model.total_cost_micros,
-                                          currency.symbol,
-                                          currency.code,
-                                          2,
-                                          6,
-                                          locale,
-                                        )
-                                      : "—"}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
+                        <DataTable
+                          columns={modelColumns}
+                          emptyState={
+                            <EmptyState
+                              className="py-8"
+                              description={messages.statistics.noDataAvailable}
+                              title={messages.statistics.noModelStatisticsTitle}
+                            />
+                          }
+                          getRowId={(model) => model.model_id}
+                          initialSort={{ columnId: "requests", direction: "desc" }}
+                          items={modelRows}
+                          testId={`statistics-endpoint-models-table-${detailId}`}
+                        />
                       </div>
                     </CollapsibleContent>
                   </div>
@@ -191,4 +197,31 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
       </CardContent>
     </Card>
   );
+}
+
+function SummaryMetric({
+  className,
+  label,
+  value,
+}: {
+  className?: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </p>
+      <p className={cn("mt-1 text-sm font-semibold text-foreground", className)}>{value}</p>
+    </div>
+  );
+}
+
+function getSuccessRateClass(successRate: number) {
+  return successRate >= 95
+    ? "text-emerald-600 dark:text-emerald-400"
+    : successRate >= 80
+      ? "text-amber-600 dark:text-amber-400"
+      : "text-red-600 dark:text-red-400";
 }

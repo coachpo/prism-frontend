@@ -24,11 +24,8 @@ import { getLatencyLabel } from "./FiltersBar.constants";
 interface FiltersBarSecondaryFiltersProps {
   actions: Pick<
     RequestLogPageActions,
-    | "setBillableOnly"
     | "setLatencyBucket"
     | "setOutcomeFilter"
-    | "setPricedOnly"
-    | "setSpecialTokenFilter"
     | "setStreamFilter"
     | "setTokenMax"
     | "setTokenMin"
@@ -39,11 +36,8 @@ interface FiltersBarSecondaryFiltersProps {
   onLocalRefinementOpenChange: (open: boolean) => void;
   state: Pick<
     RequestLogPageActions["state"],
-    | "billable_only"
     | "latency_bucket"
     | "outcome_filter"
-    | "priced_only"
-    | "special_token_filter"
     | "stream_filter"
     | "token_max"
     | "token_min"
@@ -148,26 +142,6 @@ export function FiltersBarSecondaryFilters({
             </div>
 
             <div>
-              <ToolbarLabel>{messages.requestLogs.specialTokens}</ToolbarLabel>
-              <Select
-                value={state.special_token_filter || "__none__"}
-                onValueChange={(value) =>
-                  actions.setSpecialTokenFilter(value === "__none__" ? "" : value)
-                }
-              >
-                <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background/80 text-xs">
-                  <SelectValue placeholder={messages.requestLogs.any} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">{messages.requestLogs.any}</SelectItem>
-                  <SelectItem value="cache_read">{messages.requestLogs.cacheRead}</SelectItem>
-                  <SelectItem value="cache_creation">{messages.requestLogs.cacheCreation}</SelectItem>
-                  <SelectItem value="reasoning">{messages.requestLogs.reasoning}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
               <ToolbarLabel>{messages.requestLogs.tokenRange}</ToolbarLabel>
               <div className="grid grid-cols-2 gap-2">
                 <Input
@@ -210,22 +184,6 @@ export function FiltersBarSecondaryFilters({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button
-              variant={state.priced_only ? "default" : "outline"}
-              size="sm"
-              className="h-8 rounded-full px-3 text-xs"
-              onClick={() => actions.setPricedOnly(!state.priced_only)}
-            >
-              {messages.requestLogs.pricedOnly}
-            </Button>
-            <Button
-              variant={state.billable_only ? "default" : "outline"}
-              size="sm"
-              className="h-8 rounded-full px-3 text-xs"
-              onClick={() => actions.setBillableOnly(!state.billable_only)}
-            >
-              {messages.requestLogs.billableOnly}
-            </Button>
             <Button
               variant={state.triage ? "default" : "outline"}
               size="sm"

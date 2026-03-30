@@ -1,5 +1,3 @@
-import type { ApiFamily } from "./vendor";
-
 export const USAGE_SNAPSHOT_PRESETS = ["all", "7h", "24h", "7d"] as const;
 export type UsageSnapshotPreset = (typeof USAGE_SNAPSHOT_PRESETS)[number];
 
@@ -154,8 +152,6 @@ export interface UsageEndpointModelStatistic {
   model_id: string;
   model_label: string;
   request_count: number;
-  success_count: number;
-  failed_count: number;
   success_rate: number;
   total_tokens: number;
   total_cost_micros: number;
@@ -165,8 +161,6 @@ export interface UsageEndpointStatistic {
   endpoint_id: number | null;
   endpoint_label: string;
   request_count: number;
-  success_count: number;
-  failed_count: number;
   success_rate: number;
   total_tokens: number;
   total_cost_micros: number;
@@ -176,86 +170,16 @@ export interface UsageEndpointStatistic {
 export interface UsageModelStatistic {
   model_id: string;
   model_label: string;
-  api_family: ApiFamily;
   request_count: number;
-  success_count: number;
-  failed_count: number;
   success_rate: number;
   total_tokens: number;
   total_cost_micros: number;
 }
 
-export interface UsageProxyApiKeyReference {
-  label: string | null;
-  key_prefix: string | null;
-}
-
-export interface UsageRequestEventModelFilter {
-  model_id: string;
-  label: string;
-}
-
-export interface UsageRequestEventEndpointFilter {
-  endpoint_id: number | null;
-  label: string;
-}
-
-export interface UsageRequestEventApiFamilyFilter {
-  api_family: ApiFamily;
-  label: string;
-}
-
-export interface UsageRequestEventProxyApiKeyFilter {
-  proxy_api_key_id: number | null;
-  label: string;
-  key_prefix: string | null;
-}
-
-export interface UsageRequestEventAvailableFilters {
-  models: UsageRequestEventModelFilter[];
-  endpoints: UsageRequestEventEndpointFilter[];
-  api_families: UsageRequestEventApiFamilyFilter[];
-  proxy_api_keys: UsageRequestEventProxyApiKeyFilter[];
-}
-
-export interface UsageSnapshotRequestEventItem {
-  ingress_request_id: string;
-  created_at: string;
-  model_id: string;
-  model_label: string;
-  resolved_target_model_id: string | null;
-  api_family: ApiFamily;
-  endpoint_id: number | null;
-  endpoint_label: string;
-  connection_id: number | null;
-  status_code: number;
-  success_flag: boolean;
-  attempt_count: number;
-  request_path: string;
-  input_tokens: number;
-  output_tokens: number;
-  cached_tokens: number;
-  reasoning_tokens: number;
-  total_tokens: number;
-  total_cost_micros: number;
-  proxy_api_key: UsageProxyApiKeyReference;
-}
-
-export interface UsageRequestEventsSection {
-  total: number;
-  shown_count?: number;
-  render_limit?: number;
-  available_filters?: UsageRequestEventAvailableFilters;
-  items: UsageSnapshotRequestEventItem[];
-}
-
 export interface UsageProxyApiKeyStatistic {
   proxy_api_key_id: number | null;
   proxy_api_key_label: string;
-  key_prefix: string | null;
   request_count: number;
-  success_count: number;
-  failed_count: number;
   success_rate: number;
   total_tokens: number;
   total_cost_micros: number;
@@ -273,6 +197,5 @@ export interface UsageSnapshotResponse {
   cost_overview: UsageCostOverview;
   endpoint_statistics: UsageEndpointStatistic[];
   model_statistics: UsageModelStatistic[];
-  request_events: UsageRequestEventsSection;
   proxy_api_key_statistics: UsageProxyApiKeyStatistic[];
 }

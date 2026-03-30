@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/PageHeader";
-import { useAuth } from "@/context/useAuth";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useLocale } from "@/i18n/useLocale";
 import { UsageStatisticsPageSkeleton } from "./statistics/UsageStatisticsPageSkeleton";
@@ -11,7 +11,6 @@ import { UsageTrendsSection } from "./statistics/sections/UsageTrendsSection";
 import { UsageBreakdownSection } from "./statistics/sections/UsageBreakdownSection";
 import { EndpointStatisticsTable } from "./statistics/tables/EndpointStatisticsTable";
 import { ModelStatisticsTable } from "./statistics/tables/ModelStatisticsTable";
-import { RequestEventsTable } from "./statistics/tables/RequestEventsTable";
 import { ProxyApiKeyStatisticsTable } from "./statistics/tables/ProxyApiKeyStatisticsTable";
 import { useUsageStatisticsPageData } from "./statistics/useUsageStatisticsPageData";
 import { useUsageStatisticsPageState } from "./statistics/useUsageStatisticsPageState";
@@ -29,7 +28,6 @@ function downloadSnapshotJson(snapshot: unknown) {
 }
 
 export function StatisticsPage() {
-  const { authEnabled } = useAuth();
   const { revision, selectedProfile } = useProfileContext();
   const { messages } = useLocale();
   const state = useUsageStatisticsPageState();
@@ -118,16 +116,21 @@ export function StatisticsPage() {
             <ModelStatisticsTable currency={snapshot.currency} items={snapshot.model_statistics} />
           </div>
 
-          <RequestEventsTable
-            availableFilters={data.requestEventAvailableFilters}
-            currency={snapshot.currency}
-            items={data.requestEvents}
-            renderLimit={data.requestEventsRenderLimit}
-            shownCount={data.requestEventsShownCount}
-            total={snapshot.request_events.total}
-          />
+          <Card
+            className="border-dashed border-border/70 bg-muted/20 shadow-none"
+            data-testid="statistics-no-request-events"
+          >
+            <CardHeader className="border-b border-border/50 pb-4">
+              <h2 className="text-lg font-semibold tracking-tight">
+                {messages.statistics.statisticsScopeNoteTitle}
+              </h2>
+            </CardHeader>
+            <CardContent className="pt-4 text-sm text-muted-foreground">
+              {messages.statistics.statisticsScopeNoteDescription}
+            </CardContent>
+          </Card>
+
           <ProxyApiKeyStatisticsTable
-            authEnabled={authEnabled}
             currency={snapshot.currency}
             items={snapshot.proxy_api_key_statistics}
           />

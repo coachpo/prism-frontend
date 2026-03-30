@@ -8,7 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { RequestLogEntry } from "@/lib/types";
+import type { RequestLogDetail } from "@/lib/types";
 import type { DetailTab } from "./queryParams";
 import { useAuditDetail } from "./useAuditDetail";
 import { RequestLogAuditTab } from "./detail/RequestLogAuditTab";
@@ -16,7 +16,7 @@ import { RequestLogOverviewTab } from "./detail/RequestLogOverviewTab";
 import type { RequestLogModelResolver } from "./columns";
 
 interface RequestLogDetailSheetProps {
-  request: RequestLogEntry | null;
+  request: RequestLogDetail | null;
   open: boolean;
   activeTab: DetailTab;
   onTabChange: (tab: DetailTab) => void;
@@ -38,24 +38,28 @@ export function RequestLogDetailSheet({
 }: RequestLogDetailSheetProps) {
   const { messages } = useLocale();
   const { audits, loading: auditLoading, error: auditError } = useAuditDetail({
-    requestLogId: request?.id ?? null,
+    requestLogId: request?.summary.id ?? null,
     enabled: open && activeTab === "audit",
   });
   const hasResolvedTargetContext = Boolean(
-    request?.resolved_target_model_id && request.resolved_target_model_id !== request.model_id,
+    request?.summary.resolved_target_model_id
+      && request.summary.resolved_target_model_id !== request.summary.model_id,
   );
 
   return (
     <Sheet open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <SheetContent className="w-full overflow-y-auto border-l border-border/70 bg-background/98 px-0 sm:max-w-xl xl:max-w-2xl">
-        <div className="space-y-6 px-6 pb-6 pt-5">
+      <SheetContent
+        className="w-full overflow-y-auto border-l border-border/70 bg-background/98 px-0 sm:max-w-2xl xl:max-w-4xl"
+        data-testid="request-log-detail-sheet"
+      >
+        <div className="space-y-5 px-5 pb-5 pt-4 sm:px-6">
           <SheetHeader className="space-y-2 pr-8 text-left">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Terminal className="h-3.5 w-3.5" />
               <span>{messages.requestLogs.technicalInspection}</span>
             </div>
             <SheetTitle className="text-xl font-semibold tracking-tight">
-              {messages.requestLogs.requestTitle(request?.id ?? "")}
+              {messages.requestLogs.requestTitle(request?.summary.id ?? "")}
             </SheetTitle>
             <SheetDescription className="text-sm text-muted-foreground">
               {messages.requestLogs.detailDescription}
@@ -64,13 +68,13 @@ export function RequestLogDetailSheet({
           </SheetHeader>
 
           {request && (
-            <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as DetailTab)} className="space-y-4">
-              <TabsList className="grid h-11 w-full grid-cols-2 rounded-xl bg-muted/70 p-1">
-                <TabsTrigger value="overview" className="gap-2 rounded-lg text-sm font-medium">
+            <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as DetailTab)} className="space-y-3">
+              <TabsList className="grid h-10 w-full grid-cols-2 rounded-lg bg-muted/70 p-0.5">
+                <TabsTrigger value="overview" className="gap-2 rounded-md text-sm font-medium">
                   <FileText className="h-4 w-4" />
                   {messages.requestLogs.overview}
                 </TabsTrigger>
-                <TabsTrigger value="audit" className="gap-2 rounded-lg text-sm font-medium">
+                <TabsTrigger value="audit" className="gap-2 rounded-md text-sm font-medium">
                   <Terminal className="h-4 w-4" />
                   {messages.requestLogs.audit}
                 </TabsTrigger>

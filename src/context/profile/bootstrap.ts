@@ -1,13 +1,13 @@
-import type { Profile } from "@/lib/types";
+import type { Profile, ProfileBootstrapResponse } from "@/lib/types";
 
 export interface ProfileBootstrapState {
   activeProfile: Profile | null;
+  maxProfiles: number;
   profiles: Profile[];
 }
 
 export interface ProfileBootstrapApi {
-  getActiveProfile: () => Promise<Profile | null>;
-  listProfiles: () => Promise<Profile[]>;
+  bootstrap: () => Promise<ProfileBootstrapResponse>;
 }
 
 export function createProfileBootstrapLoader(api: ProfileBootstrapApi) {
@@ -20,21 +20,23 @@ export function createProfileBootstrapLoader(api: ProfileBootstrapApi) {
       return profileBootstrapPromise;
     }
 
-    const loadPromise = Promise.all([
-      api.listProfiles(),
-      api.getActiveProfile(),
-    ]).then(([profiles, activeProfile]) => ({
-      activeProfile,
-      profiles,
-    }));
+    const loadPromise = api.bootstrap().then(
+      ({ active_profile: activeProfile, profile_limits, profiles }) => ({
+        activeProfile,
+        maxProfiles: profile_limits.max_profiles,
+        profiles,
+      }),
+    );
 
     if (reuseInFlight) {
       profileBootstrapPromise = loadPromise;
-      void loadPromise.finally(() => {
-        if (profileBootstrapPromise === loadPromise) {
-          profileBootstrapPromise = null;
-        }
-      });
+      void loadPromise
+        .finally(() => {
+          if (profileBootstrapPromise === loadPromise) {
+            profileBootstrapPromise = null;
+          }
+        })
+        .catch(() => undefined);
     }
 
     return loadPromise;
