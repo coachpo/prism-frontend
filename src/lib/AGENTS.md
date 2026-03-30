@@ -14,6 +14,7 @@ lib/
 │   ├── management.ts             # Profiles, vendors, models, endpoints, connections, pricing templates
 │   └── observability.ts          # Usage snapshot, summary, spending, throughput, metrics, timezone, current config format, audit, loadbalance
 ├── websocket.ts                  # Singleton WebSocket client with channel ref-counts and reconnects
+├── websocket/AGENTS.md           # Helper split beneath the singleton client
 ├── websocket/                    # Protocol parsing, subscription bookkeeping, transport/reconnect helpers
 ├── referenceData.ts              # Shared reference-data cache keyed by profile revision
 ├── referenceDataRegistry.ts      # Registry of shared reference-data datasets
@@ -35,13 +36,14 @@ lib/
 - Shared vendor cache, request dedupe, and dataset registry: `referenceData.ts`, `referenceDataRegistry.ts`
 - Frontend-side config import reference validation: `configImportValidation.ts`, `configImportValidationReferences.ts`
 - Browser app version label formatting and Vite-injected package metadata: `appVersion.ts`
-- WebSocket connection state, reconnects, channel ref-counts, protocol parsing, and profile switching: `websocket.ts`, `websocket/`
+- WebSocket connection state, reconnects, channel ref-counts, protocol parsing, and profile switching: `websocket.ts`, `websocket/AGENTS.md`
 - Browser passkey helpers and support checks: `webauthn.ts`
 - Backend-aligned payload types: `types.ts`, `types/`
 
 ## CHILD DOCS
 
 - `api/AGENTS.md`: `core.ts`, `authSettings.ts`, `management.ts`, and `observability.ts` ownership beneath the public `api.ts` barrel.
+- `websocket/AGENTS.md`: message helpers, subscription bookkeeping, and transport/reconnect rules beneath `websocket.ts`.
 
 ## CONVENTIONS
 
@@ -52,7 +54,7 @@ lib/
 - `referenceData.ts` and `referenceDataRegistry.ts` own shared cache reuse, request dedupe, and revision-keyed invalidation for lookup datasets.
 - `configImportValidation.ts` owns frontend-side validation of the current import payload shape, including nested `auto_recovery` strategy data and vendor `icon_key` presence, instead of leaving that logic in page components.
 - `appVersion.ts` owns the browser-facing frontend version contract so shell chrome reads the synced `frontend/package.json` version through Vite instead of hard-coded literals.
-- `websocket.ts` owns the singleton client, while `websocket/` owns protocol parsing, subscription bookkeeping, and reconnect transport helpers. Consumers should use `useRealtimeData()` instead of creating clients directly.
+- `websocket.ts` owns the singleton client, while `websocket/AGENTS.md` owns protocol parsing, subscription bookkeeping, and reconnect transport helpers. Consumers should use `useRealtimeData()` instead of creating clients directly.
 - Keep browser WebAuthn ceremony code in `webauthn.ts`.
 - Keep backend payload naming aligned with server schemas, including `vendor_id`, `vendor_key`, fixed `api_family` fields, vendor `icon_key` on vendor payloads only, and stats snapshot identifiers like `ingress_request_id`.
 
