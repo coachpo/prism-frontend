@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +15,7 @@ import { RequestLogsTable } from "./request-logs/RequestLogsTable";
 import { RequestLogDetailSheet } from "./request-logs/RequestLogDetailSheet";
 import { SearchX, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { RequestLogEntry } from "@/lib/types";
 import type { DetailTab } from "./request-logs/queryParams";
 import type { RequestLogModelResolver } from "./request-logs/columns";
 
@@ -25,6 +26,8 @@ export function RequestLogsPage() {
   const { messages } = useLocale();
   const [tableSelectedRequestId, setTableSelectedRequestId] = useState<number | null>(null);
   const [tableSelectedTab, setTableSelectedTab] = useState<DetailTab>("overview");
+  const [sheetRequest, setSheetRequest] = useState<RequestLogEntry | null>(null);
+  const [sheetActiveTab, setSheetActiveTab] = useState<DetailTab>("overview");
   const actions = useRequestLogPageState();
   const { state, isExactMode } = actions;
   const navigateToConnection = useMemo(
@@ -64,7 +67,7 @@ export function RequestLogsPage() {
   );
 
   const selectedRequest = isExactMode ? exactRequest : tableSelectedRequest;
-  const activeTab = isExactMode ? state.detail_tab : tableSelectedTab;
+  const currentActiveTab = isExactMode ? state.detail_tab : tableSelectedTab;
   const modelLabelById = useMemo(
     () => new Map(filterOptions.models.map((model) => [model.model_id, model.display_name || model.model_id])),
     [filterOptions.models]
@@ -73,6 +76,13 @@ export function RequestLogsPage() {
     () => new Map(filterOptions.models.map((model) => [model.model_id, model])),
     [filterOptions.models],
   );
+
+  useEffect(() => {
+    if (selectedRequest) {
+      setSheetRequest(selectedRequest);
+      setSheetActiveTab(currentActiveTab);
+    }
+  }, [currentActiveTab, selectedRequest]);
 
   const resolveModelLabel = useMemo<RequestLogModelResolver>(() => {
     return Object.assign(
@@ -177,9 +187,9 @@ export function RequestLogsPage() {
         )}
 
         <RequestLogDetailSheet
-          request={selectedRequest}
+          request={sheetRequest}
           open={sheetOpen}
-          activeTab={activeTab}
+          activeTab={sheetOpen ? currentActiveTab : sheetActiveTab}
           onTabChange={handleTabChange}
           onClose={handleCloseRequest}
           onNavigateToConnection={navigateToConnection}

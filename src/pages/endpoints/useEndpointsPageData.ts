@@ -107,7 +107,6 @@ export function useEndpointsPageData() {
         },
       );
     } catch (error) {
-      setDeleteTarget(null);
       if (error instanceof Error) {
         const normalizedMessage = error.message.toLowerCase();
         if (

@@ -73,8 +73,10 @@ export function SettingsGlobalTab({ data }: SettingsGlobalTabProps) {
       <DeleteVendorDialog
         deleteVendorConfirm={data.deleteVendorConfirm}
         deleteVendorConflict={data.deleteVendorConflict}
+        displayedDeleteVendorConfirm={data.displayedDeleteVendorConfirm}
         onClose={data.closeDeleteVendorDialog}
         onDelete={data.handleDeleteVendor}
+        open={data.deleteVendorDialogOpen}
         vendorDeleting={data.vendorDeleting}
         vendorUsageLoading={data.vendorUsageLoading}
         vendorUsageRows={data.vendorUsageRows}

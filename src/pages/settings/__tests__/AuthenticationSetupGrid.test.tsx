@@ -34,8 +34,17 @@ describe("authentication setup cards", () => {
       </LocaleProvider>,
     );
 
+    const usernameInput = screen.getByLabelText("Username");
+    const passwordInput = screen.getByLabelText("Password");
+    const confirmPasswordInput = screen.getByLabelText("Confirm password");
+
     expect(screen.getByText("Operator account")).toBeInTheDocument();
-    expect(screen.getByLabelText("Username")).toBeInTheDocument();
+    expect(usernameInput).toHaveAttribute("name", "username");
+    expect(usernameInput).toHaveAttribute("autocomplete", "username");
+    expect(passwordInput).toHaveAttribute("name", "password");
+    expect(passwordInput).toHaveAttribute("autocomplete", "new-password");
+    expect(confirmPasswordInput).toHaveAttribute("name", "password-confirm");
+    expect(confirmPasswordInput).toHaveAttribute("autocomplete", "new-password");
     expect(screen.getByRole("button", { name: "Save account changes" })).toBeInTheDocument();
   });
 
@@ -65,8 +74,15 @@ describe("authentication setup cards", () => {
       </LocaleProvider>,
     );
 
+    const recoveryEmailInput = screen.getByLabelText("Email address");
+    const verificationCodeInput = screen.getByLabelText("Verification code");
+
     expect(screen.getByText("Recovery email")).toBeInTheDocument();
-    expect(screen.getByLabelText("Email address")).toBeInTheDocument();
+    expect(recoveryEmailInput).toHaveAttribute("name", "email");
+    expect(recoveryEmailInput).toHaveAttribute("autocomplete", "email");
+    expect(verificationCodeInput).toHaveAttribute("id", "auth-email-otp");
+    expect(verificationCodeInput).toHaveAttribute("name", "otp-code");
+    expect(verificationCodeInput).toHaveAttribute("autocomplete", "one-time-code");
     expect(screen.getByRole("button", { name: "Send verification code" })).toBeInTheDocument();
   });
 

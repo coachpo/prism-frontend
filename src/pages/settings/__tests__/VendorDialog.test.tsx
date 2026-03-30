@@ -83,7 +83,7 @@ describe("VendorDialog", () => {
     expect(screen.getAllByLabelText("Vendor icon Z.ai").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getAllByRole("combobox")[0]);
-    fireEvent.click(screen.getByText("No preset (use fallback)"));
+    fireEvent.click(screen.getAllByText("No preset (use fallback)").at(-1)!);
 
     const updater = setVendorForm.mock.calls.at(-1)?.[0] as
       | ((state: { key: string; name: string; description: string; icon_key: string | null }) => {
@@ -102,5 +102,39 @@ describe("VendorDialog", () => {
         icon_key: "zhipu",
       }),
     ).toMatchObject({ icon_key: null });
+  });
+
+  it("submits through a real form and exposes stable field names", () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <LocaleProvider>
+        <VendorDialog
+          editingVendor={null}
+          onClose={vi.fn()}
+          onSave={onSave}
+          open={true}
+          setVendorForm={vi.fn()}
+          vendorForm={{
+            key: "zai",
+            name: "Z.ai",
+            description: "Z.ai Open Platform",
+            icon_key: "zhipu",
+          }}
+          vendorSaving={false}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByLabelText("Vendor Name")).toHaveAttribute("name", "name");
+    expect(screen.getByLabelText("Vendor Key")).toHaveAttribute("name", "key");
+    expect(screen.getByLabelText("Description (Optional)")).toHaveAttribute("name", "description");
+    expect(document.querySelector('input[type="hidden"][name="icon_key"]')).toHaveValue("zhipu");
+
+    const form = screen.getByRole("button", { name: "Create Vendor" }).closest("form");
+    expect(form).not.toBeNull();
+
+    fireEvent.submit(form!);
+
+    expect(onSave).toHaveBeenCalledTimes(1);
   });
 });

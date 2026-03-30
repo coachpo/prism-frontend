@@ -68,6 +68,8 @@ export function SettingsPage() {
 
       <DeleteConfirmDialog
         deleteConfirm={data.deleteConfirm}
+        displayedDeleteConfirm={data.displayedDeleteConfirm}
+        open={data.deleteConfirmDialogOpen}
         setDeleteConfirm={data.setDeleteConfirm}
         selectedProfileLabel={data.selectedProfileLabel}
         deleteConfirmPhrase={data.deleteConfirmPhrase}
@@ -88,6 +90,8 @@ export function SettingsPage() {
 
       <DeleteRuleConfirmDialog
         deleteRuleConfirm={data.deleteRuleConfirm}
+        displayedDeleteRuleConfirm={data.displayedDeleteRuleConfirm}
+        open={data.deleteRuleDialogOpen}
         setDeleteRuleConfirm={data.setDeleteRuleConfirm}
         handleDeleteRule={data.handleDeleteRule}
       />

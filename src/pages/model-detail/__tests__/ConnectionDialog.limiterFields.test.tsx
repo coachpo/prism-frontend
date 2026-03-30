@@ -2,8 +2,16 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { ApiFamily, Connection, Endpoint, ModelConfig, ModelConfigListItem } from "@/lib/types";
+import type {
+  ApiFamily,
+  Connection,
+  Endpoint,
+  ModelConfig,
+  ModelConfigListItem,
+  PricingTemplate,
+} from "@/lib/types";
 import { ConnectionDialog } from "../ConnectionDialog";
+import { ConnectionCardHeader } from "../connections-list/ConnectionCardHeader";
 import { createDefaultConnectionForm } from "../useModelDetailDataSupport";
 import { useModelDetailConnectionMutations } from "../useModelDetailConnectionMutations";
 import { useModelDetailDialogState } from "../useModelDetailDialogState";
@@ -75,14 +83,39 @@ function buildConnection(overrides: Partial<Connection> = {}): Connection {
   };
 }
 
+function buildPricingTemplate(overrides: Partial<PricingTemplate> = {}): PricingTemplate {
+  return {
+    id: 3,
+    profile_id: 1,
+    name: "Premium Pricing",
+    description: "Tracks spend",
+    pricing_unit: "PER_1M",
+    pricing_currency_code: "USD",
+    input_price: "1.25",
+    output_price: "5.00",
+    cached_input_price: null,
+    cache_creation_price: null,
+    reasoning_price: null,
+    missing_special_token_price_policy: "MAP_TO_OUTPUT",
+    version: 2,
+    created_at: "2026-03-25T10:00:00Z",
+    updated_at: "2026-03-25T10:00:00Z",
+    ...overrides,
+  };
+}
+
 function ConnectionDialogHarness({
   editingConnection,
   modelApiFamily = "openai",
+  pricingTemplates = [],
+  pricingTemplateIdOnOpen,
 }: {
   editingConnection?: Connection;
   modelApiFamily?: ApiFamily;
+  pricingTemplates?: PricingTemplate[];
+  pricingTemplateIdOnOpen?: number | null;
 }) {
-  const [, setConnections] = useState<Connection[]>(editingConnection ? [editingConnection] : []);
+  const [connections, setConnections] = useState<Connection[]>(editingConnection ? [editingConnection] : []);
   const [globalEndpoints, setGlobalEndpoints] = useState<Endpoint[]>([buildEndpoint()]);
   const [, setAllModels] = useState<ModelConfigListItem[]>([]);
   const [, setModel] = useState<ModelConfig | null>(null);
@@ -117,6 +150,7 @@ function ConnectionDialogHarness({
     connectionForm,
     headerRows,
     editingConnection: activeEditingConnection,
+    pricingTemplates,
     endpointSourceDefaultName,
     refreshCurrentState: vi.fn(),
     setIsConnectionDialogOpen,
@@ -126,22 +160,38 @@ function ConnectionDialogHarness({
     setModel,
   });
 
+  const committedConnection = connections[0] ?? null;
+  const committedConnectionName = committedConnection?.name ?? committedConnection?.endpoint?.name ?? "";
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          openConnectionDialog(editingConnection);
-          if (!editingConnection) {
-            setCreateMode("new");
-          }
-        }}
-      >
-        Open Connection Dialog
-      </button>
-      <ConnectionDialog
-        isOpen={isConnectionDialogOpen}
-        onOpenChange={setIsConnectionDialogOpen}
+        <button
+          type="button"
+          onClick={() => {
+            openConnectionDialog(editingConnection);
+            if (pricingTemplateIdOnOpen !== undefined) {
+              setConnectionForm((current) => ({
+                ...current,
+                pricing_template_id: pricingTemplateIdOnOpen,
+              }));
+            }
+            if (!editingConnection) {
+              setCreateMode("new");
+            }
+          }}
+        >
+          Open Connection Dialog
+        </button>
+        {committedConnection ? (
+          <ConnectionCardHeader
+            connection={committedConnection}
+            connectionName={committedConnectionName}
+            isChecking={false}
+          />
+        ) : null}
+        <ConnectionDialog
+          isOpen={isConnectionDialogOpen}
+          onOpenChange={setIsConnectionDialogOpen}
         editingConnection={activeEditingConnection}
         connectionForm={connectionForm}
         setConnectionForm={setConnectionForm}
@@ -156,13 +206,13 @@ function ConnectionDialogHarness({
         setHeaderRows={setHeaderRows}
         handleConnectionSubmit={handleConnectionSubmit}
         dialogTestingConnection={dialogTestingConnection}
-        dialogTestResult={dialogTestResult}
-        handleDialogTestConnection={vi.fn()}
-        endpointSourceDefaultName={endpointSourceDefaultName}
-        modelApiFamily={modelApiFamily}
-        pricingTemplates={[]}
-      />
-    </>
+          dialogTestResult={dialogTestResult}
+          handleDialogTestConnection={vi.fn()}
+          endpointSourceDefaultName={endpointSourceDefaultName}
+          modelApiFamily={modelApiFamily}
+          pricingTemplates={pricingTemplates}
+        />
+      </>
   );
 }
 
@@ -251,6 +301,37 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByDisplayValue("4")).toBeInTheDocument();
   });
 
+  it("adds stable names and autocomplete metadata for connection form fields", async () => {
+    const pricingTemplate = buildPricingTemplate({ id: 9 });
+    renderWithLocale(
+      <ConnectionDialogHarness pricingTemplates={[pricingTemplate]} pricingTemplateIdOnOpen={pricingTemplate.id} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveAttribute("name", "endpoint_name");
+    expect(screen.getByLabelText("Base URL")).toHaveAttribute("name", "endpoint_base_url");
+    expect(screen.getByLabelText("Base URL")).toHaveAttribute("autocomplete", "url");
+    expect(screen.getByLabelText("API Key")).toHaveAttribute("name", "endpoint_api_key");
+    expect(screen.getByLabelText("API Key")).toHaveAttribute("autocomplete", "off");
+    expect(screen.getByLabelText("Name (Optional)")).toHaveAttribute("name", "name");
+    expect(screen.getByLabelText("QPS Limit")).toHaveAttribute("name", "qps_limit");
+    expect(screen.getByLabelText("Max In-Flight (Non-Stream)")).toHaveAttribute(
+      "name",
+      "max_in_flight_non_stream",
+    );
+    expect(screen.getByLabelText("Max In-Flight (Stream)")).toHaveAttribute(
+      "name",
+      "max_in_flight_stream",
+    );
+    expect(document.querySelector('input[type="hidden"][name="create_mode"]')).toHaveValue("new");
+    expect(document.querySelector('input[type="hidden"][name="pricing_template_id"]')).toHaveValue("9");
+    expect(document.querySelector('input[type="hidden"][name="openai_probe_endpoint_variant"]')).toHaveValue(
+      "responses",
+    );
+  });
+
   it("includes limiter fields in the create submit payload when present", async () => {
     renderWithLocale(<ConnectionDialogHarness />);
 
@@ -328,6 +409,51 @@ describe("ConnectionDialog limiter fields", () => {
           max_in_flight_stream: null,
         }),
       );
+    });
+  });
+
+  it("hydrates the committed connection pricing template after edit when update omits the nested relation", async () => {
+    const pricingTemplate = buildPricingTemplate({
+      id: 9,
+      name: "EUR Template",
+      pricing_currency_code: "EUR",
+      version: 4,
+    });
+
+    api.connections.update.mockResolvedValue(
+      buildConnection({
+        pricing_template_id: pricingTemplate.id,
+        pricing_template: null,
+      }),
+    );
+
+    renderWithLocale(
+      <ConnectionDialogHarness
+        editingConnection={buildConnection()}
+        pricingTemplates={[pricingTemplate]}
+        pricingTemplateIdOnOpen={pricingTemplate.id}
+      />,
+    );
+
+    expect(screen.getByText("Pricing Off")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    expect(await screen.findByText("Edit Connection")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
+
+    await waitFor(() => {
+      expect(api.connections.update).toHaveBeenCalledWith(
+        11,
+        expect.objectContaining({ pricing_template_id: pricingTemplate.id }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Pricing On")).toBeInTheDocument();
+      expect(screen.getByText("EUR Template v4")).toBeInTheDocument();
+      expect(screen.getByText("EUR")).toBeInTheDocument();
     });
   });
 });

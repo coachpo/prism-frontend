@@ -337,6 +337,81 @@ describe("useEndpointsPageData", () => {
     expect(result.current.visibleEndpointIds).toEqual([10]);
   });
 
+  it("creates endpoints and closes the create dialog while keeping local state in sync", async () => {
+    const created = buildEndpoint({
+      id: 11,
+      name: "Anthropic Backup",
+      base_url: "https://api.anthropic.com/v1",
+      position: 1,
+    });
+    api.endpoints.create.mockResolvedValue(created);
+
+    const { result } = renderHook(() => useEndpointsPageData(), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.setIsCreateOpen(true);
+    });
+
+    await act(async () => {
+      await result.current.handleCreate({
+        name: created.name,
+        base_url: created.base_url,
+        api_key: "sk-created",
+      });
+    });
+
+    expect(api.endpoints.create).toHaveBeenCalledWith({
+      name: created.name,
+      base_url: created.base_url,
+      api_key: "sk-created",
+    });
+    expect(result.current.isCreateOpen).toBe(false);
+    expect(result.current.endpoints.map((endpoint) => endpoint.id)).toEqual([10, 11]);
+    expect(result.current.endpointModels[11]).toEqual([]);
+  });
+
+  it("updates endpoints and clears edit mode while keeping local state in sync", async () => {
+    const updated = buildEndpoint({
+      id: 10,
+      name: "Primary Updated",
+      base_url: "https://api.openai.com/v2",
+    });
+    api.endpoints.update.mockResolvedValue(updated);
+
+    const { result } = renderHook(() => useEndpointsPageData(), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.setEditingEndpoint(result.current.endpoints[0]);
+    });
+
+    await act(async () => {
+      await result.current.handleUpdate({
+        name: updated.name,
+        base_url: updated.base_url,
+        api_key: "",
+      });
+    });
+
+    expect(api.endpoints.update).toHaveBeenCalledWith(10, {
+      name: updated.name,
+      base_url: updated.base_url,
+    });
+    expect(result.current.editingEndpoint).toBeNull();
+    expect(result.current.endpoints[0]).toMatchObject({
+      id: 10,
+      name: updated.name,
+      base_url: updated.base_url,
+    });
+  });
+
   it("duplicates and deletes endpoints while keeping local state in sync", async () => {
     api.endpoints.duplicate.mockResolvedValue(
       buildEndpoint({ id: 11, name: "Primary Copy", position: 1 })
@@ -390,7 +465,10 @@ describe("useEndpointsPageData", () => {
       await result.current.handleDelete(10);
     });
 
-    expect(result.current.deleteTarget).toBeNull();
+    expect(result.current.deleteTarget).toMatchObject({
+      id: 10,
+      name: "Primary",
+    });
     expect(toast.error).toHaveBeenCalledWith(
       "Cannot delete endpoint that is referenced by connections"
     );

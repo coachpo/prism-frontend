@@ -1,5 +1,5 @@
 import { CircleHelp, Plus, X } from "lucide-react";
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { useLocale } from "@/i18n/useLocale";
 import { SwitchController } from "@/components/SwitchController";
 import { Button } from "@/components/ui/button";
@@ -174,6 +174,10 @@ export function LoadbalanceStrategyDialog({
     enabledAutoRecovery?.ban.mode === "temporary"
       ? enabledAutoRecovery.ban.ban_duration_seconds
       : 0;
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void onSave();
+  };
 
   return (
     <Dialog
@@ -194,11 +198,14 @@ export function LoadbalanceStrategyDialog({
           <DialogDescription>{dialogMessages.description}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <input type="hidden" name="strategy_type" value={loadbalanceStrategyForm.strategy_type} />
+          <input type="hidden" name="auto_recovery_enabled" value={String(autoRecoveryEnabled)} />
           <div className="space-y-2">
             <Label htmlFor="loadbalance-strategy-name">{dialogMessages.nameLabel}</Label>
             <Input
               id="loadbalance-strategy-name"
+              name="name"
               value={loadbalanceStrategyForm.name}
               onChange={(event) =>
                   setLoadbalanceStrategyForm((prev) => ({ ...prev, name: event.target.value }))
@@ -208,14 +215,14 @@ export function LoadbalanceStrategyDialog({
           </div>
 
           <div className="space-y-2">
-              <Label>{dialogMessages.strategyTypeLabel}</Label>
+              <Label htmlFor="loadbalance-strategy-type">{dialogMessages.strategyTypeLabel}</Label>
               <Select
                 value={loadbalanceStrategyForm.strategy_type}
                 onValueChange={(value: "single" | "fill-first" | "round-robin" | "failover") =>
                   setLoadbalanceStrategyForm((prev) => setLoadbalanceStrategyType(prev, value))
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="loadbalance-strategy-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -257,6 +264,7 @@ export function LoadbalanceStrategyDialog({
                   />
                   <Input
                     id="failover-cooldown-seconds"
+                    name="auto_recovery.cooldown.base_seconds"
                     type="number"
                     min={0}
                     step={1}
@@ -281,6 +289,7 @@ export function LoadbalanceStrategyDialog({
                   />
                   <Input
                     id="failover-failure-threshold"
+                    name="auto_recovery.cooldown.failure_threshold"
                     type="number"
                     min={1}
                     max={10}
@@ -306,6 +315,7 @@ export function LoadbalanceStrategyDialog({
                   />
                   <Input
                     id="failover-backoff-multiplier"
+                    name="auto_recovery.cooldown.backoff_multiplier"
                     type="number"
                     min={1}
                     max={10}
@@ -331,6 +341,7 @@ export function LoadbalanceStrategyDialog({
                   />
                   <Input
                     id="failover-max-cooldown-seconds"
+                    name="auto_recovery.cooldown.max_cooldown_seconds"
                     type="number"
                     min={1}
                     max={86400}
@@ -356,6 +367,7 @@ export function LoadbalanceStrategyDialog({
                   />
                   <Input
                     id="failover-jitter-ratio"
+                    name="auto_recovery.cooldown.jitter_ratio"
                     type="number"
                     min={0}
                     max={1}
@@ -383,6 +395,7 @@ export function LoadbalanceStrategyDialog({
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <Input
                         id="failover-status-code-input"
+                        name="auto_recovery.status_code_input"
                         aria-invalid={Boolean(failoverStatusCodeInputError)}
                         aria-describedby={
                           failoverStatusCodeInputError ? "failover-status-code-input-error" : undefined
@@ -479,6 +492,11 @@ export function LoadbalanceStrategyDialog({
                         )
                       }
                     >
+                      <input
+                        type="hidden"
+                        name="auto_recovery.ban.mode"
+                        value={enabledAutoRecovery?.ban.mode ?? "off"}
+                      />
                       <SelectTrigger id="failover-ban-mode">
                         <SelectValue />
                       </SelectTrigger>
@@ -503,6 +521,7 @@ export function LoadbalanceStrategyDialog({
                     />
                     <Input
                       id="failover-max-cooldown-strikes-before-ban"
+                      name="auto_recovery.ban.max_cooldown_strikes_before_ban"
                       type="number"
                       min={0}
                       step={1}
@@ -528,6 +547,7 @@ export function LoadbalanceStrategyDialog({
                       />
                       <Input
                         id="failover-ban-duration-seconds"
+                        name="auto_recovery.ban.ban_duration_seconds"
                         type="number"
                         min={1}
                         step={1}
@@ -551,16 +571,15 @@ export function LoadbalanceStrategyDialog({
               {dialogMessages.singleStrategyHint}
             </div>
           )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
             {dialogMessages.cancel}
-          </Button>
-          <Button onClick={() => void onSave()} disabled={loadbalanceStrategySaving}>
+            </Button>
+            <Button type="submit" disabled={loadbalanceStrategySaving}>
             {loadbalanceStrategySaving ? dialogMessages.saving : dialogMessages.save}
-          </Button>
-        </DialogFooter>
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -17,13 +17,20 @@ export function useProxyApiKeysPageData() {
   const [pageLoading, setPageLoading] = useState(true);
   const [rotatingProxyKeyId, setRotatingProxyKeyId] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<ProxyApiKey | null>(null);
+  const [deleteProxyKeyDialogOpen, setDeleteProxyKeyDialogOpen] = useState(false);
+  const [displayedDeleteConfirm, setDisplayedDeleteConfirm] = useState<ProxyApiKey | null>(null);
   const [deletingProxyKeyId, setDeletingProxyKeyId] = useState<number | null>(null);
   const [editingProxyKey, setEditingProxyKey] = useState<ProxyApiKey | null>(null);
+  const [editProxyKeyDialogOpen, setEditProxyKeyDialogOpen] = useState(false);
   const [editingProxyKeyName, setEditingProxyKeyName] = useState("");
   const [editingProxyKeyNotes, setEditingProxyKeyNotes] = useState("");
   const [editingProxyKeyActive, setEditingProxyKeyActive] = useState(false);
   const [savingEditedProxyKeyId, setSavingEditedProxyKeyId] = useState<number | null>(null);
-  const [latestGeneratedKey, setLatestGeneratedKey] = useState<string | null>(null);
+  const [latestGeneratedKeyState, setLatestGeneratedKeyState] = useState<{
+    keyId: number;
+    value: string;
+  } | null>(null);
+  const latestGeneratedKey = latestGeneratedKeyState?.value ?? null;
 
   const displayedProxyKeys = useMemo(
     () => [...proxyKeys].sort((left, right) => right.id - left.id),
@@ -81,6 +88,17 @@ export function useProxyApiKeysPageData() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!latestGeneratedKeyState) {
+      return;
+    }
+
+    const keyStillExists = proxyKeys.some((key) => key.id === latestGeneratedKeyState.keyId);
+    if (!keyStillExists) {
+      setLatestGeneratedKeyState(null);
+    }
+  }, [latestGeneratedKeyState, proxyKeys]);
+
   async function handleCreateProxyKey() {
     const messages = getStaticMessages();
     if (!authSettings) {
@@ -104,7 +122,10 @@ export function useProxyApiKeysPageData() {
         name: proxyKeyName.trim(),
         notes: proxyKeyNotes.trim() || null,
       });
-      setLatestGeneratedKey(created.key);
+      setLatestGeneratedKeyState({
+        keyId: created.item.id,
+        value: created.key,
+      });
       setProxyKeyName("");
       setProxyKeyNotes("");
       setProxyKeys((current) => [created.item, ...current]);
@@ -121,7 +142,10 @@ export function useProxyApiKeysPageData() {
     setRotatingProxyKeyId(keyId);
     try {
       const rotated = await api.settings.auth.proxyKeys.rotate(keyId);
-      setLatestGeneratedKey(rotated.key);
+      setLatestGeneratedKeyState({
+        keyId,
+        value: rotated.key,
+      });
       setProxyKeys((current) =>
         current.map((key) => (key.id === keyId ? rotated.item : key))
       );
@@ -139,10 +163,16 @@ export function useProxyApiKeysPageData() {
       return;
     }
 
-    setDeletingProxyKeyId(deleteConfirm.id);
+    const deletingKey = deleteConfirm;
+
+    setDeletingProxyKeyId(deletingKey.id);
     try {
-      await api.settings.auth.proxyKeys.delete(deleteConfirm.id);
-      setProxyKeys((current) => current.filter((key) => key.id !== deleteConfirm.id));
+      await api.settings.auth.proxyKeys.delete(deletingKey.id);
+      setProxyKeys((current) => current.filter((key) => key.id !== deletingKey.id));
+      if (latestGeneratedKeyState?.keyId === deletingKey.id) {
+        setLatestGeneratedKeyState(null);
+      }
+      setDeleteProxyKeyDialogOpen(false);
       setDeleteConfirm(null);
       toast.success(messages.proxyApiKeysData.deleted);
     } catch (error) {
@@ -157,13 +187,7 @@ export function useProxyApiKeysPageData() {
     setEditingProxyKeyName(item.name);
     setEditingProxyKeyNotes(item.notes ?? "");
     setEditingProxyKeyActive(item.is_active);
-  };
-
-  const resetEditProxyKeyDialog = () => {
-    setEditingProxyKey(null);
-    setEditingProxyKeyName("");
-    setEditingProxyKeyNotes("");
-    setEditingProxyKeyActive(false);
+    setEditProxyKeyDialogOpen(true);
   };
 
   async function handleSaveEditedProxyKey() {
@@ -189,7 +213,11 @@ export function useProxyApiKeysPageData() {
       setProxyKeys((current) =>
         current.map((key) => (key.id === updated.id ? updated : key))
       );
-      resetEditProxyKeyDialog();
+      setEditingProxyKey(updated);
+      setEditingProxyKeyName(updated.name);
+      setEditingProxyKeyNotes(updated.notes ?? "");
+      setEditingProxyKeyActive(updated.is_active);
+      setEditProxyKeyDialogOpen(false);
       toast.success(messages.proxyApiKeysData.updated);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : messages.proxyApiKeysData.updateFailed);
@@ -210,14 +238,33 @@ export function useProxyApiKeysPageData() {
 
   const handleDeleteDialogOpenChange = (open: boolean) => {
     if (!open && deletingProxyKeyId === null) {
+      setDeleteProxyKeyDialogOpen(false);
       setDeleteConfirm(null);
+      return;
     }
+
+    setDeleteProxyKeyDialogOpen(open);
   };
 
   const handleEditDialogOpenChange = (open: boolean) => {
     if (!open && savingEditedProxyKeyId === null) {
-      resetEditProxyKeyDialog();
+      setEditProxyKeyDialogOpen(false);
+      return;
     }
+
+    setEditProxyKeyDialogOpen(open);
+  };
+
+  const setDeleteConfirmState = (item: ProxyApiKey | null) => {
+    setDeleteConfirm(item);
+
+    if (item) {
+      setDisplayedDeleteConfirm(item);
+      setDeleteProxyKeyDialogOpen(true);
+      return;
+    }
+
+    setDeleteProxyKeyDialogOpen(false);
   };
 
   return {
@@ -227,7 +274,10 @@ export function useProxyApiKeysPageData() {
     createDisabled,
     creatingProxyKey,
     deleteConfirm,
+    deleteProxyKeyDialogOpen,
     deletingProxyKeyId,
+    displayedDeleteConfirm,
+    editProxyKeyDialogOpen,
     editingProxyKey,
     editingProxyKeyActive,
     editingProxyKeyName,
@@ -248,7 +298,7 @@ export function useProxyApiKeysPageData() {
     remainingKeys,
     rotatingProxyKeyId,
     savingEditedProxyKeyId,
-    setDeleteConfirm,
+    setDeleteConfirm: setDeleteConfirmState,
     setDeletingProxyKeyId,
     setEditingProxyKeyActive,
     setEditingProxyKeyName,

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/useLocale";
 import {
@@ -39,6 +40,16 @@ export function DeletePricingTemplateDialog({
 }: DeletePricingTemplateDialogProps) {
   const { formatNumber, messages } = useLocale();
   const copy = messages.pricingTemplatesUi;
+  const [displayTemplate, setDisplayTemplate] = useState<PricingTemplate | null>(deletePricingTemplateConfirm);
+
+  useEffect(() => {
+    if (deletePricingTemplateConfirm) {
+      setDisplayTemplate(deletePricingTemplateConfirm);
+    }
+  }, [deletePricingTemplateConfirm]);
+
+  const dialogTemplate = deletePricingTemplateConfirm ?? displayTemplate;
+
   return (
     <Dialog
       open={deletePricingTemplateConfirm !== null}
@@ -51,7 +62,7 @@ export function DeletePricingTemplateDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{copy.deletePricingTemplate}</DialogTitle>
-          <DialogDescription>{copy.deletePricingTemplateDescription(deletePricingTemplateConfirm?.name ?? "")}</DialogDescription>
+          <DialogDescription>{copy.deletePricingTemplateDescription(dialogTemplate?.name ?? "")}</DialogDescription>
         </DialogHeader>
 
         {pricingTemplateUsageLoading ? (

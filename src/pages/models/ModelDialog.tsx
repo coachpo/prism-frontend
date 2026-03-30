@@ -102,6 +102,23 @@ export function ModelDialog({
           <DialogDescription>{detailCopy.modelSettingsDescription}</DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
+          <input type="hidden" name="vendor_id" value={String(formData.vendor_id ?? "")} />
+          <input type="hidden" name="api_family" value={formData.api_family ?? ""} />
+          <input type="hidden" name="model_type" value={formData.model_type} />
+          <input
+            type="hidden"
+            name="loadbalance_strategy_id"
+            value={formData.loadbalance_strategy_id === null ? "" : String(formData.loadbalance_strategy_id)}
+          />
+          <input type="hidden" name="is_enabled" value={String(formData.is_enabled)} />
+          {normalizedProxyTargets.map((target, index) => (
+            <input
+              key={`proxy-target-${target.target_model_id}`}
+              type="hidden"
+              name={`proxy_targets.${index}.target_model_id`}
+              value={target.target_model_id}
+            />
+          ))}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>{fieldCopy.vendor}</Label>
@@ -145,8 +162,10 @@ export function ModelDialog({
 
           {!editingModel && (
             <div className="space-y-2">
-              <Label>{copy.modelId}</Label>
+              <Label htmlFor="model-id">{copy.modelId}</Label>
               <Input
+                id="model-id"
+                name="model_id"
                 value={formData.model_id}
                 onChange={(e) => setFormData({ ...formData, model_id: e.target.value })}
                 placeholder={copy.modelIdPlaceholder}
@@ -156,8 +175,10 @@ export function ModelDialog({
           )}
 
           <div className="space-y-2">
-            <Label>{copy.displayNameOptional}</Label>
+            <Label htmlFor="model-display-name">{copy.displayNameOptional}</Label>
             <Input
+              id="model-display-name"
+              name="display_name"
               value={formData.display_name ?? ""}
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               placeholder={copy.optionalFriendlyName}
@@ -165,9 +186,9 @@ export function ModelDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>{messages.settingsDialogs.type}</Label>
+            <Label htmlFor="model-type">{messages.settingsDialogs.type}</Label>
             <Select value={formData.model_type} onValueChange={(v) => setModelType(v as "native" | "proxy")}> 
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="model-type" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -299,7 +320,7 @@ export function ModelDialog({
 
           {formData.model_type === "native" && (
             <div className="space-y-2">
-              <Label>{detailCopy.loadbalanceStrategy}</Label>
+              <Label htmlFor="model-loadbalance-strategy">{detailCopy.loadbalanceStrategy}</Label>
               {loadbalanceStrategies.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {detailCopy.noLoadbalanceStrategiesAvailable}
@@ -309,9 +330,9 @@ export function ModelDialog({
                   value={formData.loadbalance_strategy_id === null ? undefined : String(formData.loadbalance_strategy_id)}
                   onValueChange={(value) => setLoadbalanceStrategyId(Number.parseInt(value, 10))}
                 >
-                    <SelectTrigger className="w-full">
-                       <SelectValue placeholder={detailCopy.selectStrategy} />
-                    </SelectTrigger>
+                    <SelectTrigger id="model-loadbalance-strategy" className="w-full">
+                        <SelectValue placeholder={detailCopy.selectStrategy} />
+                     </SelectTrigger>
                     <SelectContent>
                       {loadbalanceStrategies.map((strategy) => (
                         <SelectItem key={strategy.id} value={String(strategy.id)}>

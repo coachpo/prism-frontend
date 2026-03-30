@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/useLocale";
 import {
@@ -44,6 +44,11 @@ export function PricingTemplateDialog({
 }: PricingTemplateDialogProps) {
   const { messages } = useLocale();
   const dialogMessages = messages.pricingTemplateDialog;
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void onSave();
+  };
+
   return (
     <Dialog
       open={open}
@@ -62,12 +67,18 @@ export function PricingTemplateDialog({
           </DialogTitle>
           <DialogDescription>{dialogMessages.description}</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <input
+            type="hidden"
+            name="missing_special_token_price_policy"
+            value={pricingTemplateForm.missing_special_token_price_policy}
+          />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="template-name">{dialogMessages.nameLabel}</Label>
               <Input
                 id="template-name"
+                name="name"
                 value={pricingTemplateForm.name}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, name: event.target.value }))
@@ -79,6 +90,7 @@ export function PricingTemplateDialog({
               <Label htmlFor="template-currency">{dialogMessages.currencyCodeLabel}</Label>
               <Input
                 id="template-currency"
+                name="pricing_currency_code"
                 value={pricingTemplateForm.pricing_currency_code}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({
@@ -96,6 +108,7 @@ export function PricingTemplateDialog({
             <Label htmlFor="template-description">{dialogMessages.descriptionLabel}</Label>
             <Input
               id="template-description"
+              name="description"
               value={pricingTemplateForm.description}
               onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, description: event.target.value }))
@@ -109,6 +122,7 @@ export function PricingTemplateDialog({
               <Label htmlFor="template-input-price">{dialogMessages.inputPriceLabel}</Label>
               <Input
                 id="template-input-price"
+                name="input_price"
                 value={pricingTemplateForm.input_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, input_price: event.target.value }))
@@ -120,6 +134,7 @@ export function PricingTemplateDialog({
               <Label htmlFor="template-output-price">{dialogMessages.outputPriceLabel}</Label>
               <Input
                 id="template-output-price"
+                name="output_price"
                 value={pricingTemplateForm.output_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, output_price: event.target.value }))
@@ -134,6 +149,7 @@ export function PricingTemplateDialog({
               <Label htmlFor="template-cached-input-price">{dialogMessages.cachedInputPriceLabel}</Label>
               <Input
                 id="template-cached-input-price"
+                name="cached_input_price"
                 value={pricingTemplateForm.cached_input_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({
@@ -148,6 +164,7 @@ export function PricingTemplateDialog({
               <Label htmlFor="template-cache-creation-price">{dialogMessages.cacheCreationPriceLabel}</Label>
               <Input
                 id="template-cache-creation-price"
+                name="cache_creation_price"
                 value={pricingTemplateForm.cache_creation_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({
@@ -162,6 +179,7 @@ export function PricingTemplateDialog({
               <Label htmlFor="template-reasoning-price">{dialogMessages.reasoningPriceLabel}</Label>
               <Input
                 id="template-reasoning-price"
+                name="reasoning_price"
                 value={pricingTemplateForm.reasoning_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({
@@ -175,7 +193,9 @@ export function PricingTemplateDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>{dialogMessages.missingSpecialTokenPolicyLabel}</Label>
+            <Label htmlFor="template-missing-special-token-policy">
+              {dialogMessages.missingSpecialTokenPolicyLabel}
+            </Label>
             <Select
               value={pricingTemplateForm.missing_special_token_price_policy}
               onValueChange={(value: "MAP_TO_OUTPUT" | "ZERO_COST") =>
@@ -185,7 +205,7 @@ export function PricingTemplateDialog({
                 }))
               }
             >
-              <SelectTrigger>
+              <SelectTrigger id="template-missing-special-token-policy">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -195,15 +215,15 @@ export function PricingTemplateDialog({
             </Select>
             <p className="text-xs text-muted-foreground">{dialogMessages.missingSpecialTokenPolicyHint}</p>
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
             {dialogMessages.cancel}
-          </Button>
-          <Button onClick={() => void onSave()} disabled={pricingTemplateSaving}>
+            </Button>
+            <Button type="submit" disabled={pricingTemplateSaving}>
             {pricingTemplateSaving ? dialogMessages.saving : dialogMessages.save}
-          </Button>
-        </DialogFooter>
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

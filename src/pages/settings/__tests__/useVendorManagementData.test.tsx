@@ -233,6 +233,13 @@ describe("useVendorManagementData", () => {
       icon_key: "anthropic",
     });
     expect(referenceData.setSharedVendors).toHaveBeenNthCalledWith(1, 7, [createdVendor, originalVendor]);
+    expect(result.current.vendorDialogOpen).toBe(false);
+    expect(result.current.vendorForm).toEqual({
+      key: "anthropic",
+      name: "Anthropic",
+      description: "Claude models",
+      icon_key: "anthropic",
+    });
 
     act(() => {
       result.current.handleEditVendor(createdVendor);
@@ -255,6 +262,14 @@ describe("useVendorManagementData", () => {
       icon_key: null,
     });
     expect(referenceData.setSharedVendors).toHaveBeenNthCalledWith(2, 7, [updatedVendor, originalVendor]);
+    expect(result.current.vendorDialogOpen).toBe(false);
+    expect(result.current.editingVendor?.id).toBe(2);
+    expect(result.current.vendorForm).toEqual({
+      key: "anthropic-enterprise",
+      name: "Anthropic Enterprise",
+      description: "Enterprise Claude models",
+      icon_key: null,
+    });
 
     await act(async () => {
       await result.current.handleDeleteVendorClick(updatedVendor);
@@ -267,5 +282,11 @@ describe("useVendorManagementData", () => {
     expect(api.vendors.delete).toHaveBeenCalledWith(updatedVendor.id);
     expect(referenceData.setSharedVendors).toHaveBeenNthCalledWith(3, 7, [originalVendor]);
     expect(result.current.vendors).toEqual([originalVendor]);
+    expect(result.current.deleteVendorDialogOpen).toBe(false);
+    expect(result.current.deleteVendorConfirm).toBeNull();
+    expect(result.current.displayedDeleteVendorConfirm).toMatchObject({
+      id: 2,
+      name: "Anthropic Enterprise",
+    });
   });
 });

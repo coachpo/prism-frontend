@@ -13,7 +13,13 @@ export function useRetentionDeletionData() {
   const deleteKeyword = getStaticMessages().settingsDialogs.deleteConfirmKeyword;
   const [cleanupType, setCleanupType] = useState<CleanupType>("");
   const [retentionPreset, setRetentionPreset] = useState<RetentionPreset>("");
-  const [deleteConfirm, setDeleteConfirm] = useState<{
+  const [deleteConfirm, setDeleteConfirmState] = useState<{
+    type: DeleteCleanupType;
+    days: number | null;
+    deleteAll: boolean;
+  } | null>(null);
+  const [deleteConfirmDialogOpen, setDeleteConfirmDialogOpen] = useState(false);
+  const [displayedDeleteConfirm, setDisplayedDeleteConfirm] = useState<{
     type: DeleteCleanupType;
     days: number | null;
     deleteAll: boolean;
@@ -39,7 +45,10 @@ export function useRetentionDeletionData() {
       return;
     }
 
-    setDeleteConfirm({ type: cleanupType, days, deleteAll });
+    const nextDeleteConfirm = { type: cleanupType, days, deleteAll };
+    setDeleteConfirmState(nextDeleteConfirm);
+    setDisplayedDeleteConfirm(nextDeleteConfirm);
+    setDeleteConfirmDialogOpen(true);
     setDeleteConfirmPhrase("");
   };
 
@@ -76,9 +85,8 @@ export function useRetentionDeletionData() {
         messages.settingsRetentionDeletion.deletionRequested(getCleanupTypeLabel(type)),
       );
 
-      setDeleteConfirm(null);
-      setDeleteConfirmPhrase("");
-      setRetentionPreset("");
+      setDeleteConfirmDialogOpen(false);
+      setDeleteConfirmState(null);
     } catch {
       toast.error(messages.settingsRetentionDeletion.deletionFailed);
     } finally {
@@ -86,11 +94,29 @@ export function useRetentionDeletionData() {
     }
   };
 
+  const setDeleteConfirm = (confirm: {
+    type: DeleteCleanupType;
+    days: number | null;
+    deleteAll: boolean;
+  } | null) => {
+    setDeleteConfirmState(confirm);
+
+    if (confirm) {
+      setDisplayedDeleteConfirm(confirm);
+      setDeleteConfirmDialogOpen(true);
+      return;
+    }
+
+    setDeleteConfirmDialogOpen(false);
+  };
+
   return {
     cleanupType,
     deleteConfirm,
+    deleteConfirmDialogOpen,
     deleteConfirmPhrase,
     deleting,
+    displayedDeleteConfirm,
     handleBatchDelete,
     handleOpenDeleteConfirm,
     isDeletePhraseValid,

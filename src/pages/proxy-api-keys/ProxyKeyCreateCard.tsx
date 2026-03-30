@@ -82,6 +82,7 @@ export function ProxyKeyCreateCard({
               </Label>
               <Input
                 id="proxy-key-name"
+                name="proxy-key-name"
                 value={proxyKeyName}
                 onChange={(event) => setProxyKeyName(event.target.value)}
                 placeholder={copy.namePlaceholder}
@@ -96,6 +97,7 @@ export function ProxyKeyCreateCard({
               </Label>
               <Input
                 id="proxy-key-notes"
+                name="proxy-key-notes"
                 value={proxyKeyNotes}
                 onChange={(event) => setProxyKeyNotes(event.target.value)}
                 placeholder={copy.notesPlaceholder}

@@ -40,6 +40,28 @@ describe("proxy key dialogs i18n", () => {
     expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
   });
 
+  it("exposes stable form names for proxy key edit fields", () => {
+    render(
+      <LocaleProvider>
+        <EditProxyKeyDialog
+          open={true}
+          proxyKeyActive={true}
+          proxyKeyName="Primary runtime key"
+          proxyKeyNotes="notes"
+          saving={false}
+          onOpenChange={vi.fn()}
+          onSubmit={vi.fn()}
+          setProxyKeyActive={vi.fn()}
+          setProxyKeyName={vi.fn()}
+          setProxyKeyNotes={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByDisplayValue("Primary runtime key")).toHaveAttribute("name", "proxy-key-name");
+    expect(screen.getByDisplayValue("notes")).toHaveAttribute("name", "proxy-key-notes");
+  });
+
   it("renders localized delete dialog copy", () => {
     render(
       <LocaleProvider>

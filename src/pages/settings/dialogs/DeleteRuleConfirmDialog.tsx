@@ -12,20 +12,26 @@ import type { HeaderBlocklistRule } from "@/lib/types";
 
 interface DeleteRuleConfirmDialogProps {
   deleteRuleConfirm: HeaderBlocklistRule | null;
+  displayedDeleteRuleConfirm?: HeaderBlocklistRule | null;
+  open?: boolean;
   setDeleteRuleConfirm: (rule: HeaderBlocklistRule | null) => void;
   handleDeleteRule: () => Promise<void>;
 }
 
 export function DeleteRuleConfirmDialog({
   deleteRuleConfirm,
+  displayedDeleteRuleConfirm,
+  open,
   setDeleteRuleConfirm,
   handleDeleteRule,
 }: DeleteRuleConfirmDialogProps) {
   const { messages } = useLocale();
   const copy = messages.settingsDialogs;
+  const dialogRule = displayedDeleteRuleConfirm ?? deleteRuleConfirm;
+  const dialogOpen = open ?? Boolean(deleteRuleConfirm);
   return (
     <Dialog
-      open={Boolean(deleteRuleConfirm)}
+      open={dialogOpen}
       onOpenChange={(open) => {
         if (!open) {
           setDeleteRuleConfirm(null);
@@ -36,7 +42,7 @@ export function DeleteRuleConfirmDialog({
         <DialogHeader>
           <DialogTitle>{copy.deleteRuleTitle}</DialogTitle>
           <DialogDescription>
-            {copy.deleteRuleDescription(deleteRuleConfirm?.name ?? "")}
+            {copy.deleteRuleDescription(dialogRule?.name ?? "")}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

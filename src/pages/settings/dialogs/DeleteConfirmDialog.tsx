@@ -18,6 +18,12 @@ interface DeleteConfirmDialogProps {
     days: number | null;
     deleteAll: boolean;
   } | null;
+  displayedDeleteConfirm?: {
+    type: DeleteCleanupType;
+    days: number | null;
+    deleteAll: boolean;
+  } | null;
+  open?: boolean;
   setDeleteConfirm: (confirm: {
     type: DeleteCleanupType;
     days: number | null;
@@ -33,6 +39,8 @@ interface DeleteConfirmDialogProps {
 
 export function DeleteConfirmDialog({
   deleteConfirm,
+  displayedDeleteConfirm,
+  open,
   setDeleteConfirm,
   selectedProfileLabel,
   deleteConfirmPhrase,
@@ -43,17 +51,19 @@ export function DeleteConfirmDialog({
 }: DeleteConfirmDialogProps) {
   const { messages } = useLocale();
   const copy = messages.settingsDialogs;
-  const cleanupTypeLabel = deleteConfirm
-    ? deleteConfirm.type === "requests"
+  const dialogConfirm = displayedDeleteConfirm ?? deleteConfirm;
+  const dialogOpen = open ?? Boolean(deleteConfirm);
+  const cleanupTypeLabel = dialogConfirm
+    ? dialogConfirm.type === "requests"
       ? copy.cleanupTypeRequests
-      : deleteConfirm.type === "audits"
+      : dialogConfirm.type === "audits"
         ? copy.cleanupTypeAudits
         : copy.cleanupTypeLoadbalanceEvents
     : "-";
 
   return (
     <Dialog
-      open={Boolean(deleteConfirm)}
+      open={dialogOpen}
       onOpenChange={(open) => {
         if (!open) {
           setDeleteConfirm(null);
@@ -75,7 +85,7 @@ export function DeleteConfirmDialog({
                 {copy.dataType}: {cleanupTypeLabel}
               </li>
               <li>
-                {copy.retention}: {deleteConfirm?.deleteAll ? copy.allData : copy.olderThanDays(deleteConfirm?.days ?? null)}
+                {copy.retention}: {dialogConfirm?.deleteAll ? copy.allData : copy.olderThanDays(dialogConfirm?.days ?? null)}
               </li>
             </ul>
           </div>

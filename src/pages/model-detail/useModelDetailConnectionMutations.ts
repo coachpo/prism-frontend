@@ -11,10 +11,12 @@ import type {
   EndpointCreate,
   ModelConfig,
   ModelConfigListItem,
+  PricingTemplate,
 } from "@/lib/types";
 import type { HeaderRow } from "./useModelDetailDialogState";
 import {
   patchModelListConnectionCounts,
+  hydrateConnectionPricingTemplate,
   removeConnectionFromList,
   resolveConnectionProbeEndpointVariant,
   upsertConnectionInList,
@@ -31,6 +33,7 @@ interface UseModelDetailConnectionMutationsInput {
   connectionForm: ConnectionCreate;
   headerRows: HeaderRow[];
   editingConnection: Connection | null;
+  pricingTemplates: PricingTemplate[];
   endpointSourceDefaultName: string | null;
   refreshCurrentState: () => void | Promise<void>;
   setIsConnectionDialogOpen: (open: boolean) => void;
@@ -50,6 +53,7 @@ export function useModelDetailConnectionMutations({
   connectionForm,
   headerRows,
   editingConnection,
+  pricingTemplates,
   endpointSourceDefaultName,
   refreshCurrentState,
   setIsConnectionDialogOpen,
@@ -103,6 +107,7 @@ export function useModelDetailConnectionMutations({
         const savedConnection = editingConnection
           ? await api.connections.update(editingConnection.id, { ...payload })
           : await api.connections.create(Number.parseInt(id, 10), payload);
+        const committedConnection = hydrateConnectionPricingTemplate(savedConnection, pricingTemplates);
 
         if (editingConnection) {
           toast.success(getStaticMessages().modelDetailData.connectionUpdated);
@@ -111,8 +116,8 @@ export function useModelDetailConnectionMutations({
         }
 
         clearSharedReferenceData(undefined, revision);
-        setGlobalEndpoints((current) => upsertEndpointInList(current, savedConnection.endpoint));
-        commitConnections((current) => upsertConnectionInList(current, savedConnection));
+        setGlobalEndpoints((current) => upsertEndpointInList(current, committedConnection.endpoint));
+        commitConnections((current) => upsertConnectionInList(current, committedConnection));
         setIsConnectionDialogOpen(false);
         void refreshCurrentState();
       } catch (error) {
@@ -127,6 +132,7 @@ export function useModelDetailConnectionMutations({
       headerRows,
       id,
       newEndpointForm,
+      pricingTemplates,
       refreshCurrentState,
       revision,
       modelApiFamily,
@@ -158,15 +164,16 @@ export function useModelDetailConnectionMutations({
         const updatedConnection = await api.connections.update(connection.id, {
           is_active: !connection.is_active,
         });
+        const committedConnection = hydrateConnectionPricingTemplate(updatedConnection, pricingTemplates);
         clearSharedReferenceData(undefined, revision);
-        setGlobalEndpoints((current) => upsertEndpointInList(current, updatedConnection.endpoint));
-        commitConnections((current) => upsertConnectionInList(current, updatedConnection));
+        setGlobalEndpoints((current) => upsertEndpointInList(current, committedConnection.endpoint));
+        commitConnections((current) => upsertConnectionInList(current, committedConnection));
         void refreshCurrentState();
       } catch {
         toast.error(getStaticMessages().modelDetailData.toggleConnectionFailed);
       }
     },
-    [commitConnections, refreshCurrentState, revision, setGlobalEndpoints],
+    [commitConnections, pricingTemplates, refreshCurrentState, revision, setGlobalEndpoints],
   );
 
   return {

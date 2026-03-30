@@ -51,6 +51,14 @@ function buildDisabledForm(
 describe("LoadbalanceStrategyDialog", () => {
   beforeEach(() => {
     localStorage.clear();
+    vi.stubGlobal(
+      "ResizeObserver",
+      class ResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
   });
 
   it("shows tooltip help for every failover policy field", async () => {
@@ -154,6 +162,39 @@ describe("LoadbalanceStrategyDialog", () => {
 
     expect(screen.getByText("新增负载均衡策略")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存策略" })).toBeInTheDocument();
+  });
+
+  it("submits through a real form and exposes stable field names", () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={{
+              ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+              name: "single-primary",
+            }}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={onSave}
+            open
+            setLoadbalanceStrategyForm={vi.fn()}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveAttribute("name", "name");
+    expect(document.querySelector('input[type="hidden"][name="strategy_type"]')).toHaveValue("single");
+
+    const form = screen.getByRole("button", { name: "Save Strategy" }).closest("form");
+    expect(form).not.toBeNull();
+
+    fireEvent.submit(form!);
+
+    expect(onSave).toHaveBeenCalledTimes(1);
   });
 
   it("renders localized Chinese field labels, descriptions, and tooltip accessibility copy", async () => {
@@ -397,7 +438,7 @@ describe("LoadbalanceStrategyDialog", () => {
     fireEvent.click(strategyTypeSelect);
     expect(screen.getAllByText("Fill-first").length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByText("Failover"));
+    fireEvent.click(screen.getAllByText("Failover").at(-1)!);
     const switchToFailover = setLoadbalanceStrategyForm.mock.calls.at(-1)?.[0] as
       | ((state: typeof currentForm) => typeof currentForm)
       | undefined;
@@ -407,7 +448,7 @@ describe("LoadbalanceStrategyDialog", () => {
     });
 
     fireEvent.click(strategyTypeSelect);
-    fireEvent.click(screen.getByText("Single"));
+    fireEvent.click(screen.getAllByText("Single").at(-1)!);
     const switchToSingle = setLoadbalanceStrategyForm.mock.calls
       .map((call) => call[0])
       .find(
@@ -464,7 +505,7 @@ describe("LoadbalanceStrategyDialog", () => {
     fireEvent.click(strategyTypeSelect);
     expect(screen.getAllByText("Round-robin").length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByText("Round-robin"));
+    fireEvent.click(screen.getAllByText("Round-robin").at(-1)!);
     const switchToRoundRobin = setLoadbalanceStrategyForm.mock.calls.at(-1)?.[0] as
       | ((state: typeof currentForm) => typeof currentForm)
       | undefined;

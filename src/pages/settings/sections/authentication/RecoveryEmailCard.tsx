@@ -88,6 +88,8 @@ export function RecoveryEmailCard({
               >
               <Input
                 id="auth-email"
+                name="email"
+                autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder={copy.recoveryEmailPlaceholder}
@@ -119,8 +121,11 @@ export function RecoveryEmailCard({
                     : copy.verificationCodePrompt}
                 </p>
                 <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-                  <AuthenticationFieldShell label={copy.verificationCode}>
+                  <AuthenticationFieldShell label={copy.verificationCode} htmlFor="auth-email-otp">
                     <Input
+                      id="auth-email-otp"
+                      name="otp-code"
+                      autoComplete="one-time-code"
                       value={emailVerificationOtp}
                       onChange={(event) => setEmailVerificationOtp(event.target.value)}
                       placeholder={copy.verificationOtpPlaceholder}

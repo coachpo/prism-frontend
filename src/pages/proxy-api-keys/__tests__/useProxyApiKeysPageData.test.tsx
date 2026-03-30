@@ -134,7 +134,11 @@ describe("useProxyApiKeysPageData", () => {
         notes: "Used by cron jobs",
         is_active: false,
       });
-      expect(result.current.editingProxyKey).toBeNull();
+      expect(result.current.editProxyKeyDialogOpen).toBe(false);
+      expect(result.current.editingProxyKey).toMatchObject({ id: 1 });
+      expect(result.current.editingProxyKeyName).toBe("Background worker");
+      expect(result.current.editingProxyKeyNotes).toBe("Used by cron jobs");
+      expect(result.current.editingProxyKeyActive).toBe(false);
     });
 
     expect(toast.success).toHaveBeenCalledWith("Proxy API key updated");
@@ -240,7 +244,7 @@ describe("useProxyApiKeysPageData", () => {
     expect(toast.success).toHaveBeenCalledWith("Proxy API key rotated");
   });
 
-  it("removes the deleted key and clears the delete confirmation state", async () => {
+  it("closes the delete dialog without dropping the displayed key snapshot", async () => {
     api.settings.auth.proxyKeys.delete.mockResolvedValue(undefined);
 
     const { result } = renderHook(() => useProxyApiKeysPageData());
@@ -263,8 +267,61 @@ describe("useProxyApiKeysPageData", () => {
     });
 
     expect(result.current.displayedProxyKeys).toHaveLength(0);
+    expect(result.current.deleteProxyKeyDialogOpen).toBe(false);
     expect(result.current.deleteConfirm).toBeNull();
+    expect(result.current.displayedDeleteConfirm).toMatchObject({
+      id: 1,
+      name: "Production client",
+      key_prefix: "pk_live",
+    });
     expect(result.current.deletingProxyKeyId).toBeNull();
     expect(toast.success).toHaveBeenCalledWith("Proxy API key deleted");
+  });
+
+  it("clears the reveal-once secret after deleting the key that owns it", async () => {
+    api.settings.auth.proxyKeys.create.mockResolvedValue({
+      key: "pm-new-secret-value",
+      item: buildProxyKey({
+        id: 2,
+        name: "Disposable key",
+        key_prefix: "pm-new",
+        key_preview: "pm-new_****1234",
+        notes: "Created from tests",
+        updated_at: "2026-03-24T01:00:00Z",
+      }),
+    });
+    api.settings.auth.proxyKeys.delete.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useProxyApiKeysPageData());
+
+    await waitFor(() => {
+      expect(result.current.pageLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.setProxyKeyName("Disposable key");
+      result.current.setProxyKeyNotes("Created from tests");
+    });
+
+    await act(async () => {
+      await result.current.handleCreateSubmit(
+        createSubmitEvent() as unknown as Parameters<typeof result.current.handleCreateSubmit>[0],
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.displayedProxyKeys[0]).toMatchObject({ id: 2, name: "Disposable key" });
+      expect(result.current.latestGeneratedKey).toBe("pm-new-secret-value");
+    });
+
+    act(() => {
+      result.current.setDeleteConfirm(result.current.displayedProxyKeys[0]);
+    });
+
+    await act(async () => {
+      await result.current.handleDeleteProxyKey();
+    });
+
+    expect(result.current.latestGeneratedKey).toBeNull();
   });
 });

@@ -24,6 +24,8 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
   const [vendorForm, setVendorForm] = useState<VendorFormState>(DEFAULT_VENDOR_FORM);
   const [vendorSaving, setVendorSaving] = useState(false);
   const [deleteVendorConfirm, setDeleteVendorConfirm] = useState<Vendor | null>(null);
+  const [deleteVendorDialogOpen, setDeleteVendorDialogOpen] = useState(false);
+  const [displayedDeleteVendorConfirm, setDisplayedDeleteVendorConfirm] = useState<Vendor | null>(null);
   const [deleteVendorConflict, setDeleteVendorConflict] = useState<VendorModelUsageItem[] | null>(null);
   const [vendorDeleting, setVendorDeleting] = useState(false);
   const [vendorUsageLoading, setVendorUsageLoading] = useState(false);
@@ -59,15 +61,11 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
 
   const closeVendorDialog = () => {
     setVendorDialogOpen(false);
-    setEditingVendor(null);
-    setVendorForm(DEFAULT_VENDOR_FORM);
   };
 
   const closeDeleteVendorDialog = () => {
+    setDeleteVendorDialogOpen(false);
     setDeleteVendorConfirm(null);
-    setDeleteVendorConflict(null);
-    setVendorUsageRows([]);
-    setVendorUsageLoading(false);
   };
 
   const openCreateVendorDialog = () => {
@@ -121,6 +119,8 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
   const handleDeleteVendorClick = async (vendor: Vendor) => {
     const messages = getStaticMessages();
     setDeleteVendorConfirm(vendor);
+    setDisplayedDeleteVendorConfirm(vendor);
+    setDeleteVendorDialogOpen(true);
     setDeleteVendorConflict(null);
     setVendorUsageRows([]);
     setVendorUsageLoading(true);
@@ -166,7 +166,9 @@ export function useVendorManagementData({ revision }: UseVendorManagementDataInp
     closeDeleteVendorDialog,
     closeVendorDialog,
     deleteVendorConfirm,
+    deleteVendorDialogOpen,
     deleteVendorConflict,
+    displayedDeleteVendorConfirm,
     editingVendor,
     handleDeleteVendor,
     handleDeleteVendorClick,

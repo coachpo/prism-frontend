@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useLocale } from "@/i18n/useLocale";
 import type { Vendor } from "@/lib/types";
+import type { FormEvent } from "react";
 import type { VendorFormState } from "../vendorManagementFormState";
 
 interface VendorDialogProps {
@@ -51,6 +52,10 @@ export function VendorDialog({
     name: vendorForm.name,
     icon_key: vendorForm.icon_key,
   };
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void onSave();
+  };
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
@@ -62,11 +67,13 @@ export function VendorDialog({
           <DialogDescription>{messages.vendorManagement.sectionDescription}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="hidden" name="icon_key" value={vendorForm.icon_key ?? ""} />
           <div className="space-y-2">
             <Label htmlFor="vendor-name">{messages.vendorManagement.nameLabel}</Label>
             <Input
               id="vendor-name"
+              name="name"
               value={vendorForm.name}
               onChange={(event) =>
                 setVendorForm((current) => ({ ...current, name: event.target.value }))
@@ -79,6 +86,7 @@ export function VendorDialog({
             <Label htmlFor="vendor-key">{messages.vendorManagement.keyLabel}</Label>
             <Input
               id="vendor-key"
+              name="key"
               value={vendorForm.key}
               onChange={(event) =>
                 setVendorForm((current) => ({ ...current, key: event.target.value }))
@@ -91,6 +99,7 @@ export function VendorDialog({
             <Label htmlFor="vendor-description">{messages.vendorManagement.descriptionLabel}</Label>
             <Input
               id="vendor-description"
+              name="description"
               value={vendorForm.description}
               onChange={(event) =>
                 setVendorForm((current) => ({ ...current, description: event.target.value }))
@@ -144,20 +153,19 @@ export function VendorDialog({
               </p>
             </div>
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
             {messages.vendorManagement.cancel}
-          </Button>
-          <Button onClick={() => void onSave()} disabled={vendorSaving}>
+            </Button>
+            <Button type="submit" disabled={vendorSaving}>
             {vendorSaving
               ? messages.vendorManagement.saving
               : isEditing
                 ? messages.vendorManagement.saveEdit
                 : messages.vendorManagement.saveCreate}
-          </Button>
-        </DialogFooter>
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

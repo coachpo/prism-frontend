@@ -29,6 +29,8 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
   const [loadbalanceStrategyForm, setLoadbalanceStrategyForm] = useState<LoadbalanceStrategyFormState>(DEFAULT_LOADBALANCE_STRATEGY_FORM);
   const [loadbalanceStrategySaving, setLoadbalanceStrategySaving] = useState(false);
   const [deleteLoadbalanceStrategyConfirm, setDeleteLoadbalanceStrategyConfirm] = useState<LoadbalanceStrategy | null>(null);
+  const [deleteLoadbalanceStrategyDialogOpen, setDeleteLoadbalanceStrategyDialogOpen] = useState(false);
+  const [displayedDeleteLoadbalanceStrategyConfirm, setDisplayedDeleteLoadbalanceStrategyConfirm] = useState<LoadbalanceStrategy | null>(null);
   const [loadbalanceStrategyDeleting, setLoadbalanceStrategyDeleting] = useState(false);
 
   const commitLoadbalanceStrategies = useCallback(
@@ -61,9 +63,11 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
 
   const closeLoadbalanceStrategyDialog = () => {
     setLoadbalanceStrategyDialogOpen(false);
-    setEditingLoadbalanceStrategy(null);
-    setLoadbalanceStrategyPreparingEditId(null);
-    setLoadbalanceStrategyForm(DEFAULT_LOADBALANCE_STRATEGY_FORM);
+  };
+
+  const closeDeleteLoadbalanceStrategyDialog = () => {
+    setDeleteLoadbalanceStrategyDialogOpen(false);
+    setDeleteLoadbalanceStrategyConfirm(null);
   };
 
   const openCreateLoadbalanceStrategyDialog = () => {
@@ -126,6 +130,8 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
 
   const handleDeleteLoadbalanceStrategyClick = (strategy: LoadbalanceStrategy) => {
     setDeleteLoadbalanceStrategyConfirm(strategy);
+    setDisplayedDeleteLoadbalanceStrategyConfirm(strategy);
+    setDeleteLoadbalanceStrategyDialogOpen(true);
   };
 
   const handleDeleteLoadbalanceStrategy = async () => {
@@ -141,19 +147,17 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
         current.filter((strategy) => strategy.id !== deleteLoadbalanceStrategyConfirm.id),
       );
       toast.success(messages.loadbalanceStrategiesData.deleted);
-      setDeleteLoadbalanceStrategyConfirm(null);
+      closeDeleteLoadbalanceStrategyDialog();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         const attachedModelCount = getAttachedModelCountFromErrorDetail(error.detail);
         if (attachedModelCount !== null) {
-          setDeleteLoadbalanceStrategyConfirm((current) =>
-            current
-              ? {
-                  ...current,
-                  attached_model_count: attachedModelCount,
-                }
-              : current,
-          );
+          const nextConfirm = {
+            ...deleteLoadbalanceStrategyConfirm,
+            attached_model_count: attachedModelCount,
+          };
+          setDeleteLoadbalanceStrategyConfirm(nextConfirm);
+          setDisplayedDeleteLoadbalanceStrategyConfirm(nextConfirm);
         }
       }
       toast.error(error instanceof Error ? error.message : messages.loadbalanceStrategiesData.deleteFailed);
@@ -164,7 +168,10 @@ export function useLoadbalanceStrategiesPageData(revision: number) {
 
   return {
     closeLoadbalanceStrategyDialog,
+    closeDeleteLoadbalanceStrategyDialog,
     deleteLoadbalanceStrategyConfirm,
+    deleteLoadbalanceStrategyDialogOpen,
+    displayedDeleteLoadbalanceStrategyConfirm,
     editingLoadbalanceStrategy,
     handleDeleteLoadbalanceStrategy,
     handleDeleteLoadbalanceStrategyClick,

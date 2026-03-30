@@ -2,12 +2,14 @@ import type {
   ApiFamily,
   Connection,
   ConnectionCreate,
+  ConnectionPricingTemplateSummary,
   Endpoint,
   EndpointCreate,
   HealthCheckResponse,
   ModelConfig,
   ModelConfigListItem,
   OpenAiProbeEndpointVariant,
+  PricingTemplate,
 } from "@/lib/types";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import { normalizeProxyTargets } from "../models/modelFormState";
@@ -136,6 +138,32 @@ export function upsertConnectionInList(
   );
 }
 
+export function hydrateConnectionPricingTemplate(
+  connection: Connection,
+  pricingTemplates: PricingTemplate[],
+): Connection {
+  if (connection.pricing_template_id == null) {
+    return connection.pricing_template == null
+      ? connection
+      : { ...connection, pricing_template: null };
+  }
+
+  if (connection.pricing_template?.id === connection.pricing_template_id) {
+    return connection;
+  }
+
+  const matchedTemplate = pricingTemplates.find((template) => template.id === connection.pricing_template_id);
+
+  if (!matchedTemplate) {
+    return connection;
+  }
+
+  return {
+    ...connection,
+    pricing_template: buildConnectionPricingTemplateSummary(matchedTemplate),
+  };
+}
+
 export function removeConnectionFromList(
   connections: Connection[],
   connectionId: number,
@@ -245,6 +273,18 @@ export function resolveProxyTargetLabel(
   targetOptions: { modelId: string; label: string }[],
 ) {
   return targetOptions.find((target) => target.modelId === targetModelId)?.label ?? targetModelId;
+}
+
+function buildConnectionPricingTemplateSummary(
+  pricingTemplate: PricingTemplate,
+): ConnectionPricingTemplateSummary {
+  return {
+    id: pricingTemplate.id,
+    name: pricingTemplate.name,
+    pricing_unit: pricingTemplate.pricing_unit,
+    pricing_currency_code: pricingTemplate.pricing_currency_code,
+    version: pricingTemplate.version,
+  };
 }
 
 export function buildProxyTargetSummary(

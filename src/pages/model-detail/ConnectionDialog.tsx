@@ -130,6 +130,23 @@ export function ConnectionDialog({
           <DialogDescription>{copy.connectionDialogDescription}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleConnectionSubmit} className="space-y-5">
+          <input type="hidden" name="create_mode" value={createMode} />
+          <input
+            type="hidden"
+            name="selected_endpoint_id"
+            value={createMode === "select" ? selectedEndpointId : ""}
+          />
+          <input type="hidden" name="is_active" value={String(connectionForm.is_active ?? true)} />
+          <input
+            type="hidden"
+            name="pricing_template_id"
+            value={connectionForm.pricing_template_id === null ? "" : String(connectionForm.pricing_template_id)}
+          />
+          <input
+            type="hidden"
+            name="openai_probe_endpoint_variant"
+            value={connectionForm.openai_probe_endpoint_variant ?? "responses"}
+          />
           <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -156,9 +173,9 @@ export function ConnectionDialog({
               </TabsList>
 
               <TabsContent value="select" className="space-y-2">
-                <Label>{copy.selectEndpoint}</Label>
+                <Label htmlFor="conn-selected-endpoint">{copy.selectEndpoint}</Label>
                 <Select value={selectedEndpointId} onValueChange={setSelectedEndpointId}>
-                  <SelectTrigger>
+                  <SelectTrigger id="conn-selected-endpoint">
                     <SelectValue placeholder={copy.selectEndpointPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
@@ -181,8 +198,10 @@ export function ConnectionDialog({
 
               <TabsContent value="new" className="space-y-3">
                 <div className="space-y-2">
-                  <Label>{copy.endpointName}</Label>
+                  <Label htmlFor="endpoint-name">{copy.endpointName}</Label>
                   <Input
+                    id="endpoint-name"
+                    name="endpoint_name"
                     placeholder={copy.endpointNamePlaceholder}
                     value={newEndpointForm.name}
                     onChange={(e) => setNewEndpointForm({ ...newEndpointForm, name: e.target.value })}
@@ -190,8 +209,11 @@ export function ConnectionDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{copy.endpointBaseUrl}</Label>
+                  <Label htmlFor="endpoint-base-url">{copy.endpointBaseUrl}</Label>
                   <Input
+                    id="endpoint-base-url"
+                    name="endpoint_base_url"
+                    autoComplete="url"
                     placeholder={copy.endpointBaseUrlPlaceholder}
                     value={newEndpointForm.base_url}
                     onChange={(e) => setNewEndpointForm({ ...newEndpointForm, base_url: e.target.value })}
@@ -199,9 +221,12 @@ export function ConnectionDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{copy.endpointApiKey}</Label>
+                  <Label htmlFor="endpoint-api-key">{copy.endpointApiKey}</Label>
                   <Input
+                    id="endpoint-api-key"
+                    name="endpoint_api_key"
                     type="password"
+                    autoComplete="off"
                     placeholder={copy.endpointApiKeyPlaceholder}
                     value={newEndpointForm.api_key}
                     onChange={(e) => setNewEndpointForm({ ...newEndpointForm, api_key: e.target.value })}
@@ -217,6 +242,7 @@ export function ConnectionDialog({
               <Label htmlFor="conn-name">{copy.connectionNameOptional}</Label>
               <Input
                 id="conn-name"
+                name="name"
                 placeholder={copy.connectionDisplayNamePlaceholder}
                 value={connectionForm.name || ""}
                 onChange={(e) => setConnectionForm({ ...connectionForm, name: e.target.value })}
@@ -238,7 +264,7 @@ export function ConnectionDialog({
           />
 
           <div className="space-y-2">
-            <Label>{copy.pricingTemplate}</Label>
+            <Label htmlFor="conn-pricing-template">{copy.pricingTemplate}</Label>
             <Select
               value={connectionForm.pricing_template_id ? String(connectionForm.pricing_template_id) : "unpriced"}
               onValueChange={(value) => {
@@ -248,7 +274,7 @@ export function ConnectionDialog({
                 });
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="conn-pricing-template">
                 <SelectValue placeholder={copy.pricingTemplatePlaceholder} />
               </SelectTrigger>
               <SelectContent>
@@ -267,7 +293,7 @@ export function ConnectionDialog({
 
           {showOpenAiProbeEndpointVariant ? (
             <div className="space-y-2">
-              <Label>{copy.openaiProbeEndpointVariant}</Label>
+              <Label htmlFor="conn-openai-probe-endpoint-variant">{copy.openaiProbeEndpointVariant}</Label>
               <Select
                 value={connectionForm.openai_probe_endpoint_variant ?? "responses"}
                 onValueChange={(value) => {
@@ -277,7 +303,7 @@ export function ConnectionDialog({
                   });
                 }}
               >
-                <SelectTrigger aria-label={copy.openaiProbeEndpointVariant}>
+                <SelectTrigger id="conn-openai-probe-endpoint-variant" aria-label={copy.openaiProbeEndpointVariant}>
                   <SelectValue placeholder={copy.openaiProbeEndpointVariant} />
                 </SelectTrigger>
                 <SelectContent>
@@ -298,6 +324,7 @@ export function ConnectionDialog({
                 </div>
                 <Input
                   id={field.id}
+                  name={field.field}
                   type="number"
                   min="0"
                   value={field.value ?? ""}
@@ -328,6 +355,9 @@ export function ConnectionDialog({
               {headerRows.map((row, index) => (
                 <div key={`${row.key}:${row.value}`} className="flex items-center gap-2">
                   <Input
+                    id={`connection-header-key-${index}`}
+                    name={`custom_headers.${index}.key`}
+                    aria-label={copy.headerKey}
                     placeholder={copy.headerKey}
                     value={row.key}
                     onChange={(e) => {
@@ -338,6 +368,9 @@ export function ConnectionDialog({
                     className="flex-1"
                   />
                   <Input
+                    id={`connection-header-value-${index}`}
+                    name={`custom_headers.${index}.value`}
+                    aria-label={copy.headerValue}
                     placeholder={copy.headerValue}
                     value={row.value}
                     onChange={(e) => {

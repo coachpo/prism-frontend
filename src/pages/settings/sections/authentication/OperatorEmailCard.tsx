@@ -53,6 +53,8 @@ export function OperatorEmailCard({
         >
           <Input
             id="auth-username"
+            name="username"
+            autoComplete="username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             placeholder={copy.usernamePlaceholder}
@@ -73,7 +75,9 @@ export function OperatorEmailCard({
         >
           <Input
             id="auth-password"
+            name="password"
             type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
@@ -91,7 +95,9 @@ export function OperatorEmailCard({
         >
           <Input
             id="auth-password-confirm"
+            name="password-confirm"
             type="password"
+            autoComplete="new-password"
             value={passwordConfirm}
             onChange={(event) => setPasswordConfirm(event.target.value)}
           />

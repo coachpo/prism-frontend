@@ -12,25 +12,31 @@ import type { LoadbalanceStrategy } from "@/lib/types";
 
 interface DeleteLoadbalanceStrategyDialogProps {
   deleteLoadbalanceStrategyConfirm: LoadbalanceStrategy | null;
+  displayedDeleteLoadbalanceStrategyConfirm?: LoadbalanceStrategy | null;
   loadbalanceStrategyDeleting: boolean;
   onClose: () => void;
   onDelete: () => Promise<void>;
+  open?: boolean;
 }
 
 export function DeleteLoadbalanceStrategyDialog({
   deleteLoadbalanceStrategyConfirm,
+  displayedDeleteLoadbalanceStrategyConfirm,
   loadbalanceStrategyDeleting,
   onClose,
   onDelete,
+  open,
 }: DeleteLoadbalanceStrategyDialogProps) {
   const { formatNumber, messages } = useLocale();
   const copy = messages.loadbalanceStrategiesTable;
-  const attachedModelCount = deleteLoadbalanceStrategyConfirm?.attached_model_count ?? 0;
+  const dialogStrategy = displayedDeleteLoadbalanceStrategyConfirm ?? deleteLoadbalanceStrategyConfirm;
+  const dialogOpen = open ?? deleteLoadbalanceStrategyConfirm !== null;
+  const attachedModelCount = dialogStrategy?.attached_model_count ?? 0;
   const isInUse = attachedModelCount > 0;
 
   return (
     <Dialog
-      open={deleteLoadbalanceStrategyConfirm !== null}
+      open={dialogOpen}
       onOpenChange={(open) => {
         if (!open) {
           onClose();
@@ -40,7 +46,7 @@ export function DeleteLoadbalanceStrategyDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{copy.deleteStrategy}</DialogTitle>
-          <DialogDescription>{copy.deleteStrategyDescription(deleteLoadbalanceStrategyConfirm?.name ?? "")}</DialogDescription>
+          <DialogDescription>{copy.deleteStrategyDescription(dialogStrategy?.name ?? "")}</DialogDescription>
         </DialogHeader>
 
         <div className="py-4">

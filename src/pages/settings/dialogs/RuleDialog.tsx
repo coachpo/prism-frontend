@@ -21,6 +21,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SwitchController } from "@/components/SwitchController";
 import type { HeaderBlocklistRule, HeaderBlocklistRuleCreate } from "@/lib/types";
+import type { FormEvent } from "react";
 
 interface RuleDialogProps {
   ruleDialogOpen: boolean;
@@ -41,6 +42,10 @@ export function RuleDialog({
 }: RuleDialogProps) {
   const { messages } = useLocale();
   const copy = messages.settingsDialogs;
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleSaveRule();
+  };
 
   return (
     <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
@@ -50,7 +55,9 @@ export function RuleDialog({
           <DialogDescription>{editingRule ? copy.ruleDialogEditDescription : copy.ruleDialogAddDescription}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-1">
+        <form onSubmit={handleSubmit} className="space-y-4 py-1">
+          <input type="hidden" name="match_type" value={ruleForm.match_type} />
+          <input type="hidden" name="enabled" value={String(ruleForm.enabled)} />
           <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
             <div className="flex items-start gap-2">
               <Tooltip>
@@ -78,6 +85,7 @@ export function RuleDialog({
               </Label>
               <Input
                 id="rule-name"
+                name="name"
                 value={ruleForm.name}
                 onChange={(event) =>
                   setRuleForm((prev) => ({ ...prev, name: event.target.value }))
@@ -117,6 +125,7 @@ export function RuleDialog({
               <div className="col-span-3 space-y-1">
                 <Input
                   id="rule-pattern"
+                  name="pattern"
                   value={ruleForm.pattern}
                   onChange={(event) =>
                     setRuleForm((prev) => ({ ...prev, pattern: event.target.value }))
@@ -145,14 +154,13 @@ export function RuleDialog({
               }
             />
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRuleDialogOpen(false)}>
             {copy.cancel}
-          </Button>
-          <Button onClick={() => void handleSaveRule()}>{copy.saveRule}</Button>
-        </DialogFooter>
+            </Button>
+            <Button type="submit">{copy.saveRule}</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -147,6 +147,7 @@ export function useModelDetailData(id: string | undefined) {
     connectionForm,
     headerRows,
     editingConnection,
+    pricingTemplates,
     endpointSourceDefaultName,
     refreshCurrentState,
     setIsConnectionDialogOpen,

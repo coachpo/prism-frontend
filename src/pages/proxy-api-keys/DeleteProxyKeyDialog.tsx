@@ -12,7 +12,9 @@ import type { ProxyApiKey } from "@/lib/types";
 
 type Props = {
   deleteConfirm: ProxyApiKey | null;
+  displayedDeleteConfirm?: ProxyApiKey | null;
   deletingProxyKeyId: number | null;
+  open?: boolean;
   onClose: () => void;
   onDelete: () => void;
   onOpenChange: (open: boolean) => void;
@@ -20,24 +22,28 @@ type Props = {
 
 export function DeleteProxyKeyDialog({
   deleteConfirm,
+  displayedDeleteConfirm,
   deletingProxyKeyId,
+  open,
   onClose,
   onDelete,
   onOpenChange,
 }: Props) {
   const { messages } = useLocale();
   const copy = messages.proxyApiKeys;
+  const dialogKey = displayedDeleteConfirm ?? deleteConfirm;
+  const dialogOpen = open ?? deleteConfirm !== null;
   return (
-    <Dialog open={deleteConfirm !== null} onOpenChange={onOpenChange}>
+    <Dialog open={dialogOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{copy.deleteProxyApiKey}</DialogTitle>
           <DialogDescription>
-            {copy.deleteProxyApiKeyDescription(deleteConfirm?.name ?? "", deleteConfirm?.key_prefix ?? "")}
+            {copy.deleteProxyApiKeyDescription(dialogKey?.name ?? "", dialogKey?.key_prefix ?? "")}
           </DialogDescription>
         </DialogHeader>
 
-        {deleteConfirm ? (
+        {dialogKey ? (
           <div className="space-y-4 py-2">
             <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3">
               <p className="text-sm text-destructive">{messages.vendorManagement.thisActionCannotBeUndone}</p>

@@ -66,7 +66,7 @@ export function ProxyApiKeysPage() {
       )}
 
       <EditProxyKeyDialog
-        open={data.editingProxyKey !== null}
+        open={data.editProxyKeyDialogOpen}
         proxyKeyActive={data.editingProxyKeyActive}
         proxyKeyName={data.editingProxyKeyName}
         proxyKeyNotes={data.editingProxyKeyNotes}
@@ -79,7 +79,9 @@ export function ProxyApiKeysPage() {
       />
 
       <DeleteProxyKeyDialog
+        open={data.deleteProxyKeyDialogOpen}
         deleteConfirm={data.deleteConfirm}
+        displayedDeleteConfirm={data.displayedDeleteConfirm}
         deletingProxyKeyId={data.deletingProxyKeyId}
         onClose={() => data.setDeleteConfirm(null)}
         onDelete={() => void data.handleDeleteProxyKey()}

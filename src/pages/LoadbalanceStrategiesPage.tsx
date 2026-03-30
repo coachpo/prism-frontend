@@ -59,9 +59,11 @@ export function LoadbalanceStrategiesPage() {
 
       <DeleteLoadbalanceStrategyDialog
         deleteLoadbalanceStrategyConfirm={data.deleteLoadbalanceStrategyConfirm}
+        displayedDeleteLoadbalanceStrategyConfirm={data.displayedDeleteLoadbalanceStrategyConfirm}
         loadbalanceStrategyDeleting={data.loadbalanceStrategyDeleting}
-        onClose={() => data.setDeleteLoadbalanceStrategyConfirm(null)}
+        onClose={data.closeDeleteLoadbalanceStrategyDialog}
         onDelete={data.handleDeleteLoadbalanceStrategy}
+        open={data.deleteLoadbalanceStrategyDialogOpen}
       />
     </div>
   );

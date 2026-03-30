@@ -22,8 +22,10 @@ import { formatApiFamily } from "@/lib/utils";
 interface DeleteVendorDialogProps {
   deleteVendorConfirm: Vendor | null;
   deleteVendorConflict: VendorModelUsageItem[] | null;
+  displayedDeleteVendorConfirm?: Vendor | null;
   onClose: () => void;
   onDelete: () => Promise<void>;
+  open?: boolean;
   vendorDeleting: boolean;
   vendorUsageLoading: boolean;
   vendorUsageRows: VendorModelUsageItem[];
@@ -32,25 +34,29 @@ interface DeleteVendorDialogProps {
 export function DeleteVendorDialog({
   deleteVendorConfirm,
   deleteVendorConflict,
+  displayedDeleteVendorConfirm,
   onClose,
   onDelete,
+  open,
   vendorDeleting,
   vendorUsageLoading,
   vendorUsageRows,
 }: DeleteVendorDialogProps) {
   const { messages } = useLocale();
+  const dialogVendor = displayedDeleteVendorConfirm ?? deleteVendorConfirm;
+  const dialogOpen = open ?? deleteVendorConfirm !== null;
   const modelTypeLabel = (modelType: string) =>
     modelType === "proxy" ? messages.modelDetail.typeProxy : messages.modelDetail.typeNative;
   const blockedRows = deleteVendorConflict?.length ? deleteVendorConflict : vendorUsageRows;
   const isBlocked = blockedRows.length > 0;
 
   return (
-    <Dialog open={deleteVendorConfirm !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={dialogOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{messages.vendorManagement.deleteTitle}</DialogTitle>
           <DialogDescription>
-            {messages.vendorManagement.deleteDescription(deleteVendorConfirm?.name ?? "")}
+            {messages.vendorManagement.deleteDescription(dialogVendor?.name ?? "")}
           </DialogDescription>
         </DialogHeader>
 

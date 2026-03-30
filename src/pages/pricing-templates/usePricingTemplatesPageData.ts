@@ -69,9 +69,6 @@ export function usePricingTemplatesPageData(revision: number) {
 
   const closePricingTemplateDialog = () => {
     setPricingTemplateDialogOpen(false);
-    setEditingPricingTemplate(null);
-    setPricingTemplatePreparingEditId(null);
-    setPricingTemplateForm(DEFAULT_PRICING_TEMPLATE_FORM);
   };
 
   const openCreatePricingTemplateDialog = () => {

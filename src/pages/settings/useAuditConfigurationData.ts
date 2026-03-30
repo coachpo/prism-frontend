@@ -31,7 +31,9 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<HeaderBlocklistRule | null>(null);
   const [ruleForm, setRuleForm] = useState<HeaderBlocklistRuleCreate>(DEFAULT_RULE_FORM);
-  const [deleteRuleConfirm, setDeleteRuleConfirm] = useState<HeaderBlocklistRule | null>(null);
+  const [deleteRuleConfirm, setDeleteRuleConfirmState] = useState<HeaderBlocklistRule | null>(null);
+  const [deleteRuleDialogOpen, setDeleteRuleDialogOpen] = useState(false);
+  const [displayedDeleteRuleConfirm, setDisplayedDeleteRuleConfirm] = useState<HeaderBlocklistRule | null>(null);
   const [systemRulesOpen, setSystemRulesOpen] = useState(false);
   const [userRulesOpen, setUserRulesOpen] = useState(true);
   const vendorsRequestIdRef = useRef(0);
@@ -180,8 +182,6 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
         setBlocklistRules((prev) => [...prev, createdRule]);
         toast.success(getMessages().settingsAuditData.ruleCreated);
       }
-      setEditingRule(null);
-      setRuleForm(DEFAULT_RULE_FORM);
       setRuleDialogOpen(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : getMessages().settingsAuditData.saveRuleFailed);
@@ -197,15 +197,30 @@ export function useAuditConfigurationData({ revision }: UseAuditConfigurationDat
       await api.config.headerBlocklistRules.delete(deleteRuleConfirm.id);
       setBlocklistRules((prev) => prev.filter((rule) => rule.id !== deleteRuleConfirm.id));
       toast.success(getMessages().settingsAuditData.ruleDeleted);
-      setDeleteRuleConfirm(null);
+      setDeleteRuleDialogOpen(false);
+      setDeleteRuleConfirmState(null);
     } catch {
       toast.error(getMessages().settingsAuditData.deleteRuleFailed);
     }
   };
 
+  const setDeleteRuleConfirm = (rule: HeaderBlocklistRule | null) => {
+    setDeleteRuleConfirmState(rule);
+
+    if (rule) {
+      setDisplayedDeleteRuleConfirm(rule);
+      setDeleteRuleDialogOpen(true);
+      return;
+    }
+
+    setDeleteRuleDialogOpen(false);
+  };
+
   return {
     customRules,
     deleteRuleConfirm,
+    deleteRuleDialogOpen,
+    displayedDeleteRuleConfirm,
     editingRule,
     handleDeleteRule,
     handleSaveRule,

@@ -57,7 +57,7 @@ describe("model dialogs i18n", () => {
     });
   });
 
-  it("renders localized model dialog copy", () => {
+  it("renders localized model dialog copy with stable form semantics", () => {
     const dialogProps: ComponentProps<typeof ModelDialog> = {
       editingModel: null,
       formData: {
@@ -90,7 +90,11 @@ describe("model dialogs i18n", () => {
     expect(screen.getByText("新建模型")).toBeInTheDocument();
     expect(screen.getByText("供应商")).toBeInTheDocument();
     expect(screen.getByText("API 家族")).toBeInTheDocument();
-    expect(screen.getByText("模型 ID")).toBeInTheDocument();
+    expect(screen.getByLabelText("模型 ID")).toHaveAttribute("name", "model_id");
+    expect(screen.getByLabelText("显示名称")).toHaveAttribute("name", "display_name");
+    expect(document.querySelector('input[type="hidden"][name="vendor_id"]')).toHaveValue("1");
+    expect(document.querySelector('input[type="hidden"][name="api_family"]')).toHaveValue("openai");
+    expect(document.querySelector('input[type="hidden"][name="model_type"]')).toHaveValue("native");
     expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
   });
 

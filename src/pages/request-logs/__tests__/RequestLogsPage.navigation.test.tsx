@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as React from "react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RequestLogEntry } from "@/lib/types";
 import { RequestLogsPage } from "../../RequestLogsPage";
 
@@ -87,7 +88,9 @@ vi.mock("../clientFilters", () => ({
 }));
 
 vi.mock("../RequestFocusBanner", () => ({
-  RequestFocusBanner: () => <div>request-focus-banner</div>,
+  RequestFocusBanner: ({ requestId }: { requestId: string | null }) => (
+    <div>{`request-focus-banner:${requestId ?? ""}`}</div>
+  ),
 }));
 
 vi.mock("../FiltersBar", () => ({
@@ -95,23 +98,85 @@ vi.mock("../FiltersBar", () => ({
 }));
 
 vi.mock("../RequestLogsTable", () => ({
-  RequestLogsTable: () => <div>request-logs-table</div>,
+  RequestLogsTable: ({
+    activeRequestId,
+    items,
+    onSelectRequest,
+  }: {
+    activeRequestId: number | null;
+    items: RequestLogEntry[];
+    onSelectRequest: (id: number) => void;
+  }) => (
+    <div>
+      <div>request-logs-table</div>
+      {items[0] ? (
+        <button type="button" onClick={() => onSelectRequest(items[0].id)}>
+          open-request
+        </button>
+      ) : null}
+      {activeRequestId !== null ? <div>{`active-request:${activeRequestId}`}</div> : null}
+    </div>
+  ),
 }));
 
-vi.mock("../RequestLogDetailSheet", () => ({
-  RequestLogDetailSheet: ({
-    onNavigateToConnection,
-    request,
-  }: {
-    onNavigateToConnection: (connectionId: number) => void;
-    request: RequestLogEntry | null;
-  }) =>
-    request ? (
-      <button type="button" onClick={() => onNavigateToConnection(request.connection_id ?? -1)}>
-        navigate-to-connection
-      </button>
-    ) : null,
-}));
+vi.mock("../RequestLogDetailSheet", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+
+  return {
+    RequestLogDetailSheet: ({
+      activeTab,
+      onClose,
+      onNavigateToConnection,
+      onTabChange,
+      open,
+      request,
+    }: {
+      activeTab: "overview" | "audit";
+      onClose: () => void;
+      onNavigateToConnection: (connectionId: number) => void;
+      onTabChange: (tab: "overview" | "audit") => void;
+      open: boolean;
+      request: RequestLogEntry | null;
+    }) => {
+      const [isPresent, setIsPresent] = React.useState(open);
+
+      React.useEffect(() => {
+        if (open) {
+          setIsPresent(true);
+          return;
+        }
+
+        const timer = window.setTimeout(() => setIsPresent(false), 0);
+        return () => window.clearTimeout(timer);
+      }, [open]);
+
+      if (!isPresent) {
+        return null;
+      }
+
+      return (
+        <div data-open={open ? "true" : "false"} data-testid="detail-sheet">
+          <div>{`Request #${request?.id ?? ""}`}</div>
+          <div>{`active-tab:${activeTab}`}</div>
+          {request ? (
+            <button type="button" onClick={() => onNavigateToConnection(request.connection_id ?? -1)}>
+              navigate-to-connection
+            </button>
+          ) : null}
+          <button type="button" onClick={() => onTabChange("audit")}>
+            switch-to-audit
+          </button>
+          <button type="button" onClick={() => onTabChange("overview")}>
+            switch-to-overview
+          </button>
+          <button type="button" onClick={onClose}>
+            close-request
+          </button>
+        </div>
+      );
+    },
+  };
+});
 
 function buildRequestLogEntry(): RequestLogEntry {
   return {
@@ -166,7 +231,67 @@ function buildRequestLogEntry(): RequestLogEntry {
   };
 }
 
-describe("RequestLogsPage connection navigation", () => {
+function setupMockPageState(overrides: Partial<Record<string, unknown>> = {}) {
+  const clearRequest = vi.fn();
+  const setDetailTab = vi.fn();
+  const setLimit = vi.fn();
+  const goToNextPage = vi.fn();
+  const goToPreviousPage = vi.fn();
+
+  mockUseRequestLogPageState.mockImplementation(() => {
+    const [state, setState] = React.useState({
+      ingress_request_id: "",
+      model_id: "",
+      api_family: "",
+      connection_id: "",
+      endpoint_id: "",
+      time_range: "24h",
+      status_family: "all",
+      search: "",
+      outcome_filter: "all",
+      stream_filter: "all",
+      latency_bucket: "all",
+      token_min: "",
+      token_max: "",
+      priced_only: false,
+      billable_only: false,
+      special_token_filter: "all",
+      triage: false,
+      request_id: "",
+      detail_tab: "overview",
+      view: "table",
+      limit: 25,
+      offset: 0,
+      ...overrides,
+    });
+
+    return {
+      state,
+      isExactMode: state.request_id !== "",
+      clearRequest: () => {
+        clearRequest();
+        setState((current) => ({ ...current, request_id: "", detail_tab: "overview" }));
+      },
+      setDetailTab: (tab: "overview" | "audit") => {
+        setDetailTab(tab);
+        setState((current) => ({ ...current, detail_tab: tab }));
+      },
+      setLimit,
+      goToNextPage,
+      goToPreviousPage,
+    };
+  });
+
+  return {
+    clearRequest,
+    goToNextPage,
+    goToPreviousPage,
+    setDetailTab,
+    setLimit,
+  };
+}
+
+describe("RequestLogsPage request detail sheet", () => {
   beforeEach(() => {
     mockConnectionsOwner.mockReset();
     mockNavigate.mockReset();
@@ -174,31 +299,6 @@ describe("RequestLogsPage connection navigation", () => {
     mockUseRequestLogsPageData.mockReset();
 
     mockConnectionsOwner.mockResolvedValue({ model_config_id: 99 });
-    mockUseRequestLogPageState.mockReturnValue({
-      state: {
-        search: "",
-        outcome_filter: "all",
-        stream_filter: "all",
-        latency_bucket: "all",
-        token_min: "",
-        token_max: "",
-        priced_only: false,
-        billable_only: false,
-        special_token_filter: "all",
-        triage: "all",
-        request_id: "42",
-        detail_tab: "overview",
-        view: "table",
-        limit: 25,
-        offset: 0,
-      },
-      isExactMode: true,
-      clearRequest: vi.fn(),
-      setDetailTab: vi.fn(),
-      setLimit: vi.fn(),
-      goToNextPage: vi.fn(),
-      goToPreviousPage: vi.fn(),
-    });
     mockUseRequestLogsPageData.mockReturnValue({
       items: [buildRequestLogEntry()],
       total: 1,
@@ -210,7 +310,88 @@ describe("RequestLogsPage connection navigation", () => {
     });
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("keeps the selected request visible during overview close until the sheet fully exits", () => {
+    vi.useFakeTimers();
+    setupMockPageState();
+
+    render(<RequestLogsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "open-request" }));
+    expect(screen.getByText("Request #42")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "close-request" }));
+
+    expect(screen.getByTestId("detail-sheet")).toHaveAttribute("data-open", "false");
+    expect(screen.getByText("Request #42")).toBeInTheDocument();
+    expect(screen.queryByText(/^Request #$/)).not.toBeInTheDocument();
+
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    expect(screen.queryByTestId("detail-sheet")).not.toBeInTheDocument();
+  });
+
+  it("closes from the audit tab in one action without degrading to a blank request shell", () => {
+    vi.useFakeTimers();
+    setupMockPageState();
+
+    render(<RequestLogsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "open-request" }));
+    fireEvent.click(screen.getByRole("button", { name: "switch-to-audit" }));
+
+    expect(screen.getByText("active-tab:audit")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "close-request" }));
+
+    expect(screen.getByTestId("detail-sheet")).toHaveAttribute("data-open", "false");
+    expect(screen.getByText("Request #42")).toBeInTheDocument();
+    expect(screen.getByText("active-tab:audit")).toBeInTheDocument();
+    expect(screen.queryByText("active-tab:overview")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Request #$/)).not.toBeInTheDocument();
+
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    expect(screen.queryByTestId("detail-sheet")).not.toBeInTheDocument();
+  });
+
+  it("clears exact-request mode after dismissal while keeping the request snapshot stable during exit", () => {
+    vi.useFakeTimers();
+    const { clearRequest } = setupMockPageState({ request_id: "42", detail_tab: "audit" });
+
+    render(<RequestLogsPage />);
+
+    expect(screen.getByText("request-focus-banner:42")).toBeInTheDocument();
+    expect(screen.getByText("Request #42")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "close-request" }));
+
+    expect(clearRequest).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("detail-sheet")).toHaveAttribute("data-open", "false");
+    expect(screen.getByText("Request #42")).toBeInTheDocument();
+    expect(screen.getByText("active-tab:audit")).toBeInTheDocument();
+    expect(screen.queryByText("active-tab:overview")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Request #$/)).not.toBeInTheDocument();
+
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    expect(screen.queryByTestId("detail-sheet")).not.toBeInTheDocument();
+    expect(screen.queryByText("request-focus-banner:42")).not.toBeInTheDocument();
+    expect(screen.getByText("request-logs-table")).toBeInTheDocument();
+  });
+
   it("drills from a request log into the owning model with focus_connection_id", async () => {
+    setupMockPageState({ request_id: "42", detail_tab: "overview" });
+
     render(<RequestLogsPage />);
 
     fireEvent.click(screen.getByRole("button", { name: "navigate-to-connection" }));
