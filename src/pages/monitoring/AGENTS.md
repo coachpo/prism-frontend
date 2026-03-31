@@ -30,6 +30,7 @@ monitoring/
 - Keep `monitoringPolling.ts` as the single source of truth for settings-backed interval clamping.
 - Keep manual probe orchestration in `useMonitoringModelData.ts`; table components should emit actions, not call APIs directly.
 - Keep user-facing copy and empty states on the shared locale boundary through `useLocale()`.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 - Do not duplicate polling timers or interval math across the three monitoring hooks.

@@ -34,6 +34,7 @@ costing/
 - Preserve the split between billing saves and timezone saves. Timezone save depends on a valid saved billing state.
 - Load FX mapping endpoint choices from the selected model's connections inside the CRUD hook, not inside presentation components.
 - Reuse `settingsPageHelpers.ts` for mapping keys, validation, formatting, and default state.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

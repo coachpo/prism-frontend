@@ -10,6 +10,7 @@ request-logs/
 ├── useRequestLogPageState.ts    # Search-param orchestration and exact-request mode
 ├── useRequestLogsPageData.ts    # Server fetches and filter-option bootstrap
 ├── useAuditDetail.ts            # Lazy audit detail lookup and retry behavior
+├── useRequestLogDetail.ts       # Exact-request detail fetch, not-found handling, and refresh
 ├── clientFilters.ts             # Local triage/search refinement over fetched rows
 ├── columns.tsx                  # Table column definitions and detail entry affordances
 ├── FiltersBar.tsx               # UI for search, status, and api_family filters
@@ -31,7 +32,7 @@ request-logs/
 - Client-side refinement and triage: `clientFilters.ts`
 - Table columns, row actions, and detail-entry affordances: `columns.tsx`, `RequestLogsTable.tsx`
 - Split filter-row composition and shared filter constants: `FiltersBar.constants.ts`, `FiltersBarPrimaryFilters.tsx`, `FiltersBarSecondaryFilters.tsx`, `FiltersBar.tsx`
-- Payload inspection and lazy audit fetch: `RequestLogDetailSheet.tsx`, `useAuditDetail.ts`
+- Detail sheet, exact-request fetch, and lazy audit fetch: `RequestLogDetailSheet.tsx`, `useRequestLogDetail.ts`, `useAuditDetail.ts`
 - Connection navigation helpers for request-log detail context: `connectionNavigation.ts`
 - Parent-covered detail cluster helpers: `detail/RequestLogOverviewTab.tsx`, `detail/RequestLogAuditTab.tsx`, `detail/RequestLogPayloadBlock.tsx`, `detail/requestLogDetailShared.tsx`, `detail/requestLogDetailUtils.ts`
 
@@ -43,6 +44,7 @@ request-logs/
 - Treat `api_family` as the server-backed family filter and keep vendor identity out of request-log filtering.
 - Keep user-facing copy on the shared locale boundary through `useLocale()`, while timestamp formatting continues to flow through `useTimezone()`.
 - Keep `detail/` parent-covered here. Those helpers support the request-log sheet only and should not get a separate AGENTS file.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 - Do not stale-claim that request logs are missing from the route map.

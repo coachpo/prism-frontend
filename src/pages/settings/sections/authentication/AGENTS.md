@@ -34,6 +34,7 @@ authentication/
 - Keep `AuthenticationFieldShell.tsx` as the shared field wrapper for operator-account and recovery-email cards.
 - Let `usePasskeyManagement.ts` own the ceremony and mutation orchestration, while `PasskeysCard.tsx` owns the UI and dialogs.
 - Keep `passkeyMetadata.ts` limited to display metadata and labels.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

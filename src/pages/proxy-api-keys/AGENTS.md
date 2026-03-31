@@ -30,6 +30,7 @@ proxy-api-keys/
 - Treat proxy API key management as a global auth-settings workflow, not a selected-profile feature.
 - Bootstrap auth settings and existing keys in parallel with `Promise.allSettled()`.
 - Patch the local key list after create, edit, rotate, and delete flows instead of reloading the whole page.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

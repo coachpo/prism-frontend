@@ -31,6 +31,7 @@ models/
 - Keep ordered proxy-target add/remove/reorder state in `modelFormState.ts`; `ModelDialog.tsx` should stay a thin rendering layer over that logic.
 - Hydrate 24h metrics separately from the base model list so CRUD flows do not own observability queries.
 - Keep the grouped models table keyed by vendor, not api family, while still rendering the per-row `api_family` metadata.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

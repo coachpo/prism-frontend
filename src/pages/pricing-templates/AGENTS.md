@@ -27,6 +27,7 @@ pricing-templates/
 - Keep CAS-aware edit payload shaping in `usePricingTemplatesPageData.ts`; reopen or refetch on `409` instead of guessing merges.
 - Parse delete conflicts and usage rows through `pricingTemplateFormState.ts` helpers instead of duplicating row normalization.
 - Keep profile scope explicit in copy and behavior; this page follows the selected management profile rather than a global instance scope.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

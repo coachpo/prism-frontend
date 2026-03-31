@@ -14,6 +14,7 @@ settings/
 ├── SettingsGlobalTab.tsx           # Global-tab body for auth + shared vendor management
 ├── useSettingsPageData.ts          # Top-level page composition across backup, auth, costing, audit, retention
 ├── useSettingsPageSectionState.ts  # Active tab, hash, scroll focus, and section jumps
+├── useSettingsSectionNavigation.ts   # Scroll target registration and section jump helpers
 ├── useAuthenticationSettingsData.ts
 ├── useCostingSettingsData.ts
 ├── useAuditConfigurationData.ts
@@ -38,7 +39,7 @@ settings/
 
 - Thin route shell, tab split, section order, and dialog mounts: `../SettingsPage.tsx`
 - Cross-section composition, selected-profile labeling, and shared save-state handoff: `useSettingsPageData.ts`
-- Active tab state, hash updates, scroll-driven focus, and section jump behavior: `useSettingsPageSectionState.ts`, `SettingsSectionsNav.tsx`, with section-nav helpers still living nearby when they support the shell contract
+- Active tab state, hash updates, scroll-driven focus, and section jump behavior: `useSettingsPageSectionState.ts`, `useSettingsSectionNavigation.ts`, `SettingsSectionsNav.tsx`
 - Stable helper constants and form-normalization utilities: `settingsPageHelpers.ts`
 - Shared save-state badges and render helpers: `sectionSaveState.tsx`, `settingsSaveTypes.ts`
 - Section implementation boundary: `sections/AGENTS.md`
@@ -65,6 +66,7 @@ settings/
 - `SettingsProfileTab.tsx` and `SettingsGlobalTab.tsx` own the tab bodies, while the shell hook keeps their section state synchronized.
 - Billing, reporting currency, timezone preference, and FX mappings cross the `sections/` and `costing/` boundary. Let this parent doc describe the split, then send readers down instead of repeating local details.
 - Keep dialogs local to `pages/settings/dialogs/` when they support audit-rule edits or destructive confirmation flows.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 
