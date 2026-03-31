@@ -26,6 +26,7 @@ profile/
 - Keep selected-profile persistence limited to `persistence.ts` and the provider that calls it.
 - Preserve the fallback order in `selection.ts`: stored profile, then default profile, then active profile, then first available profile.
 - Keep `expected_active_profile_id` activation conflict handling in `actions.ts` so stale active-profile snapshots are refreshed centrally.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

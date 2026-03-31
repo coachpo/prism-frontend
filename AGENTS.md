@@ -50,6 +50,7 @@ frontend/
 - Keep backend access on the typed `src/lib/api.ts` boundary and the modules it re-exports.
 - Keep realtime ownership in `src/lib/websocket.ts` and consume it through hooks instead of creating ad hoc clients.
 - Keep locale state and shared formatting in `src/i18n/`, not in shell or page code.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 - Do not add generic React, Vite, or test-runner boilerplate here.

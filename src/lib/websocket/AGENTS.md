@@ -21,6 +21,7 @@ websocket/
 - Keep raw websocket message builders and parsing in `protocol.ts`.
 - Keep channel subscription ref-count math in `subscriptions.ts`; `../websocket.ts` consumes the helpers but should not duplicate the logic.
 - Keep URL construction and reconnect timing policy in `transport.ts`, while `../websocket.ts` owns the actual socket lifecycle and event handlers.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 - Do not parse raw realtime JSON or hand-build subscribe or unsubscribe payloads outside `protocol.ts`.

@@ -65,6 +65,7 @@ lib/
 - `costing.ts` owns shared cost/currency helper logic instead of leaving numeric presentation branches in pages.
 - Keep browser WebAuthn ceremony code in `webauthn.ts`.
 - Keep backend payload naming aligned with server schemas, including `vendor_id`, `vendor_key`, fixed `api_family` fields, vendor `icon_key` on vendor payloads only, and stats snapshot identifiers like `ingress_request_id`.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

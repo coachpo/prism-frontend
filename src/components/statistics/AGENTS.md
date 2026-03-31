@@ -10,6 +10,7 @@
 ## CONVENTIONS
 - Keep these components presentation-first.
 - Keep statistics page orchestration and data fetching in the page layer.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 - Do not move snapshot orchestration or request-log drilldown state into these shared renderers.
