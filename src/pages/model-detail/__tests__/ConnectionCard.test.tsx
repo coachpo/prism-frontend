@@ -406,7 +406,7 @@ describe("ConnectionCard cooldown state", () => {
   });
 
   it("renders metrics text from the extracted metrics component", () => {
-    renderWithLocale(
+    const { container } = renderWithLocale(
       <ConnectionCardMetrics
         formatTime={(value) => `formatted:${value}`}
         metrics24h={{
@@ -419,6 +419,13 @@ describe("ConnectionCard cooldown state", () => {
         }}
       />,
     );
+
+    const compactTiles = container.querySelectorAll('[data-slot="compact-metric-tile"]');
+    expect(compactTiles).toHaveLength(2);
+    expect(compactTiles[0]).toHaveTextContent(/P95 latency \(24h\)/i);
+    expect(compactTiles[0]).toHaveTextContent("450ms");
+    expect(compactTiles[1]).toHaveTextContent(/5xx rate \(sampled\)/i);
+    expect(compactTiles[1]).toHaveTextContent("1.2%");
 
     expect(screen.getByText("Success rate (24h)")).toBeInTheDocument();
     expect(screen.getByText("98.5%")).toBeInTheDocument();

@@ -26,7 +26,7 @@ function MobileField({
   return (
     <div
       className={cn(
-        "min-w-0 space-y-1 rounded-md border border-border/70 bg-muted/25 px-2.5 py-2",
+        "min-w-0 space-y-1 bg-transparent px-0 py-0 md:space-y-0",
         className
       )}
     >
@@ -150,7 +150,6 @@ export function ProxyKeyCard({
         <MobileField
           label={copy.created}
           value={formatDateTime(item.created_at)}
-          className="border-0 bg-transparent px-0 py-0 md:space-y-0 md:border-none md:bg-transparent md:px-0 md:py-0"
         />
       </TableCell>
 
@@ -158,7 +157,6 @@ export function ProxyKeyCard({
         <MobileField
           label={copy.updated}
           value={formatDateTime(item.updated_at)}
-          className="border-0 bg-transparent px-0 py-0 md:space-y-0 md:border-none md:bg-transparent md:px-0 md:py-0"
         />
       </TableCell>
 
@@ -166,7 +164,6 @@ export function ProxyKeyCard({
         <MobileField
           label={copy.lastUsed}
           value={formatLastUsed(item.last_used_at)}
-          className="border-0 bg-transparent px-0 py-0 md:space-y-0 md:border-none md:bg-transparent md:px-0 md:py-0"
         />
       </TableCell>
 
@@ -175,7 +172,6 @@ export function ProxyKeyCard({
           label={copy.lastIp}
           value={lastIp}
           mono
-          className="border-0 bg-transparent px-0 py-0 md:space-y-0 md:border-none md:bg-transparent md:px-0 md:py-0"
         />
       </TableCell>
 

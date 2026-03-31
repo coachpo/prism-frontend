@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { AuditLogDetail, ModelConfigListItem, RequestLogDetail } from "@/lib/types";
@@ -167,13 +167,17 @@ describe("RequestLogDetailSheet", () => {
     const { onClose, onNavigateToConnection, onTabChange } = renderSheet();
 
     expect(screen.getByTestId("request-log-detail-sheet")).toBeInTheDocument();
-    expect(screen.getByTestId("request-log-summary-strip")).toBeInTheDocument();
+    const summaryStrip = screen.getByTestId("request-log-summary-strip");
+    expect(summaryStrip).toBeInTheDocument();
+    expect(summaryStrip.querySelectorAll('[data-slot="compact-metric-tile"]')).toHaveLength(4);
     expect(screen.getByTestId("request-log-overview-grid")).toBeInTheDocument();
     expect(screen.getByText("Request #42")).toBeInTheDocument();
     expect(screen.getAllByText("GPT 5.4")).toHaveLength(2);
     expect(screen.getAllByText("/v1/chat/completions")).toHaveLength(2);
     expect(screen.getByText("API Family")).toBeInTheDocument();
     expect(screen.getAllByText("OpenAI").length).toBeGreaterThan(0);
+    expect(within(summaryStrip).getByText("912ms").closest('[data-slot="metric-value"]')).toHaveClass("font-mono");
+    expect(within(summaryStrip).getByText("formatted:2026-03-16T00:00:00.000Z").closest('[data-slot="metric-value"]')).toHaveClass("font-mono", "text-xs");
 
     fireEvent.click(screen.getByRole("button", { name: /#34/i }));
     expect(onNavigateToConnection).toHaveBeenCalledWith(34);

@@ -144,7 +144,7 @@ describe("OverviewCards", () => {
   it("renders the archived 24-hour KPI snapshot and request-log action", () => {
     const handleViewRequestLogs = vi.fn();
 
-    render(
+    const { container } = render(
       <LocaleProvider>
         <OverviewCards
           model={buildModel()}
@@ -164,9 +164,13 @@ describe("OverviewCards", () => {
       </LocaleProvider>,
     );
 
+    const metricCards = container.querySelectorAll('[data-slot="metric-card"]');
+    expect(metricCards).toHaveLength(4);
+
     expect(screen.getByText("33.3%")).toBeInTheDocument();
     expect(screen.getByText("1.44s")).toBeInTheDocument();
     expect(screen.getByText(/^3$/)).toBeInTheDocument();
+    expect(screen.getByText(/^\$0(?:\.0+)?(?:\s[A-Z]{3})?$/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "View Request Logs" }));
 

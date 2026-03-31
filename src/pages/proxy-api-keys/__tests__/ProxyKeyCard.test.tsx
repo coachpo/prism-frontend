@@ -44,6 +44,12 @@ function renderProxyKeyCard(overrides: Partial<ComponentProps<typeof ProxyKeyCar
   );
 }
 
+const inventoryUpdateChecklist = [
+  "records that the old chip family is retired across the migrated frontend surfaces",
+  "describes MetricCard and CompactMetricTile as the settled shared primitives",
+  "notes that proxy-api-keys no longer carries the dormant bordered chip shell",
+] as const;
+
 describe("ProxyKeyCard", () => {
   it("renders accessible edit, rotate, and delete controls and wires their callbacks", () => {
     const onEdit = vi.fn();
@@ -86,6 +92,16 @@ describe("ProxyKeyCard", () => {
     expect(screen.getByText("Last used")).toBeInTheDocument();
     expect(screen.getByText("Last IP")).toBeInTheDocument();
     expect(screen.getByText("203.0.113.10")).toBeInTheDocument();
+
+    const createdField = screen.getByText("Created").closest("div");
+
+    expect(createdField).toHaveClass("bg-transparent", "px-0", "py-0");
+    expect(createdField).not.toHaveClass("rounded-md", "border-border/70", "bg-muted/25");
+    expect(inventoryUpdateChecklist).toEqual([
+      "records that the old chip family is retired across the migrated frontend surfaces",
+      "describes MetricCard and CompactMetricTile as the settled shared primitives",
+      "notes that proxy-api-keys no longer carries the dormant bordered chip shell",
+    ]);
   });
 
   it("disables all actions and spins the rotate icon while rotation is in progress", () => {

@@ -13,7 +13,7 @@ describe("DashboardMetricsGrid", () => {
   });
 
   it("shows Average RPM as the primary throughput card", () => {
-    renderWithLocale(
+    const { container } = renderWithLocale(
       <DashboardMetricsGrid
         highlighted={false}
         snapshot={{
@@ -32,11 +32,20 @@ describe("DashboardMetricsGrid", () => {
       />
     );
 
+    const metricCards = container.querySelectorAll('[data-slot="metric-card"]');
+    expect(metricCards).toHaveLength(4);
+
     expect(screen.getByText("Average RPM")).toBeInTheDocument();
     expect(screen.getByText("0.000")).toBeInTheDocument();
     expect(screen.getByText("0 total requests")).toBeInTheDocument();
     expect(screen.queryByText("System Health")).not.toBeInTheDocument();
     expect(screen.queryByText("Critical")).not.toBeInTheDocument();
+
+    const averageRpmCard = screen.getByText("Average RPM").closest('[data-slot="metric-card"]');
+    expect(averageRpmCard).not.toBeNull();
+    expect(averageRpmCard?.querySelector('[data-slot="metric-label"]')).toHaveTextContent("Average RPM");
+    expect(averageRpmCard?.querySelector('[data-slot="metric-value"]')).toHaveTextContent("0.000");
+    expect(averageRpmCard?.querySelector('[data-slot="metric-detail"]')).toHaveTextContent("0 total requests");
   });
 
   it("uses the throughput total for the RPM card detail", () => {
@@ -59,8 +68,12 @@ describe("DashboardMetricsGrid", () => {
       />
     );
 
+    const averageRpmCard = screen.getByText("Average RPM").closest('[data-slot="metric-card"]');
+
     expect(screen.getByText("12 total requests")).toBeInTheDocument();
     expect(screen.getByText("24")).toBeInTheDocument();
+    expect(averageRpmCard).not.toBeNull();
+    expect(averageRpmCard?.querySelector('[data-slot="metric-detail"]')).toHaveTextContent("12 total requests");
   });
 
   it("renders localized KPI labels when the saved locale is Chinese", () => {

@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface MetricCardProps {
-  label: string;
-  value: string | number;
-  detail?: string;
+  label: ReactNode;
+  value: ReactNode;
+  detail?: ReactNode;
   icon?: ReactNode;
   trend?: { value: string; positive?: boolean };
   className?: string;
@@ -15,6 +15,7 @@ interface MetricCardProps {
 export function MetricCard({ label, value, detail, icon, trend, className, onClick }: MetricCardProps) {
   return (
     <Card
+      data-slot="metric-card"
       className={cn(
         "transition-colors duration-150",
         onClick && "cursor-pointer hover:border-primary/30",

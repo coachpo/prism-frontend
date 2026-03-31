@@ -2,6 +2,7 @@ import { Activity, ArrowUpRight, DollarSign, FileText } from "lucide-react";
 import { useLocale } from "@/i18n/useLocale";
 import { EmptyState } from "@/components/EmptyState";
 import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
+import { CompactMetricTile } from "@/components/CompactMetricTile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatApiFamily } from "@/lib/utils";
@@ -47,20 +48,16 @@ export function DashboardHighlightsGrid({
           <CardDescription>{messages.dashboard.performanceSnapshotDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            {performanceTiles.map((tile) => (
-              <div
-                key={tile.label}
-                className={cn(
-                  "rounded-md border bg-muted/30 p-3 transition-colors duration-300",
-                  highlighted && "ws-value-updated"
-                )}
-              >
-                <p className="text-xs text-muted-foreground">{tile.label}</p>
-                <p className="mt-1 text-lg font-semibold tabular-nums">{tile.value}</p>
-              </div>
-            ))}
-          </div>
+            <div className="grid grid-cols-2 gap-3">
+              {performanceTiles.map((tile) => (
+                <CompactMetricTile
+                  key={tile.label}
+                  className={cn(highlighted && "ws-value-updated")}
+                  label={tile.label}
+                  value={tile.value}
+                />
+              ))}
+            </div>
           <Button variant="outline" className="w-full" onClick={onOpenStatistics}>
             {messages.dashboard.openStatistics}
             <ArrowUpRight className="ml-2 h-4 w-4" />

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { MetricCard } from "@/components/MetricCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { useLocale } from "@/i18n/useLocale";
@@ -198,30 +199,26 @@ export function OverviewCards({
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-md border p-3">
-                <p className="text-[11px] text-muted-foreground">{copy.successRate24h}</p>
-                <p className="text-lg font-semibold tabular-nums">
-                  {modelKpis.successRate === null
+              <MetricCard
+                label={copy.successRate24h}
+                value={
+                  modelKpis.successRate === null
                     ? "-"
-                    : `${formatNumber(modelKpis.successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
-                </p>
-              </div>
-              <div className="rounded-md border p-3">
-                <p className="text-[11px] text-muted-foreground">{copy.p95Latency24h}</p>
-                <p className="text-lg font-semibold tabular-nums">
-                  {formatLatencyForDisplay(modelKpis.p95LatencyMs)}
-                </p>
-              </div>
-              <div className="rounded-md border p-3">
-                <p className="text-[11px] text-muted-foreground">{copy.requests24h}</p>
-                <p className="text-lg font-semibold tabular-nums">
-                  {formatNumber(modelKpis.requestCount24h)}
-                </p>
-              </div>
-              <div className="rounded-md border p-3">
-                <p className="text-[11px] text-muted-foreground">{copy.spend24h(spendingCurrencyCode)}</p>
-                <p className="text-lg font-semibold tabular-nums">
-                  {modelKpis.spend24hMicros === null
+                    : `${formatNumber(modelKpis.successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+                }
+              />
+              <MetricCard
+                label={copy.p95Latency24h}
+                value={formatLatencyForDisplay(modelKpis.p95LatencyMs)}
+              />
+              <MetricCard
+                label={copy.requests24h}
+                value={formatNumber(modelKpis.requestCount24h)}
+              />
+              <MetricCard
+                label={copy.spend24h(spendingCurrencyCode)}
+                value={
+                  modelKpis.spend24hMicros === null
                     ? "-"
                     : formatMoneyMicros(
                         modelKpis.spend24hMicros,
@@ -230,9 +227,9 @@ export function OverviewCards({
                         2,
                         6,
                         locale,
-                      )}
-                </p>
-              </div>
+                      )
+                }
+              />
             </div>
           )}
           {onViewRequestLogs && (

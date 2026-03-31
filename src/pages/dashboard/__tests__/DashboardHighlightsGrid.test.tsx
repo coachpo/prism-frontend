@@ -13,7 +13,7 @@ describe("DashboardHighlightsGrid", () => {
   });
 
   it("renders the performance snapshot tile labels, values, and highlight class inline", () => {
-    renderWithLocale(
+    const { container } = renderWithLocale(
       <DashboardHighlightsGrid
         highlighted={true}
         onInspectSpending={vi.fn()}
@@ -36,6 +36,9 @@ describe("DashboardHighlightsGrid", () => {
       />
     );
 
+    const compactTiles = container.querySelectorAll('[data-slot="compact-metric-tile"]');
+    expect(compactTiles).toHaveLength(4);
+
     const avgLatencyLabel = screen.getByText("Avg Latency");
     const p95LatencyLabel = screen.getByText("P95 Latency");
     const errorRateLabel = screen.getByText("Error Rate");
@@ -45,10 +48,20 @@ describe("DashboardHighlightsGrid", () => {
     expect(screen.getByText("881ms")).toBeInTheDocument();
     expect(screen.getByText("5.4%")).toBeInTheDocument();
     expect(screen.getByText("12.3%")).toBeInTheDocument();
-    expect(avgLatencyLabel.closest("div")).toHaveClass("ws-value-updated");
-    expect(p95LatencyLabel.closest("div")).toHaveClass("ws-value-updated");
-    expect(errorRateLabel.closest("div")).toHaveClass("ws-value-updated");
-    expect(streamShareLabel.closest("div")).toHaveClass("ws-value-updated");
+
+    const avgLatencyTile = avgLatencyLabel.closest('[data-slot="compact-metric-tile"]');
+    const p95LatencyTile = p95LatencyLabel.closest('[data-slot="compact-metric-tile"]');
+    const errorRateTile = errorRateLabel.closest('[data-slot="compact-metric-tile"]');
+    const streamShareTile = streamShareLabel.closest('[data-slot="compact-metric-tile"]');
+
+    expect(avgLatencyTile).toHaveClass("ws-value-updated");
+    expect(p95LatencyTile).toHaveClass("ws-value-updated");
+    expect(errorRateTile).toHaveClass("ws-value-updated");
+    expect(streamShareTile).toHaveClass("ws-value-updated");
+    expect(avgLatencyTile?.querySelector('[data-slot="metric-label"]')).toHaveTextContent("Avg Latency");
+    expect(avgLatencyTile?.querySelector('[data-slot="metric-value"]')).toHaveTextContent("321ms");
+    expect(p95LatencyTile?.querySelector('[data-slot="metric-label"]')).toHaveTextContent("P95 Latency");
+    expect(p95LatencyTile?.querySelector('[data-slot="metric-value"]')).toHaveTextContent("881ms");
   });
 
   it("uses shared api-family labels and icons for the API family mix card", () => {

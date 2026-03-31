@@ -110,10 +110,26 @@ export function RequestLogOverviewTab({
             className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
             data-testid="request-log-summary-strip"
           >
-            <SummaryStat label={messages.requestLogs.latency} value={<span className="font-mono">{formatNumber(summary.response_time_ms)}ms</span>} />
-            <SummaryStat label={messages.requestLogs.totalTokens} value={<span className="font-mono">{formatTokens(usage.total_tokens)}</span>} />
-            <SummaryStat label={messages.requestLogs.totalCost} value={<span className="font-mono">{formatCost(costing.total_cost_user_currency_micros, costing.report_currency_symbol)}</span>} />
-            <SummaryStat label={messages.requestLogs.timestamp} value={<span className="font-mono text-xs">{formatTimestamp(summary.created_at)}</span>} />
+            <SummaryStat
+              label={messages.requestLogs.latency}
+              value={`${formatNumber(summary.response_time_ms)}ms`}
+              valueClassName="font-mono"
+            />
+            <SummaryStat
+              label={messages.requestLogs.totalTokens}
+              value={formatTokens(usage.total_tokens)}
+              valueClassName="font-mono"
+            />
+            <SummaryStat
+              label={messages.requestLogs.totalCost}
+              value={formatCost(costing.total_cost_user_currency_micros, costing.report_currency_symbol)}
+              valueClassName="font-mono"
+            />
+            <SummaryStat
+              label={messages.requestLogs.timestamp}
+              value={formatTimestamp(summary.created_at)}
+              valueClassName="font-mono text-xs"
+            />
           </div>
         </CardContent>
       </Card>

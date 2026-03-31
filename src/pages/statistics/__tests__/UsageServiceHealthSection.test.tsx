@@ -77,11 +77,14 @@ describe("UsageServiceHealthSection", () => {
   });
 
   it("renders a DOM heatmap strip with tooltip details for each service-health bucket", () => {
-    render(
+    const { container } = render(
       <LocaleProvider>
         <UsageServiceHealthSection serviceHealth={createServiceHealth()} />
       </LocaleProvider>,
     );
+
+    const metricCards = container.querySelectorAll('[data-slot="metric-card"]');
+    expect(metricCards).toHaveLength(3);
 
     expect(screen.getByRole("heading", { name: "Service Health" })).toBeInTheDocument();
     expect(screen.getByTestId("usage-health-heatmap")).toBeInTheDocument();
@@ -114,6 +117,26 @@ describe("UsageServiceHealthSection", () => {
     expect(screen.getAllByText("Requests 12")[0]).toBeInTheDocument();
     expect(screen.getAllByText("9 successful · 3 failed")[0]).toBeInTheDocument();
     expect(screen.getAllByText(/15m/)[0]).toBeInTheDocument();
+  });
+
+  it("keeps null availability distinct from zero request and error totals", () => {
+    const serviceHealth = createServiceHealth();
+
+    render(
+      <LocaleProvider>
+        <UsageServiceHealthSection
+          serviceHealth={{
+            ...serviceHealth,
+            availability_percentage: null,
+            failed_count: 0,
+            request_count: 0,
+          }}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText(/^—%?$/)).toBeInTheDocument();
+    expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(2);
   });
 
   it("localizes service-health status labels in zh-CN", () => {

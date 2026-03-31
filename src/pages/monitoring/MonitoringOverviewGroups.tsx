@@ -182,7 +182,7 @@ export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsPr
                                       />
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="monitoring-operations-grid">
                                       <MetricChip
                                         label={copy.endpointPingSummaryLabel}
                                         status={connection.endpoint_ping_status}
@@ -207,7 +207,7 @@ export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsPr
                                   </div>
 
                                   <div className="space-y-3">
-                                    <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                                    <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-2" data-testid="monitoring-evidence-grid">
                                       <EvidenceItem
                                         label={copy.lastSuccessLabel}
                                         value={connection.last_live_success_at ? formatRelativeTimeFromNow(connection.last_live_success_at) : copy.notAvailable}
@@ -248,9 +248,12 @@ export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsPr
 
 function EvidenceItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border bg-muted/20 px-3 py-2">
+    <div
+      className="rounded-xl border border-border/60 bg-background/80 px-3 py-3 shadow-sm"
+      data-testid="monitoring-evidence-panel"
+    >
       <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className="mt-1 text-sm text-foreground">{value}</div>
+      <div className="mt-2 text-sm font-medium text-foreground [overflow-wrap:anywhere]">{value}</div>
     </div>
   );
 }
@@ -265,12 +268,15 @@ function MetricChip({
   value: string;
 }) {
   return (
-    <div className="rounded-md border bg-muted/20 px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
+    <div
+      className="rounded-xl border border-border/60 bg-card/80 px-3 py-3 shadow-sm"
+      data-testid="monitoring-operational-panel"
+    >
+      <div className="flex items-start justify-between gap-3">
         <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
         <StatusBadge label={formatLabel(status)} intent={getStatusIntent(status)} />
       </div>
-      <div className="mt-2 text-sm font-medium text-foreground">{value}</div>
+      <div className="mt-3 text-lg font-semibold tracking-tight text-foreground">{value}</div>
     </div>
   );
 }

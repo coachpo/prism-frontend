@@ -1,5 +1,6 @@
 import { ActivitySquare } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/i18n/useLocale";
 import type { UsageServiceHealth } from "@/lib/types";
@@ -54,20 +55,21 @@ export function UsageServiceHealthSection({ serviceHealth }: UsageServiceHealthS
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[26rem]">
-              <div className="rounded-xl border border-border/60 bg-muted/25 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{messages.statistics.availability}</p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight">
-                  {availabilityPercent}%
-                </p>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-muted/25 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{messages.statistics.requests}</p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight">{formatNumber(serviceHealth.request_count)}</p>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-muted/25 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{messages.statistics.errors}</p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight">{formatNumber(serviceHealth.failed_count)}</p>
-              </div>
+              <MetricCard
+                className="border-border/60 bg-muted/25 shadow-none [&_[data-slot=metric-label]]:text-xs [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em]"
+                label={messages.statistics.availability}
+                value={`${availabilityPercent}%`}
+              />
+              <MetricCard
+                className="border-border/60 bg-muted/25 shadow-none [&_[data-slot=metric-label]]:text-xs [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em]"
+                label={messages.statistics.requests}
+                value={formatNumber(serviceHealth.request_count)}
+              />
+              <MetricCard
+                className="border-border/60 bg-muted/25 shadow-none [&_[data-slot=metric-label]]:text-xs [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em]"
+                label={messages.statistics.errors}
+                value={formatNumber(serviceHealth.failed_count)}
+              />
             </div>
           </div>
         </CardHeader>

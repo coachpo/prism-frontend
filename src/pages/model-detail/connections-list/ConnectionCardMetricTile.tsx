@@ -1,8 +1,11 @@
+import { CompactMetricTile } from "@/components/CompactMetricTile";
+
 export function ConnectionCardMetricTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded border px-2 py-1.5">
-      <p className="text-muted-foreground">{label}</p>
-      <p className="font-medium tabular-nums">{value}</p>
-    </div>
+    <CompactMetricTile
+      className="border-border/60 bg-background/70 [&_[data-slot=metric-label]]:text-[11px] [&_[data-slot=metric-value]]:text-sm"
+      label={label}
+      value={value}
+    />
   );
 }

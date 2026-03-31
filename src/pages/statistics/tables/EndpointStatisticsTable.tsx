@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Collapsible,
@@ -137,20 +138,27 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
                         </div>
 
                         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                          <SummaryMetric
+                          <MetricCard
+                            className="border-border/60 bg-background/80 shadow-none [&_[data-slot=metric-label]]:text-[11px] [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em] [&_[data-slot=metric-value]]:text-sm"
                             label={messages.statistics.requests}
                             value={formatNumber(item.request_count)}
                           />
-                          <SummaryMetric
-                            className={getSuccessRateClass(item.success_rate)}
+                          <MetricCard
+                            className="border-border/60 bg-background/80 shadow-none [&_[data-slot=metric-label]]:text-[11px] [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em] [&_[data-slot=metric-value]]:text-sm"
                             label={messages.statistics.successRate}
-                            value={`${formatNumber(item.success_rate, { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%`}
+                            value={
+                              <span className={cn("tabular-nums", getSuccessRateClass(item.success_rate))}>
+                                {formatNumber(item.success_rate, { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%
+                              </span>
+                            }
                           />
-                          <SummaryMetric
+                          <MetricCard
+                            className="border-border/60 bg-background/80 shadow-none [&_[data-slot=metric-label]]:text-[11px] [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em] [&_[data-slot=metric-value]]:text-sm"
                             label={messages.statistics.totalTokens}
                             value={formatNumber(item.total_tokens)}
                           />
-                          <SummaryMetric
+                          <MetricCard
+                            className="border-border/60 bg-background/80 shadow-none [&_[data-slot=metric-label]]:text-[11px] [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em] [&_[data-slot=metric-value]]:text-sm"
                             label={messages.statistics.totalSpend}
                             value={formatMoneyMicros(
                               item.total_cost_micros,
@@ -196,25 +204,6 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function SummaryMetric({
-  className,
-  label,
-  value,
-}: {
-  className?: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </p>
-      <p className={cn("mt-1 text-sm font-semibold text-foreground", className)}>{value}</p>
-    </div>
   );
 }
 
