@@ -12,10 +12,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { LoadbalanceStrategy } from "@/lib/types";
+import type { LoadbalanceStrategy, RoutingObjective } from "@/lib/types";
 
 function getBanSummary(
-  strategy: LoadbalanceStrategy,
+  circuitBreaker: LoadbalanceStrategy["routing_policy"]["circuit_breaker"],
   copy: {
     banManualDismiss: (strikes: string) => string;
     banOff: string;
@@ -23,76 +23,35 @@ function getBanSummary(
   },
   formatNumber: (value: number) => string,
 ) {
-  if (strategy.auto_recovery.mode !== "enabled" || strategy.auto_recovery.ban.mode === "off") {
+  if (circuitBreaker.ban_mode === "off") {
     return copy.banOff;
   }
 
-  if (strategy.auto_recovery.ban.mode === "temporary") {
+  if (circuitBreaker.ban_mode === "temporary") {
     return copy.banTemporary(
-      formatNumber(strategy.auto_recovery.ban.max_cooldown_strikes_before_ban),
-      formatNumber(strategy.auto_recovery.ban.ban_duration_seconds),
+      formatNumber(circuitBreaker.max_open_strikes_before_ban),
+      formatNumber(circuitBreaker.ban_duration_seconds),
     );
   }
 
-  return copy.banManualDismiss(
-    formatNumber(strategy.auto_recovery.ban.max_cooldown_strikes_before_ban),
-  );
+  return copy.banManualDismiss(formatNumber(circuitBreaker.max_open_strikes_before_ban));
 }
 
-function getStrategyLabel(
-  strategyType: LoadbalanceStrategy["strategy_type"],
+function getRoutingObjectiveLabel(
+  routingObjective: RoutingObjective,
   copy: {
-    failoverLabel: string;
-    fillFirstLabel: string;
-    roundRobinLabel: string;
-    singleLabel: string;
+    maximizeAvailabilityLabel: string;
+    minimizeLatencyLabel: string;
   },
 ) {
-  if (strategyType === "fill-first") {
-    return copy.fillFirstLabel;
-  }
-
-  if (strategyType === "round-robin") {
-    return copy.roundRobinLabel;
-  }
-
-  if (strategyType === "failover") {
-    return copy.failoverLabel;
-  }
-
-  return copy.singleLabel;
+  return routingObjective === "maximize_availability"
+    ? copy.maximizeAvailabilityLabel
+    : copy.minimizeLatencyLabel;
 }
 
-function getStatusCodeSummary(
-  statusCodes: number[],
-  copy: { statusCodes: (codes: string) => string },
-) {
+function getStatusCodeSummary(statusCodes: number[], copy: { statusCodes: (codes: string) => string }) {
   const sortedCodes = [...statusCodes].sort((left, right) => left - right);
   return copy.statusCodes(sortedCodes.join(copy.statusCodes(" ").includes("、") ? "、" : ", "));
-}
-
-function getStrategySummary(
-  strategyType: LoadbalanceStrategy["strategy_type"],
-  copy: {
-    failoverSummary: string;
-    fillFirstSummary: string;
-    roundRobinSummary: string;
-    singleSummary: string;
-  },
-) {
-  if (strategyType === "fill-first") {
-    return copy.fillFirstSummary;
-  }
-
-  if (strategyType === "round-robin") {
-    return copy.roundRobinSummary;
-  }
-
-  if (strategyType === "failover") {
-    return copy.failoverSummary;
-  }
-
-  return copy.singleSummary;
 }
 
 interface LoadbalanceStrategiesTableProps {
@@ -115,14 +74,10 @@ export function LoadbalanceStrategiesTable({
   const { formatNumber, messages } = useLocale();
   const tableCopy = messages.loadbalanceStrategiesTable;
   const strategyCopy = {
-    failoverLabel: messages.loadbalanceStrategyCopy.failoverLabel,
-    failoverSummary: messages.loadbalanceStrategyCopy.failoverSummary,
-    fillFirstLabel: messages.loadbalanceStrategyCopy.fillFirstLabel,
-    fillFirstSummary: messages.loadbalanceStrategyCopy.fillFirstSummary,
-    roundRobinLabel: messages.loadbalanceStrategyCopy.roundRobinLabel,
-    roundRobinSummary: messages.loadbalanceStrategyCopy.roundRobinSummary,
-    singleLabel: messages.loadbalanceStrategyCopy.singleLabel,
-    singleSummary: messages.loadbalanceStrategyCopy.singleSummary,
+    adaptiveLabel: messages.loadbalanceStrategyCopy.adaptiveLabel,
+    adaptiveSummary: messages.loadbalanceStrategyCopy.adaptiveSummary,
+    maximizeAvailabilityLabel: messages.loadbalanceStrategyCopy.maximizeAvailabilityLabel,
+    minimizeLatencyLabel: messages.loadbalanceStrategyCopy.minimizeLatencyLabel,
   };
 
   return (
@@ -165,7 +120,7 @@ export function LoadbalanceStrategiesTable({
                   <TableRow>
                   <TableHead>{tableCopy.name}</TableHead>
                   <TableHead>{tableCopy.type}</TableHead>
-                  <TableHead>{tableCopy.recovery}</TableHead>
+                  <TableHead>{tableCopy.objective}</TableHead>
                   <TableHead>{tableCopy.attachedModels}</TableHead>
                   <TableHead className="text-right">{tableCopy.actions}</TableHead>
                 </TableRow>
@@ -173,6 +128,7 @@ export function LoadbalanceStrategiesTable({
               <TableBody>
                 {loadbalanceStrategies.map((strategy) => {
                   const isPreparingEdit = loadbalanceStrategyPreparingEditId === strategy.id;
+                  const circuitBreaker = strategy.routing_policy.circuit_breaker;
 
                   return (
                     <TableRow key={strategy.id}>
@@ -180,52 +136,42 @@ export function LoadbalanceStrategiesTable({
                         <div className="flex flex-col gap-1">
                           <span className="font-medium">{strategy.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {getStrategySummary(strategy.strategy_type, strategyCopy)}
+                            {strategyCopy.adaptiveSummary}
                           </span>
-                          {strategy.strategy_type !== "single" &&
-                          strategy.auto_recovery.mode === "enabled" ? (
-                            <>
-                              <span className="text-xs text-muted-foreground">
-                                {tableCopy.thresholdBaseMax(
-                                  formatNumber(strategy.auto_recovery.cooldown.failure_threshold),
-                                  formatNumber(strategy.auto_recovery.cooldown.base_seconds),
-                                  formatNumber(strategy.auto_recovery.cooldown.max_cooldown_seconds),
-                                )}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {tableCopy.backoffJitterStatusCodes(
-                                  String(strategy.auto_recovery.cooldown.backoff_multiplier),
-                                  String(strategy.auto_recovery.cooldown.jitter_ratio),
-                                  getStatusCodeSummary(
-                                    strategy.auto_recovery.status_codes,
-                                    tableCopy,
-                                  ),
-                                )}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {getBanSummary(strategy, tableCopy, formatNumber)}
-                              </span>
-                            </>
-                          ) : null}
+                          <span className="text-xs text-muted-foreground">
+                            {tableCopy.thresholdBaseMax(
+                              formatNumber(circuitBreaker.failure_threshold),
+                              formatNumber(circuitBreaker.base_open_seconds),
+                              formatNumber(circuitBreaker.max_open_seconds),
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {tableCopy.backoffJitterStatusCodes(
+                              String(circuitBreaker.backoff_multiplier),
+                              String(circuitBreaker.jitter_ratio),
+                              getStatusCodeSummary(circuitBreaker.failure_status_codes, tableCopy),
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {getBanSummary(circuitBreaker, tableCopy, formatNumber)}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <TypeBadge
-                          label={getStrategyLabel(strategy.strategy_type, strategyCopy)}
-                          intent={strategy.strategy_type === "single" ? "info" : "accent"}
+                          label={strategyCopy.adaptiveLabel}
+                          intent="info"
                         />
                       </TableCell>
                       <TableCell>
-                          <StatusBadge
-                            label={
-                              strategy.auto_recovery.mode === "enabled"
-                                ? tableCopy.enabled
-                                : tableCopy.disabled
-                            }
-                            intent={
-                              strategy.auto_recovery.mode === "enabled" ? "success" : "muted"
-                            }
-                          />
+                        <StatusBadge
+                          label={getRoutingObjectiveLabel(strategy.routing_policy.routing_objective, strategyCopy)}
+                          intent={
+                            strategy.routing_policy.routing_objective === "maximize_availability"
+                              ? "accent"
+                              : "success"
+                          }
+                        />
                       </TableCell>
                       <TableCell>
                         <span className="text-sm tabular-nums">{formatNumber(strategy.attached_model_count)}</span>

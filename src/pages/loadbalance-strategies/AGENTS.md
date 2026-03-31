@@ -1,7 +1,7 @@
 # FRONTEND LOADBALANCE STRATEGIES DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/loadbalance-strategies/` owns the dedicated strategy-management route behind `../LoadbalanceStrategiesPage.tsx`. It covers the profile-scoped strategy list, create or edit dialog flows, delete confirmation, and the form normalization that mirrors the backend strategy contract, including `single`, `fill-first`, `round-robin`, and `failover` semantics plus nested `auto_recovery` and ban-escalation policy fields for non-single strategies.
+`pages/loadbalance-strategies/` owns the dedicated strategy-management route behind `../LoadbalanceStrategiesPage.tsx`. It covers the profile-scoped strategy list, create or edit dialog flows, delete confirmation, and the form normalization that mirrors the backend adaptive `routing_policy` contract for native-model routing.
 
 ## STRUCTURE
 ```
@@ -17,7 +17,7 @@ loadbalance-strategies/
 
 - Route shell and page composition: `../LoadbalanceStrategiesPage.tsx`
 - Strategy bootstrap, mutation orchestration, and optimistic patching: `useLoadbalanceStrategiesPageData.ts`
-- Form defaults, validation, and request payload shaping for nested `auto_recovery`, cooldown tuning, status-code policy, and ban policy: `loadbalanceStrategyFormState.ts`
+- Form defaults, validation, and request payload shaping for adaptive `routing_policy`, including circuit-breaker status codes, cooldown tuning, and ban policy: `loadbalanceStrategyFormState.ts`
 - Table rendering and destructive flow entrypoints: `LoadbalanceStrategiesTable.tsx`, `DeleteLoadbalanceStrategyDialog.tsx`
 
 ## CONVENTIONS
@@ -25,15 +25,15 @@ loadbalance-strategies/
 - Keep backend access on the shared `api.*` boundary; this page should not create a parallel fetch layer.
 - Keep strategy form normalization and request shaping in `loadbalanceStrategyFormState.ts` rather than scattering the rules across dialogs.
 - Match the CRUD/page shell pattern used by other profile-scoped management pages such as pricing templates.
-- Keep persisted Auto-Recovery editing on the existing strategy dialog; model pages still only attach one reusable strategy.
-- Keep `fill-first`, `round-robin`, and `failover` on the existing strategy dialog, with `fill-first` treated as strict priority spillover, `round-robin` treated as rotating selection across eligible connections, and `failover` treated as health-aware recovery.
-- Keep nested `auto_recovery.status_codes` editing inside the existing non-single strategy section; do not reintroduce the removed auth-cooldown field.
+- Keep adaptive routing editing on the existing strategy dialog; model pages still only attach one reusable strategy.
+- Keep routing objective, circuit-breaker thresholds, status-code policy, and ban escalation on the existing strategy dialog instead of reintroducing retired strategy-type selectors.
+- Keep circuit-breaker status-code editing inside `loadbalanceStrategyFormState.ts`; do not reintroduce the removed legacy recovery-only contract.
 - Keep ban-escalation defaults, validation, and payload normalization in `loadbalanceStrategyFormState.ts`; the dialog should only render and mutate those fields.
-- Keep compact strategy-summary wording in `LoadbalanceStrategiesTable.tsx`; do not duplicate failover or ban summary formatting elsewhere.
+- Keep compact adaptive-routing summary wording in `LoadbalanceStrategiesTable.tsx`; do not duplicate circuit-breaker summary formatting elsewhere.
 
 ## ANTI-PATTERNS
 
 - Do not let table components own API calls directly when `useLoadbalanceStrategiesPageData.ts` already centralizes CRUD orchestration.
-- Do not reintroduce model-level cooldown or failover-policy fields outside this strategy UI.
+- Do not reintroduce model-level cooldown or legacy failover-policy fields outside this strategy UI.
 - Do not split ban controls into a second dialog or page; they belong to the existing strategy dialog.
 - Do not create a second policy-management page or move strategy assignment out of the existing model dialogs.

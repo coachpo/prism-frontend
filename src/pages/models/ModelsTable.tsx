@@ -211,14 +211,13 @@ function ModelRow({
   const statusLabel = model.is_enabled ? detailCopy.enabled : detailCopy.disabled;
   const statusIntent = model.is_enabled ? "success" : "muted";
   const showModelId = Boolean(model.display_name && model.display_name !== model.model_id);
+  const routingObjectiveLabel = model.loadbalance_strategy
+    ? model.loadbalance_strategy.routing_policy.routing_objective === "maximize_availability"
+      ? strategyCopy.maximizeAvailabilityLabel
+      : strategyCopy.minimizeLatencyLabel
+    : null;
   const strategySummary = model.loadbalance_strategy
-    ? model.loadbalance_strategy.strategy_type === "fill-first"
-      ? `${model.loadbalance_strategy.name} · ${strategyCopy.fillFirstSummary}`
-      : model.loadbalance_strategy.strategy_type === "round-robin"
-        ? `${model.loadbalance_strategy.name} · ${strategyCopy.roundRobinSummary}`
-      : model.loadbalance_strategy.strategy_type === "failover"
-        ? `${model.loadbalance_strategy.name} · ${strategyCopy.failoverSummary}`
-        : `${model.loadbalance_strategy.name} · ${strategyCopy.singleLabel}`
+    ? `${model.loadbalance_strategy.name} · ${strategyCopy.adaptiveSummary}${routingObjectiveLabel ? ` · ${routingObjectiveLabel}` : ""}`
       : copy.strategyNotConfigured;
   const successRateText =
       metricsLoading && !metrics24h

@@ -2,46 +2,74 @@ import { describe, expect, it } from "vitest";
 import type { LoadbalanceStrategy } from "@/lib/types";
 import {
   DEFAULT_LOADBALANCE_STRATEGY_FORM,
+  getDefaultRoutingPolicyDraft,
   getLoadbalanceStrategyFormValidationError,
-  getDefaultEnabledAutoRecoveryDraft,
   loadbalanceStrategyFormStateFromStrategy,
   toLoadbalanceStrategyPayload,
   type LoadbalanceStrategyFormState,
 } from "../loadbalanceStrategyFormState";
 
-describe("loadbalanceStrategyFormState", () => {
-  const buildAutoRecoveryEnabled = () => getDefaultEnabledAutoRecoveryDraft();
+function buildForm(
+  overrides: Partial<LoadbalanceStrategyFormState> = {},
+): LoadbalanceStrategyFormState {
+  return {
+    ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+    name: "adaptive-primary",
+    routing_policy: getDefaultRoutingPolicyDraft(),
+    ...overrides,
+  };
+}
 
-  it("starts new strategies with a disabled auto_recovery branch", () => {
+describe("loadbalanceStrategyFormState", () => {
+  it("starts new strategies with an adaptive routing policy draft", () => {
     expect(DEFAULT_LOADBALANCE_STRATEGY_FORM).toMatchObject({
       name: "",
-      strategy_type: "single",
-      auto_recovery: {
-        mode: "disabled",
+      routing_policy: {
+        kind: "adaptive",
+        routing_objective: "minimize_latency",
+        circuit_breaker: {
+          failure_status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
+          status_code_input: "",
+        },
       },
     });
   });
 
-  it("hydrates the enabled auto_recovery branch from an existing strategy", () => {
+  it("hydrates the routing_policy draft from an existing strategy", () => {
     const strategy: LoadbalanceStrategy = {
       id: 12,
       profile_id: 3,
-      name: "Primary failover",
-      strategy_type: "failover",
-      auto_recovery: {
-        mode: "enabled",
-        status_codes: [403, 429, 503],
-        cooldown: {
-          base_seconds: 45,
+      name: "Adaptive availability",
+      routing_policy: {
+        kind: "adaptive",
+        routing_objective: "maximize_availability",
+        deadline_budget_ms: 45000,
+        hedge: {
+          enabled: false,
+          delay_ms: 1500,
+          max_additional_attempts: 1,
+        },
+        circuit_breaker: {
+          failure_status_codes: [503, 429, 503],
+          base_open_seconds: 45,
           failure_threshold: 4,
           backoff_multiplier: 3.5,
-          max_cooldown_seconds: 720,
+          max_open_seconds: 720,
           jitter_ratio: 0.35,
-        },
-        ban: {
-          mode: "temporary",
-          max_cooldown_strikes_before_ban: 3,
+          ban_mode: "temporary",
+          max_open_strikes_before_ban: 3,
           ban_duration_seconds: 1800,
+        },
+        admission: {
+          respect_qps_limit: true,
+          respect_in_flight_limits: true,
+        },
+        monitoring: {
+          enabled: true,
+          stale_after_seconds: 300,
+          endpoint_ping_weight: 1,
+          conversation_delay_weight: 1,
+          failure_penalty_weight: 2,
         },
       },
       attached_model_count: 4,
@@ -50,238 +78,141 @@ describe("loadbalanceStrategyFormState", () => {
     };
 
     expect(loadbalanceStrategyFormStateFromStrategy(strategy)).toMatchObject({
-      name: "Primary failover",
-      strategy_type: "failover",
-      auto_recovery: {
-        mode: "enabled",
-        status_codes: [403, 429, 503],
-        cooldown: {
-          base_seconds: 45,
+      name: "Adaptive availability",
+      routing_policy: {
+        kind: "adaptive",
+        routing_objective: "maximize_availability",
+        circuit_breaker: {
+          failure_status_codes: [429, 503],
+          status_code_input: "",
+          base_open_seconds: 45,
           failure_threshold: 4,
           backoff_multiplier: 3.5,
-          max_cooldown_seconds: 720,
+          max_open_seconds: 720,
           jitter_ratio: 0.35,
-        },
-        ban: {
-          mode: "temporary",
-          max_cooldown_strikes_before_ban: 3,
+          ban_mode: "temporary",
+          max_open_strikes_before_ban: 3,
           ban_duration_seconds: 1800,
         },
       },
     });
   });
 
-  it("accepts fill-first strategies and preserves nested recovery for non-single payloads", () => {
-    const strategy: LoadbalanceStrategy = {
-      id: 14,
-      profile_id: 3,
-      name: "Primary fill-first",
-      strategy_type: "fill-first",
-      auto_recovery: {
-        mode: "enabled",
-        status_codes: [403, 429, 503],
-        cooldown: {
-          base_seconds: 45,
-          failure_threshold: 4,
-          backoff_multiplier: 3.5,
-          max_cooldown_seconds: 720,
-          jitter_ratio: 0.35,
-        },
-        ban: {
-          mode: "temporary",
-          max_cooldown_strikes_before_ban: 3,
-          ban_duration_seconds: 1800,
-        },
-      },
-      attached_model_count: 2,
-      created_at: "2026-03-25T08:00:00Z",
-      updated_at: "2026-03-25T08:00:00Z",
-    };
-
-    expect(loadbalanceStrategyFormStateFromStrategy(strategy)).toMatchObject({
-      strategy_type: "fill-first",
-      auto_recovery: { mode: "enabled", status_code_input: "" },
-    });
-
+  it("trims the name, sorts status codes uniquely, and preserves nested routing policy values", () => {
     expect(
       toLoadbalanceStrategyPayload({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "  Primary fill-first  ",
-        strategy_type: "fill-first",
-        auto_recovery: buildAutoRecoveryEnabled(),
+        ...buildForm(),
+        name: "  Adaptive availability  ",
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          routing_objective: "maximize_availability",
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
+            failure_status_codes: [503, 429, 503, 504],
+            base_open_seconds: 120.9,
+            failure_threshold: 5.2,
+            backoff_multiplier: 4,
+            max_open_seconds: 1800.6,
+            jitter_ratio: 0.4,
+            ban_mode: "manual",
+            max_open_strikes_before_ban: 4.7,
+            ban_duration_seconds: 9,
+          },
+        },
       }),
     ).toMatchObject({
-      name: "Primary fill-first",
-      strategy_type: "fill-first",
-      auto_recovery: {
-        mode: "enabled",
-        status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
-        cooldown: {
-          base_seconds: 60,
-          failure_threshold: 2,
-          backoff_multiplier: 2,
-          max_cooldown_seconds: 900,
-          jitter_ratio: 0.2,
-        },
-        ban: { mode: "off" },
-      },
-    });
-  });
-
-  it("trims the name, sorts status codes uniquely, preserves numeric policy values, and keeps payloads nested", () => {
-    const failoverFormState: LoadbalanceStrategyFormState = {
-      ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-      name: "  Primary failover  ",
-      strategy_type: "failover" as const,
-      auto_recovery: {
-        ...buildAutoRecoveryEnabled(),
-        status_codes: [503, 429, 503, 504],
-        cooldown: {
-          base_seconds: 120.9,
-          failure_threshold: 5.2,
-          backoff_multiplier: 4,
-          max_cooldown_seconds: 1800.6,
-          jitter_ratio: 0.4,
-        },
-        ban: {
-          mode: "manual" as const,
-          max_cooldown_strikes_before_ban: 4.7,
-        },
-      },
-    };
-
-    expect(toLoadbalanceStrategyPayload(failoverFormState)).toMatchObject({
-      name: "Primary failover",
-      strategy_type: "failover",
-      auto_recovery: {
-        mode: "enabled",
-        status_codes: [429, 503, 504],
-        cooldown: {
-          base_seconds: 120,
+      name: "Adaptive availability",
+      routing_policy: {
+        kind: "adaptive",
+        routing_objective: "maximize_availability",
+        circuit_breaker: {
+          failure_status_codes: [429, 503, 504],
+          base_open_seconds: 120,
           failure_threshold: 5,
           backoff_multiplier: 4,
-          max_cooldown_seconds: 1800,
+          max_open_seconds: 1800,
           jitter_ratio: 0.4,
-        },
-        ban: {
-          mode: "manual",
-          max_cooldown_strikes_before_ban: 4,
+          ban_mode: "manual",
+          max_open_strikes_before_ban: 4,
+          ban_duration_seconds: 0,
         },
       },
     });
   });
 
-  it("forces single strategies to emit a disabled auto_recovery branch", () => {
+  it("rejects invalid failure status code lists and out-of-range policy values before save", () => {
     expect(
-      toLoadbalanceStrategyPayload({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Single strategy",
-        strategy_type: "single",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          ban: {
-            mode: "temporary",
-            max_cooldown_strikes_before_ban: 3,
-            ban_duration_seconds: 600,
+      getLoadbalanceStrategyFormValidationError({
+        ...buildForm(),
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
+            failure_status_codes: [],
           },
         },
       }),
-    ).toMatchObject({
-      name: "Single strategy",
-      strategy_type: "single",
-      auto_recovery: {
-        mode: "disabled",
-      },
-    });
-  });
-
-  it("skips recovery validation when the auto_recovery branch is disabled", () => {
-    expect(
-      getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Fill-first",
-        strategy_type: "fill-first",
-        auto_recovery: { mode: "disabled" },
-      }),
-    ).toBeNull();
-  });
-
-  it("rejects invalid enabled auto_recovery status code lists and out-of-range policy values before save", () => {
-    expect(
-      getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          status_codes: [],
-        },
-      }),
-    ).toBe("Add at least one failover status code");
+    ).toBe("Add at least one failure status code");
 
     expect(
       getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          status_codes: [429, 429],
-        },
-      }),
-    ).toBe("Failover status codes must be unique");
-
-    expect(
-      getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          status_codes: [99, 429],
-        },
-      }),
-    ).toBe("Failover status codes must be valid HTTP status codes between 100 and 599");
-
-    expect(
-      getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          cooldown: {
-            ...buildAutoRecoveryEnabled().cooldown,
-            base_seconds: 1.5,
+        ...buildForm(),
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
+            failure_status_codes: [429, 429],
           },
         },
       }),
-    ).toBe("Base cooldown must be a whole number of seconds");
+    ).toBe("Failure status codes must be unique");
 
     expect(
       getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          cooldown: {
-            ...buildAutoRecoveryEnabled().cooldown,
-            failure_threshold: 11,
+        ...buildForm(),
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
+            failure_status_codes: [99, 429],
           },
         },
       }),
-    ).toBe("Failure threshold must be between 1 and 10");
+    ).toBe("Failure status codes must be valid HTTP status codes between 100 and 599");
 
     expect(
       getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          cooldown: {
-            ...buildAutoRecoveryEnabled().cooldown,
+        ...buildForm(),
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
+            base_open_seconds: 1.5,
+          },
+        },
+      }),
+    ).toBe("Base open window must be a whole number of seconds");
+
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...buildForm(),
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
+            failure_threshold: 51,
+          },
+        },
+      }),
+    ).toBe("Failure threshold must be between 1 and 50");
+
+    expect(
+      getLoadbalanceStrategyFormValidationError({
+        ...buildForm(),
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
             backoff_multiplier: 0.5,
           },
         },
@@ -290,28 +221,24 @@ describe("loadbalanceStrategyFormState", () => {
 
     expect(
       getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          cooldown: {
-            ...buildAutoRecoveryEnabled().cooldown,
-            max_cooldown_seconds: 100_000,
+        ...buildForm(),
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
+            max_open_seconds: 100_000,
           },
         },
       }),
-    ).toBe("Max cooldown must be between 1 and 86400 seconds");
+    ).toBe("Max open window must be between 1 and 86400 seconds");
 
     expect(
       getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          cooldown: {
-            ...buildAutoRecoveryEnabled().cooldown,
+        ...buildForm(),
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
             jitter_ratio: 1.5,
           },
         },
@@ -320,61 +247,17 @@ describe("loadbalanceStrategyFormState", () => {
 
     expect(
       getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          ban: {
-            mode: "temporary",
-            max_cooldown_strikes_before_ban: 0,
+        ...buildForm(),
+        routing_policy: {
+          ...getDefaultRoutingPolicyDraft(),
+          circuit_breaker: {
+            ...getDefaultRoutingPolicyDraft().circuit_breaker,
+            ban_mode: "temporary",
+            max_open_strikes_before_ban: 0,
             ban_duration_seconds: 30,
           },
         },
       }),
-    ).toBe("Max-cooldown strikes before ban must be at least 1 when ban escalation is enabled");
-
-    expect(
-      getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          ban: {
-            mode: "temporary",
-            max_cooldown_strikes_before_ban: 2,
-            ban_duration_seconds: 0,
-          },
-        },
-      }),
-    ).toBe("Ban duration must be at least 1 second for temporary bans");
-
-    expect(
-      getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "Failover",
-        strategy_type: "failover",
-        auto_recovery: {
-          ...buildAutoRecoveryEnabled(),
-          ban: {
-            mode: "manual",
-            max_cooldown_strikes_before_ban: 2,
-          },
-        },
-      }),
-    ).toBeNull();
-  });
-
-  it("returns localized validation errors when the active locale is Chinese", () => {
-    document.documentElement.lang = "zh-CN";
-
-    expect(
-      getLoadbalanceStrategyFormValidationError({
-        ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-        name: "",
-        strategy_type: "single",
-      }),
-    ).toBe("名称为必填项");
+    ).toBe("Max open strikes before ban must be at least 1 when ban escalation is enabled");
   });
 });

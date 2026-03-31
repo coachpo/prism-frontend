@@ -13,59 +13,80 @@ vi.mock("@/hooks/useTimezone", () => ({
   }),
 }));
 
+function buildModel() {
+  return {
+    id: 1,
+    vendor_id: 30,
+    vendor: {
+      id: 30,
+      key: "together-ai",
+      name: "Together AI",
+      description: null,
+      icon_key: null,
+      audit_enabled: false,
+      audit_capture_bodies: false,
+      created_at: "2026-03-20T10:00:00Z",
+      updated_at: "2026-03-20T10:00:00Z",
+    },
+    api_family: "openai" as const,
+    model_id: "gpt-4o-mini",
+    display_name: "GPT-4o Mini",
+    model_type: "native" as const,
+    proxy_targets: [],
+    loadbalance_strategy_id: 101,
+    loadbalance_strategy: {
+      id: 101,
+      name: "adaptive-availability",
+      routing_policy: {
+        kind: "adaptive" as const,
+        routing_objective: "maximize_availability" as const,
+        deadline_budget_ms: 30000,
+        hedge: {
+          enabled: false,
+          delay_ms: 1500,
+          max_additional_attempts: 1,
+        },
+        circuit_breaker: {
+          failure_status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
+          base_open_seconds: 45,
+          failure_threshold: 4,
+          backoff_multiplier: 3.5,
+          max_open_seconds: 720,
+          jitter_ratio: 0.35,
+          ban_mode: "off" as const,
+          max_open_strikes_before_ban: 0,
+          ban_duration_seconds: 0,
+        },
+        admission: {
+          respect_qps_limit: true,
+          respect_in_flight_limits: true,
+        },
+        monitoring: {
+          enabled: true,
+          stale_after_seconds: 300,
+          endpoint_ping_weight: 1,
+          conversation_delay_weight: 1,
+          failure_penalty_weight: 2,
+        },
+      },
+    },
+    is_enabled: true,
+    connections: [],
+    created_at: "2026-03-20T10:00:00Z",
+    updated_at: "2026-03-20T10:00:00Z",
+  };
+}
+
 describe("OverviewCards", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("shows priority spillover wording and recovery state for fill-first strategies", () => {
+  it("shows adaptive routing wording and the routing objective for native strategies", () => {
     render(
       <LocaleProvider>
         <OverviewCards
-          model={{
-            id: 1,
-            vendor_id: 30,
-            vendor: {
-              id: 30,
-              key: "together-ai",
-              name: "Together AI",
-              description: null,
-              icon_key: null,
-              audit_enabled: false,
-              audit_capture_bodies: false,
-              created_at: "2026-03-20T10:00:00Z",
-              updated_at: "2026-03-20T10:00:00Z",
-            },
-            api_family: "openai",
-            model_id: "gpt-4o-mini",
-            display_name: "GPT-4o Mini",
-            model_type: "native",
-            proxy_targets: [],
-            loadbalance_strategy_id: 101,
-            loadbalance_strategy: {
-              id: 101,
-              name: "priority-pack",
-              strategy_type: "fill-first",
-              auto_recovery: {
-                mode: "enabled",
-                status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
-                cooldown: {
-                  base_seconds: 45,
-                  failure_threshold: 4,
-                  backoff_multiplier: 3.5,
-                  max_cooldown_seconds: 720,
-                  jitter_ratio: 0.35,
-                },
-                ban: {
-                  mode: "off",
-                },
-              },
-            },
-            is_enabled: true,
-            connections: [],
-            created_at: "2026-03-20T10:00:00Z",
-            updated_at: "2026-03-20T10:00:00Z",
-          }}
+          model={buildModel()}
           spending={null}
           spendingLoading={false}
           spendingCurrencySymbol="$"
@@ -81,14 +102,13 @@ describe("OverviewCards", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByText("priority-pack")).toBeInTheDocument();
-    expect(screen.getByText("Priority spillover")).toBeInTheDocument();
-    expect(screen.getByText("Enabled")).toBeInTheDocument();
+    expect(screen.getByText("adaptive-availability")).toBeInTheDocument();
+    expect(screen.getByText("Adaptive routing")).toBeInTheDocument();
+    expect(screen.getByText("Maximize availability")).toBeInTheDocument();
     expect(screen.getByText("Vendor")).toBeInTheDocument();
     expect(screen.getByText("Together AI")).toBeInTheDocument();
     expect(screen.getByText("API Family")).toBeInTheDocument();
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
-    expect(screen.queryByText("Not applicable for single strategies")).not.toBeInTheDocument();
   });
 
   it("renders overview copy from the Chinese locale catalog", () => {
@@ -97,50 +117,7 @@ describe("OverviewCards", () => {
     render(
       <LocaleProvider>
         <OverviewCards
-          model={{
-            id: 1,
-            vendor_id: 30,
-            vendor: {
-              id: 30,
-              key: "together-ai",
-              name: "Together AI",
-              description: null,
-              icon_key: null,
-              audit_enabled: false,
-              audit_capture_bodies: false,
-              created_at: "2026-03-20T10:00:00Z",
-              updated_at: "2026-03-20T10:00:00Z",
-            },
-            api_family: "openai",
-            model_id: "gpt-4o-mini",
-            display_name: "GPT-4o Mini",
-            model_type: "native",
-            proxy_targets: [],
-            loadbalance_strategy_id: 101,
-            loadbalance_strategy: {
-              id: 101,
-              name: "priority-pack",
-              strategy_type: "fill-first",
-              auto_recovery: {
-                mode: "enabled",
-                status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
-                cooldown: {
-                  base_seconds: 45,
-                  failure_threshold: 4,
-                  backoff_multiplier: 3.5,
-                  max_cooldown_seconds: 720,
-                  jitter_ratio: 0.35,
-                },
-                ban: {
-                  mode: "off",
-                },
-              },
-            },
-            is_enabled: true,
-            connections: [],
-            created_at: "2026-03-20T10:00:00Z",
-            updated_at: "2026-03-20T10:00:00Z",
-          }}
+          model={buildModel()}
           spending={null}
           spendingLoading={false}
           spendingCurrencySymbol="$"
@@ -161,60 +138,6 @@ describe("OverviewCards", () => {
     expect(screen.getByText("成本概览")).toBeInTheDocument();
     expect(screen.getByText("模型 KPI（24 小时）")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看请求日志" })).toBeInTheDocument();
-  });
-
-  it("shows disabled recovery from the nested auto_recovery branch", () => {
-    render(
-      <LocaleProvider>
-        <OverviewCards
-          model={{
-            id: 1,
-            vendor_id: 30,
-            vendor: {
-              id: 30,
-              key: "together-ai",
-              name: "Together AI",
-              description: null,
-              icon_key: null,
-              audit_enabled: false,
-              audit_capture_bodies: false,
-              created_at: "2026-03-20T10:00:00Z",
-              updated_at: "2026-03-20T10:00:00Z",
-            },
-            api_family: "openai",
-            model_id: "gpt-4o-mini",
-            display_name: "GPT-4o Mini",
-            model_type: "native",
-            proxy_targets: [],
-            loadbalance_strategy_id: 101,
-            loadbalance_strategy: {
-              id: 101,
-              name: "priority-pack",
-              strategy_type: "fill-first",
-              auto_recovery: {
-                mode: "disabled",
-              },
-            },
-            is_enabled: true,
-            connections: [],
-            created_at: "2026-03-20T10:00:00Z",
-            updated_at: "2026-03-20T10:00:00Z",
-          }}
-          spending={null}
-          spendingLoading={false}
-          spendingCurrencySymbol="$"
-          spendingCurrencyCode="USD"
-          metrics24hLoading={false}
-          modelKpis={{
-            successRate: null,
-            p95LatencyMs: null,
-            requestCount24h: 0,
-            spend24hMicros: null,
-          }}
-        />
-      </LocaleProvider>,
-    );
-
-    expect(screen.getByText("Disabled")).toBeInTheDocument();
+    expect(screen.getByText("自适应路由")).toBeInTheDocument();
   });
 });

@@ -99,13 +99,9 @@ type ModelSettingsFormProps = {
   onOpenChange: (open: boolean) => void;
   setEditLoadbalanceStrategyId: (value: string) => void;
   strategyCopy: {
-    fillFirstLabel: string;
-    fillFirstSummary: string;
-    failoverLabel: string;
-    failoverSummary: string;
-    roundRobinLabel: string;
-    roundRobinSummary: string;
-    singleLabel: string;
+    adaptiveSummary: string;
+    maximizeAvailabilityLabel: string;
+    minimizeLatencyLabel: string;
   };
   vendors: Vendor[];
 };
@@ -134,19 +130,12 @@ function ModelSettingsForm({
   };
 
   const getStrategyOptionText = (strategy: LoadbalanceStrategy) => {
-    if (strategy.strategy_type === "fill-first") {
-      return `${strategy.name} (${strategyCopy.fillFirstLabel} · ${strategyCopy.fillFirstSummary})`;
-    }
+    const objectiveLabel =
+      strategy.routing_policy.routing_objective === "maximize_availability"
+        ? strategyCopy.maximizeAvailabilityLabel
+        : strategyCopy.minimizeLatencyLabel;
 
-    if (strategy.strategy_type === "round-robin") {
-      return `${strategy.name} (${strategyCopy.roundRobinLabel} · ${strategyCopy.roundRobinSummary})`;
-    }
-
-    if (strategy.strategy_type === "failover") {
-      return `${strategy.name} (${strategyCopy.failoverLabel} · ${strategyCopy.failoverSummary})`;
-    }
-
-    return `${strategy.name} (${strategyCopy.singleLabel})`;
+    return `${strategy.name} (${strategyCopy.adaptiveSummary} · ${objectiveLabel})`;
   };
 
   return (

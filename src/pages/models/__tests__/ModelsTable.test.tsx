@@ -57,8 +57,38 @@ function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigLi
     loadbalance_strategy: {
       id: 100,
       name: "single-primary",
-      strategy_type: "single",
-      auto_recovery: { mode: "disabled" },
+      routing_policy: {
+        kind: "adaptive",
+        routing_objective: "minimize_latency",
+        deadline_budget_ms: 30000,
+        hedge: {
+          enabled: false,
+          delay_ms: 1500,
+          max_additional_attempts: 1,
+        },
+        circuit_breaker: {
+          failure_status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
+          base_open_seconds: 60,
+          failure_threshold: 2,
+          backoff_multiplier: 2,
+          max_open_seconds: 900,
+          jitter_ratio: 0.2,
+          ban_mode: "off",
+          max_open_strikes_before_ban: 0,
+          ban_duration_seconds: 0,
+        },
+        admission: {
+          respect_qps_limit: true,
+          respect_in_flight_limits: true,
+        },
+        monitoring: {
+          enabled: true,
+          stale_after_seconds: 300,
+          endpoint_ping_weight: 1,
+          conversation_delay_weight: 1,
+          failure_penalty_weight: 2,
+        },
+      },
     },
     is_enabled: true,
     connection_count: 1,
@@ -444,7 +474,9 @@ describe("ModelsTable", () => {
     const metricsCluster = screen.getByText("1/1 active").parentElement;
 
     expect(metricsCluster).not.toBeNull();
-    expect(metricsCluster).toContainElement(screen.getByText("single-primary · Single"));
+    expect(metricsCluster).toContainElement(
+      screen.getByText("single-primary · Adaptive routing · Minimize latency"),
+    );
     expect(screen.getAllByText("|")).toHaveLength(5);
   });
 
@@ -473,26 +505,17 @@ describe("ModelsTable", () => {
     expect(screen.queryByText(/Target claude-sonnet-4-5-20250929/i)).not.toBeInTheDocument();
   });
 
-  it("renders priority spillover summaries for fill-first strategies", () => {
+  it("renders adaptive routing summaries without legacy strategy labels", () => {
     renderTable({
       filtered: [
         buildModel({
           loadbalance_strategy: {
             ...buildModel().loadbalance_strategy!,
             id: 101,
-            name: "priority-pack",
-            strategy_type: "fill-first",
-            auto_recovery: {
-              mode: "enabled",
-              status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
-              cooldown: {
-                base_seconds: 60,
-                failure_threshold: 2,
-                backoff_multiplier: 2,
-                max_cooldown_seconds: 900,
-                jitter_ratio: 0.2,
-              },
-              ban: { mode: "off" },
+            name: "adaptive-availability",
+            routing_policy: {
+              ...buildModel().loadbalance_strategy!.routing_policy,
+              routing_objective: "maximize_availability",
             },
           },
           loadbalance_strategy_id: 101,
@@ -500,8 +523,10 @@ describe("ModelsTable", () => {
       ],
     });
 
-    expect(screen.getByText("priority-pack · Priority spillover")).toBeInTheDocument();
-    expect(screen.queryByText(/Fill First/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText("adaptive-availability · Adaptive routing · Maximize availability"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/fill-first/i)).not.toBeInTheDocument();
   });
 
   it("renders a smaller copy button next to the model id", () => {

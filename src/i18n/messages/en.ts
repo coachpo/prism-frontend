@@ -148,8 +148,8 @@ export interface Messages {
   loadbalanceStrategyDialog: {
     addTitle: string;
     addStatusCode: string;
-    autoRecoveryDescription: string;
-    autoRecoveryLabel: string;
+    adaptivePolicyDescription: string;
+    adaptivePolicyLabel: string;
     banDurationDescription: string;
     banDurationLabel: string;
     banEscalationDescription: string;
@@ -167,13 +167,10 @@ export interface Messages {
     description: string;
     editTitle: string;
     explainField: (label: string) => string;
-    failoverOption: string;
-    fillFirstOption: string;
-    roundRobinOption: string;
     failureThresholdDescription: string;
     failureThresholdLabel: string;
-    failoverStatusCodesDescription: string;
-    failoverStatusCodesLabel: string;
+    failureStatusCodesDescription: string;
+    failureStatusCodesLabel: string;
     jitterRatioDescription: string;
     jitterRatioLabel: string;
     maxCooldownStrikesBeforeBanDescription: string;
@@ -185,19 +182,12 @@ export interface Messages {
     removeStatusCode: (code: number) => string;
     save: string;
     saving: string;
-    singleOption: string;
-    singleStrategyHint: string;
-    strategyTypeLabel: string;
   };
   loadbalanceStrategyCopy: {
-    failoverLabel: string;
-    failoverSummary: string;
-    fillFirstLabel: string;
-    fillFirstSummary: string;
-    roundRobinLabel: string;
-    roundRobinSummary: string;
-    singleLabel: string;
-    singleSummary: string;
+    adaptiveLabel: string;
+    adaptiveSummary: string;
+    maximizeAvailabilityLabel: string;
+    minimizeLatencyLabel: string;
   };
   loadbalanceStrategiesPage: {
     description: string;
@@ -280,6 +270,7 @@ export interface Messages {
     deleteStrategyInUse: (count: string) => string;
     name: string;
     noStrategiesConfigured: string;
+    objective: string;
     recovery: string;
     statusCodes: (codes: string) => string;
     thresholdBaseMax: (threshold: string, baseSeconds: string, maxSeconds: string) => string;
@@ -931,7 +922,6 @@ export interface Messages {
     noLoadbalanceStrategiesAvailable: string;
     noProfileEndpointsFound: string;
     notCheckedYet: string;
-    notApplicableForSingleStrategies: string;
     orderedPriorityRouting: string;
     openaiProbeChatCompletions: string;
     openaiProbeEndpointVariant: string;
@@ -969,6 +959,7 @@ export interface Messages {
     successRate24h: string;
     successRateSample: (count: string) => string;
     successRateTooltip: string;
+    routingObjective: string;
     strategyRecovery: string;
     testConnection: string;
     testingConnection: string;
@@ -1495,8 +1486,6 @@ export interface Messages {
     successRate: string;
     specialTokens: string;
     statisticsDescription: string;
-    statisticsScopeNoteDescription: string;
-    statisticsScopeNoteTitle: string;
     statisticsTitle: string;
     topHttpErrors: string;
     timeWindow: string;
@@ -1687,71 +1676,60 @@ export const enMessages: Messages = {
   loadbalanceStrategyDialog: {
     addTitle: "Add Loadbalance Strategy",
     addStatusCode: "Add Status Code",
-    autoRecoveryDescription:
-      "Allow failed endpoints in this strategy to recover automatically after backend-managed cooldown windows.",
-    autoRecoveryLabel: "Auto-Recovery",
+    adaptivePolicyDescription:
+      "Prism now persists one adaptive routing contract for native models. This dialog edits the circuit-breaker branch of that routing policy.",
+    adaptivePolicyLabel: "Adaptive routing",
     banDurationDescription:
       "How long a temporary ban lasts before the connection becomes probe-eligible again.",
     banDurationLabel: "Ban Duration (seconds)",
     banEscalationDescription:
-      "Escalate repeated max-cooldown strikes into a temporary or manual-dismiss ban without replacing the existing cooldown policy.",
+      "Escalate repeated max-open strikes into a temporary or manual-dismiss ban without replacing the existing circuit-breaker policy.",
     banEscalationLabel: "Ban escalation",
     banModeDescription:
-      "Choose whether repeated max-cooldown strikes stay off, expire automatically, or wait for a manual dismiss.",
+      "Choose whether repeated max-open strikes stay off, expire automatically, or wait for a manual dismiss.",
     banModeLabel: "Ban Mode",
     banModeManualOption: "Manual dismiss",
     banModeOffOption: "Off",
     banModeTemporaryOption: "Temporary",
     backoffMultiplierDescription:
-      "Multiplier applied to the cooldown after each failure beyond the threshold.",
+      "Multiplier applied to the open window after each failure beyond the threshold.",
     backoffMultiplierLabel: "Backoff Multiplier",
     baseCooldownDescription:
-      "Starting cooldown applied after transient failures once the threshold is reached.",
-    baseCooldownLabel: "Base Cooldown (seconds)",
+      "Starting open window applied after transient failures once the threshold is reached.",
+    baseCooldownLabel: "Base Open Window (seconds)",
     cancel: "Cancel",
-    description: "Configure reusable routing behavior for native models in this profile.",
+    description: "Configure reusable adaptive routing policies for native models in this profile.",
     editTitle: "Edit Loadbalance Strategy",
     explainField: (label) => `Explain ${label}`,
-    failoverOption: "Failover",
-    fillFirstOption: "Fill-first",
-    roundRobinOption: "Round-robin",
     failureThresholdDescription:
-      "Number of consecutive failures required before the cooldown window opens.",
+      "Number of consecutive failures required before the circuit breaker opens.",
     failureThresholdLabel: "Failure Threshold",
-    failoverStatusCodesDescription:
-      "HTTP status codes that should trigger failover for non-single strategies.",
-    failoverStatusCodesLabel: "Failover Status Codes",
+    failureStatusCodesDescription:
+      "HTTP status codes that should count toward the adaptive circuit breaker.",
+    failureStatusCodesLabel: "Failure Status Codes",
     jitterRatioDescription:
-      "Random spread applied to the cooldown so retries do not all happen at the same instant.",
+      "Random spread applied to the open window so retries do not all happen at the same instant.",
     jitterRatioLabel: "Jitter Ratio",
     maxCooldownStrikesBeforeBanDescription:
-      "Number of max-cooldown strike events required before this connection is marked as banned.",
-    maxCooldownStrikesBeforeBanLabel: "Max-cooldown Strikes Before Ban",
+      "Number of max-open strike events required before this connection is marked as banned.",
+    maxCooldownStrikesBeforeBanLabel: "Max Open Strikes Before Ban",
     maxCooldownDescription:
-      "Upper limit for the computed cooldown, even after repeated failures.",
-    maxCooldownLabel: "Max Cooldown (seconds)",
+      "Upper limit for the computed open window, even after repeated failures.",
+    maxCooldownLabel: "Max Open Window (seconds)",
     nameLabel: "Name",
-    namePlaceholder: "e.g. failover-primary",
+    namePlaceholder: "e.g. adaptive-primary",
     removeStatusCode: (code) => `Remove status code ${code}`,
     save: "Save Strategy",
     saving: "Saving...",
-    singleOption: "Single",
-    singleStrategyHint:
-      "Single strategies always route through one active connection and do not expose recovery.",
-    strategyTypeLabel: "Strategy Type",
   },
   loadbalanceStrategyCopy: {
-    failoverLabel: "Failover",
-    failoverSummary: "Health-aware failover",
-    fillFirstLabel: "Fill-first",
-    fillFirstSummary: "Priority spillover",
-    roundRobinLabel: "Round-robin",
-    roundRobinSummary: "Rotating active connections",
-    singleLabel: "Single",
-    singleSummary: "Single active connection",
+    adaptiveLabel: "Adaptive",
+    adaptiveSummary: "Adaptive routing",
+    maximizeAvailabilityLabel: "Maximize availability",
+    minimizeLatencyLabel: "Minimize latency",
   },
   loadbalanceStrategiesPage: {
-    description: "Manage reusable native-model routing strategies for this profile",
+    description: "Manage reusable adaptive routing policies for native models in this profile",
     selectedProfileFallback: "the selected profile",
     scopeCallout: (profileLabel) =>
       `Changes here affect ${profileLabel} and native models attached to these strategies.`,
@@ -1821,12 +1799,12 @@ export const enMessages: Messages = {
     attachedModels: "Attached Models",
     backoffJitterStatusCodes: (multiplier, jitterRatio, statusCodes) =>
       `Backoff ×${multiplier} • Jitter ${jitterRatio} • ${statusCodes}`,
-    banManualDismiss: (strikes) => `Ban manual dismiss • ${strikes} max-cooldown strikes`,
+    banManualDismiss: (strikes) => `Ban manual dismiss • ${strikes} max-open strikes`,
     banOff: "Ban off",
     banTemporary: (strikes, durationSeconds) =>
-      `Ban temporary • ${strikes} max-cooldown strikes • ${durationSeconds}s`,
+      `Ban temporary • ${strikes} max-open strikes • ${durationSeconds}s`,
     description:
-      "Reuse strategy definitions across native models instead of configuring failover per model.",
+      "Reuse adaptive routing policies across native models instead of redefining circuit-breaker behavior per model.",
     disabled: "Disabled",
     edit: "Edit",
     enabled: "Enabled",
@@ -1835,8 +1813,9 @@ export const enMessages: Messages = {
     deleteStrategyInUse: (count) => `This strategy is attached to ${count} native model${count === "1" ? "" : "s"} and cannot be deleted yet.`,
     name: "Name",
     noStrategiesConfigured: "No loadbalance strategies configured.",
+    objective: "Objective",
     recovery: "Recovery",
-    statusCodes: (codes) => `Status codes ${codes}`,
+    statusCodes: (codes) => `Failure status codes ${codes}`,
     thresholdBaseMax: (threshold, baseSeconds, maxSeconds) =>
       `Threshold ${threshold} • Base ${baseSeconds}s • Max ${maxSeconds}s`,
     title: "Loadbalance Strategies",
@@ -1852,26 +1831,26 @@ export const enMessages: Messages = {
     updated: "Loadbalance strategy updated",
   },
   loadbalanceStrategyValidation: {
-    addStatusCode: "Add at least one failover status code",
+    addStatusCode: "Add at least one failure status code",
     backoffMultiplierRange: "Backoff multiplier must be between 1 and 10",
     banDurationIntegerSeconds: "Ban duration must be a whole number of seconds",
     banDurationManualDismissZero: "Ban duration must be 0 seconds for manual dismiss bans",
     banDurationTemporaryMin: "Ban duration must be at least 1 second for temporary bans",
     banModeOffZero: "Ban escalation must stay at 0 strikes and 0 seconds while ban mode is off",
-    baseCooldownIntegerSeconds: "Base cooldown must be a whole number of seconds",
-    baseCooldownMin: "Base cooldown must be at least 0 seconds",
+    baseCooldownIntegerSeconds: "Base open window must be a whole number of seconds",
+    baseCooldownMin: "Base open window must be at least 0 seconds",
     failureThresholdInteger: "Failure threshold must be a whole number",
-    failureThresholdRange: "Failure threshold must be between 1 and 10",
+    failureThresholdRange: "Failure threshold must be between 1 and 50",
     jitterRatioRange: "Jitter ratio must be between 0 and 1",
-    maxCooldownIntegerSeconds: "Max cooldown must be a whole number of seconds",
-    maxCooldownRange: "Max cooldown must be between 1 and 86400 seconds",
-    maxCooldownStrikesInteger: "Max-cooldown strikes before ban must be a whole number",
-    maxCooldownStrikesMin: "Max-cooldown strikes before ban must be at least 1 when ban escalation is enabled",
+    maxCooldownIntegerSeconds: "Max open window must be a whole number of seconds",
+    maxCooldownRange: "Max open window must be between 1 and 86400 seconds",
+    maxCooldownStrikesInteger: "Max open strikes before ban must be a whole number",
+    maxCooldownStrikesMin: "Max open strikes before ban must be at least 1 when ban escalation is enabled",
     nameRequired: "Name is required",
     statusCodeExists: "That status code is already included",
     statusCodeIntegerRange: "Status code must be a whole number between 100 and 599",
-    statusCodesUnique: "Failover status codes must be unique",
-    statusCodesValidHttp: "Failover status codes must be valid HTTP status codes between 100 and 599",
+    statusCodesUnique: "Failure status codes must be unique",
+    statusCodesValidHttp: "Failure status codes must be valid HTTP status codes between 100 and 599",
   },
   pricingTemplateDialog: {
     addTitle: "Add Pricing Template",
@@ -2465,7 +2444,6 @@ export const enMessages: Messages = {
       "No loadbalance strategies are available for this profile. Create one on the Loadbalance Strategies page first.",
     noProfileEndpointsFound: "No profile endpoints found.",
     notCheckedYet: "Not checked yet",
-    notApplicableForSingleStrategies: "Not applicable for single strategies",
     orderedPriorityRouting: "Ordered priority routing",
     openaiProbeChatCompletions: "POST /v1/chat/completions",
     openaiProbeEndpointVariant: "OpenAI probe endpoint",
@@ -2507,6 +2485,7 @@ export const enMessages: Messages = {
     successRateSample: (count) => `n=${count}`,
     successRateTooltip:
       "Success rate = successful requests / total requests for this connection in the last 24 hours. n = total requests counted in that 24h window.",
+    routingObjective: "Routing Objective",
     strategyRecovery: "Strategy Recovery",
     testConnection: "Test Connection",
     testingConnection: "Testing...",
@@ -3080,9 +3059,6 @@ export const enMessages: Messages = {
     successRate: "Success Rate",
     specialTokens: "Special Tokens",
     statisticsDescription: "One request-based usage snapshot across requests, tokens, cost, endpoints, models, and proxy API keys.",
-    statisticsScopeNoteDescription:
-      "Request events are no longer included in the usage snapshot that powers this page.",
-    statisticsScopeNoteTitle: "Statistics now stop at aggregate rollups",
     statisticsTitle: "Usage Statistics",
     tokenTypeBreakdownTitle: "Token Type Breakdown",
     tokenUsageTrendsTitle: "Token Usage Trends",

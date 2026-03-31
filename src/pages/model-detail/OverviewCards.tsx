@@ -50,6 +50,11 @@ export function OverviewCards({
   const fieldCopy = messages.common;
   const apiFamily = model.api_family ?? "openai";
   const vendorLabel = model.vendor?.name ?? formatApiFamily(apiFamily);
+  const routingObjectiveLabel = model.loadbalance_strategy
+    ? model.loadbalance_strategy.routing_policy.routing_objective === "maximize_availability"
+      ? strategyCopy.maximizeAvailabilityLabel
+      : strategyCopy.minimizeLatencyLabel
+    : null;
 
   return (
     <>
@@ -90,13 +95,7 @@ export function OverviewCards({
                     <div className="space-y-0.5">
                       <div>{model.loadbalance_strategy.name}</div>
                       <div className="text-xs font-normal text-muted-foreground">
-                        {model.loadbalance_strategy.strategy_type === "fill-first"
-                          ? strategyCopy.fillFirstSummary
-                          : model.loadbalance_strategy.strategy_type === "round-robin"
-                            ? strategyCopy.roundRobinSummary
-                          : model.loadbalance_strategy.strategy_type === "failover"
-                            ? strategyCopy.failoverSummary
-                            : strategyCopy.singleLabel}
+                        {strategyCopy.adaptiveSummary}
                       </div>
                     </div>
                   ) : (
@@ -105,16 +104,10 @@ export function OverviewCards({
                 </div>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground mb-1">{copy.strategyRecovery}</p>
+                <p className="text-xs text-muted-foreground mb-1">{copy.routingObjective}</p>
                 <span className="text-sm font-medium">
-                  {model.model_type === "native" && model.loadbalance_strategy ? (
-                    model.loadbalance_strategy.strategy_type === "single" ? (
-                      <span className="text-muted-foreground">{copy.notApplicableForSingleStrategies}</span>
-                    ) : model.loadbalance_strategy.auto_recovery.mode === "enabled" ? (
-                      <span className="text-emerald-600 dark:text-emerald-400">{copy.enabled}</span>
-                    ) : (
-                      <span className="text-muted-foreground">{copy.disabled}</span>
-                    )
+                  {model.model_type === "native" && routingObjectiveLabel ? (
+                    routingObjectiveLabel
                   ) : (
                     <span className="text-muted-foreground">{messages.common.notApplicable}</span>
                   )}

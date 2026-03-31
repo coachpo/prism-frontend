@@ -1,38 +1,46 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { AutoRecoveryEnabled, LoadbalanceStrategy } from "@/lib/types";
+import type { LoadbalanceStrategy } from "@/lib/types";
 import { LoadbalanceStrategiesTable } from "../LoadbalanceStrategiesTable";
-
-function buildAutoRecoveryEnabled(
-  overrides: Partial<AutoRecoveryEnabled> = {},
-): AutoRecoveryEnabled {
-  return {
-    mode: "enabled",
-    status_codes: [429, 503],
-    cooldown: {
-      base_seconds: 45,
-      failure_threshold: 4,
-      backoff_multiplier: 3.5,
-      max_cooldown_seconds: 720,
-      jitter_ratio: 0.35,
-    },
-    ban: {
-      mode: "temporary",
-      max_cooldown_strikes_before_ban: 3,
-      ban_duration_seconds: 1800,
-    },
-    ...overrides,
-  };
-}
 
 function buildStrategy(overrides: Partial<LoadbalanceStrategy> = {}): LoadbalanceStrategy {
   return {
     id: 12,
     profile_id: 3,
-    name: "Primary failover",
-    strategy_type: "failover",
-    auto_recovery: buildAutoRecoveryEnabled(),
+    name: "adaptive-primary",
+    routing_policy: {
+      kind: "adaptive",
+      routing_objective: "maximize_availability",
+      deadline_budget_ms: 30000,
+      hedge: {
+        enabled: false,
+        delay_ms: 1500,
+        max_additional_attempts: 1,
+      },
+      circuit_breaker: {
+        failure_status_codes: [429, 503],
+        base_open_seconds: 45,
+        failure_threshold: 4,
+        backoff_multiplier: 3.5,
+        max_open_seconds: 720,
+        jitter_ratio: 0.35,
+        ban_mode: "temporary",
+        max_open_strikes_before_ban: 3,
+        ban_duration_seconds: 1800,
+      },
+      admission: {
+        respect_qps_limit: true,
+        respect_in_flight_limits: true,
+      },
+      monitoring: {
+        enabled: true,
+        stale_after_seconds: 300,
+        endpoint_ping_weight: 1,
+        conversation_delay_weight: 1,
+        failure_penalty_weight: 2,
+      },
+    },
     attached_model_count: 4,
     created_at: "2026-03-25T08:00:00Z",
     updated_at: "2026-03-25T08:00:00Z",
@@ -56,7 +64,7 @@ describe("LoadbalanceStrategiesTable", () => {
           onDelete={onDelete}
           onEdit={onEdit}
         />
-      </LocaleProvider>
+      </LocaleProvider>,
     );
 
     const editButton = screen.getByRole("button", { name: "Edit" });
@@ -87,7 +95,7 @@ describe("LoadbalanceStrategiesTable", () => {
           onDelete={vi.fn()}
           onEdit={vi.fn().mockResolvedValue(undefined)}
         />
-      </LocaleProvider>
+      </LocaleProvider>,
     );
 
     const editButton = screen.getByRole("button", { name: "Edit" });
@@ -100,7 +108,7 @@ describe("LoadbalanceStrategiesTable", () => {
     expect(editIcon).toHaveClass("animate-spin");
   });
 
-  it("shows a compact failover policy summary for failover strategies", () => {
+  it("shows adaptive routing copy and compact circuit-breaker summaries", () => {
     const strategy = buildStrategy();
 
     render(
@@ -113,36 +121,16 @@ describe("LoadbalanceStrategiesTable", () => {
           onDelete={vi.fn()}
           onEdit={vi.fn().mockResolvedValue(undefined)}
         />
-      </LocaleProvider>
+      </LocaleProvider>,
     );
 
-    expect(screen.getByText("Threshold 4 • Base 45s • Max 720s")).toBeInTheDocument();
-    expect(screen.getByText("Backoff ×3.5 • Jitter 0.35 • Status codes 429, 503")).toBeInTheDocument();
-    expect(screen.getByText(/Ban temporary/)).toBeInTheDocument();
-  });
+    const table = screen.getByRole("table");
 
-  it("renders distinct priority spillover copy for fill-first strategies", () => {
-    const strategy = buildStrategy({
-      name: "Primary fill-first",
-      strategy_type: "fill-first",
-      auto_recovery: buildAutoRecoveryEnabled(),
-    });
-
-    render(
-      <LocaleProvider>
-        <LoadbalanceStrategiesTable
-          loadbalanceStrategies={[strategy]}
-          loadbalanceStrategiesLoading={false}
-          loadbalanceStrategyPreparingEditId={null}
-          onCreate={vi.fn()}
-          onDelete={vi.fn()}
-          onEdit={vi.fn().mockResolvedValue(undefined)}
-        />
-      </LocaleProvider>
-    );
-
-    expect(screen.getByText("Priority spillover")).toBeInTheDocument();
-    expect(screen.getByText("Threshold 4 • Base 45s • Max 720s")).toBeInTheDocument();
+    expect(table).toHaveTextContent("Adaptive routing");
+    expect(table).toHaveTextContent("Maximize Availability");
+    expect(table).toHaveTextContent("Threshold 4 • Base 45s • Max 720s");
+    expect(table).toHaveTextContent("Backoff ×3.5 • Jitter 0.35 • Failure status codes 429, 503");
+    expect(table).toHaveTextContent("Ban temporary");
   });
 
   it("renders localized table copy when the saved locale is Chinese", () => {
@@ -158,62 +146,11 @@ describe("LoadbalanceStrategiesTable", () => {
           onDelete={vi.fn()}
           onEdit={vi.fn().mockResolvedValue(undefined)}
         />
-      </LocaleProvider>
+      </LocaleProvider>,
     );
 
     expect(screen.getByText("负载均衡策略")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "新增策略" })).toBeInTheDocument();
-    expect(screen.getByText("当前没有配置负载均衡策略。")) .toBeInTheDocument();
-  });
-
-  it("renders localized row headings and status copy when the saved locale is Chinese", () => {
-    localStorage.setItem("prism.locale", "zh-CN");
-    const strategy = buildStrategy();
-
-    render(
-      <LocaleProvider>
-        <LoadbalanceStrategiesTable
-          loadbalanceStrategies={[strategy]}
-          loadbalanceStrategiesLoading={false}
-          loadbalanceStrategyPreparingEditId={null}
-          onCreate={vi.fn()}
-          onDelete={vi.fn()}
-          onEdit={vi.fn().mockResolvedValue(undefined)}
-        />
-      </LocaleProvider>
-    );
-
-    expect(screen.getByText("名称")).toBeInTheDocument();
-    expect(screen.getByText("类型")).toBeInTheDocument();
-    expect(screen.getByText("恢复")).toBeInTheDocument();
-    expect(screen.getByText("已绑定模型")).toBeInTheDocument();
-    expect(screen.getByText("按健康感知故障转移")).toBeInTheDocument();
-    expect(screen.getByText("已启用")).toBeInTheDocument();
-    expect(screen.getByText(/阈值 4/)).toBeInTheDocument();
-    expect(screen.getByText(/退避 ×3.5/)).toBeInTheDocument();
-  });
-
-  it("derives disabled recovery state from the nested auto_recovery branch", () => {
-    const strategy = buildStrategy({
-      strategy_type: "fill-first",
-      auto_recovery: { mode: "disabled" },
-    });
-
-    render(
-      <LocaleProvider>
-        <LoadbalanceStrategiesTable
-          loadbalanceStrategies={[strategy]}
-          loadbalanceStrategiesLoading={false}
-          loadbalanceStrategyPreparingEditId={null}
-          onCreate={vi.fn()}
-          onDelete={vi.fn()}
-          onEdit={vi.fn().mockResolvedValue(undefined)}
-        />
-      </LocaleProvider>
-    );
-
-    expect(screen.getByText("Disabled")).toBeInTheDocument();
-    expect(screen.queryByText(/Threshold 4/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Backoff ×3.5/)).not.toBeInTheDocument();
+    expect(screen.getByText("当前没有配置负载均衡策略。")).toBeInTheDocument();
   });
 });

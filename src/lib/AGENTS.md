@@ -52,7 +52,7 @@ lib/
 - `request()` handles cookie credentials, `ApiError`, and one refresh retry for eligible `/api/*` paths.
 - Let `api/AGENTS.md` own the typed client split instead of expanding this parent with module-by-module endpoint detail.
 - `referenceData.ts` and `referenceDataRegistry.ts` own shared cache reuse, request dedupe, and revision-keyed invalidation for lookup datasets.
-- `configImportValidation.ts` owns frontend-side validation of the current import payload shape, including nested `auto_recovery` strategy data and vendor `icon_key` presence, instead of leaving that logic in page components.
+- `configImportValidation.ts` owns frontend-side validation of the current import payload shape, including adaptive `routing_policy` strategy data and vendor `icon_key` presence, instead of leaving that logic in page components.
 - `appVersion.ts` owns the browser-facing frontend version contract so shell chrome reads the synced `frontend/package.json` version through Vite instead of hard-coded literals.
 - `websocket.ts` owns the singleton client, while `websocket/AGENTS.md` owns protocol parsing, subscription bookkeeping, and reconnect transport helpers. Consumers should use `useRealtimeData()` instead of creating clients directly.
 - Keep browser WebAuthn ceremony code in `webauthn.ts`.

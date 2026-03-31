@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import type { LoadbalanceStrategy } from "@/lib/types";
+import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import { useLoadbalanceStrategiesPageData } from "../useLoadbalanceStrategiesPageData";
 
 const api = vi.hoisted(() => ({
@@ -35,8 +36,7 @@ function buildStrategy(overrides: Partial<LoadbalanceStrategy> = {}): Loadbalanc
     id: 1,
     profile_id: 1,
     name: "Primary single",
-    strategy_type: "single",
-    auto_recovery: { mode: "disabled" },
+    routing_policy: createDefaultRoutingPolicy(),
     attached_model_count: 0,
     created_at: "2026-03-30T09:00:00Z",
     updated_at: "2026-03-30T10:00:00Z",
@@ -93,13 +93,14 @@ describe("useLoadbalanceStrategiesPageData i18n", () => {
 
     expect(api.loadbalanceStrategies.create).toHaveBeenCalledWith({
       name: "Canary strategy",
-      strategy_type: "single",
-      auto_recovery: { mode: "disabled" },
+      routing_policy: createDefaultRoutingPolicy(),
     });
     expect(result.current.loadbalanceStrategyDialogOpen).toBe(false);
     expect(result.current.loadbalanceStrategyForm).toMatchObject({
       name: "Canary strategy",
-      strategy_type: "single",
+      routing_policy: {
+        kind: "adaptive",
+      },
     });
   });
 
@@ -147,12 +148,16 @@ describe("useLoadbalanceStrategiesPageData i18n", () => {
 
     expect(api.loadbalanceStrategies.update).toHaveBeenCalledWith(7, {
       name: "Updated strategy",
-      strategy_type: "single",
-      auto_recovery: { mode: "disabled" },
+      routing_policy: createDefaultRoutingPolicy(),
     });
     expect(result.current.loadbalanceStrategyDialogOpen).toBe(false);
     expect(result.current.editingLoadbalanceStrategy?.id).toBe(7);
-    expect(result.current.loadbalanceStrategyForm).toMatchObject({ name: "Updated strategy" });
+    expect(result.current.loadbalanceStrategyForm).toMatchObject({
+      name: "Updated strategy",
+      routing_policy: {
+        kind: "adaptive",
+      },
+    });
   });
 
   it("closes the delete dialog without dropping the displayed strategy snapshot", async () => {

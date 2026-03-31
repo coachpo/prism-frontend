@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
+import { getDefaultRoutingPolicyDraft } from "../loadbalanceStrategyFormState";
 import { LoadbalanceStrategiesPage } from "@/pages/LoadbalanceStrategiesPage";
 
 vi.mock("@/context/ProfileContext", () => ({
@@ -21,8 +22,7 @@ vi.mock("../useLoadbalanceStrategiesPageData", () => ({
     editingLoadbalanceStrategy: null,
     loadbalanceStrategyForm: {
       name: "",
-      strategy_type: "single",
-      auto_recovery: { mode: "disabled" },
+      routing_policy: getDefaultRoutingPolicyDraft(),
     },
     loadbalanceStrategySaving: false,
     closeLoadbalanceStrategyDialog: vi.fn(),
@@ -51,7 +51,7 @@ describe("LoadbalanceStrategiesPage shell i18n", () => {
     );
 
     expect(screen.getByRole("heading", { name: "负载均衡策略" })).toBeInTheDocument();
-    expect(screen.getByText("管理此配置档案可复用的原生模型路由策略")).toBeInTheDocument();
+    expect(screen.getByText("管理此配置档案中可复用的原生模型自适应路由策略")).toBeInTheDocument();
     expect(screen.getByText("配置档案作用域设置")).toBeInTheDocument();
   });
 });
