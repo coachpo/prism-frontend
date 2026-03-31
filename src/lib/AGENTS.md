@@ -1,7 +1,7 @@
 # FRONTEND LIB KNOWLEDGE BASE
 
 ## OVERVIEW
-`src/lib/` is the frontend boundary to backend contracts and browser integrations. Keep the shared hotspots here: `api/core.ts`, `websocket.ts`, `referenceData.ts`, `configImportValidation.ts`, `appVersion.ts`, and `webauthn.ts`. Stats callers should go through the typed observability clients for the unified usage-snapshot route and the retained shared stats routes.
+`src/lib/` is the frontend boundary to backend contracts and browser integrations. Keep the shared hotspots here: `api/core.ts`, `websocket.ts`, `referenceData.ts`, `configImportValidation.ts`, `loadbalanceRoutingPolicy.ts`, `appVersion.ts`, `timezone.ts`, `costing.ts`, `clipboard.ts`, and `webauthn.ts`. Stats callers should go through the typed observability clients for the unified usage-snapshot route and the retained shared stats routes.
 
 ## STRUCTURE
 ```
@@ -20,13 +20,14 @@ lib/
 ├── referenceDataRegistry.ts      # Registry of shared reference-data datasets
 ├── configImportValidation.ts     # Frontend-side config import validation mirrored from backend contracts
 ├── configImportValidationReferences.ts
+├── loadbalanceRoutingPolicy.ts   # Default adaptive routing policy builders and failure-status normalization
 ├── appVersion.ts                 # Browser-facing app version helper built from Vite-injected package metadata
 ├── webauthn.ts                   # Browser passkey ceremony helpers
 ├── types.ts + types/             # Backend-aligned payload and domain types
-├── costing.ts
-├── timezone.ts
-├── clipboard.ts
-└── utils.ts
+├── costing.ts                    # Shared cost labels, numeric formatting, and related helpers
+├── timezone.ts                   # Timezone preference cache and formatting helpers used by hooks/pages
+├── clipboard.ts                  # Browser clipboard helpers and UX-safe copy flow
+└── utils.ts                      # Small generic browser/UI helpers
 ```
 
 ## WHERE TO LOOK
@@ -35,8 +36,12 @@ lib/
 - Typed `/api/*` client split, grouped surfaces, and `api/core.ts` request rules: `api/AGENTS.md`
 - Shared vendor cache, request dedupe, and dataset registry: `referenceData.ts`, `referenceDataRegistry.ts`
 - Frontend-side config import reference validation: `configImportValidation.ts`, `configImportValidationReferences.ts`
+- Shared adaptive routing-policy defaults and failure-status normalization: `loadbalanceRoutingPolicy.ts`
 - Browser app version label formatting and Vite-injected package metadata: `appVersion.ts`
 - WebSocket connection state, reconnects, channel ref-counts, protocol parsing, and profile switching: `websocket.ts`, `websocket/AGENTS.md`
+- Shared timezone preference lookup and formatting helpers consumed by `useTimezone()`: `timezone.ts`
+- Shared cost, currency, and usage-label helpers: `costing.ts`
+- Browser clipboard helpers reused across route shells and detail views: `clipboard.ts`
 - Browser passkey helpers and support checks: `webauthn.ts`
 - Backend-aligned payload types: `types.ts`, `types/`
 
@@ -53,8 +58,11 @@ lib/
 - Let `api/AGENTS.md` own the typed client split instead of expanding this parent with module-by-module endpoint detail.
 - `referenceData.ts` and `referenceDataRegistry.ts` own shared cache reuse, request dedupe, and revision-keyed invalidation for lookup datasets.
 - `configImportValidation.ts` owns frontend-side validation of the current import payload shape, including adaptive `routing_policy` strategy data and vendor `icon_key` presence, instead of leaving that logic in page components.
+- `loadbalanceRoutingPolicy.ts` owns the frontend-side default adaptive routing-policy shape and normalized failure-status handling used by settings and model flows.
 - `appVersion.ts` owns the browser-facing frontend version contract so shell chrome reads the synced `frontend/package.json` version through Vite instead of hard-coded literals.
 - `websocket.ts` owns the singleton client, while `websocket/AGENTS.md` owns protocol parsing, subscription bookkeeping, and reconnect transport helpers. Consumers should use `useRealtimeData()` instead of creating clients directly.
+- `timezone.ts` owns shared timezone preference caching and helper access beneath `useTimezone()`.
+- `costing.ts` owns shared cost/currency helper logic instead of leaving numeric presentation branches in pages.
 - Keep browser WebAuthn ceremony code in `webauthn.ts`.
 - Keep backend payload naming aligned with server schemas, including `vendor_id`, `vendor_key`, fixed `api_family` fields, vendor `icon_key` on vendor payloads only, and stats snapshot identifiers like `ingress_request_id`.
 
@@ -65,4 +73,5 @@ lib/
 - Do not add a parallel reference-data cache when `referenceData.ts` already owns the shared lookup datasets.
 - Do not duplicate config import validation in page or dialog code when `configImportValidation.ts` already mirrors that contract.
 - Do not move passkey browser ceremony into page components when `webauthn.ts` already owns it.
+- Do not duplicate timezone or cost helper logic in page folders when `timezone.ts` and `costing.ts` already own those seams.
 - Do not camelCase backend response fields in the shared type layer.
