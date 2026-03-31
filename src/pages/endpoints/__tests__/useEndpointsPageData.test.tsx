@@ -3,6 +3,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { toast } from "sonner";
+import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import { clearSharedReferenceData } from "@/lib/referenceData";
 import { useEndpointsPageData } from "../useEndpointsPageData";
 
@@ -92,8 +93,7 @@ function buildModel(overrides: Record<string, unknown> = {}) {
     loadbalance_strategy: {
       id: 100,
       name: "single-primary",
-      strategy_type: "single",
-      auto_recovery: { mode: "disabled" },
+      routing_policy: createDefaultRoutingPolicy(),
     },
     is_enabled: true,
     connection_count: 1,
@@ -200,11 +200,10 @@ describe("useEndpointsPageData", () => {
                     model_type: "native",
                     loadbalance_strategy_id: 101,
                      loadbalance_strategy: {
-                       id: 101,
-                       name: "single-secondary",
-                       strategy_type: "single",
-                       auto_recovery: { mode: "disabled" },
-                     },
+                        id: 101,
+                        name: "single-secondary",
+                        routing_policy: createDefaultRoutingPolicy(),
+                      },
                     is_enabled: true,
                     connection_count: 1,
                     active_connection_count: 1,

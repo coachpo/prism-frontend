@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
+import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import type { Endpoint, ModelConfigListItem, Vendor } from "@/lib/types";
 import { EndpointCardView } from "../EndpointCard";
 
@@ -35,8 +36,7 @@ function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigLi
     loadbalance_strategy: {
       id: 100,
       name: "single-primary",
-      strategy_type: "single",
-      auto_recovery: { mode: "disabled" },
+      routing_policy: createDefaultRoutingPolicy(),
     },
     is_enabled: true,
     connection_count: 1,

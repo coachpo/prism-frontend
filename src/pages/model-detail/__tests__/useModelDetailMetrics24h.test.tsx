@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import type { Connection, ModelConfig } from "@/lib/types";
 import { useModelDetailMetrics24h } from "../useModelDetailMetrics24h";
 
@@ -36,8 +37,7 @@ const model: ModelConfig = {
   loadbalance_strategy: {
     id: 100,
     name: "single-primary",
-    strategy_type: "single",
-    auto_recovery: { mode: "disabled" },
+    routing_policy: createDefaultRoutingPolicy(),
   },
   is_enabled: true,
   connections: [],

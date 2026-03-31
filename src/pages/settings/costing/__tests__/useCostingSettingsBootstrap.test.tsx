@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import { clearSharedReferenceData } from "@/lib/referenceData";
 import { useCostingSettingsBootstrap } from "../useCostingSettingsBootstrap";
 
@@ -47,8 +48,7 @@ describe("useCostingSettingsBootstrap", () => {
         loadbalance_strategy: {
           id: 100,
           name: "single-primary",
-          strategy_type: "single",
-          auto_recovery: { mode: "disabled" },
+          routing_policy: createDefaultRoutingPolicy(),
         },
         is_enabled: true,
         connection_count: 1,

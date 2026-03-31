@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
+import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import type {
   Connection,
   LoadbalanceCurrentStateItem,
@@ -40,20 +41,17 @@ function buildModel(): ModelConfig {
     loadbalance_strategy: {
       id: 101,
       name: "failover-primary",
-      strategy_type: "failover",
-      auto_recovery: {
-        mode: "enabled",
-        status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
-        cooldown: {
-          base_seconds: 45,
+      routing_policy: {
+        ...createDefaultRoutingPolicy("maximize_availability"),
+        circuit_breaker: {
+          ...createDefaultRoutingPolicy("maximize_availability").circuit_breaker,
+          base_open_seconds: 45,
           failure_threshold: 4,
           backoff_multiplier: 3.5,
-          max_cooldown_seconds: 720,
+          max_open_seconds: 720,
           jitter_ratio: 0.35,
-        },
-        ban: {
-          mode: "temporary",
-          max_cooldown_strikes_before_ban: 3,
+          ban_mode: "temporary",
+          max_open_strikes_before_ban: 3,
           ban_duration_seconds: 1800,
         },
       },

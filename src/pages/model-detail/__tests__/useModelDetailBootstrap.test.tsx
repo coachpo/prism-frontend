@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import { clearSharedReferenceData } from "@/lib/referenceData";
 import type { LoadbalanceStrategySummary, SpendingSummary } from "@/lib/types";
 import { buildProxyTargetOptions } from "../useModelDetailDataSupport";
@@ -44,8 +45,7 @@ function buildLoadbalanceStrategySummary(overrides: Partial<LoadbalanceStrategyS
   return {
     id: 100,
     name: "single-primary",
-    strategy_type: "single",
-    auto_recovery: { mode: "disabled" },
+    routing_policy: createDefaultRoutingPolicy(),
     ...overrides,
   };
 }

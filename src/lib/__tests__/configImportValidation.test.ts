@@ -2,36 +2,53 @@ import { describe, expect, it } from "vitest";
 import type { ApiFamily, Vendor } from "../types";
 import { ConfigImportSchema } from "../configImportValidation";
 
-function buildAutoRecoveryEnabled(options?: {
-  status_codes?: number[];
-  cooldown?: Partial<{
-    base_seconds: number;
+function buildRoutingPolicy(options?: {
+  circuit_breaker?: Partial<{
+    failure_status_codes: number[];
+    base_open_seconds: number;
     failure_threshold: number;
     backoff_multiplier: number;
-    max_cooldown_seconds: number;
+    max_open_seconds: number;
     jitter_ratio: number;
+    ban_mode: "off" | "manual" | "temporary";
+    max_open_strikes_before_ban: number;
+    ban_duration_seconds: number;
   }>;
-  ban?:
-    | { mode: "off" }
-    | { mode: "manual"; max_cooldown_strikes_before_ban: number }
-    | {
-        mode: "temporary";
-        max_cooldown_strikes_before_ban: number;
-        ban_duration_seconds: number;
-      };
+  deadline_budget_ms?: number;
+  routing_objective?: "minimize_latency" | "maximize_availability";
 }) {
   return {
-    mode: "enabled" as const,
-    status_codes: options?.status_codes ?? [503, 429],
-    cooldown: {
-      base_seconds: 60,
+    kind: "adaptive" as const,
+    routing_objective: options?.routing_objective ?? "minimize_latency",
+    deadline_budget_ms: options?.deadline_budget_ms ?? 30000,
+    hedge: {
+      enabled: false,
+      delay_ms: 1500,
+      max_additional_attempts: 1,
+    },
+    circuit_breaker: {
+      failure_status_codes: options?.circuit_breaker?.failure_status_codes ?? [503, 429],
+      base_open_seconds: 60,
       failure_threshold: 2,
       backoff_multiplier: 2,
-      max_cooldown_seconds: 900,
+      max_open_seconds: 900,
       jitter_ratio: 0.2,
-      ...(options?.cooldown ?? {}),
+      ban_mode: "off" as const,
+      max_open_strikes_before_ban: 0,
+      ban_duration_seconds: 0,
+      ...(options?.circuit_breaker ?? {}),
     },
-    ban: options?.ban ?? ({ mode: "off" } as const),
+    admission: {
+      respect_qps_limit: true,
+      respect_in_flight_limits: true,
+    },
+    monitoring: {
+      enabled: true,
+      stale_after_seconds: 300,
+      endpoint_ping_weight: 1,
+      conversation_delay_weight: 1,
+      failure_penalty_weight: 2,
+    },
   };
 }
 
@@ -60,9 +77,8 @@ function buildImportPayload() {
     pricing_templates: [],
     loadbalance_strategies: [
       {
-        name: "failover-primary",
-        strategy_type: "failover",
-        auto_recovery: buildAutoRecoveryEnabled(),
+        name: "adaptive-primary",
+        routing_policy: buildRoutingPolicy(),
       },
     ],
     models: [
@@ -73,7 +89,7 @@ function buildImportPayload() {
         display_name: "GPT-4o",
         model_type: "native",
         proxy_targets: [],
-        loadbalance_strategy_name: "failover-primary",
+        loadbalance_strategy_name: "adaptive-primary",
         is_enabled: true,
         connections: [
           {
@@ -184,20 +200,20 @@ describe("ConfigImportSchema", () => {
     expect(normalizeReferenceName(null)).toBeNull();
   });
 
-  it("accepts explicit nested auto_recovery fields on imported strategies", () => {
+  it("accepts explicit adaptive routing_policy fields on imported strategies", () => {
     const explicitPayload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
-          name: "failover-primary",
-          strategy_type: "failover",
-          auto_recovery: buildAutoRecoveryEnabled({
-            status_codes: [504, 429, 503],
-            cooldown: {
-              base_seconds: 45,
+          name: "adaptive-primary",
+          routing_policy: buildRoutingPolicy({
+            routing_objective: "maximize_availability",
+            circuit_breaker: {
+              failure_status_codes: [504, 429, 503],
+              base_open_seconds: 45,
               failure_threshold: 4,
               backoff_multiplier: 3.5,
-              max_cooldown_seconds: 720,
+              max_open_seconds: 720,
               jitter_ratio: 0.35,
             },
           }),
@@ -209,14 +225,15 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.loadbalance_strategies[0]).toMatchObject({
-        auto_recovery: {
-          mode: "enabled",
-          status_codes: [429, 503, 504],
-          cooldown: {
-            base_seconds: 45,
+        routing_policy: {
+          kind: "adaptive",
+          routing_objective: "maximize_availability",
+          circuit_breaker: {
+            failure_status_codes: [429, 503, 504],
+            base_open_seconds: 45,
             failure_threshold: 4,
             backoff_multiplier: 3.5,
-            max_cooldown_seconds: 720,
+            max_open_seconds: 720,
             jitter_ratio: 0.35,
           },
         },
@@ -260,20 +277,19 @@ describe("ConfigImportSchema", () => {
     ]);
   });
 
-  it("requires explicit auto_recovery in the current strategy format", () => {
+  it("requires explicit routing_policy in the current strategy format", () => {
     const payload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
-          name: "failover-primary",
-          strategy_type: "failover",
+          name: "adaptive-primary",
         },
       ],
     };
 
     expect(getIssuePairs(payload)).toEqual([
       {
-        path: ["loadbalance_strategies", 0, "auto_recovery"],
+        path: ["loadbalance_strategies", 0, "routing_policy"],
         message: "Invalid input: expected object, received undefined",
       },
     ]);
@@ -285,10 +301,10 @@ describe("ConfigImportSchema", () => {
       loadbalance_strategies: [
         {
           ...buildImportPayload().loadbalance_strategies[0],
-          auto_recovery: {
-            ...buildImportPayload().loadbalance_strategies[0].auto_recovery,
-            cooldown: {
-              ...buildImportPayload().loadbalance_strategies[0].auto_recovery.cooldown,
+          routing_policy: {
+            ...buildImportPayload().loadbalance_strategies[0].routing_policy,
+            circuit_breaker: {
+              ...buildImportPayload().loadbalance_strategies[0].routing_policy.circuit_breaker,
               unexpected_cooldown_seconds: 2400,
             },
           },
@@ -298,35 +314,35 @@ describe("ConfigImportSchema", () => {
 
     expect(getIssuePairs(payload)).toEqual([
       {
-        path: ["loadbalance_strategies", 0, "auto_recovery", "cooldown"],
+        path: ["loadbalance_strategies", 0, "routing_policy", "circuit_breaker"],
         message: 'Unrecognized key: "unexpected_cooldown_seconds"',
       },
     ]);
   });
 
-  it("accepts fill-first strategies in the current config format", () => {
+  it("accepts adaptive strategies with custom circuit-breaker settings in the current config format", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
-          name: "fill-first-primary",
-          strategy_type: "fill-first",
-          auto_recovery: buildAutoRecoveryEnabled({
-            cooldown: {
-              base_seconds: 45,
+          name: "adaptive-availability",
+          routing_policy: buildRoutingPolicy({
+            routing_objective: "maximize_availability",
+            circuit_breaker: {
+              base_open_seconds: 45,
               failure_threshold: 4,
               backoff_multiplier: 3.5,
-              max_cooldown_seconds: 720,
+              max_open_seconds: 720,
               jitter_ratio: 0.35,
+              failure_status_codes: [503, 429],
             },
-            status_codes: [503, 429],
           }),
         },
       ],
       models: [
         {
           ...buildImportPayload().models[0],
-          loadbalance_strategy_name: "fill-first-primary",
+          loadbalance_strategy_name: "adaptive-availability",
         },
       ],
     });
@@ -334,34 +350,22 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts round-robin strategies in the current config format", () => {
-    const result = ConfigImportSchema.safeParse({
+  it("rejects legacy strategy_type fields in the current config format", () => {
+    expect(getIssuePairs({
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
-          name: "round-robin-primary",
+          name: "legacy-round-robin",
           strategy_type: "round-robin",
-          auto_recovery: buildAutoRecoveryEnabled({
-            cooldown: {
-              base_seconds: 45,
-              failure_threshold: 4,
-              backoff_multiplier: 3.5,
-              max_cooldown_seconds: 720,
-              jitter_ratio: 0.35,
-            },
-            status_codes: [503, 429],
-          }),
+          routing_policy: buildRoutingPolicy(),
         },
       ],
-      models: [
-        {
-          ...buildImportPayload().models[0],
-          loadbalance_strategy_name: "round-robin-primary",
-        },
-      ],
-    });
-
-    expect(result.success).toBe(true);
+    })).toEqual([
+      {
+        path: ["loadbalance_strategies", 0],
+        message: 'Unrecognized key: "strategy_type"',
+      },
+    ]);
   });
 
   it("reports duplicate strategy names by exact issue path and message", () => {
@@ -369,14 +373,16 @@ describe("ConfigImportSchema", () => {
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
-          name: "failover-primary",
-          strategy_type: "failover",
-          auto_recovery: buildAutoRecoveryEnabled({ status_codes: [503, 429] }),
+          name: "adaptive-primary",
+          routing_policy: buildRoutingPolicy({
+            circuit_breaker: { failure_status_codes: [503, 429] },
+          }),
         },
         {
-          name: "  failover-primary  ",
-          strategy_type: "single",
-          auto_recovery: { mode: "disabled" },
+          name: "  adaptive-primary  ",
+          routing_policy: buildRoutingPolicy({
+            routing_objective: "maximize_availability",
+          }),
         },
       ],
     };
@@ -384,7 +390,7 @@ describe("ConfigImportSchema", () => {
     expect(getIssuePairs(payload)).toEqual([
       {
         path: ["loadbalance_strategies", 1, "name"],
-        message: "Duplicate loadbalance strategy name 'failover-primary'",
+        message: "Duplicate loadbalance strategy name 'adaptive-primary'",
       },
     ]);
   });
