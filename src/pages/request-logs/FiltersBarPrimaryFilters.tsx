@@ -59,7 +59,7 @@ export function FiltersBarPrimaryFilters({
 
   return (
     <div className="grid gap-3 xl:grid-cols-8">
-      <div className="xl:col-span-2">
+      <div className="min-w-0 xl:col-span-2">
         <ToolbarLabel>{messages.requestLogs.search}</ToolbarLabel>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -72,14 +72,14 @@ export function FiltersBarPrimaryFilters({
         </div>
       </div>
 
-      <div>
+      <div className="min-w-0">
         <ToolbarLabel>{messages.requestLogs.model}</ToolbarLabel>
         <Select
           value={state.model_id || "__all__"}
           onValueChange={(value) => actions.setModelId(value === "__all__" ? "" : value)}
         >
-          <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background/80 text-xs">
-            <SelectValue placeholder={messages.requestLogs.allModels} />
+          <SelectTrigger className="h-9 w-full min-w-0 max-w-full rounded-lg border-border/70 bg-background/80 text-xs">
+            <SelectValue className="min-w-0" placeholder={messages.requestLogs.allModels} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{messages.requestLogs.allModels}</SelectItem>
@@ -93,14 +93,14 @@ export function FiltersBarPrimaryFilters({
         </Select>
       </div>
 
-      <div>
+      <div className="min-w-0">
         <ToolbarLabel>{messages.common.apiFamily}</ToolbarLabel>
         <Select
           value={state.api_family || "__all__"}
           onValueChange={(value) => actions.setApiFamily(value === "__all__" ? "" : value)}
         >
-          <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background/80 text-xs">
-            <SelectValue placeholder={`${messages.statistics.all} ${messages.common.apiFamily}`} />
+          <SelectTrigger className="h-9 w-full min-w-0 max-w-full rounded-lg border-border/70 bg-background/80 text-xs">
+            <SelectValue className="min-w-0" placeholder={`${messages.statistics.all} ${messages.common.apiFamily}`} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{`${messages.statistics.all} ${messages.common.apiFamily}`}</SelectItem>
@@ -117,14 +117,14 @@ export function FiltersBarPrimaryFilters({
         </Select>
       </div>
 
-      <div>
+      <div className="min-w-0">
         <ToolbarLabel>{messages.requestLogs.endpoint}</ToolbarLabel>
         <Select
           value={state.endpoint_id || "__all__"}
           onValueChange={(value) => actions.setEndpointId(value === "__all__" ? "" : value)}
         >
-          <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background/80 text-xs">
-            <SelectValue placeholder={messages.requestLogs.allEndpoints} />
+          <SelectTrigger className="h-9 w-full min-w-0 max-w-full rounded-lg border-border/70 bg-background/80 text-xs">
+            <SelectValue className="min-w-0" placeholder={messages.requestLogs.allEndpoints} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{messages.requestLogs.allEndpoints}</SelectItem>
@@ -138,14 +138,14 @@ export function FiltersBarPrimaryFilters({
         </Select>
       </div>
 
-      <div>
+      <div className="min-w-0">
         <ToolbarLabel>{messages.requestLogs.status}</ToolbarLabel>
         <Select
           value={state.status_family}
           onValueChange={(value) => actions.setStatusFamily(value as typeof state.status_family)}
         >
-          <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background/80 text-xs">
-            <SelectValue />
+          <SelectTrigger className="h-9 w-full min-w-0 max-w-full rounded-lg border-border/70 bg-background/80 text-xs">
+            <SelectValue className="min-w-0" />
           </SelectTrigger>
           <SelectContent>
             {STATUS_FAMILY_OPTIONS.map((statusFamily) => (
@@ -161,14 +161,14 @@ export function FiltersBarPrimaryFilters({
         </Select>
       </div>
 
-      <div>
+      <div className="min-w-0">
         <ToolbarLabel>{messages.requestLogs.connection}</ToolbarLabel>
         <Select
           value={state.connection_id || "__all__"}
           onValueChange={(value) => actions.setConnectionId(value === "__all__" ? "" : value)}
         >
-          <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background/80 text-xs">
-            <SelectValue placeholder={messages.requestLogs.allConnections} />
+          <SelectTrigger className="h-9 w-full min-w-0 max-w-full rounded-lg border-border/70 bg-background/80 text-xs">
+            <SelectValue className="min-w-0" placeholder={messages.requestLogs.allConnections} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{messages.requestLogs.allConnections}</SelectItem>
@@ -182,14 +182,14 @@ export function FiltersBarPrimaryFilters({
         </Select>
       </div>
 
-      <div>
+      <div className="min-w-0">
         <ToolbarLabel>{messages.requestLogs.timeRange}</ToolbarLabel>
         <Select
           value={state.time_range}
           onValueChange={(value) => actions.setTimeRange(value as typeof state.time_range)}
         >
-          <SelectTrigger className="h-9 rounded-lg border-border/70 bg-background/80 text-xs">
-            <SelectValue />
+          <SelectTrigger className="h-9 w-full min-w-0 max-w-full rounded-lg border-border/70 bg-background/80 text-xs">
+            <SelectValue className="min-w-0" />
           </SelectTrigger>
           <SelectContent>
             {TIME_RANGE_OPTIONS.map((timeRange) => (

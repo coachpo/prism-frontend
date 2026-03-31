@@ -208,4 +208,50 @@ describe("request log filter split components", () => {
     expect(screen.getByText("API Family")).toBeInTheDocument();
     expect(screen.queryByText("Provider")).not.toBeInTheDocument();
   });
+
+  it("keeps the selected connection label inside a shrink-safe trigger for long values", () => {
+    const longConnectionLabel =
+      "Production OpenAI connection with a very long descriptive runtime label that should truncate";
+
+    renderWithLocale(
+      <FiltersBarPrimaryFilters
+        filterOptions={{
+          apiFamilies: [],
+          connections: [
+            {
+              id: 42,
+              label: longConnectionLabel,
+            },
+          ],
+          endpoints: [],
+          models: [],
+        }}
+        filterOptionsLoaded={true}
+        state={{
+          connection_id: "42",
+          endpoint_id: "",
+          model_id: "",
+          api_family: "",
+          search: "",
+          status_family: "all",
+          time_range: "24h",
+        }}
+        actions={{
+          setConnectionId: vi.fn(),
+          setEndpointId: vi.fn(),
+          setModelId: vi.fn(),
+          setApiFamily: vi.fn(),
+          setSearch: vi.fn(),
+          setStatusFamily: vi.fn(),
+          setTimeRange: vi.fn(),
+        }}
+      />,
+    );
+
+    const connectionTrigger = screen.getByText(longConnectionLabel).closest("button");
+
+    expect(connectionTrigger).toHaveClass("w-full");
+    expect(connectionTrigger).toHaveClass("min-w-0");
+    expect(connectionTrigger).toHaveClass("max-w-full");
+  });
 });
