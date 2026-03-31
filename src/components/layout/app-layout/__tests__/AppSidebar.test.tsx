@@ -62,11 +62,11 @@ afterEach(() => {
 });
 
 describe("AppSidebar", () => {
-  it("renders the provider sidebar shell selectors and desktop collapse toggle", async () => {
+  it("renders the provider sidebar shell selectors without a duplicate collapse toggle", async () => {
     await renderSidebar();
 
     expect(screen.getByTestId("shell-sidebar")).toBeInTheDocument();
-    expect(screen.getByTestId("shell-sidebar-collapse-toggle")).toBeInTheDocument();
+    expect(screen.queryByTestId("shell-sidebar-collapse-toggle")).not.toBeInTheDocument();
   });
 
   it("renders the version label with the app version first and git metadata second", async () => {

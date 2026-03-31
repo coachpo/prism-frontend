@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
@@ -373,7 +373,7 @@ describe("StatisticsPage shell i18n", () => {
     };
   });
 
-  it("renders the localized statistics shell and the request-events removal note", () => {
+  it("renders the localized statistics shell without the removed aggregate-rollup note", () => {
     const { rerender } = renderPage();
 
     expect(screen.getByRole("heading", { name: "用量统计" })).toBeInTheDocument();
@@ -409,11 +409,7 @@ describe("StatisticsPage shell i18n", () => {
     expect(screen.getByTestId("statistics-endpoint-table")).toBeInTheDocument();
     expect(screen.getByTestId("statistics-model-table")).toBeInTheDocument();
     expect(screen.getByTestId("statistics-proxy-key-table")).toBeInTheDocument();
-    expect(screen.getByTestId("statistics-no-request-events")).toBeInTheDocument();
+    expect(screen.queryByTestId("statistics-no-request-events")).not.toBeInTheDocument();
     expect(screen.queryByText("请求事件")).not.toBeInTheDocument();
-
-    const note = screen.getByTestId("statistics-no-request-events");
-    expect(within(note).getByText("统计页现在只保留聚合汇总")).toBeInTheDocument();
-    expect(within(note).getByText("为该页面提供数据的用量快照已不再包含请求事件。")).toBeInTheDocument();
   });
 });

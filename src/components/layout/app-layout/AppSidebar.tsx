@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { ChevronsLeft, ChevronsRight, X, Zap } from "lucide-react";
+import { X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -47,7 +47,7 @@ export function AppSidebar({
   sidebarItems,
 }: Props) {
   const { messages } = useLocale();
-  const { isMobile, setOpenMobile, state, toggleSidebar } = useSidebar();
+  const { isMobile, setOpenMobile, state } = useSidebar();
   const resolvedSidebarItems =
     sidebarItems ??
     SHELL_SIDEBAR_ITEMS.map((item) => ({
@@ -60,10 +60,6 @@ export function AppSidebar({
     groupId,
     items: resolvedSidebarItems.filter((item) => item.groupId === groupId),
   })).filter((group) => group.items.length > 0);
-
-  const DesktopSidebarToggleIcon = state === "collapsed" ? ChevronsRight : ChevronsLeft;
-  const desktopSidebarToggleLabel =
-    state === "collapsed" ? messages.shell.expandSidebar : messages.shell.collapseSidebar;
 
   const handleNavigate = () => {
     closeProfileSwitcher();
@@ -89,18 +85,6 @@ export function AppSidebar({
             <span className="truncate text-[11px] text-sidebar-foreground/55">{VERSION_LABEL}</span>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              data-testid="shell-sidebar-collapse-toggle"
-              onClick={toggleSidebar}
-              aria-label={desktopSidebarToggleLabel}
-              title={desktopSidebarToggleLabel}
-              className="hidden text-sidebar-foreground/55 hover:bg-sidebar-accent hover:text-sidebar-foreground lg:inline-flex"
-            >
-              <DesktopSidebarToggleIcon className="h-4 w-4" />
-            </Button>
             <Button
               type="button"
               variant="ghost"

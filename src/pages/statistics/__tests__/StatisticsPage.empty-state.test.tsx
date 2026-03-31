@@ -115,7 +115,7 @@ describe("StatisticsPage empty states", () => {
     };
   });
 
-  it("shows pricing guidance, empty surviving tables, and the request-events removal note", () => {
+  it("shows pricing guidance and the remaining empty-state tables without a scope note card", () => {
     render(
       <MemoryRouter>
         <LocaleProvider>
@@ -135,7 +135,7 @@ describe("StatisticsPage empty states", () => {
       "/pricing-templates",
     );
     expect(screen.getByText("No proxy API key usage in this time range")).toBeInTheDocument();
-    expect(screen.getByTestId("statistics-no-request-events")).toBeInTheDocument();
+    expect(screen.queryByTestId("statistics-no-request-events")).not.toBeInTheDocument();
     expect(screen.queryByText("No request events in this time range")).not.toBeInTheDocument();
   });
 });

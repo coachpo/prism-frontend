@@ -1,5 +1,4 @@
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useLocale } from "@/i18n/useLocale";
 import { UsageStatisticsPageSkeleton } from "./statistics/UsageStatisticsPageSkeleton";
@@ -115,20 +114,6 @@ export function StatisticsPage() {
             <EndpointStatisticsTable currency={snapshot.currency} items={snapshot.endpoint_statistics} />
             <ModelStatisticsTable currency={snapshot.currency} items={snapshot.model_statistics} />
           </div>
-
-          <Card
-            className="border-dashed border-border/70 bg-muted/20 shadow-none"
-            data-testid="statistics-no-request-events"
-          >
-            <CardHeader className="border-b border-border/50 pb-4">
-              <h2 className="text-lg font-semibold tracking-tight">
-                {messages.statistics.statisticsScopeNoteTitle}
-              </h2>
-            </CardHeader>
-            <CardContent className="pt-4 text-sm text-muted-foreground">
-              {messages.statistics.statisticsScopeNoteDescription}
-            </CardContent>
-          </Card>
 
           <ProxyApiKeyStatisticsTable
             currency={snapshot.currency}
