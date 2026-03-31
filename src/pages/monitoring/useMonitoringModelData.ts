@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import type { MonitoringManualProbeResult, MonitoringModelResponse } from "@/lib/types";
-import { loadMonitoringPollIntervalSeconds, toMonitoringPollIntervalMs } from "./monitoringPolling";
+import {
+  DEFAULT_MONITORING_POLL_INTERVAL_SECONDS,
+  toMonitoringPollIntervalMs,
+} from "./monitoringPolling";
 
 interface UseMonitoringModelDataInput {
   modelConfigId: number | null;
@@ -18,10 +21,10 @@ export function useMonitoringModelData({
   const [data, setData] = useState<MonitoringModelResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pollIntervalSeconds, setPollIntervalSeconds] = useState(300);
   const [manualProbeResult, setManualProbeResult] = useState<MonitoringManualProbeResult | null>(null);
   const [probingConnectionIds, setProbingConnectionIds] = useState<Set<number>>(new Set());
   const requestIdRef = useRef(0);
+  const pollIntervalSeconds = DEFAULT_MONITORING_POLL_INTERVAL_SECONDS;
 
   const fetchModel = useCallback(async () => {
     if (!modelConfigId) {
@@ -61,22 +64,6 @@ export function useMonitoringModelData({
   useEffect(() => {
     void revision;
     void selectedProfileId;
-
-    let active = true;
-    void loadMonitoringPollIntervalSeconds().then((value) => {
-      if (active) {
-        setPollIntervalSeconds(value);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [revision, selectedProfileId]);
-
-  useEffect(() => {
-    void revision;
-    void selectedProfileId;
     void fetchModel();
 
     const intervalId = window.setInterval(() => {
@@ -87,7 +74,7 @@ export function useMonitoringModelData({
       window.clearInterval(intervalId);
       requestIdRef.current += 1;
     };
-  }, [fetchModel, pollIntervalSeconds, revision, selectedProfileId]);
+  }, [fetchModel, revision, selectedProfileId]);
 
   const handleManualProbe = useCallback(async (connectionId: number) => {
     setProbingConnectionIds((current) => new Set(current).add(connectionId));
@@ -117,7 +104,6 @@ export function useMonitoringModelData({
     handleManualProbe,
     loading,
     manualProbeResult,
-    pollIntervalSeconds,
     probingConnectionIds,
     refresh: fetchModel,
   };

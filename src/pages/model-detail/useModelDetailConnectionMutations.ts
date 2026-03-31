@@ -15,10 +15,10 @@ import type {
 } from "@/lib/types";
 import type { HeaderRow } from "./useModelDetailDialogState";
 import {
+  buildConnectionDraftPayload,
   patchModelListConnectionCounts,
   hydrateConnectionPricingTemplate,
   removeConnectionFromList,
-  resolveConnectionProbeEndpointVariant,
   upsertConnectionInList,
   upsertEndpointInList,
 } from "./useModelDetailDataSupport";
@@ -88,7 +88,7 @@ export function useModelDetailConnectionMutations({
         return;
       }
 
-      const payload = buildConnectionPayload({
+      const { errorMessage, payload } = buildConnectionDraftPayload({
         modelApiFamily,
         createMode,
         selectedEndpointId,
@@ -100,6 +100,9 @@ export function useModelDetailConnectionMutations({
       });
 
       if (!payload) {
+        if (errorMessage) {
+          toast.error(errorMessage);
+        }
         return;
       }
 
@@ -181,82 +184,4 @@ export function useModelDetailConnectionMutations({
     handleDeleteConnection,
     handleToggleActive,
   };
-}
-
-interface BuildConnectionPayloadInput {
-  modelApiFamily: ApiFamily | undefined;
-  createMode: "select" | "new";
-  selectedEndpointId: string;
-  newEndpointForm: EndpointCreate;
-  connectionForm: ConnectionCreate;
-  headerRows: HeaderRow[];
-  editingConnection: Connection | null;
-  endpointSourceDefaultName: string | null;
-}
-
-function buildConnectionPayload({
-  modelApiFamily,
-  createMode,
-  selectedEndpointId,
-  newEndpointForm,
-  connectionForm,
-  headerRows,
-  editingConnection,
-  endpointSourceDefaultName,
-}: BuildConnectionPayloadInput): ConnectionCreate | null {
-  const customHeaders =
-    headerRows.length > 0
-      ? Object.fromEntries(
-          headerRows.filter((row) => row.key.trim()).map((row) => [row.key.trim(), row.value]),
-        )
-      : null;
-
-  const typedConnectionName = (connectionForm.name ?? "").trim();
-  const resolvedConnectionName =
-    typedConnectionName.length > 0
-      ? typedConnectionName
-      : !editingConnection
-        ? endpointSourceDefaultName
-        : null;
-
-  const payload: ConnectionCreate = {
-    ...connectionForm,
-    name: resolvedConnectionName,
-    custom_headers: customHeaders,
-    openai_probe_endpoint_variant: resolveConnectionProbeEndpointVariant(
-      modelApiFamily,
-      connectionForm.openai_probe_endpoint_variant,
-    ),
-    pricing_template_id: connectionForm.pricing_template_id,
-    qps_limit: normalizeLimiterField(connectionForm.qps_limit),
-    max_in_flight_non_stream: normalizeLimiterField(connectionForm.max_in_flight_non_stream),
-    max_in_flight_stream: normalizeLimiterField(connectionForm.max_in_flight_stream),
-  };
-
-    if (createMode === "select") {
-      if (!selectedEndpointId) {
-        toast.error(getStaticMessages().modelDetailData.selectEndpoint);
-        return null;
-      }
-    payload.endpoint_id = Number.parseInt(selectedEndpointId, 10);
-    delete payload.endpoint_create;
-    return payload;
-  }
-
-  if (!newEndpointForm.name || !newEndpointForm.base_url || !newEndpointForm.api_key) {
-    toast.error(getStaticMessages().modelDetailData.fillEndpointFields);
-    return null;
-  }
-
-  payload.endpoint_create = newEndpointForm;
-  delete payload.endpoint_id;
-  return payload;
-}
-
-function normalizeLimiterField(value: number | null | undefined): number | null {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return null;
-  }
-
-  return value;
 }

@@ -3,16 +3,25 @@ import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { getStaticMessages } from "@/i18n/staticMessages";
-import type { Connection, ModelConfig } from "@/lib/types";
-import { moveConnectionInList } from "./useModelDetailDataSupport";
+import type { ApiFamily, Connection, ConnectionCreate, EndpointCreate, ModelConfig } from "@/lib/types";
+import type { HeaderRow } from "./useModelDetailDialogState";
+import { buildConnectionDraftPayload, moveConnectionInList } from "./useModelDetailDataSupport";
 import { useConnectionHealthChecks } from "./useConnectionHealthChecks";
 
 interface UseModelDetailConnectionFlowsInput {
   connections: Connection[];
   setConnections: Dispatch<SetStateAction<Connection[]>>;
   model: ModelConfig | null;
+  modelApiFamily: ApiFamily | undefined;
+  modelConfigId: number | undefined;
   setModel: Dispatch<SetStateAction<ModelConfig | null>>;
+  createMode: "select" | "new";
+  selectedEndpointId: string;
+  newEndpointForm: EndpointCreate;
+  connectionForm: ConnectionCreate;
+  headerRows: HeaderRow[];
   editingConnection: Connection | null;
+  endpointSourceDefaultName: string | null;
   refreshCurrentState: () => void | Promise<void>;
   setDialogTestingConnection: (testing: boolean) => void;
   setDialogTestResult: (result: { status: string; detail: string } | null) => void;
@@ -22,8 +31,16 @@ export function useModelDetailConnectionFlows({
   connections,
   setConnections,
   model,
+  modelApiFamily,
+  modelConfigId,
   setModel,
+  createMode,
+  selectedEndpointId,
+  newEndpointForm,
+  connectionForm,
+  headerRows,
   editingConnection,
+  endpointSourceDefaultName,
   refreshCurrentState,
   setDialogTestingConnection,
   setDialogTestResult,
@@ -107,14 +124,32 @@ export function useModelDetailConnectionFlows({
   }, [connections, runHealthChecks]);
 
   const handleDialogTestConnection = useCallback(async () => {
-    if (!editingConnection) {
+    if (!modelConfigId || !Number.isFinite(modelConfigId)) {
+      return;
+    }
+
+    const { errorMessage, payload } = buildConnectionDraftPayload({
+      modelApiFamily,
+      createMode,
+      selectedEndpointId,
+      newEndpointForm,
+      connectionForm,
+      headerRows,
+      editingConnection,
+      endpointSourceDefaultName,
+    });
+
+    if (!payload) {
+      if (errorMessage) {
+        toast.error(errorMessage);
+      }
       return;
     }
 
     setDialogTestingConnection(true);
     setDialogTestResult(null);
     try {
-      const result = await api.connections.healthCheck(editingConnection.id);
+      const result = await api.connections.healthCheckPreview(modelConfigId, payload);
       setDialogTestResult({ status: result.health_status, detail: result.detail });
       void refreshCurrentState();
     } catch {
@@ -123,8 +158,16 @@ export function useModelDetailConnectionFlows({
       setDialogTestingConnection(false);
     }
   }, [
+    connectionForm,
+    createMode,
     editingConnection,
+    endpointSourceDefaultName,
+    headerRows,
+    modelApiFamily,
+    modelConfigId,
+    newEndpointForm,
     refreshCurrentState,
+    selectedEndpointId,
     setDialogTestResult,
     setDialogTestingConnection,
   ]);

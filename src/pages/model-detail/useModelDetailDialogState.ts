@@ -70,6 +70,7 @@ export function useModelDetailDialogState({
         is_active: connection.is_active,
         custom_headers: connection.custom_headers,
         pricing_template_id: connection.pricing_template_id,
+        monitoring_probe_interval_seconds: connection.monitoring_probe_interval_seconds ?? 300,
         openai_probe_endpoint_variant: resolveConnectionProbeEndpointVariant(
           modelApiFamily,
           connection.openai_probe_endpoint_variant,

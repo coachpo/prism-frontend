@@ -6,7 +6,6 @@ import type { SettingsPageData } from "./useSettingsPageData";
 import { AuditConfigurationSection } from "./sections/AuditConfigurationSection";
 import { BackupSection } from "./sections/BackupSection";
 import { BillingCurrencySection } from "./sections/BillingCurrencySection";
-import { MonitoringSection } from "./sections/MonitoringSection";
 import { RetentionDeletionSection } from "./sections/RetentionDeletionSection";
 import { TimezoneSection } from "./sections/TimezoneSection";
 
@@ -112,18 +111,6 @@ export function SettingsProfileTab({
             setCostingForm={data.setCostingForm}
             timezonePreviewText={data.timezonePreviewText}
             timezonePreviewZone={data.timezonePreviewZone}
-          />
-
-          <MonitoringSection
-            monitoringDirty={data.monitoringDirty}
-            renderSectionSaveState={data.renderSaveStateForSection}
-            handleSaveMonitoringSettings={data.handleSaveMonitoringSettings}
-            monitoringUnavailable={data.monitoringUnavailable}
-            monitoringLoading={data.monitoringLoading}
-            monitoringSaving={data.monitoringSaving}
-            monitoringIntervalSeconds={data.monitoringIntervalSeconds}
-            setMonitoringIntervalSeconds={data.setMonitoringIntervalSeconds}
-            monitoringError={data.monitoringError}
           />
 
           <AuditConfigurationSection

@@ -13,6 +13,7 @@ import type {
 import { ConnectionDialog } from "../ConnectionDialog";
 import { ConnectionCardHeader } from "../connections-list/ConnectionCardHeader";
 import { createDefaultConnectionForm } from "../useModelDetailDataSupport";
+import { useModelDetailConnectionFlows } from "../useModelDetailConnectionFlows";
 import { useModelDetailConnectionMutations } from "../useModelDetailConnectionMutations";
 import { useModelDetailDialogState } from "../useModelDetailDialogState";
 
@@ -28,6 +29,8 @@ window.HTMLElement.prototype.scrollIntoView = vi.fn();
 const api = vi.hoisted(() => ({
   connections: {
     create: vi.fn(),
+    healthCheck: vi.fn(),
+    healthCheckPreview: vi.fn(),
     update: vi.fn(),
   },
 }));
@@ -118,14 +121,41 @@ function ConnectionDialogHarness({
   const [connections, setConnections] = useState<Connection[]>(editingConnection ? [editingConnection] : []);
   const [globalEndpoints, setGlobalEndpoints] = useState<Endpoint[]>([buildEndpoint()]);
   const [, setAllModels] = useState<ModelConfigListItem[]>([]);
-  const [, setModel] = useState<ModelConfig | null>(null);
+  const [model, setModel] = useState<ModelConfig | null>({
+    id: 5,
+    vendor_id: 1,
+    vendor: {
+      id: 1,
+      key: "openai",
+      name: "OpenAI",
+      description: null,
+      icon_key: null,
+      audit_enabled: false,
+      audit_capture_bodies: false,
+      created_at: "2026-03-25T10:00:00Z",
+      updated_at: "2026-03-25T10:00:00Z",
+    },
+    api_family: modelApiFamily,
+    model_id: "gpt-5.4",
+    display_name: "GPT-5.4",
+    model_type: "native",
+    proxy_targets: [],
+    loadbalance_strategy_id: null,
+    loadbalance_strategy: null,
+    is_enabled: true,
+    connections: editingConnection ? [editingConnection] : [],
+    created_at: "2026-03-25T10:00:00Z",
+    updated_at: "2026-03-25T10:00:00Z",
+  });
 
   const {
     isConnectionDialogOpen,
     setIsConnectionDialogOpen,
     editingConnection: activeEditingConnection,
     dialogTestingConnection,
+    setDialogTestingConnection,
     dialogTestResult,
+    setDialogTestResult,
     createMode,
     setCreateMode,
     selectedEndpointId,
@@ -158,6 +188,25 @@ function ConnectionDialogHarness({
     setConnections,
     setGlobalEndpoints,
     setModel,
+  });
+
+  const { handleDialogTestConnection } = useModelDetailConnectionFlows({
+    connections,
+    setConnections,
+    model,
+    modelApiFamily,
+    modelConfigId: 5,
+    setModel,
+    createMode,
+    selectedEndpointId,
+    newEndpointForm,
+    connectionForm,
+    headerRows,
+    editingConnection: activeEditingConnection,
+    endpointSourceDefaultName,
+    refreshCurrentState: vi.fn(),
+    setDialogTestingConnection,
+    setDialogTestResult,
   });
 
   const committedConnection = connections[0] ?? null;
@@ -204,10 +253,10 @@ function ConnectionDialogHarness({
         globalEndpoints={globalEndpoints}
         headerRows={headerRows}
         setHeaderRows={setHeaderRows}
-        handleConnectionSubmit={handleConnectionSubmit}
-        dialogTestingConnection={dialogTestingConnection}
+          handleConnectionSubmit={handleConnectionSubmit}
+          dialogTestingConnection={dialogTestingConnection}
           dialogTestResult={dialogTestResult}
-          handleDialogTestConnection={vi.fn()}
+          handleDialogTestConnection={handleDialogTestConnection}
           endpointSourceDefaultName={endpointSourceDefaultName}
           modelApiFamily={modelApiFamily}
           pricingTemplates={pricingTemplates}
@@ -225,6 +274,19 @@ describe("ConnectionDialog limiter fields", () => {
     localStorage.clear();
     vi.clearAllMocks();
     api.connections.create.mockResolvedValue(buildConnection({ id: 22 }));
+    api.connections.healthCheck.mockResolvedValue({
+      connection_id: 11,
+      health_status: "healthy",
+      checked_at: "2026-03-25T10:00:00Z",
+      detail: "ok",
+      response_time_ms: 120,
+    });
+    api.connections.healthCheckPreview.mockResolvedValue({
+      health_status: "healthy",
+      checked_at: "2026-03-25T10:00:00Z",
+      detail: "preview ok",
+      response_time_ms: 120,
+    });
     api.connections.update.mockResolvedValue(buildConnection());
   });
 
@@ -234,6 +296,7 @@ describe("ConnectionDialog limiter fields", () => {
       is_active: true,
       custom_headers: null,
       pricing_template_id: null,
+      monitoring_probe_interval_seconds: 300,
       openai_probe_endpoint_variant: "responses",
       qps_limit: null,
       max_in_flight_non_stream: null,
@@ -250,6 +313,7 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByText("Endpoint Source")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Select Existing" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Create New" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Probe interval (seconds)")).toBeInTheDocument();
     expect(screen.getByLabelText("QPS Limit")).toBeInTheDocument();
     expect(screen.getByText("OpenAI probe endpoint")).toBeInTheDocument();
     expect(screen.getAllByText("Leave blank for unlimited.")).toHaveLength(3);
@@ -267,6 +331,7 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByText("端点来源")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "选择现有端点" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "新建端点" })).toBeInTheDocument();
+    expect(screen.getByLabelText("探测间隔（秒）")).toBeInTheDocument();
     expect(screen.getByLabelText("QPS 限流")).toBeInTheDocument();
     expect(screen.getByLabelText("最大并发（非流式）")).toBeInTheDocument();
     expect(screen.getByLabelText("最大并发（流式）")).toBeInTheDocument();
@@ -285,11 +350,12 @@ describe("ConnectionDialog limiter fields", () => {
 
   it("hydrates existing limiter values when editing a connection", async () => {
     renderWithLocale(
-      <ConnectionDialogHarness
-        editingConnection={buildConnection({
-          qps_limit: 30,
-          max_in_flight_non_stream: 12,
-          max_in_flight_stream: 4,
+        <ConnectionDialogHarness
+          editingConnection={buildConnection({
+            monitoring_probe_interval_seconds: 45,
+            qps_limit: 30,
+            max_in_flight_non_stream: 12,
+            max_in_flight_stream: 4,
         })}
       />,
     );
@@ -297,6 +363,7 @@ describe("ConnectionDialog limiter fields", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
 
     expect(await screen.findByDisplayValue("30")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("45")).toBeInTheDocument();
     expect(screen.getByDisplayValue("12")).toBeInTheDocument();
     expect(screen.getByDisplayValue("4")).toBeInTheDocument();
   });
@@ -316,6 +383,7 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByLabelText("API Key")).toHaveAttribute("name", "endpoint_api_key");
     expect(screen.getByLabelText("API Key")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("Name (Optional)")).toHaveAttribute("name", "name");
+    expect(screen.getByLabelText("Probe interval (seconds)")).toHaveAttribute("name", "monitoring_probe_interval_seconds");
     expect(screen.getByLabelText("QPS Limit")).toHaveAttribute("name", "qps_limit");
     expect(screen.getByLabelText("Max In-Flight (Non-Stream)")).toHaveAttribute(
       "name",
@@ -369,6 +437,102 @@ describe("ConnectionDialog limiter fields", () => {
           max_in_flight_non_stream: 5,
           max_in_flight_stream: 2,
         }),
+      );
+    });
+  });
+
+  it("uses the unsaved add-dialog draft when running a preview probe", async () => {
+    renderWithLocale(<ConnectionDialogHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. OpenAI Primary"), {
+      target: { value: "Preview endpoint" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("https://api.openai.com"), {
+      target: { value: "https://preview.example.com/v1" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("sk-..."), {
+      target: { value: "sk-preview" },
+    });
+    fireEvent.change(screen.getByLabelText("Name (Optional)"), {
+      target: { value: "Preview connection" },
+    });
+    fireEvent.change(screen.getByLabelText("Probe interval (seconds)"), {
+      target: { value: "45" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Test Connection" }));
+
+    await waitFor(() => {
+      expect(api.connections.healthCheckPreview).toHaveBeenCalledWith(
+        5,
+        expect.objectContaining({
+          endpoint_create: expect.objectContaining({
+            name: "Preview endpoint",
+            base_url: "https://preview.example.com/v1",
+            api_key: "sk-preview",
+          }),
+          name: "Preview connection",
+          monitoring_probe_interval_seconds: 45,
+        }),
+      );
+    });
+    expect(api.connections.healthCheck).not.toHaveBeenCalled();
+  });
+
+  it("clamps probe interval values below the backend minimum before submit", async () => {
+    renderWithLocale(<ConnectionDialogHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. OpenAI Primary"), {
+      target: { value: "Inline endpoint" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("https://api.openai.com"), {
+      target: { value: "https://api.example.com/v1" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("sk-..."), {
+      target: { value: "sk-test" },
+    });
+    fireEvent.change(screen.getByLabelText("Probe interval (seconds)"), {
+      target: { value: "12" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
+
+    await waitFor(() => {
+      expect(api.connections.create).toHaveBeenCalledWith(
+        5,
+        expect.objectContaining({ monitoring_probe_interval_seconds: 30 }),
+      );
+    });
+  });
+
+  it("clamps probe interval values above the backend maximum before submit", async () => {
+    renderWithLocale(<ConnectionDialogHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. OpenAI Primary"), {
+      target: { value: "Inline endpoint" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("https://api.openai.com"), {
+      target: { value: "https://api.example.com/v1" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("sk-..."), {
+      target: { value: "sk-test" },
+    });
+    fireEvent.change(screen.getByLabelText("Probe interval (seconds)"), {
+      target: { value: "7200" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
+
+    await waitFor(() => {
+      expect(api.connections.create).toHaveBeenCalledWith(
+        5,
+        expect.objectContaining({ monitoring_probe_interval_seconds: 3600 }),
       );
     });
   });

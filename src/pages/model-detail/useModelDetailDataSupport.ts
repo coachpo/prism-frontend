@@ -13,6 +13,11 @@ import type {
 } from "@/lib/types";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import { normalizeProxyTargets } from "../models/modelFormState";
+import type { HeaderRow } from "./useModelDetailDialogState";
+
+export const DEFAULT_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS = 300;
+export const MIN_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS = 30;
+export const MAX_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS = 3600;
 
 function resolveApiFamily(
   model: Pick<ModelConfig, "api_family"> | Pick<ModelConfigListItem, "api_family">,
@@ -38,11 +43,104 @@ export const createDefaultConnectionForm = (): ConnectionCreate => ({
   is_active: true,
   custom_headers: null,
   pricing_template_id: null,
+  monitoring_probe_interval_seconds: DEFAULT_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS,
   openai_probe_endpoint_variant: "responses",
   qps_limit: null,
   max_in_flight_non_stream: null,
   max_in_flight_stream: null,
 });
+
+interface BuildConnectionDraftPayloadInput {
+  modelApiFamily: ApiFamily | undefined;
+  createMode: "select" | "new";
+  selectedEndpointId: string;
+  newEndpointForm: EndpointCreate;
+  connectionForm: ConnectionCreate;
+  headerRows: HeaderRow[];
+  editingConnection: Connection | null;
+  endpointSourceDefaultName: string | null;
+}
+
+export function normalizeConnectionProbeIntervalSeconds(value: number | null | undefined): number {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return DEFAULT_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS;
+  }
+
+  return Math.min(
+    MAX_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS,
+    Math.max(MIN_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS, Math.trunc(value)),
+  );
+}
+
+export function buildConnectionDraftPayload({
+  modelApiFamily,
+  createMode,
+  selectedEndpointId,
+  newEndpointForm,
+  connectionForm,
+  headerRows,
+  editingConnection,
+  endpointSourceDefaultName,
+}: BuildConnectionDraftPayloadInput): {
+  errorMessage: string | null;
+  payload: ConnectionCreate | null;
+} {
+  const customHeaders =
+    headerRows.length > 0
+      ? Object.fromEntries(
+          headerRows.filter((row) => row.key.trim()).map((row) => [row.key.trim(), row.value]),
+        )
+      : null;
+
+  const typedConnectionName = (connectionForm.name ?? "").trim();
+  const resolvedConnectionName =
+    typedConnectionName.length > 0
+      ? typedConnectionName
+      : !editingConnection
+        ? endpointSourceDefaultName
+        : null;
+
+  const payload: ConnectionCreate = {
+    ...connectionForm,
+    name: resolvedConnectionName,
+    custom_headers: customHeaders,
+    openai_probe_endpoint_variant: resolveConnectionProbeEndpointVariant(
+      modelApiFamily,
+      connectionForm.openai_probe_endpoint_variant,
+    ),
+    pricing_template_id: connectionForm.pricing_template_id,
+    monitoring_probe_interval_seconds: normalizeConnectionProbeIntervalSeconds(
+      connectionForm.monitoring_probe_interval_seconds,
+    ),
+    qps_limit: normalizeLimiterField(connectionForm.qps_limit),
+    max_in_flight_non_stream: normalizeLimiterField(connectionForm.max_in_flight_non_stream),
+    max_in_flight_stream: normalizeLimiterField(connectionForm.max_in_flight_stream),
+  };
+
+  if (createMode === "select") {
+    if (!selectedEndpointId) {
+      return {
+        errorMessage: getStaticMessages().modelDetailData.selectEndpoint,
+        payload: null,
+      };
+    }
+
+    payload.endpoint_id = Number.parseInt(selectedEndpointId, 10);
+    delete payload.endpoint_create;
+    return { errorMessage: null, payload };
+  }
+
+  if (!newEndpointForm.name || !newEndpointForm.base_url || !newEndpointForm.api_key) {
+    return {
+      errorMessage: getStaticMessages().modelDetailData.fillEndpointFields,
+      payload: null,
+    };
+  }
+
+  payload.endpoint_create = newEndpointForm;
+  delete payload.endpoint_id;
+  return { errorMessage: null, payload };
+}
 
 export function resolveConnectionProbeEndpointVariant(
   apiFamily: ApiFamily | undefined,
@@ -53,6 +151,14 @@ export function resolveConnectionProbeEndpointVariant(
   }
 
   return variant === "chat_completions" ? "chat_completions" : "responses";
+}
+
+function normalizeLimiterField(value: number | null | undefined): number | null {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+
+  return value;
 }
 
 export function resequenceConnections(connections: Connection[]): Connection[] {

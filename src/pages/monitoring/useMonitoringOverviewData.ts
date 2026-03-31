@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import type { MonitoringOverviewResponse } from "@/lib/types";
-import { loadMonitoringPollIntervalSeconds, toMonitoringPollIntervalMs } from "./monitoringPolling";
+import {
+  DEFAULT_MONITORING_POLL_INTERVAL_SECONDS,
+  toMonitoringPollIntervalMs,
+} from "./monitoringPolling";
 
 interface UseMonitoringOverviewDataInput {
   revision: number;
@@ -13,8 +16,8 @@ export function useMonitoringOverviewData({ revision, selectedProfileId }: UseMo
   const [data, setData] = useState<MonitoringOverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pollIntervalSeconds, setPollIntervalSeconds] = useState(300);
   const requestIdRef = useRef(0);
+  const pollIntervalSeconds = DEFAULT_MONITORING_POLL_INTERVAL_SECONDS;
 
   const fetchOverview = useCallback(async () => {
     const requestId = ++requestIdRef.current;
@@ -47,22 +50,6 @@ export function useMonitoringOverviewData({ revision, selectedProfileId }: UseMo
   useEffect(() => {
     void revision;
     void selectedProfileId;
-
-    let active = true;
-    void loadMonitoringPollIntervalSeconds().then((value) => {
-      if (active) {
-        setPollIntervalSeconds(value);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [revision, selectedProfileId]);
-
-  useEffect(() => {
-    void revision;
-    void selectedProfileId;
     void fetchOverview();
 
     const intervalId = window.setInterval(() => {
@@ -73,13 +60,12 @@ export function useMonitoringOverviewData({ revision, selectedProfileId }: UseMo
       window.clearInterval(intervalId);
       requestIdRef.current += 1;
     };
-  }, [fetchOverview, pollIntervalSeconds, revision, selectedProfileId]);
+  }, [fetchOverview, revision, selectedProfileId]);
 
   return {
     data,
     error,
     loading,
-    pollIntervalSeconds,
     refresh: fetchOverview,
   };
 }

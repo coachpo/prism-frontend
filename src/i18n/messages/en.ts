@@ -1,3 +1,5 @@
+import { formatLabel } from "@/lib/utils";
+
 export interface Messages {
   auth: {
     accountResetCodeSent: string;
@@ -388,7 +390,6 @@ export interface Messages {
     globalSettings: string;
     globalSettingsDescription: string;
     globalTab: string;
-    monitoring: string;
     profileScopedDescription: (profileLabel: string) => string;
     profileScopedSettings: string;
     profileTab: string;
@@ -937,6 +938,16 @@ export interface Messages {
     proxyRouting: string;
     proxyTargets: string;
     proxyTargetsHint: string;
+    monitoringCadence: (seconds: number) => string;
+    monitoringProbeIntervalHint: string;
+    monitoringProbeIntervalSeconds: string;
+    latestProbeAt: (value: string) => string;
+    latestProbeStatus: (status: string) => string;
+    lastLiveFailureKind: (value: string) => string;
+    lastLiveSuccessAt: (value: string) => string;
+    endpointMonitoringValue: (value: string) => string;
+    conversationMonitoringValue: (value: string) => string;
+    p95MonitoringValue: (value: string) => string;
     qpsLimit: string;
     recoveryBlocked: string;
     recoveryCounting: string;
@@ -1173,17 +1184,27 @@ export interface Messages {
     checkedAt: string;
     connection: string;
     connectionCount: (count: string) => string;
+    connectionIdLabel: string;
     connections: string;
+    compactHistoryLabel: string;
     conversationDelay: string;
+    conversationDelaySummaryLabel: string;
     degradedCount: (count: string) => string;
     endpointPing: string;
+    endpointPingSummaryLabel: string;
     failureKind: string;
+    failureKindLabel: string;
     fusedStatus: string;
+    fusedStatusLabel: (status: string) => string;
     generatedAt: (value: string) => string;
     healthyCount: (count: string) => string;
     invalidModelId: string;
     invalidVendorId: string;
+    lastFailureLabel: string;
     lastProbeSummary: (connectionId: string, checkedAt: string, detail: string) => string;
+    lastProbeLabel: string;
+    lastSuccessLabel: string;
+    liveP95SummaryLabel: string;
     loadModelFailed: string;
     loadOverviewFailed: string;
     loadVendorFailed: string;
@@ -1199,7 +1220,14 @@ export interface Messages {
     noRecentHistory: string;
     noVendorModels: string;
     noVendorMonitoringData: string;
+    noneLabel: string;
+    notAvailable: string;
+    monitoringCadence: (seconds: number) => string;
+    past60ProbesTitle: string;
     probing: string;
+    probeStatusDegraded: string;
+    probeStatusDown: string;
+    probeStatusOk: string;
     recentHistoryDescription: string;
     recentHistoryTitle: string;
     refresh: string;
@@ -1207,6 +1235,7 @@ export interface Messages {
     vendorGroupsDescription: string;
     vendorGroupsTitle: string;
     vendorLabel: (name: string) => string;
+    vendorSummary: (models: string, connections: string) => string;
     vendorModelsDescription: string;
     vendorModelsTitle: string;
     vendorMonitoringDescription: string;
@@ -1933,7 +1962,6 @@ export const enMessages: Messages = {
     globalSettings: "Global settings",
     globalSettingsDescription: "Changes here apply to all profiles and the entire Prism instance.",
     globalTab: "Global",
-    monitoring: "Monitoring",
     profileScopedDescription: (profileLabel) => `Changes here affect ${profileLabel} and its runtime traffic.`,
     profileScopedSettings: "Profile-scoped settings",
     profileTab: "Profile",
@@ -2461,6 +2489,16 @@ export const enMessages: Messages = {
     proxyTargets: "Proxy Targets",
     proxyTargetsHint:
       "Manage ordered proxy targets from the dedicated card on this page. Proxy targets must stay on the same API family even when the vendor metadata changes.",
+    monitoringCadence: (seconds) => `${seconds}s cadence`,
+    monitoringProbeIntervalHint: "Set how often backend monitoring should probe this connection.",
+    monitoringProbeIntervalSeconds: "Probe interval (seconds)",
+    latestProbeAt: (value) => `Last probe ${value}`,
+    latestProbeStatus: (status) => `Latest probe ${status}`,
+    lastLiveFailureKind: (value) => `Failure ${value}`,
+    lastLiveSuccessAt: (value) => `Last success ${value}`,
+    endpointMonitoringValue: (value) => `Endpoint ${value}`,
+    conversationMonitoringValue: (value) => `Conversation ${value}`,
+    p95MonitoringValue: (value) => `P95 ${value}`,
     qpsLimit: "QPS Limit",
     recoveryBlocked: "Recovery Blocked",
     recoveryCounting: "Recovery Counting",
@@ -2534,18 +2572,28 @@ export const enMessages: Messages = {
     checkedAt: "Checked at",
     connection: "Connection",
     connectionCount: (count) => `${count} connections`,
+    connectionIdLabel: "Connection ID",
     connections: "Connections",
+    compactHistoryLabel: "Recent windows",
     conversationDelay: "Conversation delay",
+    conversationDelaySummaryLabel: "Conversation delay",
     degradedCount: (count) => `${count} degraded`,
     endpointPing: "Endpoint ping",
+    endpointPingSummaryLabel: "Endpoint ping",
     failureKind: "Failure kind",
+    failureKindLabel: "Failure kind",
     fusedStatus: "Fused status",
+    fusedStatusLabel: (status) => `Fused ${formatLabel(status)}`,
     generatedAt: (value) => `Updated ${value}`,
     healthyCount: (count) => `${count} healthy`,
     invalidModelId: "Invalid monitoring model id.",
     invalidVendorId: "Invalid monitoring vendor id.",
+    lastFailureLabel: "Last failure",
     lastProbeSummary: (connectionId, checkedAt, detail) =>
       `Latest manual probe for connection #${connectionId} completed at ${checkedAt}: ${detail}`,
+    lastProbeLabel: "Latest probe",
+    lastSuccessLabel: "Last success",
+    liveP95SummaryLabel: "Live p95",
     loadModelFailed: "Failed to load monitoring model data",
     loadOverviewFailed: "Failed to load monitoring overview",
     loadVendorFailed: "Failed to load monitoring vendor data",
@@ -2555,20 +2603,28 @@ export const enMessages: Messages = {
     modelCount: (count) => `${count} models`,
     modelMonitoringDescription: "Inspect backend-produced health, latency, and recent probe history for one model.",
     modelMonitoringTitle: "Model monitoring",
-    monitoringDescription: "Track backend-produced vendor, model, and connection monitoring status.",
+    monitoringDescription: "Track backend-produced vendor, model, and connection monitoring status with a compact strip of the past 60 probes.",
     monitoringTitle: "Monitoring",
     noModelConnections: "No monitored connections were returned for this model.",
-    noRecentHistory: "No recent monitoring history is available yet.",
+    noRecentHistory: "No probe history is available yet.",
     noVendorModels: "No monitored models were returned for this vendor.",
     noVendorMonitoringData: "No vendor monitoring data is available yet.",
+    noneLabel: "None",
+    notAvailable: "Not available",
+    monitoringCadence: (seconds) => `${seconds}s cadence`,
+    past60ProbesTitle: "Past 60 probes",
     probing: "Probing...",
+    probeStatusDegraded: "Degraded",
+    probeStatusDown: "Failed",
+    probeStatusOk: "Healthy",
     recentHistoryDescription: "Recent synthetic probe samples returned by the backend.",
     recentHistoryTitle: "Recent history",
     refresh: "Refresh monitoring",
     runProbe: "Run probe",
-    vendorGroupsDescription: "Start at the vendor rollup, then drill down into models and connection history.",
+    vendorGroupsDescription: "Start at the vendor rollup, then scan models and the latest probe streak for each connection.",
     vendorGroupsTitle: "Vendor groups",
     vendorLabel: (name) => `Vendor: ${name}`,
+    vendorSummary: (models, connections) => `${models} models · ${connections} connections`,
     vendorModelsDescription: "Model rollup for the selected vendor.",
     vendorModelsTitle: "Vendor models",
     vendorMonitoringDescription: "Inspect model-level monitoring status for one vendor.",

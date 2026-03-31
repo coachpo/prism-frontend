@@ -1,8 +1,6 @@
-import { api } from "@/lib/api";
-
-export const DEFAULT_MONITORING_POLL_INTERVAL_SECONDS = 300;
-export const MIN_MONITORING_POLL_INTERVAL_SECONDS = 30;
-export const MAX_MONITORING_POLL_INTERVAL_SECONDS = 3600;
+export const DEFAULT_MONITORING_POLL_INTERVAL_SECONDS = 30;
+export const MIN_MONITORING_POLL_INTERVAL_SECONDS = 15;
+export const MAX_MONITORING_POLL_INTERVAL_SECONDS = 300;
 
 export function clampMonitoringPollIntervalSeconds(value: number | null | undefined): number {
   if (!Number.isFinite(value)) {
@@ -17,13 +15,4 @@ export function clampMonitoringPollIntervalSeconds(value: number | null | undefi
 
 export function toMonitoringPollIntervalMs(seconds: number): number {
   return clampMonitoringPollIntervalSeconds(seconds) * 1000;
-}
-
-export async function loadMonitoringPollIntervalSeconds(): Promise<number> {
-  try {
-    const response = await api.settings.monitoring.get();
-    return clampMonitoringPollIntervalSeconds(response.monitoring_probe_interval_seconds);
-  } catch {
-    return DEFAULT_MONITORING_POLL_INTERVAL_SECONDS;
-  }
 }

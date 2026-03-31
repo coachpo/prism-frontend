@@ -119,6 +119,7 @@ export interface Connection {
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
   pricing_template_id: number | null;
+  monitoring_probe_interval_seconds?: number | null;
   openai_probe_endpoint_variant: OpenAiProbeEndpointVariant;
   qps_limit: number | null;
   max_in_flight_non_stream: number | null;
@@ -139,6 +140,7 @@ export interface ConnectionCreate {
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_template_id?: number | null;
+  monitoring_probe_interval_seconds?: number | null;
   openai_probe_endpoint_variant?: OpenAiProbeEndpointVariant;
   qps_limit?: number | null;
   max_in_flight_non_stream?: number | null;
@@ -153,6 +155,7 @@ export interface ConnectionUpdate {
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_template_id?: number | null;
+  monitoring_probe_interval_seconds?: number | null;
   openai_probe_endpoint_variant?: OpenAiProbeEndpointVariant | null;
   qps_limit?: number | null;
   max_in_flight_non_stream?: number | null;
@@ -161,6 +164,13 @@ export interface ConnectionUpdate {
 
 export interface HealthCheckResponse {
   connection_id: number;
+  health_status: string;
+  checked_at: string;
+  detail: string;
+  response_time_ms: number;
+}
+
+export interface ConnectionHealthCheckPreviewResponse {
   health_status: string;
   checked_at: string;
   detail: string;

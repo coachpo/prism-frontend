@@ -24,6 +24,16 @@ export interface LoadbalanceCurrentStateItem {
   connection_id: number;
   consecutive_failures: number;
   last_failure_kind: LoadbalanceFailureKind | null;
+  last_probe_status?: string | null;
+  last_probe_at?: string | null;
+  live_p95_latency_ms?: number | null;
+  last_live_failure_kind?: LoadbalanceFailureKind | null;
+  last_live_failure_at?: string | null;
+  last_live_success_at?: string | null;
+  endpoint_ping_ewma_ms?: number | null;
+  conversation_delay_ewma_ms?: number | null;
+  circuit_state?: string | null;
+  probe_available_at?: string | null;
   last_cooldown_seconds: number;
   blocked_until_at: string | null;
   probe_eligible_logged: boolean;

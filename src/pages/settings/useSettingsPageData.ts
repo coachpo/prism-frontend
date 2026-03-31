@@ -8,7 +8,6 @@ import { useAuditConfigurationData } from "./useAuditConfigurationData";
 import { useAuthenticationSettingsData } from "./useAuthenticationSettingsData";
 import { useConfigBackupData } from "./useConfigBackupData";
 import { useCostingSettingsData } from "./useCostingSettingsData";
-import { useMonitoringSettingsData } from "./useMonitoringSettingsData";
 import { useRetentionDeletionData } from "./useRetentionDeletionData";
 import { useVendorManagementData } from "./useVendorManagementData";
 
@@ -25,7 +24,6 @@ export function useSettingsPageData() {
   const backup = useConfigBackupData({ bumpRevision });
   const auth = useAuthenticationSettingsData({ navigate, refreshAuth, revision });
   const costing = useCostingSettingsData({ revision, setRecentlySavedSection });
-  const monitoring = useMonitoringSettingsData({ revision, setRecentlySavedSection });
   const audit = useAuditConfigurationData({ revision });
   const retention = useRetentionDeletionData();
   const vendorManagement = useVendorManagementData({ revision });
@@ -57,7 +55,6 @@ export function useSettingsPageData() {
     ...backup,
     ...auth,
     ...costing,
-    ...monitoring,
     ...auditData,
     auditVendors,
     ...retention,

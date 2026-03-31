@@ -84,6 +84,7 @@ function buildConnection(): Connection {
     auth_type: null,
     custom_headers: null,
     pricing_template_id: null,
+    monitoring_probe_interval_seconds: 45,
     openai_probe_endpoint_variant: "responses",
     qps_limit: null,
     max_in_flight_non_stream: null,
@@ -335,6 +336,44 @@ describe("ConnectionCard cooldown state", () => {
 
     expect(screen.getByText("Pricing Off")).toBeInTheDocument();
     expect(screen.getByText("Inactive")).toBeInTheDocument();
+  });
+
+  it("renders monitoring evidence from the current-state payload", () => {
+    renderWithLocale(
+      <ConnectionCard
+        connection={buildConnection()}
+        model={buildModel()}
+        metrics24h={undefined}
+        loadbalanceCurrentState={buildCurrentState("blocked", {
+          last_probe_status: "degraded",
+          last_probe_at: "2026-03-23T10:02:00Z",
+          live_p95_latency_ms: 420,
+          last_live_failure_kind: "timeout",
+          last_live_failure_at: "2026-03-23T10:01:30Z",
+          last_live_success_at: "2026-03-23T09:58:00Z",
+          endpoint_ping_ewma_ms: 82,
+          conversation_delay_ewma_ms: 310,
+          circuit_state: "half_open",
+        })}
+        isChecking={false}
+        isResettingCooldown={false}
+        isFocused={false}
+        formatTime={(value) => `formatted:${value}`}
+        reorderDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onHealthCheck={vi.fn()}
+        onResetCooldown={vi.fn()}
+        onToggleActive={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("45s cadence")).toBeInTheDocument();
+    expect(screen.getByText("Endpoint 82 ms")).toBeInTheDocument();
+    expect(screen.getByText("Conversation 310 ms")).toBeInTheDocument();
+    expect(screen.getByText("P95 420 ms")).toBeInTheDocument();
+    expect(screen.getByText("Half Open")).toBeInTheDocument();
+    expect(screen.getByText("Latest probe degraded")).toBeInTheDocument();
   });
 
   it("applies muted shell styling to inactive cards while keeping actions available", () => {

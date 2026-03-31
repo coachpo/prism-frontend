@@ -33,9 +33,7 @@ export type ShellSidebarItemId =
 export type ShellRouteId =
   | ShellSidebarItemId
   | "model-detail"
-  | "proxy-model-detail"
-  | "monitoring-vendor"
-  | "monitoring-model";
+  | "proxy-model-detail";
 
 export interface ShellSidebarItemDefinition {
   groupId: ShellSidebarGroupId;
@@ -151,20 +149,6 @@ export const SHELL_ROUTE_METADATA: readonly ShellRouteMetadata[] = [
       labelKey: "monitoring",
       to: "/monitoring",
     },
-    sidebarItemId: "monitoring",
-  },
-  {
-    canonicalPath: "/monitoring/vendors/:vendorId",
-    id: "monitoring-vendor",
-    pathPattern: "/monitoring/vendors/:vendorId",
-    profileScoped: true,
-    sidebarItemId: "monitoring",
-  },
-  {
-    canonicalPath: "/monitoring/models/:modelConfigId",
-    id: "monitoring-model",
-    pathPattern: "/monitoring/models/:modelConfigId",
-    profileScoped: true,
     sidebarItemId: "monitoring",
   },
   {

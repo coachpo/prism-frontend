@@ -16,7 +16,6 @@ type ShellBreadcrumbLeafId =
   | "settings-authentication"
   | "settings-backup"
   | "settings-billing-currency"
-  | "settings-monitoring"
   | "settings-retention-deletion"
   | "settings-timezone";
 
@@ -60,10 +59,6 @@ const SETTINGS_HASH_BREADCRUMBS: Record<
   "billing-currency": {
     id: "settings-billing-currency",
     label: (messages) => messages.settingsPage.billingCurrency,
-  },
-  monitoring: {
-    id: "settings-monitoring",
-    label: (messages) => messages.settingsPage.monitoring,
   },
   "audit-configuration": {
     id: "settings-audit-configuration",
@@ -141,28 +136,6 @@ function buildBreadcrumbs(
           href: null,
           id: "proxy-model-detail",
           label: messages.modelDetail.proxyRouting,
-        },
-      ];
-
-    case "monitoring-vendor":
-      return [
-        { current: false, href: "/monitoring", id: "monitoring", label: messages.nav.monitoring },
-        {
-          current: true,
-          href: null,
-          id: "monitoring-vendor",
-          label: messages.monitoring.vendorMonitoringTitle,
-        },
-      ];
-
-    case "monitoring-model":
-      return [
-        { current: false, href: "/monitoring", id: "monitoring", label: messages.nav.monitoring },
-        {
-          current: true,
-          href: null,
-          id: "monitoring-model",
-          label: messages.monitoring.modelMonitoringTitle,
         },
       ];
 

@@ -22,6 +22,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useLocale } from "@/i18n/useLocale";
 import { Loader2, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeConnectionProbeIntervalSeconds } from "./useModelDetailDataSupport";
 import type {
   ApiFamily,
   Connection,
@@ -291,6 +292,33 @@ export function ConnectionDialog({
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="conn-monitoring-probe-interval-seconds">
+              {copy.monitoringProbeIntervalSeconds}
+            </Label>
+            <Input
+              id="conn-monitoring-probe-interval-seconds"
+              name="monitoring_probe_interval_seconds"
+              type="number"
+              min="30"
+              max="3600"
+              step="1"
+              value={connectionForm.monitoring_probe_interval_seconds ?? 300}
+              onChange={(e) => {
+                const rawValue = e.target.value;
+                const parsedValue = Number.parseInt(rawValue, 10);
+                setConnectionForm({
+                  ...connectionForm,
+                  monitoring_probe_interval_seconds:
+                    rawValue === "" || Number.isNaN(parsedValue)
+                      ? 300
+                      : normalizeConnectionProbeIntervalSeconds(parsedValue),
+                });
+              }}
+            />
+            <p className="text-[11px] text-muted-foreground">{copy.monitoringProbeIntervalHint}</p>
+          </div>
+
           {showOpenAiProbeEndpointVariant ? (
             <div className="space-y-2">
               <Label htmlFor="conn-openai-probe-endpoint-variant">{copy.openaiProbeEndpointVariant}</Label>
@@ -399,23 +427,21 @@ export function ConnectionDialog({
 
 
           <DialogFooter className="gap-2">
-            {editingConnection && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDialogTestConnection}
-                disabled={dialogTestingConnection}
-                >
-                  {dialogTestingConnection ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {copy.testingConnection}
-                    </>
-                  ) : (
-                    copy.testConnection
-                  )}
-                </Button>
-              )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDialogTestConnection}
+              disabled={dialogTestingConnection}
+              >
+                {dialogTestingConnection ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {copy.testingConnection}
+                  </>
+                ) : (
+                  copy.testConnection
+                )}
+              </Button>
             <div className="flex-1" />
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {copy.cancel}

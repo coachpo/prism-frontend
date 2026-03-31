@@ -27,12 +27,6 @@ const StatisticsPage = lazy(() =>
 const MonitoringPage = lazy(() =>
   import("@/pages/MonitoringPage").then((module) => ({ default: module.MonitoringPage }))
 );
-const MonitoringVendorPage = lazy(() =>
-  import("@/pages/MonitoringVendorPage").then((module) => ({ default: module.MonitoringVendorPage }))
-);
-const MonitoringModelPage = lazy(() =>
-  import("@/pages/MonitoringModelPage").then((module) => ({ default: module.MonitoringModelPage }))
-);
 const SettingsPage = lazy(() =>
   import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage }))
 );
@@ -132,8 +126,6 @@ function App() {
             <Route path="/loadbalance-strategies" element={withRouteSuspense(<LoadbalanceStrategiesPage />)} />
             <Route path="/statistics" element={withRouteSuspense(<StatisticsPage />)} />
             <Route path="/monitoring" element={withRouteSuspense(<MonitoringPage />)} />
-            <Route path="/monitoring/vendors/:vendorId" element={withRouteSuspense(<MonitoringVendorPage />)} />
-            <Route path="/monitoring/models/:modelConfigId" element={withRouteSuspense(<MonitoringModelPage />)} />
             <Route path="/settings" element={withRouteSuspense(<SettingsPage />)} />
             <Route path="/proxy-api-keys" element={withRouteSuspense(<ProxyApiKeysPage />)} />
             <Route path="/pricing-templates" element={withRouteSuspense(<PricingTemplatesPage />)} />

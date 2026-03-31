@@ -47,37 +47,6 @@ describe("useShellNavigation", () => {
     ]);
   });
 
-  it.each([
-    {
-      activeSidebarItemId: "monitoring",
-      breadcrumbs: [
-        { current: false, href: "/monitoring", id: "monitoring", label: "Monitoring" },
-        { current: true, href: null, id: "monitoring-vendor", label: "Vendor monitoring" },
-      ],
-      path: "/monitoring/vendors/7",
-      routeId: "monitoring-vendor",
-    },
-    {
-      activeSidebarItemId: "monitoring",
-      breadcrumbs: [
-        { current: false, href: "/monitoring", id: "monitoring", label: "Monitoring" },
-        { current: true, href: null, id: "monitoring-model", label: "Model monitoring" },
-      ],
-      path: "/monitoring/models/11",
-      routeId: "monitoring-model",
-    },
-  ])(
-    "resolves monitoring nested route breadcrumbs for $path",
-    ({ activeSidebarItemId, breadcrumbs, path, routeId }) => {
-      const navigation = getNavigation(path);
-
-      expect(navigation.matchedRoute.id).toBe(routeId);
-      expect(navigation.activeSidebarItem.id).toBe(activeSidebarItemId);
-      expect(navigation.isProfileScopedPage).toBe(true);
-      expect(navigation.breadcrumbs).toEqual(breadcrumbs);
-    }
-  );
-
   it("adds settings hash sections as breadcrumb leaves without making them sidebar destinations", () => {
     const navigation = getNavigation("/settings#authentication");
 
@@ -89,6 +58,16 @@ describe("useShellNavigation", () => {
       { current: true, href: null, id: "settings-authentication", label: "Authentication" },
     ]);
     expect(navigation.sidebarItems.some((item) => item.to.includes("#authentication"))).toBe(false);
+  });
+
+  it("does not treat the removed monitoring settings hash as a breadcrumb leaf", () => {
+    const navigation = getNavigation("/settings#monitoring");
+
+    expect(navigation.matchedRoute.id).toBe("settings");
+    expect(navigation.activeSidebarItem.id).toBe("settings");
+    expect(navigation.breadcrumbs).toEqual([
+      { current: true, href: null, id: "settings", label: "Settings" },
+    ]);
   });
 
   it("keeps request-log exact mode as a breadcrumb leaf only", () => {

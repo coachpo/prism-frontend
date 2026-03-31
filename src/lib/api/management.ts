@@ -8,6 +8,7 @@ import type {
   ModelConnectionsBatchParams,
   ModelConnectionsBatchResponse,
   ConnectionDropdownResponse,
+  ConnectionHealthCheckPreviewResponse,
   ConnectionOwnerResponse,
   ConnectionPricingTemplateUpdate,
   ConnectionUpdate,
@@ -401,6 +402,14 @@ export const connections = {
     request<HealthCheckResponse>(`/api/connections/${id}/health-check`, {
       method: "POST",
     }),
+  healthCheckPreview: (modelConfigId: number, data: ConnectionCreate) =>
+    request<ConnectionHealthCheckPreviewResponse>(
+      `/api/models/${modelConfigId}/connections/health-check-preview`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      }
+    ),
   owner: (id: number) => request<ConnectionOwnerResponse>(`/api/connections/${id}/owner`),
   setPricingTemplate: (id: number, data: ConnectionPricingTemplateUpdate) =>
     request<Connection>(`/api/connections/${id}/pricing-template`, {

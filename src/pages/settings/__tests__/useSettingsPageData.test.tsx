@@ -113,7 +113,6 @@ describe("useSettingsPageData", () => {
     mockUseConfigBackupData.mockReturnValue({ backupToken: "backup" });
     mockUseAuthenticationSettingsData.mockReturnValue({ authToken: "auth" });
     mockUseCostingSettingsData.mockReturnValue({ costingToken: "costing" });
-    mockUseMonitoringSettingsData.mockReturnValue({ monitoringToken: "monitoring" });
     mockUseAuditConfigurationData.mockReturnValue({
       vendors: auditVendors,
       toggleAudit,
@@ -129,7 +128,7 @@ describe("useSettingsPageData", () => {
     expect(result.current.selectedProfileLabel).toBe("Primary (#7)");
     expect(result.current.auditVendors).toEqual(auditVendors);
     expect(result.current.vendors).toEqual(vendorManagementVendors);
-    expect(result.current).toMatchObject({ monitoringToken: "monitoring" });
+    expect(mockUseMonitoringSettingsData).not.toHaveBeenCalled();
     expect(result.current.toggleAudit).toBe(toggleAudit);
   });
 });

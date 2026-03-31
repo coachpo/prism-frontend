@@ -7,11 +7,6 @@ const api = vi.hoisted(() => ({
     model: vi.fn(),
     probe: vi.fn(),
   },
-  settings: {
-    monitoring: {
-      get: vi.fn(),
-    },
-  },
 }));
 
 vi.mock("@/lib/api", () => ({ api }));
@@ -21,10 +16,6 @@ describe("useMonitoringModelData", () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
 
-    api.settings.monitoring.get.mockResolvedValue({
-      profile_id: 7,
-      monitoring_probe_interval_seconds: 30,
-    });
     api.monitoring.model.mockResolvedValue({
       generated_at: "2026-03-30T10:00:00Z",
       vendor_id: 1,
@@ -48,7 +39,7 @@ describe("useMonitoringModelData", () => {
     });
   });
 
-  it("loads data, refreshes on the monitoring cadence, and refetches after manual probe", async () => {
+  it("loads data, refreshes on the fixed UI cadence, and refetches after manual probe", async () => {
     const { result } = renderHook(() =>
       useMonitoringModelData({ modelConfigId: 11, revision: 1, selectedProfileId: 7 }),
     );
@@ -58,13 +49,13 @@ describe("useMonitoringModelData", () => {
     });
 
     expect(result.current.loading).toBe(false);
-    expect(api.monitoring.model).toHaveBeenCalledTimes(2);
+    expect(api.monitoring.model).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30000);
     });
 
-    expect(api.monitoring.model).toHaveBeenCalledTimes(3);
+    expect(api.monitoring.model).toHaveBeenCalledTimes(2);
 
     await act(async () => {
       await result.current.handleManualProbe(99);
@@ -72,6 +63,6 @@ describe("useMonitoringModelData", () => {
 
     expect(api.monitoring.probe).toHaveBeenCalledWith(99);
     expect(result.current.manualProbeResult?.detail).toBe("probe completed");
-    expect(api.monitoring.model).toHaveBeenCalledTimes(4);
+    expect(api.monitoring.model).toHaveBeenCalledTimes(3);
   });
 });
