@@ -156,6 +156,40 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByRole("button", { name: "Reset Recovery State" })).toBeEnabled();
   });
 
+  it("renders the archived probe-eligible timeout recovery copy for an unhealthy connection", () => {
+    renderWithLocale(
+      <ConnectionCard
+        connection={{ ...buildConnection(), health_status: "unhealthy" }}
+        model={buildModel()}
+        metrics24h={undefined}
+        loadbalanceCurrentState={buildCurrentState("probe_eligible", {
+          consecutive_failures: 1,
+          last_cooldown_seconds: 61,
+          blocked_until_at: "2026-03-23T10:05:00Z",
+          last_failure_kind: "timeout",
+        })}
+        isChecking={false}
+        isResettingCooldown={false}
+        isFocused={false}
+        formatTime={(value) => `formatted:${value}`}
+        reorderDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onHealthCheck={vi.fn()}
+        onResetCooldown={vi.fn()}
+        onToggleActive={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Unhealthy")).toBeInTheDocument();
+    expect(screen.getByText("Probe Eligible")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "The last 1m 1s cooldown expired at formatted:2026-03-23T10:05:00Z. This connection is now eligible for the next routed probe after a timeout.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("renders temporary ban copy with the ban expiry time", () => {
     renderWithLocale(
       <ConnectionCard

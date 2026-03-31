@@ -254,4 +254,59 @@ describe("request log filter split components", () => {
     expect(connectionTrigger).toHaveClass("min-w-0");
     expect(connectionTrigger).toHaveClass("max-w-full");
   });
+
+  it("renders the archived primary filter surface and keeps long endpoint labels shrink-safe", () => {
+    const longEndpointLabel =
+      "CodexPool primary endpoint with an intentionally long descriptive label for archived request-log coverage";
+
+    renderWithLocale(
+      <FiltersBarPrimaryFilters
+        filterOptions={{
+          apiFamilies: ["openai"],
+          connections: [],
+          endpoints: [
+            {
+              id: 7,
+              name: longEndpointLabel,
+              base_url: "https://example.com/v1",
+            },
+          ],
+          models: [],
+        }}
+        filterOptionsLoaded={true}
+        state={{
+          connection_id: "",
+          endpoint_id: "7",
+          model_id: "",
+          api_family: "openai",
+          search: "",
+          status_family: "all",
+          time_range: "24h",
+        }}
+        actions={{
+          setConnectionId: vi.fn(),
+          setEndpointId: vi.fn(),
+          setModelId: vi.fn(),
+          setApiFamily: vi.fn(),
+          setSearch: vi.fn(),
+          setStatusFamily: vi.fn(),
+          setTimeRange: vi.fn(),
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Search")).toBeInTheDocument();
+    expect(screen.getByText("Model")).toBeInTheDocument();
+    expect(screen.getByText("API Family")).toBeInTheDocument();
+    expect(screen.getByText("Endpoint")).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
+    expect(screen.getByText("Connection")).toBeInTheDocument();
+    expect(screen.getByText("Time range")).toBeInTheDocument();
+
+    const endpointTrigger = screen.getByText(longEndpointLabel).closest("button");
+
+    expect(endpointTrigger).toHaveClass("w-full");
+    expect(endpointTrigger).toHaveClass("min-w-0");
+    expect(endpointTrigger).toHaveClass("max-w-full");
+  });
 });

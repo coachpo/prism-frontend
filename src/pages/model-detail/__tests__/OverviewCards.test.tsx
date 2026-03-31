@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach } from "vitest";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
@@ -139,5 +139,37 @@ describe("OverviewCards", () => {
     expect(screen.getByText("模型 KPI（24 小时）")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看请求日志" })).toBeInTheDocument();
     expect(screen.getByText("自适应路由")).toBeInTheDocument();
+  });
+
+  it("renders the archived 24-hour KPI snapshot and request-log action", () => {
+    const handleViewRequestLogs = vi.fn();
+
+    render(
+      <LocaleProvider>
+        <OverviewCards
+          model={buildModel()}
+          spending={null}
+          spendingLoading={false}
+          spendingCurrencySymbol="$"
+          spendingCurrencyCode="USD"
+          metrics24hLoading={false}
+          modelKpis={{
+            successRate: 33.3,
+            p95LatencyMs: 1441,
+            requestCount24h: 3,
+            spend24hMicros: 0,
+          }}
+          onViewRequestLogs={handleViewRequestLogs}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("33.3%")).toBeInTheDocument();
+    expect(screen.getByText("1.44s")).toBeInTheDocument();
+    expect(screen.getByText(/^3$/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "View Request Logs" }));
+
+    expect(handleViewRequestLogs).toHaveBeenCalledOnce();
   });
 });

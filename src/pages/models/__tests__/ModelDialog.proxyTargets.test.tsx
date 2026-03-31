@@ -257,6 +257,71 @@ describe("ModelDialog proxy target editing", () => {
     });
   });
 
+  it("keeps the native loadbalance strategy select controlled when a strategy is chosen", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const { rerender } = render(
+      <LocaleProvider>
+        <ModelDialog
+          editingModel={null}
+          formData={{
+            vendor_id: 7,
+            api_family: "openai",
+            model_id: "gpt-4o-mini",
+            display_name: "GPT-4o Mini",
+            model_type: "native",
+            proxy_targets: [],
+            loadbalance_strategy_id: null,
+            is_enabled: true,
+          }}
+          isDialogOpen
+          loadbalanceStrategies={loadbalanceStrategies}
+          nativeModelsForApiFamily={[]}
+          vendors={[buildVendor()]}
+          setFormData={vi.fn()}
+          setIsDialogOpen={vi.fn()}
+          setLoadbalanceStrategyId={vi.fn()}
+          setModelType={vi.fn()}
+          onSubmit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    rerender(
+      <LocaleProvider>
+        <ModelDialog
+          editingModel={null}
+          formData={{
+            vendor_id: 7,
+            api_family: "openai",
+            model_id: "gpt-4o-mini",
+            display_name: "GPT-4o Mini",
+            model_type: "native",
+            proxy_targets: [],
+            loadbalance_strategy_id: 100,
+            is_enabled: true,
+          }}
+          isDialogOpen
+          loadbalanceStrategies={loadbalanceStrategies}
+          nativeModelsForApiFamily={[]}
+          vendors={[buildVendor()]}
+          setFormData={vi.fn()}
+          setIsDialogOpen={vi.fn()}
+          setLoadbalanceStrategyId={vi.fn()}
+          setModelType={vi.fn()}
+          onSubmit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.stringContaining("changing an uncontrolled input to be controlled"),
+    );
+    expect(consoleError).not.toHaveBeenCalledWith(
+      expect.stringContaining("uncontrolled to controlled"),
+    );
+  });
+
   it("keeps proxy target rows and add-target controls contained on narrow widths", () => {
     render(<Harness />);
 
@@ -360,5 +425,65 @@ describe("ModelDialog proxy target editing", () => {
     expect(screen.getAllByRole("combobox")[3]).toHaveTextContent(
       "adaptive-availability (Adaptive routing · Maximize availability)",
     );
+  });
+
+  it.fails("tracks the 390px long-text clipping regression for model identifiers", () => {
+    const originalInnerWidth = window.innerWidth;
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 390,
+      writable: true,
+    });
+    window.dispatchEvent(new Event("resize"));
+
+    try {
+      render(
+        <LocaleProvider>
+          <ModelDialog
+            editingModel={null}
+            formData={{
+              vendor_id: 7,
+              api_family: "openai",
+              model_id: "gpt-5.4-super-long-unbroken-routing-identifier-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              display_name:
+                "超长模型显示名称-用于观察对话框布局与字段间距-LongLocalizedFriendlyName-1234567890",
+              model_type: "native",
+              proxy_targets: [],
+              loadbalance_strategy_id: 100,
+              is_enabled: true,
+            }}
+            isDialogOpen
+            loadbalanceStrategies={loadbalanceStrategies}
+            nativeModelsForApiFamily={[]}
+            vendors={[buildVendor()]}
+            setFormData={vi.fn()}
+            setIsDialogOpen={vi.fn()}
+            setLoadbalanceStrategyId={vi.fn()}
+            setModelType={vi.fn()}
+            onSubmit={vi.fn()}
+          />
+        </LocaleProvider>,
+      );
+
+      const dialog = screen.getByRole("dialog");
+      const modelIdInput = document.getElementById("model-id");
+      const displayNameInput = document.getElementById("model-display-name");
+
+      expect(modelIdInput).toHaveValue(
+        "gpt-5.4-super-long-unbroken-routing-identifier-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      );
+      expect(displayNameInput).toHaveValue(
+        "超长模型显示名称-用于观察对话框布局与字段间距-LongLocalizedFriendlyName-1234567890",
+      );
+      expect(dialog).toHaveClass("overflow-x-auto");
+    } finally {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: originalInnerWidth,
+        writable: true,
+      });
+      window.dispatchEvent(new Event("resize"));
+    }
   });
 });

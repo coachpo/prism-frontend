@@ -117,6 +117,29 @@ describe("App protected route smoke", () => {
     window.history.replaceState({}, "", "/dashboard");
   });
 
+  it("redirects the root route into the dashboard shell", async () => {
+    const view = await renderAppRoute("/");
+
+    expect(await screen.findByText("protected-shell")).toBeInTheDocument();
+    expect(await screen.findByText("dashboard-landmark")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/dashboard");
+
+    view.unmount();
+  });
+
+  it("redirects /login into the dashboard shell when auth is disabled", async () => {
+    authState.authEnabled = false;
+    authState.authenticated = false;
+
+    const view = await renderAppRoute("/login");
+
+    expect(await screen.findByText("protected-shell")).toBeInTheDocument();
+    expect(await screen.findByText("dashboard-landmark")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/dashboard");
+
+    view.unmount();
+  });
+
   it.each([
     ["/dashboard", "dashboard-landmark"],
     ["/models", "models-landmark"],

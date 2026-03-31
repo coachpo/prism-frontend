@@ -169,4 +169,46 @@ describe("formatCost", () => {
     expect(screen.getByTestId("request-log-page-size-select")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
+
+  it("renders the archived successful request row fields and pagination controls", () => {
+    render(
+      React.createElement(
+        LocaleProvider,
+        null,
+        React.createElement(RequestLogsTable, {
+          items: [
+            buildRow({
+              created_at: "2026-03-31T09:55:16.000Z",
+              model_id: "gpt-5.4",
+              api_family: "openai",
+              vendor_name: "OpenAI",
+              status_code: 200,
+              response_time_ms: 1500,
+              total_tokens: 38,
+            }),
+          ],
+          total: 3,
+          loading: false,
+          view: "all",
+          limit: 100,
+          offset: 0,
+          activeRequestId: null,
+          onSelectRequest: () => undefined,
+          onSetLimit: () => undefined,
+          onNextPage: () => undefined,
+          onPreviousPage: () => undefined,
+          formatTimestamp: () => "formatted:2026-03-31T09:55:16.000Z",
+          resolveModelLabel: createResolveModelLabel({ "gpt-5.4": "GPT-5.4" }),
+        }),
+      ),
+    );
+
+    expect(screen.getByText("formatted:2026-03-31T09:55:16.000Z")).toBeInTheDocument();
+    expect(screen.getByText("GPT-5.4")).toBeInTheDocument();
+    expect(screen.getByText("200")).toBeInTheDocument();
+    expect(screen.getByText("1,500ms")).toBeInTheDocument();
+    expect(screen.getByText("38")).toBeInTheDocument();
+    expect(screen.getByText("1-3 of 3")).toBeInTheDocument();
+    expect(screen.getByTestId("request-log-page-size-select")).toBeInTheDocument();
+  });
 });

@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { calculateReconnectDelay, getInitialConnectionState } from "@/lib/websocket/transport";
+import {
+  calculateReconnectDelay,
+  createRealtimeWebSocketUrl,
+  getInitialConnectionState,
+} from "@/lib/websocket/transport";
 import {
   buildPingMessage,
   buildPongMessage,
@@ -83,6 +87,24 @@ describe("websocket helpers", () => {
     expect(getInitialConnectionState({ hasConnectedOnce: false, reconnectAttempts: 2 })).toBe(
       "reconnecting",
     );
+  });
+
+  it("derives the realtime websocket URL from the configured API base", () => {
+    expect(
+      createRealtimeWebSocketUrl(
+        { protocol: "http:", host: "localhost:15173" },
+        undefined,
+        "http://localhost:18000",
+      ),
+    ).toBe("ws://localhost:18000/api/realtime/ws");
+
+    expect(
+      createRealtimeWebSocketUrl(
+        { protocol: "https:", host: "prism.example.com" },
+        undefined,
+        "https://api.prism.example.com/",
+      ),
+    ).toBe("wss://api.prism.example.com/api/realtime/ws");
   });
 
   it("builds websocket protocol messages with the existing payload shapes", () => {

@@ -87,6 +87,8 @@ export function ModelDialog({
     return `${strategy.name} (${strategyCopy.adaptiveSummary} · ${getRoutingObjectiveLabel(strategy)})`;
   };
 
+  const loadbalanceStrategyValue = String(formData.loadbalance_strategy_id ?? "");
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -101,7 +103,7 @@ export function ModelDialog({
           <input
             type="hidden"
             name="loadbalance_strategy_id"
-            value={formData.loadbalance_strategy_id === null ? "" : String(formData.loadbalance_strategy_id)}
+            value={loadbalanceStrategyValue}
           />
           <input type="hidden" name="is_enabled" value={String(formData.is_enabled)} />
           {normalizedProxyTargets.map((target, index) => (
@@ -320,7 +322,7 @@ export function ModelDialog({
                 </p>
               ) : (
                 <Select
-                  value={formData.loadbalance_strategy_id === null ? undefined : String(formData.loadbalance_strategy_id)}
+                  value={loadbalanceStrategyValue}
                   onValueChange={(value) => setLoadbalanceStrategyId(Number.parseInt(value, 10))}
                 >
                     <SelectTrigger id="model-loadbalance-strategy" className="w-full">
