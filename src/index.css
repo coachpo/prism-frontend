@@ -45,10 +45,16 @@
     --color-sidebar-ring: var(--sidebar-ring);
     --color-success: var(--success);
     --color-success-foreground: var(--success-foreground);
+    --color-healthy: var(--healthy);
+    --color-healthy-foreground: var(--healthy-foreground);
     --color-warning: var(--warning);
     --color-warning-foreground: var(--warning-foreground);
+    --color-downgrade: var(--downgrade);
+    --color-downgrade-foreground: var(--downgrade-foreground);
     --color-info: var(--info);
     --color-info-foreground: var(--info-foreground);
+    --color-unhealthy: var(--unhealthy);
+    --color-unhealthy-foreground: var(--unhealthy-foreground);
 }
 
 :root {
@@ -86,10 +92,16 @@
     --sidebar-ring: oklch(0.55 0.18 265);
     --success: oklch(0.59 0.18 145);
     --success-foreground: oklch(0.985 0 0);
+    --healthy: oklch(0.59 0.18 145);
+    --healthy-foreground: oklch(0.985 0 0);
     --warning: oklch(0.75 0.18 75);
     --warning-foreground: oklch(0.25 0.05 75);
+    --downgrade: oklch(0.75 0.18 75);
+    --downgrade-foreground: oklch(0.25 0.05 75);
     --info: oklch(0.6 0.15 240);
     --info-foreground: oklch(0.985 0 0);
+    --unhealthy: oklch(0.577 0.245 27.325);
+    --unhealthy-foreground: oklch(0.985 0 0);
 }
 
 .dark {
@@ -126,10 +138,16 @@
     --sidebar-ring: oklch(0.55 0.18 265);
     --success: oklch(0.65 0.2 145);
     --success-foreground: oklch(0.985 0 0);
+    --healthy: oklch(0.65 0.2 145);
+    --healthy-foreground: oklch(0.985 0 0);
     --warning: oklch(0.78 0.16 75);
     --warning-foreground: oklch(0.2 0.04 75);
+    --downgrade: oklch(0.78 0.16 75);
+    --downgrade-foreground: oklch(0.2 0.04 75);
     --info: oklch(0.65 0.17 240);
     --info-foreground: oklch(0.985 0 0);
+    --unhealthy: oklch(0.704 0.191 22.216);
+    --unhealthy-foreground: oklch(0.985 0 0);
 
     --density-page-gap: 1.5rem;
     --density-page-pad-y: 1.5rem;

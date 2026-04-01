@@ -275,7 +275,7 @@ describe("ConnectionCard cooldown state", () => {
       />,
     );
 
-    expect(getStatusDot(container)).toHaveAttribute("data-intent", "danger");
+    expect(getStatusDot(container)).toHaveAttribute("data-intent", "unhealthy");
     expect(getStatusDot(container)).toHaveAttribute("data-animated", "true");
     expect(screen.queryByText("Unhealthy")).not.toBeInTheDocument();
     expect(screen.getByText("Probe Eligible")).toBeInTheDocument();
@@ -434,7 +434,7 @@ describe("ConnectionCard cooldown state", () => {
       />,
     );
 
-    expect(getStatusDot(container)).toHaveAttribute("data-intent", "success");
+    expect(getStatusDot(container)).toHaveAttribute("data-intent", "healthy");
     expect(getStatusDot(container)).toHaveAttribute("data-animated", "true");
     expect(screen.queryByText("Healthy")).not.toBeInTheDocument();
     expect(screen.getByText("Pricing Off")).toBeInTheDocument();

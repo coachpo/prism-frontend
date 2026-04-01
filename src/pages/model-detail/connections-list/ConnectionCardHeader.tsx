@@ -19,9 +19,9 @@ export function ConnectionCardHeader({
   const healthIntent: StatusDotIntent = isChecking
     ? "primary"
     : connection.health_status === "healthy"
-      ? "success"
-      : connection.health_status === "unhealthy"
-        ? "danger"
+      ? "healthy"
+    : connection.health_status === "unhealthy"
+        ? "unhealthy"
         : "muted";
   const healthAnimated = isChecking || connection.health_status !== "unknown";
 

@@ -23,17 +23,17 @@ export function WebSocketStatusIndicator({
     { intent: StatusDotIntent; animated: boolean; label: string }
   > = {
     connected: {
-      intent: "success",
+      intent: "healthy",
       animated: true,
       label: copy.connected,
     },
     connecting: {
-      intent: "warning",
+      intent: "downgrade",
       animated: true,
       label: copy.connecting,
     },
     reconnecting: {
-      intent: "warning",
+      intent: "downgrade",
       animated: true,
       label: copy.reconnecting,
     },

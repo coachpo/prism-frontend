@@ -7,6 +7,9 @@ const statusDotVariants = cva("inline-flex size-2.5 shrink-0 rounded-full", {
   variants: {
     intent: {
       primary: "bg-primary/70",
+      healthy: "bg-healthy",
+      downgrade: "bg-downgrade",
+      unhealthy: "bg-unhealthy",
       success: "bg-success",
       warning: "bg-warning",
       danger: "bg-destructive",
