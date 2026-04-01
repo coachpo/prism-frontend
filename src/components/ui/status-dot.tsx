@@ -7,7 +7,7 @@ const statusDotVariants = cva("inline-flex size-2.5 shrink-0 rounded-full", {
   variants: {
     intent: {
       primary: "bg-primary/70",
-      success: "bg-emerald-500",
+      success: "bg-success",
       warning: "bg-warning",
       danger: "bg-destructive",
       info: "bg-info",
