@@ -60,7 +60,6 @@ export function ModelDetailPage() {
     handleConnectionSubmit,
     handleDeleteConnection,
     handleHealthCheck,
-    handleHealthCheckAll,
     handleDialogTestConnection,
     handleToggleActive,
     handleEditModelSubmit,
@@ -116,7 +115,6 @@ export function ModelDetailPage() {
         openConnectionDialog={openConnectionDialog}
         handleDeleteConnection={handleDeleteConnection}
         handleHealthCheck={handleHealthCheck}
-        handleHealthCheckAll={handleHealthCheckAll}
         handleToggleActive={handleToggleActive}
         handleReorderConnections={handleReorderConnections}
         currentStateByConnectionId={currentStateByConnectionId}
