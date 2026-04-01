@@ -26,7 +26,7 @@ api/
 - Keep grouped endpoint surfaces in their existing modules instead of expanding `api.ts` into a second implementation layer.
 - Keep auth/settings nesting in `authSettings.ts` and `api.settings` aligned with the backend route structure.
 - Keep observability-side query building centralized through `buildQuery()` and typed param objects.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

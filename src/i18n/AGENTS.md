@@ -30,7 +30,7 @@ i18n/
 - Add new user-facing strings to the catalogs when they belong to reusable shell or route surfaces.
 - Route shared formatting through `format.ts` or `useLocale()` instead of ad hoc `Intl.*` usage.
 - Use `staticMessages.ts` when a non-hook caller needs locale-aware fallback labels or known-label comparisons.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

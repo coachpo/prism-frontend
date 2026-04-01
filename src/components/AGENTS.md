@@ -37,7 +37,7 @@ components/
 - Keep locale and theme controls in the shared preference widgets instead of duplicating them in auth pages or shell headers.
 - Keep shared websocket-health presentation in `WebSocketStatusIndicator.tsx` rather than rebuilding connection badges in pages.
 - Reuse `ui/` primitives before adding one-off markup.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 - Do not move nav-link, profile-dialog, or version-label logic out of `layout/app-layout/`.

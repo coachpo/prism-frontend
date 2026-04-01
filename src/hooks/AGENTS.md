@@ -24,7 +24,7 @@ hooks/
 - Use `usePolling()` for observability pages that do not have full realtime coverage.
 - Keep hook side effects small, and push complex shaping into `src/lib/` or local page helpers.
 - Route shared date and time display through `useTimezone.ts` or `src/i18n/format.ts`.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

@@ -55,7 +55,7 @@ model-detail/
 - Keep loadbalance event badge/detail rendering in the shared `src/components/loadbalance/` components; `LoadbalanceEventsTab.tsx` should remain a thin page shell.
 - Keep proxy-target option building and update payload shaping in `useModelDetailDataSupport.ts` / `useModelDetailModelForm.ts`; proxy-target card/dialog rendering should stay presentation-focused.
 - Treat `connections-list/` as a local cluster that stays documented here. It supports the parent route and should not get its own AGENTS file.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

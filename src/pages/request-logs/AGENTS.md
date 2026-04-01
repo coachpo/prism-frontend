@@ -44,7 +44,7 @@ request-logs/
 - Treat `api_family` as the server-backed family filter and keep vendor identity out of request-log filtering.
 - Keep user-facing copy on the shared locale boundary through `useLocale()`, while timestamp formatting continues to flow through `useTimezone()`.
 - Keep `detail/` parent-covered here. Those helpers support the request-log sheet only and should not get a separate AGENTS file.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 - Do not stale-claim that request logs are missing from the route map.

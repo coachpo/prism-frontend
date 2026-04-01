@@ -24,7 +24,7 @@ auth/
 - Keep `mutations.ts` thin and callback-driven so `AuthContext.tsx` can own state updates while the helpers stay reusable.
 - Keep passive refresh mutation-aware. `refresh.ts` should return early while a login/logout mutation is in flight.
 - Keep the proactive refresh interval and visibility-refresh rules centralized in `refresh.ts`.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

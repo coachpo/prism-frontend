@@ -30,7 +30,7 @@ loadbalance-strategies/
 - Keep circuit-breaker status-code editing inside `loadbalanceStrategyFormState.ts`; do not reintroduce the removed legacy recovery-only contract.
 - Keep ban-escalation defaults, validation, and payload normalization in `loadbalanceStrategyFormState.ts`; the dialog should only render and mutate those fields.
 - Keep compact adaptive-routing summary wording in `LoadbalanceStrategiesTable.tsx`; do not duplicate circuit-breaker summary formatting elsewhere.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 

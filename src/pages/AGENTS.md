@@ -37,7 +37,7 @@
 - Keep backend access on the shared frontend API boundary rather than inventing page-local fetch layers.
 - Let route files own bookmarkable query or hash state and the first handoff into local hooks.
 - Parent-cover local route clusters that do not need their own AGENTS file, including `__tests__/` and the dense local helper folders already documented by the page leaves. The shared monitoring cluster is now owned by `monitoring/AGENTS.md`.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 - Do not treat auth pages as protected-shell pages.

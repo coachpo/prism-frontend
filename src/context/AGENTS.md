@@ -37,7 +37,7 @@ context/
 - Treat `ProfileContext.revision` as the shared invalidation signal when selected scope changes.
 - Keep bootstrap and helper logic in `auth/` and `profile/`, with the provider files focused on composition and exposed state.
 - Let the child AGENTS files own helper-layer detail so this parent stays provider-focused.
-- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
+- When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
 
