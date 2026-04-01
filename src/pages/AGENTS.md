@@ -5,18 +5,18 @@
 
 ## ROUTE SURFACE
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
-- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/models/:id/proxy`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/monitoring`, `/monitoring/vendors/:vendorId`, `/monitoring/models/:modelConfigId`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
+- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/models/:id/proxy`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/monitoring`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
 - Root redirect: `/` -> `/dashboard`
 
 ## DOMAINS
 - Auth entry and recovery: `LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`
-- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestLogsPage.tsx`, `MonitoringPage.tsx`, `MonitoringVendorPage.tsx`, `MonitoringModelPage.tsx`, and the shared `monitoring/AGENTS.md` helper cluster
+- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestLogsPage.tsx`, `MonitoringPage.tsx`, plus the unmounted drill-down page components `MonitoringVendorPage.tsx` and `MonitoringModelPage.tsx` with the shared `monitoring/AGENTS.md` helper cluster
 - Configuration and routing: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `ProxyModelDetailPage.tsx`, `EndpointsPage.tsx`, `LoadbalanceStrategiesPage.tsx`, `PricingTemplatesPage.tsx`
 - Access control and runtime credentials: `ProxyApiKeysPage.tsx`
 - Settings shell: `SettingsPage.tsx` with `settings/sections/` and `settings/costing/`
 
 ## WHERE TO LOOK
-- Mounted route list, public auth split, monitoring route tree, and protected shell boundary: `../App.tsx`
+- Mounted route list, public auth split, monitoring route mount, and protected shell boundary: `../App.tsx`
 - Dashboard, model detail, monitoring, request logs, settings, and statistics leaf maps: `dashboard/AGENTS.md`, `model-detail/AGENTS.md`, `monitoring/AGENTS.md`, `request-logs/AGENTS.md`, `settings/AGENTS.md`, `statistics/AGENTS.md`
 - Route-surface tests that stay parent-covered: `__tests__/AppRouteSmoke.test.tsx`, `__tests__/LoginPage.test.tsx`
 
@@ -37,6 +37,7 @@
 - Keep backend access on the shared frontend API boundary rather than inventing page-local fetch layers.
 - Let route files own bookmarkable query or hash state and the first handoff into local hooks.
 - Parent-cover local route clusters that do not need their own AGENTS file, including `__tests__/` and the dense local helper folders already documented by the page leaves. The shared monitoring cluster is now owned by `monitoring/AGENTS.md`.
+- Keep monitoring vendor and model drill-down page components in this parent-owned page map even though they are not mounted at the app root.
 - When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS
