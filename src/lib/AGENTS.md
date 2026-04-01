@@ -1,7 +1,7 @@
 # FRONTEND LIB KNOWLEDGE BASE
 
 ## OVERVIEW
-`src/lib/` is the frontend boundary to backend contracts and browser integrations. Keep the shared hotspots here: `api/core.ts`, `websocket.ts`, `referenceData.ts`, `configImportValidation.ts`, `loadbalanceRoutingPolicy.ts`, `appVersion.ts`, `timezone.ts`, `costing.ts`, `clipboard.ts`, and `webauthn.ts`. Stats callers should go through the typed observability clients for the unified usage-snapshot route and the retained shared stats routes.
+`src/lib/` is the frontend boundary to backend contracts and browser integrations. Keep the shared hotspots here: `api/core.ts`, `websocket.ts`, `referenceData.ts`, `configImportValidation.ts`, `loadbalanceRoutingPolicy.ts`, `appVersion.ts`, `timezone.ts`, `costing.ts`, `clipboard.ts`, and `webauthn.ts`. `websocket/AGENTS.md` owns the helper split beneath the singleton client, and stats callers should go through the typed observability clients for the unified usage-snapshot route and the retained shared stats routes.
 
 ## STRUCTURE
 ```
