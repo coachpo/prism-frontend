@@ -4,8 +4,6 @@ import type {
   AuditLogListResponse,
   AuditLogParams,
   BatchDeleteResponse,
-  ConnectionMetricsBatchParams,
-  ConnectionMetricsBatchResponse,
   ConfigExportResponse,
   ConfigImportRequest,
   ConfigImportResponse,
@@ -64,11 +62,6 @@ export const stats = {
   },
   modelMetrics: (params: ModelMetricsBatchParams) =>
     request<ModelMetricsBatchResponse>("/api/stats/models/metrics", {
-      method: "POST",
-      body: JSON.stringify(params),
-    }),
-  connectionMetrics: (params: ConnectionMetricsBatchParams) =>
-    request<ConnectionMetricsBatchResponse>("/api/stats/models/connections/metrics", {
       method: "POST",
       body: JSON.stringify(params),
     }),

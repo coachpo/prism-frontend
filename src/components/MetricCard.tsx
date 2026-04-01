@@ -17,16 +17,21 @@ export function MetricCard({ label, value, detail, icon, trend, className, onCli
     <Card
       data-slot="metric-card"
       className={cn(
-        "transition-colors duration-150",
+        "overflow-hidden transition-colors duration-150",
         onClick && "cursor-pointer hover:border-primary/30",
         className
       )}
       onClick={onClick}
     >
-      <CardContent className="p-[var(--density-metric-pad)]">
-        <div className="flex items-start justify-between gap-3">
+      <CardContent className="overflow-hidden p-[var(--density-metric-pad)]">
+        <div className="flex min-w-0 items-start justify-between gap-3 overflow-hidden">
           <div className="min-w-0 flex-1 space-y-2">
-            <p data-slot="metric-label" className="text-sm font-medium text-muted-foreground">{label}</p>
+            <div
+              data-slot="metric-label"
+              className="flex min-w-0 flex-wrap items-center gap-2 overflow-hidden text-sm font-medium text-muted-foreground [&_[data-slot=badge]]:max-w-full [&_[data-slot=badge]]:truncate"
+            >
+              {label}
+            </div>
             <div className="flex min-w-0 flex-wrap items-baseline gap-2">
               <span
                 data-slot="metric-value"
@@ -37,7 +42,7 @@ export function MetricCard({ label, value, detail, icon, trend, className, onCli
               {trend && (
                 <span
                   className={cn(
-                    "shrink-0 text-xs font-medium",
+                    "max-w-full break-words text-xs font-medium",
                     trend.positive ? "text-success" : "text-destructive"
                   )}
                 >

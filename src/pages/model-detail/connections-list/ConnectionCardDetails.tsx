@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useLocale } from "@/i18n/useLocale";
-import { StatusBadge, ValueBadge } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
 import type { Connection, LoadbalanceCurrentStateItem } from "@/lib/types";
 import { formatLabel } from "@/lib/utils";
 import type { FormatTime } from "./connectionCardTypes";
@@ -20,8 +20,6 @@ export function ConnectionCardDetails({
   const copy = messages.modelDetail;
   const endpoint = connection.endpoint;
   const maskedKey = endpoint?.masked_api_key || "......";
-  const cadenceSeconds = connection.monitoring_probe_interval_seconds ?? 300;
-  const probeStatus = loadbalanceCurrentState?.last_probe_status ?? "unknown";
   const endpointPing = loadbalanceCurrentState?.endpoint_ping_ewma_ms;
   const conversationDelay = loadbalanceCurrentState?.conversation_delay_ewma_ms;
   const liveP95 = loadbalanceCurrentState?.live_p95_latency_ms;
@@ -57,8 +55,6 @@ export function ConnectionCardDetails({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <ValueBadge label={copy.monitoringCadence(cadenceSeconds)} intent="accent" />
-        <ValueBadge label={copy.latestProbeStatus(probeStatus)} intent={getMonitoringIntent(probeStatus)} />
         {loadbalanceCurrentState?.circuit_state ? (
           <StatusBadge
             label={formatLabel(loadbalanceCurrentState.circuit_state)}
@@ -72,11 +68,6 @@ export function ConnectionCardDetails({
           <MonitoringEvidence label={copy.endpointMonitoringValue(formatMetric(endpointPing, formatNumber))} />
           <MonitoringEvidence label={copy.conversationMonitoringValue(formatMetric(conversationDelay, formatNumber))} />
           <MonitoringEvidence label={copy.p95MonitoringValue(formatMetric(liveP95, formatNumber))} />
-          {loadbalanceCurrentState.last_probe_at ? (
-            <MonitoringEvidence
-              label={copy.latestProbeAt(formatTime(loadbalanceCurrentState.last_probe_at))}
-            />
-          ) : null}
           {loadbalanceCurrentState.last_live_success_at ? (
             <MonitoringEvidence
               label={copy.lastLiveSuccessAt(formatTime(loadbalanceCurrentState.last_live_success_at))}

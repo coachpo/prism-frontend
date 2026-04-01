@@ -233,7 +233,9 @@ describe("AppLayout shell bootstrap contract", () => {
     );
 
     expect(screen.getByTestId("shell-sidebar")).toBeInTheDocument();
-    expect(screen.getByTestId("shell-sidebar-trigger")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Collapse sidebar" })).toHaveAttribute("title", "Collapse sidebar");
+    expect(screen.queryByTestId("shell-sidebar-rail")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("shell-sidebar-trigger")).not.toBeInTheDocument();
     expect(screen.getByTestId("shell-breadcrumb")).toBeInTheDocument();
     expect(screen.getByTestId("shell-breadcrumb-current")).toHaveTextContent("#42");
     expect(screen.getByTestId("shell-profile-switcher")).toBeInTheDocument();

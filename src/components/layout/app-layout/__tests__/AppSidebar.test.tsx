@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { Fragment } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -62,11 +62,26 @@ afterEach(() => {
 });
 
 describe("AppSidebar", () => {
-  it("renders the provider sidebar shell selectors without a duplicate collapse toggle", async () => {
+  it("renders the provider sidebar shell selectors with the brand toggle button instead of the desktop rail", async () => {
     await renderSidebar();
 
     expect(screen.getByTestId("shell-sidebar")).toBeInTheDocument();
-    expect(screen.queryByTestId("shell-sidebar-collapse-toggle")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Collapse sidebar" })).toHaveAttribute(
+      "title",
+      "Collapse sidebar"
+    );
+    expect(screen.queryByTestId("shell-sidebar-rail")).not.toBeInTheDocument();
+  });
+
+  it("keeps the brand toggle accessible after collapsing the desktop sidebar", async () => {
+    await renderSidebar();
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse sidebar" }));
+
+    expect(screen.getByRole("button", { name: "Expand sidebar" })).toHaveAttribute(
+      "title",
+      "Expand sidebar"
+    );
   });
 
   it("renders the version label with the app version first and git metadata second", async () => {

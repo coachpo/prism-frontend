@@ -317,6 +317,47 @@ describe("useModelsPageData", () => {
     expect(createdModel?.vendor?.name).not.toBe("OpenAI");
   });
 
+  it("defaults create payload display name to the model id when the field is left blank", async () => {
+    api.models.create.mockResolvedValue(
+      buildModelConfig({
+        id: 4,
+        model_id: "gpt-5.5-mini",
+        display_name: "gpt-5.5-mini",
+      }),
+    );
+
+    const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      result.current.handleOpenDialog();
+      result.current.setFormData((current) => ({
+        ...current,
+        vendor_id: 10,
+        api_family: "openai",
+        model_id: "gpt-5.5-mini",
+        display_name: "",
+        model_type: "native",
+        loadbalance_strategy_id: 100,
+      }));
+    });
+
+    const submitEvent = createSubmitEvent();
+    await act(async () => {
+      await result.current.handleSubmit(submitEvent);
+    });
+
+    expect(api.models.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model_id: "gpt-5.5-mini",
+        display_name: "gpt-5.5-mini",
+      }),
+    );
+  });
+
   it("still requires a loadbalance strategy for native models", async () => {
     const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
 

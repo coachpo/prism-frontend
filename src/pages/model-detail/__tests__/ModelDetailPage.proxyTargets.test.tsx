@@ -8,6 +8,7 @@ import { useModelDetailData } from "../useModelDetailData";
 import { useModelDetailPageShell } from "../useModelDetailPageShell";
 
 const originalLocalStorage = window.localStorage;
+const mockOverviewCards = vi.fn();
 
 function createLocalStorageMock(): Storage {
   let storage: Record<string, string> = {};
@@ -39,7 +40,10 @@ vi.mock("../useModelDetailPageShell", () => ({
 }));
 
 vi.mock("../OverviewCards", () => ({
-  OverviewCards: () => <div>overview-cards</div>,
+  OverviewCards: (props: unknown) => {
+    mockOverviewCards(props);
+    return <div>overview-cards</div>;
+  },
 }));
 
 vi.mock("../ModelDetailHeader", () => ({
@@ -70,22 +74,26 @@ vi.mock("../ProxyTargetsCard", () => ({
 
 const useModelDetailDataMock = vi.mocked(useModelDetailData);
 const useModelDetailPageShellMock = vi.mocked(useModelDetailPageShell);
+type ModelDetailDataResult = ReturnType<typeof useModelDetailData>;
 
-function buildHookValue(modelType: "native" | "proxy") {
-  return {
+function buildHookValue(modelType: "native" | "proxy"): ModelDetailDataResult {
+  const vendor = {
+    id: 7,
+    key: "anthropic",
+    name: "Anthropic",
+    description: null,
+    icon_key: null,
+    audit_enabled: false,
+    audit_capture_bodies: false,
+    created_at: "2026-03-20T10:00:00Z",
+    updated_at: "2026-03-20T10:00:00Z",
+  };
+
+  const data: ModelDetailDataResult = {
     model: {
       id: 9,
       vendor_id: 7,
-      vendor: {
-        id: 7,
-        key: "anthropic",
-        name: "Anthropic",
-        description: null,
-        audit_enabled: false,
-        audit_capture_bodies: false,
-        created_at: "2026-03-20T10:00:00Z",
-        updated_at: "2026-03-20T10:00:00Z",
-      },
+      vendor,
       api_family: "anthropic",
       model_id: "claude-proxy",
       display_name: "Claude Proxy",
@@ -102,6 +110,7 @@ function buildHookValue(modelType: "native" | "proxy") {
     },
     loading: false,
     loadbalanceStrategies: [],
+    vendors: [vendor],
     isEditModelDialogOpen: false,
     setIsEditModelDialogOpen: vi.fn(),
     editLoadbalanceStrategyId: "",
@@ -114,28 +123,23 @@ function buildHookValue(modelType: "native" | "proxy") {
     spendingLoading: false,
     spendingCurrencySymbol: "$",
     spendingCurrencyCode: "USD",
-    kpiSummary24h: null,
-    kpiSpend24hMicros: null,
-    metrics24hLoading: false,
-    connectionMetricsEnabled: false,
-    connectionMetricsLoading: false,
     connections: [],
     isConnectionDialogOpen: false,
     setIsConnectionDialogOpen: vi.fn(),
     editingConnection: null,
     connectionSearch: "",
     setConnectionSearch: vi.fn(),
-    setConnectionMetricsEnabled: vi.fn(),
     healthCheckingIds: new Set<number>(),
     dialogTestingConnection: false,
     dialogTestResult: null,
-    connectionMetrics24h: new Map(),
     currentStateByConnectionId: new Map(),
+    monitoringByConnectionId: new Map(),
+    monitoringLoading: false,
     resettingConnectionIds: new Set<number>(),
     focusedConnectionId: null,
     connectionCardRefs: new Map(),
     globalEndpoints: [],
-    createMode: "existing",
+    createMode: "select",
     setCreateMode: vi.fn(),
     selectedEndpointId: "",
     setSelectedEndpointId: vi.fn(),
@@ -146,6 +150,8 @@ function buildHookValue(modelType: "native" | "proxy") {
       is_active: true,
       custom_headers: null,
       pricing_template_id: null,
+      monitoring_probe_interval_seconds: 300,
+      openai_probe_endpoint_variant: "responses",
       qps_limit: null,
       max_in_flight_non_stream: null,
       max_in_flight_stream: null,
@@ -153,19 +159,13 @@ function buildHookValue(modelType: "native" | "proxy") {
     setConnectionForm: vi.fn(),
     headerRows: [],
     setHeaderRows: vi.fn(),
-    modelKpis: {
-      successRate: null,
-      p95LatencyMs: null,
-      requestCount24h: 0,
-      spend24hMicros: null,
-    },
     proxyTargetSummary: {
       targetCount: modelType === "proxy" ? 1 : 0,
       firstTargetId: modelType === "proxy" ? "claude-sonnet-4-5-20250929" : null,
       firstTargetLabel: modelType === "proxy" ? "Claude Sonnet 4.5 (20250929)" : null,
       routePolicyLabel: "Ordered priority routing",
-    },
-    endpointSourceDefaultName: "",
+    } as ModelDetailDataResult["proxyTargetSummary"],
+    endpointSourceDefaultName: null,
     openConnectionDialog: vi.fn(),
     handleConnectionSubmit: vi.fn(),
     handleDeleteConnection: vi.fn(),
@@ -178,7 +178,9 @@ function buildHookValue(modelType: "native" | "proxy") {
     reorderInFlight: false,
     handleReorderConnections: vi.fn(),
     handleResetCooldown: vi.fn(),
-  } as unknown as ReturnType<typeof useModelDetailData>;
+  };
+
+  return data;
 }
 
 function renderPage() {
@@ -210,6 +212,7 @@ describe("ModelDetailPage proxy target wiring", () => {
   beforeEach(() => {
     const localStorageMock = createLocalStorageMock();
 
+    mockOverviewCards.mockReset();
     vi.stubGlobal("localStorage", localStorageMock);
     Object.defineProperty(window, "localStorage", {
       configurable: true,
@@ -236,6 +239,7 @@ describe("ModelDetailPage proxy target wiring", () => {
 
     renderPage();
 
+    expect(useModelDetailDataMock).toHaveBeenCalledWith("9");
     expect(screen.getByText("proxy-detail-route")).toBeInTheDocument();
   });
 
@@ -250,6 +254,11 @@ describe("ModelDetailPage proxy target wiring", () => {
 
     renderProxyPage();
 
+    expect(useModelDetailDataMock).toHaveBeenCalledWith("9");
+    const overviewProps = mockOverviewCards.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(overviewProps).toBeDefined();
+    expect(overviewProps).not.toHaveProperty("metrics24hLoading");
+    expect(overviewProps).not.toHaveProperty("modelKpis");
     expect(screen.getByText("model-detail-header:claude-proxy")).toBeInTheDocument();
     expect(screen.getByText("overview-cards")).toBeInTheDocument();
     expect(screen.getByText("proxy-targets-card:claude-sonnet-4-5-20250929")).toBeInTheDocument();

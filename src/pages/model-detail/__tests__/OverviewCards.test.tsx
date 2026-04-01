@@ -91,13 +91,6 @@ describe("OverviewCards", () => {
           spendingLoading={false}
           spendingCurrencySymbol="$"
           spendingCurrencyCode="USD"
-          metrics24hLoading={false}
-          modelKpis={{
-            successRate: null,
-            p95LatencyMs: null,
-            requestCount24h: 0,
-            spend24hMicros: null,
-          }}
         />
       </LocaleProvider>,
     );
@@ -122,13 +115,6 @@ describe("OverviewCards", () => {
           spendingLoading={false}
           spendingCurrencySymbol="$"
           spendingCurrencyCode="USD"
-          metrics24hLoading={false}
-          modelKpis={{
-            successRate: null,
-            p95LatencyMs: null,
-            requestCount24h: 0,
-            spend24hMicros: null,
-          }}
           onViewRequestLogs={vi.fn()}
         />
       </LocaleProvider>,
@@ -136,12 +122,12 @@ describe("OverviewCards", () => {
 
     expect(screen.getByText("配置")).toBeInTheDocument();
     expect(screen.getByText("成本概览")).toBeInTheDocument();
-    expect(screen.getByText("模型 KPI（24 小时）")).toBeInTheDocument();
+    expect(screen.queryByText("模型 KPI（24 小时）")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看请求日志" })).toBeInTheDocument();
     expect(screen.getByText("自适应路由")).toBeInTheDocument();
   });
 
-  it("renders the archived 24-hour KPI snapshot and request-log action", () => {
+  it("keeps the request-log action after retiring the archived 24-hour KPI card", () => {
     const handleViewRequestLogs = vi.fn();
 
     const { container } = render(
@@ -152,25 +138,14 @@ describe("OverviewCards", () => {
           spendingLoading={false}
           spendingCurrencySymbol="$"
           spendingCurrencyCode="USD"
-          metrics24hLoading={false}
-          modelKpis={{
-            successRate: 33.3,
-            p95LatencyMs: 1441,
-            requestCount24h: 3,
-            spend24hMicros: 0,
-          }}
           onViewRequestLogs={handleViewRequestLogs}
         />
       </LocaleProvider>,
     );
 
     const metricCards = container.querySelectorAll('[data-slot="metric-card"]');
-    expect(metricCards).toHaveLength(4);
-
-    expect(screen.getByText("33.3%")).toBeInTheDocument();
-    expect(screen.getByText("1.44s")).toBeInTheDocument();
-    expect(screen.getByText(/^3$/)).toBeInTheDocument();
-    expect(screen.getByText(/^\$0(?:\.0+)?(?:\s[A-Z]{3})?$/)).toBeInTheDocument();
+    expect(metricCards).toHaveLength(0);
+    expect(screen.queryByText("Model KPIs (24h)")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "View Request Logs" }));
 

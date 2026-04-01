@@ -5,6 +5,8 @@ import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import type {
   Connection,
   LoadbalanceCurrentStateItem,
+  MonitoringConnectionHistoryPoint,
+  MonitoringModelConnection,
   ModelConfig,
   Vendor,
 } from "@/lib/types";
@@ -119,6 +121,62 @@ function buildCurrentState(
   } as LoadbalanceCurrentStateItem;
 }
 
+function buildMonitoringHistoryPoint(
+  overrides: Partial<MonitoringConnectionHistoryPoint> = {}
+): MonitoringConnectionHistoryPoint {
+  return {
+    checked_at: "2026-03-23T10:00:00Z",
+    endpoint_ping_status: "healthy",
+    endpoint_ping_ms: 82,
+    conversation_status: "healthy",
+    conversation_delay_ms: 310,
+    failure_kind: null,
+    ...overrides,
+  };
+}
+
+function buildMonitoringConnection(
+  overrides: Partial<MonitoringModelConnection> = {}
+): MonitoringModelConnection {
+  return {
+    connection_id: 11,
+    connection_name: "Primary",
+    endpoint_id: 7,
+    endpoint_name: "Primary endpoint",
+    monitoring_probe_interval_seconds: 45,
+    last_probe_status: "degraded",
+    last_probe_at: "2026-03-23T10:02:00Z",
+    circuit_state: "half_open",
+    live_p95_latency_ms: 420,
+    last_live_failure_kind: "timeout",
+    last_live_failure_at: "2026-03-23T10:01:30Z",
+    last_live_success_at: "2026-03-23T09:58:00Z",
+    endpoint_ping_status: "healthy",
+    endpoint_ping_ms: 82,
+    conversation_status: "degraded",
+    conversation_delay_ms: 310,
+    fused_status: "degraded",
+    recent_history: [
+      buildMonitoringHistoryPoint(),
+      buildMonitoringHistoryPoint({
+        checked_at: "2026-03-23T10:01:00Z",
+        endpoint_ping_status: "degraded",
+        conversation_status: "degraded",
+        conversation_delay_ms: 360,
+      }),
+      buildMonitoringHistoryPoint({
+        checked_at: "2026-03-23T10:02:00Z",
+        endpoint_ping_status: "failed",
+        endpoint_ping_ms: null,
+        conversation_status: "failed",
+        conversation_delay_ms: null,
+        failure_kind: "timeout",
+      }),
+    ],
+    ...overrides,
+  };
+}
+
 function renderWithLocale(ui: React.ReactElement) {
   return render(<LocaleProvider>{ui}</LocaleProvider>);
 }
@@ -138,7 +196,8 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        metrics24h={undefined}
+        monitoringConnection={undefined}
+        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState(state)}
         isChecking={false}
         isResettingCooldown={false}
@@ -157,12 +216,44 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByRole("button", { name: "Reset Recovery State" })).toBeEnabled();
   });
 
+  it("hides the cooldown panel when counting has zero tracked failures", () => {
+    renderWithLocale(
+      <ConnectionCard
+        connection={buildConnection()}
+        model={buildModel()}
+        monitoringConnection={undefined}
+        monitoringLoading={false}
+        loadbalanceCurrentState={buildCurrentState("counting", {
+          consecutive_failures: 0,
+          last_failure_kind: null,
+        })}
+        isChecking={false}
+        isResettingCooldown={false}
+        isFocused={false}
+        formatTime={(value) => `formatted:${value}`}
+        reorderDisabled={false}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onHealthCheck={vi.fn()}
+        onResetCooldown={vi.fn()}
+        onToggleActive={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("Recovery Counting")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset Recovery State" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Tracking 0 consecutive failures after an unknown failure/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders the archived probe-eligible timeout recovery copy for an unhealthy connection", () => {
     renderWithLocale(
       <ConnectionCard
         connection={{ ...buildConnection(), health_status: "unhealthy" }}
         model={buildModel()}
-        metrics24h={undefined}
+        monitoringConnection={undefined}
+        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("probe_eligible", {
           consecutive_failures: 1,
           last_cooldown_seconds: 61,
@@ -196,7 +287,8 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        metrics24h={undefined}
+        monitoringConnection={undefined}
+        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("banned", {
           ban_mode: "temporary" as LoadbalanceCurrentStateItem["ban_mode"],
           banned_until_at: "2026-03-23T10:10:00Z",
@@ -225,7 +317,8 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        metrics24h={undefined}
+        monitoringConnection={undefined}
+        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("banned", {
           ban_mode: "manual" as LoadbalanceCurrentStateItem["ban_mode"],
           banned_until_at: null,
@@ -256,7 +349,8 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        metrics24h={undefined}
+        monitoringConnection={undefined}
+        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("blocked")}
         isChecking={false}
         isResettingCooldown={false}
@@ -281,7 +375,8 @@ describe("ConnectionCard cooldown state", () => {
         <ConnectionCard
           connection={buildConnection()}
           model={buildModel()}
-          metrics24h={undefined}
+          monitoringConnection={undefined}
+          monitoringLoading={false}
           loadbalanceCurrentState={buildCurrentState("blocked")}
           isChecking={false}
           isResettingCooldown
@@ -306,7 +401,8 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        metrics24h={undefined}
+        monitoringConnection={undefined}
+        monitoringLoading={false}
         loadbalanceCurrentState={undefined}
         isChecking={false}
         isResettingCooldown={false}
@@ -343,7 +439,8 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        metrics24h={undefined}
+        monitoringConnection={buildMonitoringConnection()}
+        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("blocked", {
           last_probe_status: "degraded",
           last_probe_at: "2026-03-23T10:02:00Z",
@@ -368,12 +465,13 @@ describe("ConnectionCard cooldown state", () => {
       />,
     );
 
-    expect(screen.getByText("45s cadence")).toBeInTheDocument();
+    expect(screen.queryByText("45s cadence")).not.toBeInTheDocument();
     expect(screen.getByText("Endpoint 82 ms")).toBeInTheDocument();
     expect(screen.getByText("Conversation 310 ms")).toBeInTheDocument();
     expect(screen.getByText("P95 420 ms")).toBeInTheDocument();
     expect(screen.getByText("Half Open")).toBeInTheDocument();
-    expect(screen.getByText("Latest probe degraded")).toBeInTheDocument();
+    expect(screen.queryByText("Degraded")).not.toBeInTheDocument();
+    expect(screen.queryByText("Last probe formatted:2026-03-23T10:02:00Z")).not.toBeInTheDocument();
   });
 
   it("applies muted shell styling to inactive cards while keeping actions available", () => {
@@ -381,7 +479,8 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={{ ...buildConnection(), is_active: false }}
         model={buildModel()}
-        metrics24h={undefined}
+        monitoringConnection={undefined}
+        monitoringLoading={false}
         loadbalanceCurrentState={undefined}
         isChecking={false}
         isResettingCooldown={false}
@@ -405,30 +504,66 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByRole("switch")).toBeEnabled();
   });
 
-  it("renders metrics text from the extracted metrics component", () => {
-    const { container } = renderWithLocale(
+  it("renders compact monitoring summary and shared probe history strip without retired 24h copy", () => {
+    vi.useFakeTimers();
+
+    try {
+      vi.setSystemTime(new Date("2026-03-23T10:01:45Z"));
+
+      renderWithLocale(
+        <ConnectionCardMetrics
+          formatTime={(value) => `formatted:${value}`}
+          monitoringConnection={buildMonitoringConnection()}
+          monitoringLoading={false}
+        />,
+      );
+
+      expect(screen.getByText("Next Update in 1 min.")).toBeInTheDocument();
+      expect(screen.queryByText("Healthy")).not.toBeInTheDocument();
+      expect(screen.queryByText("Degraded")).not.toBeInTheDocument();
+      expect(screen.queryByText("Latest Probe Degraded")).not.toBeInTheDocument();
+      expect(screen.queryByText("Last probe formatted:2026-03-23T10:02:00Z")).not.toBeInTheDocument();
+      expect(screen.getByTestId("monitoring-probe-strip")).toBeInTheDocument();
+      expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(60);
+      expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(57);
+      expect(screen.queryByText("Past 60 probes")).not.toBeInTheDocument();
+      expect(screen.queryByText("Success rate (24h)")).not.toBeInTheDocument();
+      expect(screen.queryByText(/5xx rate \(sampled\)/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/P95 latency \(24h\)/i)).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("renders a compact placeholder while monitoring is still loading without a row", () => {
+    renderWithLocale(
       <ConnectionCardMetrics
         formatTime={(value) => `formatted:${value}`}
-        metrics24h={{
-          request_count_24h: 24,
-          success_rate_24h: 98.5,
-          p95_latency_ms: 450,
-          five_xx_rate: 1.2,
-          heuristic_failover_events: 2,
-          last_failover_like_at: "2026-03-23T10:05:00Z",
-        }}
+        monitoringConnection={undefined}
+        monitoringLoading
       />,
     );
 
-    const compactTiles = container.querySelectorAll('[data-slot="compact-metric-tile"]');
-    expect(compactTiles).toHaveLength(2);
-    expect(compactTiles[0]).toHaveTextContent(/P95 latency \(24h\)/i);
-    expect(compactTiles[0]).toHaveTextContent("450ms");
-    expect(compactTiles[1]).toHaveTextContent(/5xx rate \(sampled\)/i);
-    expect(compactTiles[1]).toHaveTextContent("1.2%");
+    expect(screen.getByTestId("connection-monitoring-placeholder")).toBeInTheDocument();
+    expect(screen.queryByText("No probe history is available yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Success rate (24h)")).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByText("Success rate (24h)")).toBeInTheDocument();
-    expect(screen.getByText("98.5%")).toBeInTheDocument();
+  it("renders a 60-cell no-data strip once monitoring finishes without a row", () => {
+    renderWithLocale(
+      <ConnectionCardMetrics
+        formatTime={(value) => `formatted:${value}`}
+        monitoringConnection={undefined}
+        monitoringLoading={false}
+      />,
+    );
+
+    expect(screen.getByTestId("monitoring-probe-strip")).toBeInTheDocument();
+    expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(60);
+    expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(60);
+    expect(screen.queryByText("Past 60 probes")).not.toBeInTheDocument();
+    expect(screen.queryByText("No probe history is available yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Success rate (24h)")).not.toBeInTheDocument();
   });
 
   it("wires action callbacks through the extracted actions component", async () => {
@@ -475,14 +610,8 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={{ ...buildConnection(), is_active: false }}
         model={buildModel()}
-        metrics24h={{
-          request_count_24h: 24,
-          success_rate_24h: 98.5,
-          p95_latency_ms: 450,
-          five_xx_rate: 1.2,
-          heuristic_failover_events: 2,
-          last_failover_like_at: "2026-03-23T10:05:00Z",
-        }}
+        monitoringConnection={buildMonitoringConnection({ recent_history: [] })}
+        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("blocked")}
         isChecking={false}
         isResettingCooldown={false}
@@ -502,6 +631,9 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByText("未激活")).toBeInTheDocument();
     expect(screen.getByText("恢复阻止中")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重置恢复状态" })).toBeInTheDocument();
-    expect(screen.getByText("成功率（24 小时）")).toBeInTheDocument();
+    expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(60);
+    expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(60);
+    expect(screen.queryByText("暂无探测历史。")).not.toBeInTheDocument();
+    expect(screen.queryByText("成功率（24 小时）")).not.toBeInTheDocument();
   });
 });

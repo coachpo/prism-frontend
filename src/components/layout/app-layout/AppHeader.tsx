@@ -57,7 +57,6 @@ type Props = {
   selectedProfileName: string;
   setProfileQuery: (value: string) => void;
   setProfileSwitcherOpen: (open: boolean) => void;
-  setSidebarOpen?: (open: boolean) => void;
   username: string | null;
 };
 
@@ -99,12 +98,11 @@ export function AppHeader({
       <div className="mx-auto flex w-full max-w-screen-xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-2.5">
           <SidebarTrigger
-            data-testid="shell-sidebar-trigger"
             aria-label={messages.shell.openSidebar}
             title={messages.shell.openSidebar}
-            className="-ml-1"
+            className="-ml-1 lg:hidden"
           />
-          <Separator orientation="vertical" className="mr-0.5 hidden h-4 md:block" />
+          <Separator orientation="vertical" className="mr-0.5 hidden h-4 md:block lg:hidden" />
           <Breadcrumb data-testid="shell-breadcrumb" className="min-w-0">
             <BreadcrumbList>
               {breadcrumbs.map((breadcrumb, index) => {

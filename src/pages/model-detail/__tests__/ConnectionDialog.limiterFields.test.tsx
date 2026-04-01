@@ -269,6 +269,10 @@ function renderWithLocale(ui: React.ReactElement) {
   return render(<LocaleProvider>{ui}</LocaleProvider>);
 }
 
+function getHeaderKeyInputs() {
+  return screen.queryAllByLabelText("Header Key");
+}
+
 describe("ConnectionDialog limiter fields", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -339,6 +343,24 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByRole("button", { name: "保存连接" })).toBeInTheDocument();
   });
 
+  it("uses a wider dialog shell with an internal scroll area instead of page-level overflow", async () => {
+    renderWithLocale(<ConnectionDialogHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
+
+    const dialogContent = document.querySelector('[data-slot="dialog-content"]');
+    const scrollArea = document.querySelector('[data-slot="scroll-area"]');
+
+    expect(dialogContent).toHaveClass("max-w-4xl", "overflow-hidden");
+    expect(dialogContent).toHaveClass("h-[min(92vh,60rem)]");
+    expect(dialogContent).not.toHaveClass("overflow-y-auto");
+    expect(scrollArea).toBeInTheDocument();
+    expect(scrollArea).toHaveClass("min-h-0", "flex-1");
+    expect(scrollArea?.querySelector("div.space-y-6")).toHaveClass("pb-28");
+  });
+
   it("shows the OpenAI probe variant selector only for OpenAI models", async () => {
     renderWithLocale(<ConnectionDialogHarness modelApiFamily="anthropic" />);
 
@@ -398,6 +420,52 @@ describe("ConnectionDialog limiter fields", () => {
     expect(document.querySelector('input[type="hidden"][name="openai_probe_endpoint_variant"]')).toHaveValue(
       "responses",
     );
+  });
+
+  it.each([
+    {
+      name: "add mode",
+      harnessProps: {},
+      expectedInitialRows: 0,
+    },
+    {
+      name: "edit mode",
+      harnessProps: {
+        editingConnection: buildConnection({
+          custom_headers: {
+            Authorization: "Bearer token",
+          },
+        }),
+      },
+      expectedInitialRows: 1,
+    },
+  ])("renders each newly added custom-header row in $name", async ({ harnessProps, expectedInitialRows }) => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      renderWithLocale(<ConnectionDialogHarness {...harnessProps} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+      expect(await screen.findByRole("button", { name: "Add Header" })).toBeInTheDocument();
+      expect(getHeaderKeyInputs()).toHaveLength(expectedInitialRows);
+
+      fireEvent.click(screen.getByRole("button", { name: "Add Header" }));
+      await waitFor(() => {
+        expect(getHeaderKeyInputs()).toHaveLength(expectedInitialRows + 1);
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Add Header" }));
+      await waitFor(() => {
+        expect(getHeaderKeyInputs()).toHaveLength(expectedInitialRows + 2);
+      });
+
+      expect(
+        consoleErrorSpy.mock.calls.some((call) => call.join(" ").includes("Encountered two children with the same key")),
+      ).toBe(false);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 
   it("includes limiter fields in the create submit payload when present", async () => {

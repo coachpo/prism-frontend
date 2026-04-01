@@ -23,14 +23,17 @@ import { EmptyState } from "@/components/EmptyState";
 import { useLocale } from "@/i18n/useLocale";
 import { Activity, Loader2, Plus, Search, Shield } from "lucide-react";
 import { useTimezone } from "@/hooks/useTimezone";
-import type { LoadbalanceCurrentStateItem } from "@/lib/types";
+import type { LoadbalanceCurrentStateItem, MonitoringModelConnection } from "@/lib/types";
 import { ConnectionCard } from "./connections-list/ConnectionCard";
 import { SortableConnectionCard } from "./connections-list/SortableConnectionCard";
+import type {
+  ConnectionCardProps,
+  SortableConnectionCardProps,
+} from "./connections-list/connectionCardTypes";
 import {
   filterAndSortConnections,
   normalizeConnectionSearch,
 } from "./connections-list/connectionListUtils";
-import type { ConnectionDerivedMetrics } from "./modelDetailMetricsAndPaths";
 import type { Connection, ModelConfig } from "@/lib/types";
 
 interface ConnectionsListProps {
@@ -38,16 +41,14 @@ interface ConnectionsListProps {
   connections: Connection[];
   connectionSearch: string;
   setConnectionSearch: (search: string) => void;
-  setConnectionMetricsEnabled: (enabled: boolean) => void;
   openConnectionDialog: (connection?: Connection) => void;
   handleDeleteConnection: (id: number) => void;
   handleHealthCheck: (id: number) => void;
   handleHealthCheckAll: () => void;
   handleToggleActive: (connection: Connection) => void;
   handleReorderConnections: (connectionId: number, toIndex: number) => Promise<void>;
-  connectionMetricsEnabled: boolean;
-  connectionMetricsLoading: boolean;
-  connectionMetrics24h: Map<number, ConnectionDerivedMetrics>;
+  monitoringByConnectionId: Map<number, MonitoringModelConnection>;
+  monitoringLoading: boolean;
   currentStateByConnectionId: Map<number, LoadbalanceCurrentStateItem>;
   resettingConnectionIds: Set<number>;
   healthCheckingIds: Set<number>;
@@ -62,16 +63,14 @@ export function ConnectionsList({
   connections,
   connectionSearch,
   setConnectionSearch,
-  setConnectionMetricsEnabled,
   openConnectionDialog,
   handleDeleteConnection,
   handleHealthCheck,
   handleHealthCheckAll,
   handleToggleActive,
   handleReorderConnections,
-  connectionMetricsEnabled,
-  connectionMetricsLoading,
-  connectionMetrics24h,
+  monitoringByConnectionId,
+  monitoringLoading,
   currentStateByConnectionId,
   resettingConnectionIds,
   healthCheckingIds,
@@ -159,22 +158,8 @@ export function ConnectionsList({
             {copy.connections}
             <span className="ml-2 text-xs font-normal text-muted-foreground">({connections.length})</span>
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {copy.connectionsLoadOnDemandDescription}
-          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setConnectionMetricsEnabled(true)}
-            disabled={connectionMetricsEnabled || connectionMetricsLoading}
-          >
-            {connectionMetricsLoading ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : null}
-            {connectionMetricsEnabled ? copy.metricsLoaded : copy.loadMetrics}
-          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -239,37 +224,38 @@ export function ConnectionsList({
           <SortableContext items={connectionIds} strategy={verticalListSortingStrategy}>
             <div className="space-y-3">
               {filteredConnections.map((connection) => {
-                const metrics24h = connectionMetrics24h.get(connection.id);
+                const monitoringConnection = monitoringByConnectionId.get(connection.id);
                 const loadbalanceCurrentState = currentStateByConnectionId.get(connection.id);
                 const isChecking = healthCheckingIds.has(connection.id);
                 const isFocused = focusedConnectionId === connection.id;
                 const isResettingCooldown = resettingConnectionIds.has(connection.id);
+                const sortableCardProps: SortableConnectionCardProps = {
+                  connection,
+                  model,
+                  monitoringConnection,
+                  monitoringLoading,
+                  loadbalanceCurrentState,
+                  isChecking,
+                  isResettingCooldown,
+                  isFocused,
+                  formatTime,
+                  reorderDisabled: !canReorder,
+                  cardRef: (node: HTMLDivElement | null) => {
+                    if (node) {
+                      connectionCardRefs.set(connection.id, node);
+                    } else {
+                      connectionCardRefs.delete(connection.id);
+                    }
+                  },
+                  onEdit: openConnectionDialog,
+                  onDelete: handleDeleteConnection,
+                  onHealthCheck: handleHealthCheck,
+                  onResetCooldown: handleResetCooldown,
+                  onToggleActive: handleToggleActive,
+                };
 
                 return (
-                  <SortableConnectionCard
-                    key={connection.id}
-                    connection={connection}
-                    model={model}
-                    metrics24h={metrics24h}
-                    loadbalanceCurrentState={loadbalanceCurrentState}
-                    isChecking={isChecking}
-                    isResettingCooldown={isResettingCooldown}
-                    isFocused={isFocused}
-                    formatTime={formatTime}
-                    reorderDisabled={!canReorder}
-                    cardRef={(node) => {
-                      if (node) {
-                        connectionCardRefs.set(connection.id, node);
-                      } else {
-                        connectionCardRefs.delete(connection.id);
-                      }
-                    }}
-                    onEdit={openConnectionDialog}
-                    onDelete={handleDeleteConnection}
-                    onHealthCheck={handleHealthCheck}
-                    onResetCooldown={handleResetCooldown}
-                    onToggleActive={handleToggleActive}
-                  />
+                  <SortableConnectionCard key={connection.id} {...sortableCardProps} />
                 );
               })}
             </div>
@@ -279,21 +265,24 @@ export function ConnectionsList({
             {activeDragConnection ? (
               <div className="w-full">
                 <ConnectionCard
-                  connection={activeDragConnection}
-                  model={model}
-                  metrics24h={connectionMetrics24h.get(activeDragConnection.id)}
-                  loadbalanceCurrentState={currentStateByConnectionId.get(activeDragConnection.id)}
-                  isChecking={healthCheckingIds.has(activeDragConnection.id)}
-                  isResettingCooldown={resettingConnectionIds.has(activeDragConnection.id)}
-                  isFocused={false}
-                  formatTime={formatTime}
-                  reorderDisabled
-                  isOverlay
-                  onEdit={openConnectionDialog}
-                  onDelete={handleDeleteConnection}
-                  onHealthCheck={handleHealthCheck}
-                  onResetCooldown={handleResetCooldown}
-                  onToggleActive={handleToggleActive}
+                  {...({
+                    connection: activeDragConnection,
+                    model,
+                    monitoringConnection: monitoringByConnectionId.get(activeDragConnection.id),
+                    monitoringLoading,
+                    loadbalanceCurrentState: currentStateByConnectionId.get(activeDragConnection.id),
+                    isChecking: healthCheckingIds.has(activeDragConnection.id),
+                    isResettingCooldown: resettingConnectionIds.has(activeDragConnection.id),
+                    isFocused: false,
+                    formatTime,
+                    reorderDisabled: true,
+                    isOverlay: true,
+                    onEdit: openConnectionDialog,
+                    onDelete: handleDeleteConnection,
+                    onHealthCheck: handleHealthCheck,
+                    onResetCooldown: handleResetCooldown,
+                    onToggleActive: handleToggleActive,
+                  } satisfies ConnectionCardProps)}
                 />
               </div>
             ) : null}

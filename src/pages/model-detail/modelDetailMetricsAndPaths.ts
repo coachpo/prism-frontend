@@ -7,18 +7,6 @@ type ModelDetailPathTarget = {
   model_type: "native" | "proxy";
 };
 
-export type ConnectionDerivedMetrics = {
-  success_rate_24h: number | null;
-  p95_latency_ms: number | null;
-  five_xx_rate: number | null;
-  request_count_24h: number;
-  heuristic_failover_events: number;
-  last_failover_like_at: string | null;
-};
-
-export const get24hFromTime = (): string =>
-  new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
 export const getModelDetailPath = ({ id, model_type }: ModelDetailPathTarget): string =>
   model_type === "proxy" ? `/models/${id}/proxy` : `/models/${id}`;
 

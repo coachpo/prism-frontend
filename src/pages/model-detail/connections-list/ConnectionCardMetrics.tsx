@@ -1,104 +1,81 @@
-import { Info, Route } from "lucide-react";
+import { MonitoringProbeHistoryStrip } from "@/components/MonitoringProbeHistoryStrip";
+import { ValueBadge } from "@/components/StatusBadge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLocale } from "@/i18n/useLocale";
-import { Progress } from "@/components/ui/progress";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import { formatLatencyForDisplay, type ConnectionDerivedMetrics } from "../modelDetailMetricsAndPaths";
+import type { MonitoringModelConnection } from "@/lib/types";
 import type { FormatTime } from "./connectionCardTypes";
-import { ConnectionCardMetricTile } from "./ConnectionCardMetricTile";
 
 export function ConnectionCardMetrics({
   formatTime,
-  metrics24h,
+  monitoringConnection,
+  monitoringLoading,
 }: {
   formatTime: FormatTime;
-  metrics24h: ConnectionDerivedMetrics | undefined;
+  monitoringConnection: MonitoringModelConnection | undefined;
+  monitoringLoading: boolean;
 }) {
-  const { formatNumber, messages } = useLocale();
+  const { messages, formatRelativeTimeFromNow } = useLocale();
   const copy = messages.modelDetail;
-  const successRate = metrics24h?.success_rate_24h ?? null;
+
+  if (monitoringLoading && !monitoringConnection) {
+    return (
+      <div className="space-y-2 pt-1" data-testid="connection-monitoring-placeholder">
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className="h-5 w-32 rounded-full" />
+          <Skeleton className="h-5 w-44 rounded-full" />
+        </div>
+        <Skeleton className="h-8 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  if (!monitoringConnection) {
+    return (
+      <div className="pt-1">
+        <MonitoringProbeHistoryStrip history={[]} showLegend={false} title={null} />
+      </div>
+    );
+  }
+
+  const nextUpdateLabel = buildNextUpdateLabel(
+    monitoringConnection,
+    formatRelativeTimeFromNow,
+    formatTime,
+    copy,
+  );
 
   return (
     <div className="space-y-2 pt-1">
-      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-        <span>{copy.successRate24h}</span>
-        <span className="text-[10px]">{copy.successRateSample(formatNumber(metrics24h?.request_count_24h ?? 0))}</span>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="h-3.5 w-3.5" />
-            </TooltipTrigger>
-            <TooltipContent className="pointer-events-none">
-              <p className="text-xs">{copy.successRateTooltip}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <ValueBadge label={nextUpdateLabel} intent="default" />
       </div>
 
-      <div className="block rounded-sm">
-        <div className="flex items-center gap-2 pt-0.5">
-          <Progress
-            value={successRate ?? 0}
-            className={cn(
-              "h-1.5",
-              successRate === null
-                ? "[&>[data-slot=progress-indicator]]:bg-muted-foreground/40"
-                : successRate >= 95
-                  ? "[&>[data-slot=progress-indicator]]:bg-emerald-500"
-                  : successRate >= 80
-                    ? "[&>[data-slot=progress-indicator]]:bg-amber-500"
-                    : "[&>[data-slot=progress-indicator]]:bg-red-500",
-            )}
-          />
-          <span
-            className={cn(
-              "shrink-0 text-[10px] font-medium tabular-nums",
-              successRate === null
-                ? "text-muted-foreground"
-                : successRate >= 95
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : successRate >= 80
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-red-600 dark:text-red-400",
-            )}
-          >
-            {successRate === null ? "-" : `${formatNumber(successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 text-[11px]">
-        <ConnectionCardMetricTile
-          label={copy.p95Latency24h}
-          value={formatLatencyForDisplay(metrics24h?.p95_latency_ms ?? null)}
-        />
-        <ConnectionCardMetricTile
-          label={copy.sampled5xxRate}
-          value={
-            metrics24h?.five_xx_rate === null || metrics24h?.five_xx_rate === undefined
-              ? "-"
-                : `${formatNumber(metrics24h.five_xx_rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
-          }
-        />
-      </div>
-
-      <div className="rounded border border-dashed px-2 py-1.5 text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Route className="h-3.5 w-3.5" />
-          {copy.failoverSignals}
-        </div>
-        <div className="mt-1 flex items-center gap-3">
-          <span>{copy.failoverEvents(String(metrics24h?.heuristic_failover_events ?? 0))}</span>
-          <span>
-            {copy.failoverLast(metrics24h?.last_failover_like_at ? formatTime(metrics24h.last_failover_like_at) : "-")}
-          </span>
-        </div>
-      </div>
+      <MonitoringProbeHistoryStrip
+        history={monitoringConnection.recent_history}
+        showLegend={false}
+        title={null}
+      />
     </div>
   );
+}
+
+function buildNextUpdateLabel(
+  monitoringConnection: MonitoringModelConnection,
+  formatRelativeTimeFromNow: ReturnType<typeof useLocale>["formatRelativeTimeFromNow"],
+  formatTime: FormatTime,
+  copy: ReturnType<typeof useLocale>["messages"]["modelDetail"],
+) {
+  if (!monitoringConnection.last_probe_at) {
+    return copy.nextUpdateIn("—");
+  }
+
+  const nextUpdateAt = new Date(monitoringConnection.last_probe_at);
+  nextUpdateAt.setSeconds(
+    nextUpdateAt.getSeconds() + (monitoringConnection.monitoring_probe_interval_seconds ?? 300),
+  );
+
+  const nextUpdateIso = nextUpdateAt.toISOString();
+  const relativeLabel = formatRelativeTimeFromNow(nextUpdateIso);
+
+  return copy.nextUpdateIn(relativeLabel || formatTime(nextUpdateIso));
 }

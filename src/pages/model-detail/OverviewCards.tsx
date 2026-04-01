@@ -1,14 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MetricCard } from "@/components/MetricCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { useLocale } from "@/i18n/useLocale";
 import { formatApiFamily } from "@/lib/utils";
 import { formatMoneyMicros } from "@/lib/costing";
 import { useTimezone } from "@/hooks/useTimezone";
-import { Coins, Gauge, FileText } from "lucide-react";
-import { formatLatencyForDisplay } from "./modelDetailMetricsAndPaths";
+import { Coins, FileText } from "lucide-react";
 import type { ModelConfig, SpendingSummary } from "@/lib/types";
 
 interface OverviewCardsProps {
@@ -17,13 +15,6 @@ interface OverviewCardsProps {
   spendingLoading: boolean;
   spendingCurrencySymbol: string;
   spendingCurrencyCode: string;
-  metrics24hLoading: boolean;
-  modelKpis: {
-    successRate: number | null;
-    p95LatencyMs: number | null;
-    requestCount24h: number;
-    spend24hMicros: number | null;
-  };
   proxyTargetSummary?: {
     targetCount: number;
     firstTargetId: string | null;
@@ -39,8 +30,6 @@ export function OverviewCards({
   spendingLoading,
   spendingCurrencySymbol,
   spendingCurrencyCode,
-  metrics24hLoading,
-  modelKpis,
   proxyTargetSummary,
   onViewRequestLogs,
 }: OverviewCardsProps) {
@@ -184,62 +173,16 @@ export function OverviewCards({
         </Card>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="mb-4 flex items-center gap-2 font-semibold">
-            <Gauge className="h-4 w-4" />
-            {copy.modelKpis24h}
-          </h3>
-          {metrics24hLoading ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <MetricCard
-                label={copy.successRate24h}
-                value={
-                  modelKpis.successRate === null
-                    ? "-"
-                    : `${formatNumber(modelKpis.successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
-                }
-              />
-              <MetricCard
-                label={copy.p95Latency24h}
-                value={formatLatencyForDisplay(modelKpis.p95LatencyMs)}
-              />
-              <MetricCard
-                label={copy.requests24h}
-                value={formatNumber(modelKpis.requestCount24h)}
-              />
-              <MetricCard
-                label={copy.spend24h(spendingCurrencyCode)}
-                value={
-                  modelKpis.spend24hMicros === null
-                    ? "-"
-                    : formatMoneyMicros(
-                        modelKpis.spend24hMicros,
-                        spendingCurrencySymbol,
-                        spendingCurrencyCode,
-                        2,
-                        6,
-                        locale,
-                      )
-                }
-              />
-            </div>
-          )}
-          {onViewRequestLogs && (
+      {onViewRequestLogs && (
+        <Card>
+          <CardContent className="p-4">
             <Button variant="outline" size="sm" className="mt-3 w-full gap-1.5 text-xs" onClick={onViewRequestLogs}>
               <FileText className="h-3.5 w-3.5" />
               {copy.viewRequestLogs}
             </Button>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }

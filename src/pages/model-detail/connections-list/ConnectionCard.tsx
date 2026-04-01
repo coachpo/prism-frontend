@@ -11,7 +11,8 @@ import type { ConnectionCardProps } from "./connectionCardTypes";
 
 export function ConnectionCard({
   connection,
-  metrics24h,
+  monitoringConnection,
+  monitoringLoading,
   loadbalanceCurrentState,
   isChecking,
   isResettingCooldown,
@@ -89,7 +90,8 @@ export function ConnectionCard({
 
             <ConnectionCardMetrics
               formatTime={formatTime}
-              metrics24h={metrics24h}
+              monitoringConnection={monitoringConnection}
+              monitoringLoading={monitoringLoading}
             />
           </div>
         </div>

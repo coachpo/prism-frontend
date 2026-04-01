@@ -10,23 +10,21 @@ import type {
   Vendor,
   ProxyTarget,
   SpendingSummary,
-  StatsSummary,
   PricingTemplate,
 } from "@/lib/types";
 import { buildProxyTargetSummary } from "./useModelDetailDataSupport";
-import type { ConnectionDerivedMetrics } from "./modelDetailMetricsAndPaths";
 import { useConnectionFocus } from "./useConnectionFocus";
 import { useModelDetailBootstrap } from "./useModelDetailBootstrap";
 import { useModelDetailConnectionFlows } from "./useModelDetailConnectionFlows";
 import { useModelDetailConnectionMutations } from "./useModelDetailConnectionMutations";
 import { useModelDetailDialogState } from "./useModelDetailDialogState";
-import { useModelDetailMetrics24h } from "./useModelDetailMetrics24h";
+import { useModelDetailMonitoring } from "./useModelDetailMonitoring";
 import { useModelDetailModelForm } from "./useModelDetailModelForm";
 import { useModelLoadbalanceCurrentState } from "./useModelLoadbalanceCurrentState";
 
 export function useModelDetailData(id: string | undefined) {
   const navigate = useNavigate();
-  const { revision } = useProfileContext();
+  const { revision, selectedProfileId } = useProfileContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const modelConfigId = id ? Number.parseInt(id, 10) : undefined;
 
@@ -39,19 +37,11 @@ export function useModelDetailData(id: string | undefined) {
   const [spendingLoading, setSpendingLoading] = useState(false);
   const [spendingCurrencySymbol, setSpendingCurrencySymbol] = useState("$");
   const [spendingCurrencyCode, setSpendingCurrencyCode] = useState("USD");
-  const [kpiSummary24h, setKpiSummary24h] = useState<StatsSummary | null>(null);
-  const [kpiSpend24hMicros, setKpiSpend24hMicros] = useState<number | null>(null);
-  const [metrics24hLoading, setMetrics24hLoading] = useState(false);
-  const [connectionMetricsEnabled, setConnectionMetricsEnabled] = useState(false);
-  const [connectionMetricsLoading, setConnectionMetricsLoading] = useState(false);
   const [editLoadbalanceStrategyId, setEditLoadbalanceStrategyId] = useState("");
   const [editProxyTargets, setEditProxyTargets] = useState<ProxyTarget[]>([]);
 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [connectionSearch, setConnectionSearch] = useState("");
-  const [connectionMetrics24h, setConnectionMetrics24h] = useState<
-    Map<number, ConnectionDerivedMetrics>
-  >(new Map());
   const [focusedConnectionId, setFocusedConnectionId] = useState<number | null>(null);
   const [connectionCardRefs] = useState<Map<number, HTMLDivElement>>(new Map());
 
@@ -99,9 +89,6 @@ export function useModelDetailData(id: string | undefined) {
     setSpendingLoading,
     setSpendingCurrencySymbol,
     setSpendingCurrencyCode,
-    setConnectionMetricsEnabled,
-    setConnectionMetricsLoading,
-    setConnectionMetrics24h,
   });
 
   const {
@@ -113,6 +100,12 @@ export function useModelDetailData(id: string | undefined) {
     modelConfigId,
     revision,
     enabled: model?.model_type === "native",
+  });
+
+  const { monitoringByConnectionId, monitoringLoading } = useModelDetailMonitoring({
+    modelConfigId,
+    revision,
+    selectedProfileId,
   });
 
   const {
@@ -192,27 +185,6 @@ export function useModelDetailData(id: string | undefined) {
     setFocusedConnectionId,
   });
 
-  useModelDetailMetrics24h({
-    connectionMetricsEnabled,
-    model,
-    connections,
-    revision,
-    setConnectionMetricsLoading,
-    setMetrics24hLoading,
-    setConnectionMetrics24h,
-    setKpiSummary24h,
-    setKpiSpend24hMicros,
-  });
-
-  const modelKpis = useMemo(() => {
-    return {
-      successRate: kpiSummary24h?.success_rate ?? null,
-      p95LatencyMs: kpiSummary24h?.p95_response_time_ms ?? null,
-      requestCount24h: kpiSummary24h?.total_requests ?? 0,
-      spend24hMicros: kpiSpend24hMicros,
-    };
-  }, [kpiSummary24h, kpiSpend24hMicros]);
-
   const vendors = useMemo(() => {
     const seenVendorIds = new Set<number>();
     const nextVendors: Vendor[] = [];
@@ -249,23 +221,18 @@ export function useModelDetailData(id: string | undefined) {
     spendingLoading,
     spendingCurrencySymbol,
     spendingCurrencyCode,
-    kpiSummary24h,
-    kpiSpend24hMicros,
-    metrics24hLoading,
-    connectionMetricsEnabled,
-    connectionMetricsLoading,
     connections,
     isConnectionDialogOpen,
     setIsConnectionDialogOpen,
     editingConnection,
     connectionSearch,
     setConnectionSearch,
-    setConnectionMetricsEnabled,
     healthCheckingIds,
     dialogTestingConnection,
     dialogTestResult,
-    connectionMetrics24h,
     currentStateByConnectionId,
+    monitoringByConnectionId,
+    monitoringLoading,
     resettingConnectionIds,
     focusedConnectionId,
     connectionCardRefs,
@@ -280,7 +247,6 @@ export function useModelDetailData(id: string | undefined) {
     setConnectionForm,
     headerRows,
     setHeaderRows,
-    modelKpis,
     proxyTargetOptions,
     proxyTargetSummary,
     endpointSourceDefaultName,

@@ -220,10 +220,6 @@ describe("useModelDetailBootstrap", () => {
       });
 
     const setSpending = vi.fn();
-    const setConnectionMetricsEnabled = vi.fn();
-    const setConnectionMetricsLoading = vi.fn();
-    const setConnectionMetrics24h = vi.fn();
-
     const { rerender } = renderHook(
       ({ id, revision }) =>
         useModelDetailBootstrap({
@@ -241,9 +237,6 @@ describe("useModelDetailBootstrap", () => {
           setSpendingLoading: vi.fn(),
           setSpendingCurrencySymbol: vi.fn(),
           setSpendingCurrencyCode: vi.fn(),
-          setConnectionMetricsEnabled,
-          setConnectionMetricsLoading,
-          setConnectionMetrics24h,
         }),
       {
         initialProps: {
@@ -313,12 +306,9 @@ describe("useModelDetailBootstrap", () => {
       });
     });
 
-    expect(setConnectionMetricsEnabled).toHaveBeenCalledWith(false);
-    expect(setConnectionMetricsLoading).toHaveBeenCalledWith(false);
-    expect(setConnectionMetrics24h).toHaveBeenCalledWith(expect.any(Map));
   });
 
-  it("resets connection metric opt-in state when switching models", async () => {
+  it("reloads spending when switching models", async () => {
     api.models.get.mockResolvedValue({
       id: 1,
       vendor_id: 10,
@@ -357,29 +347,24 @@ describe("useModelDetailBootstrap", () => {
       report_currency_code: "USD",
     });
 
-    const setConnectionMetricsEnabled = vi.fn();
-
     const { rerender } = renderHook(
       ({ id, revision }) =>
         useModelDetailBootstrap({
           id,
           revision,
           navigate: vi.fn(),
-           setModel: vi.fn(),
-           setConnections: vi.fn(),
-           setGlobalEndpoints: vi.fn(),
-           setLoadbalanceStrategies: vi.fn(),
-           setAllModels: vi.fn(),
-           setPricingTemplates: vi.fn(),
-            setLoading: vi.fn(),
+          setModel: vi.fn(),
+          setConnections: vi.fn(),
+          setGlobalEndpoints: vi.fn(),
+          setLoadbalanceStrategies: vi.fn(),
+          setAllModels: vi.fn(),
+          setPricingTemplates: vi.fn(),
+          setLoading: vi.fn(),
           setSpending: vi.fn(),
           setSpendingLoading: vi.fn(),
           setSpendingCurrencySymbol: vi.fn(),
           setSpendingCurrencyCode: vi.fn(),
-           setConnectionMetricsEnabled,
-           setConnectionMetricsLoading: vi.fn(),
-           setConnectionMetrics24h: vi.fn(),
-         }),
+          }),
       {
         initialProps: { id: "1", revision: 1 },
       }
@@ -391,12 +376,9 @@ describe("useModelDetailBootstrap", () => {
 
     rerender({ id: "2", revision: 2 });
 
-    await waitFor(() => {
-      expect(setConnectionMetricsEnabled).toHaveBeenCalledTimes(2);
-    });
   });
 
-  it("keeps manual connection metric opt-in state during same-model refreshes", async () => {
+  it("reuses spending fetches during same-model refreshes", async () => {
     api.models.get.mockResolvedValue({
       id: 1,
       vendor_id: 10,
@@ -434,10 +416,6 @@ describe("useModelDetailBootstrap", () => {
       report_currency_symbol: "$",
       report_currency_code: "USD",
     });
-
-    const setConnectionMetricsEnabled = vi.fn();
-    const setConnectionMetricsLoading = vi.fn();
-    const setConnectionMetrics24h = vi.fn();
 
     const { result } = renderHook(() =>
       useModelDetailBootstrap({
@@ -455,9 +433,6 @@ describe("useModelDetailBootstrap", () => {
         setSpendingLoading: vi.fn(),
         setSpendingCurrencySymbol: vi.fn(),
         setSpendingCurrencyCode: vi.fn(),
-        setConnectionMetricsEnabled,
-        setConnectionMetricsLoading,
-        setConnectionMetrics24h,
       })
     );
 
@@ -465,17 +440,10 @@ describe("useModelDetailBootstrap", () => {
       expect(api.models.get).toHaveBeenCalledTimes(1);
     });
 
-    setConnectionMetricsEnabled.mockClear();
-    setConnectionMetricsLoading.mockClear();
-    setConnectionMetrics24h.mockClear();
-
     await act(async () => {
       await result.current.fetchModel();
     });
 
     expect(api.models.get).toHaveBeenCalledTimes(2);
-    expect(setConnectionMetricsEnabled).not.toHaveBeenCalled();
-    expect(setConnectionMetricsLoading).not.toHaveBeenCalled();
-    expect(setConnectionMetrics24h).not.toHaveBeenCalled();
   });
 });

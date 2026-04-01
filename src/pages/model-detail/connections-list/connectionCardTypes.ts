@@ -2,9 +2,9 @@ import type { ButtonHTMLAttributes } from "react";
 import type {
   Connection,
   LoadbalanceCurrentStateItem,
+  MonitoringModelConnection,
   ModelConfig,
 } from "@/lib/types";
-import type { ConnectionDerivedMetrics } from "../modelDetailMetricsAndPaths";
 
 export type FormatTime = (
   isoString: string,
@@ -14,7 +14,8 @@ export type FormatTime = (
 export interface ConnectionCardProps {
   connection: Connection;
   model: ModelConfig;
-  metrics24h: ConnectionDerivedMetrics | undefined;
+  monitoringConnection: MonitoringModelConnection | undefined;
+  monitoringLoading: boolean;
   loadbalanceCurrentState: LoadbalanceCurrentStateItem | undefined;
   isChecking: boolean;
   isResettingCooldown: boolean;

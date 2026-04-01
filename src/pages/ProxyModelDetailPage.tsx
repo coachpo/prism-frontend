@@ -26,8 +26,6 @@ export function ProxyModelDetailPage() {
     spendingLoading,
     spendingCurrencySymbol,
     spendingCurrencyCode,
-    metrics24hLoading,
-    modelKpis,
     proxyTargetOptions,
     proxyTargetSummary,
     handleEditModelSubmit,
@@ -67,8 +65,6 @@ export function ProxyModelDetailPage() {
         spendingLoading={spendingLoading}
         spendingCurrencySymbol={spendingCurrencySymbol}
         spendingCurrencyCode={spendingCurrencyCode}
-        metrics24hLoading={metrics24hLoading}
-        modelKpis={modelKpis}
         proxyTargetSummary={proxyTargetSummary}
         onViewRequestLogs={() => navigateToRequestLogs(model.model_id)}
       />

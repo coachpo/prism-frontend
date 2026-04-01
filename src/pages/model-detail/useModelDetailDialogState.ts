@@ -8,8 +8,21 @@ import {
 } from "./useModelDetailDataSupport";
 
 export interface HeaderRow {
+  id: string;
   key: string;
   value: string;
+}
+
+let headerRowIdCounter = 0;
+
+export function createHeaderRow(overrides?: Partial<Pick<HeaderRow, "key" | "value">>): HeaderRow {
+  headerRowIdCounter += 1;
+
+  return {
+    id: `header-row-${headerRowIdCounter}`,
+    key: overrides?.key ?? "",
+    value: overrides?.value ?? "",
+  };
 }
 
 interface UseModelDetailDialogStateInput {
@@ -61,7 +74,7 @@ export function useModelDetailDialogState({
     if (connection) {
       setEditingConnection(connection);
       const headers = connection.custom_headers
-        ? Object.entries(connection.custom_headers).map(([key, value]) => ({ key, value }))
+        ? Object.entries(connection.custom_headers).map(([key, value]) => createHeaderRow({ key, value }))
         : [];
       setHeaderRows(headers);
       setConnectionForm({

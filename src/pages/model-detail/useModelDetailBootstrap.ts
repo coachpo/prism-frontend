@@ -18,7 +18,6 @@ import type {
   PricingTemplate,
   SpendingSummary,
 } from "@/lib/types";
-import type { ConnectionDerivedMetrics } from "./modelDetailMetricsAndPaths";
 
 interface UseModelDetailBootstrapInput {
   id: string | undefined;
@@ -35,9 +34,6 @@ interface UseModelDetailBootstrapInput {
   setSpendingLoading: Dispatch<SetStateAction<boolean>>;
   setSpendingCurrencySymbol: Dispatch<SetStateAction<string>>;
   setSpendingCurrencyCode: Dispatch<SetStateAction<string>>;
-  setConnectionMetricsEnabled: Dispatch<SetStateAction<boolean>>;
-  setConnectionMetricsLoading: Dispatch<SetStateAction<boolean>>;
-  setConnectionMetrics24h: Dispatch<SetStateAction<Map<number, ConnectionDerivedMetrics>>>;
 }
 
 export function useModelDetailBootstrap({
@@ -55,13 +51,9 @@ export function useModelDetailBootstrap({
   setSpendingLoading,
   setSpendingCurrencySymbol,
   setSpendingCurrencyCode,
-  setConnectionMetricsEnabled,
-  setConnectionMetricsLoading,
-  setConnectionMetrics24h,
 }: UseModelDetailBootstrapInput) {
   const modelRequestIdRef = useRef(0);
   const spendingRequestIdRef = useRef(0);
-  const lazyMetricsBootstrapKeyRef = useRef<string | null>(null);
 
   const fetchSpending = useCallback(
     async (modelId: string) => {
@@ -97,15 +89,8 @@ export function useModelDetailBootstrap({
     if (!id) return;
 
     const requestId = ++modelRequestIdRef.current;
-    const bootstrapKey = `${id}:${revision}`;
     spendingRequestIdRef.current += 1;
     setSpending(null);
-    if (lazyMetricsBootstrapKeyRef.current !== bootstrapKey) {
-      lazyMetricsBootstrapKeyRef.current = bootstrapKey;
-      setConnectionMetricsEnabled(false);
-      setConnectionMetricsLoading(false);
-      setConnectionMetrics24h(new Map());
-    }
 
     try {
       const [data, endpointsList, loadbalanceStrategiesList, modelsList, pricingTemplatesList] = await Promise.all([
@@ -145,9 +130,6 @@ export function useModelDetailBootstrap({
     id,
     navigate,
     revision,
-    setConnectionMetrics24h,
-    setConnectionMetricsEnabled,
-    setConnectionMetricsLoading,
     setAllModels,
     setConnections,
     setGlobalEndpoints,

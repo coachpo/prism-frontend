@@ -905,15 +905,12 @@ export interface Messages {
     inactive: string;
     keyLabel: string;
     leaveBlankForUnlimited: string;
-    loadMetrics: string;
     loadbalanceStrategy: string;
     loadbalanceStrategyLabel: string;
     maxInFlightNonStream: string;
     maxInFlightStream: string;
-    metricsLoaded: string;
     modelConfigurationAndConnectionRouting: string;
     modelIdLabel: string;
-    modelKpis24h: string;
     modelSettingsDescription: string;
     modelSettingsTitle: string;
     noConnectionsConfigured: string;
@@ -928,7 +925,6 @@ export interface Messages {
     openaiProbeEndpointVariant: string;
     openaiProbeEndpointVariantHint: string;
     openaiProbeResponses: string;
-    p95Latency24h: string;
     pricingOff: string;
     pricingOn: string;
     pricingTemplate: string;
@@ -943,6 +939,7 @@ export interface Messages {
     monitoringProbeIntervalSeconds: string;
     latestProbeAt: (value: string) => string;
     latestProbeStatus: (status: string) => string;
+    nextUpdateIn: (value: string) => string;
     lastLiveFailureKind: (value: string) => string;
     lastLiveSuccessAt: (value: string) => string;
     endpointMonitoringValue: (value: string) => string;
@@ -967,9 +964,6 @@ export interface Messages {
     selectVendor: string;
     spend24h: (currencyCode: string) => string;
     successfulRequests: (count: string) => string;
-    successRate24h: string;
-    successRateSample: (count: string) => string;
-    successRateTooltip: string;
     routingObjective: string;
     strategyRecovery: string;
     testConnection: string;
@@ -1224,6 +1218,12 @@ export interface Messages {
     notAvailable: string;
     monitoringCadence: (seconds: number) => string;
     past60ProbesTitle: string;
+    probeTooltipConversationLatency: (duration: string) => string;
+    probeTooltipConversationStatus: (status: string) => string;
+    probeTooltipFailureKind: (kind: string) => string;
+    probeTooltipPingStatus: (status: string) => string;
+    probeTooltipPingTime: (duration: string) => string;
+    probeStatusNoData: string;
     probing: string;
     probeStatusDegraded: string;
     probeStatusDown: string;
@@ -1232,6 +1232,7 @@ export interface Messages {
     recentHistoryTitle: string;
     refresh: string;
     runProbe: string;
+    vendorKeyBadge: (key: string) => string;
     vendorGroupsDescription: string;
     vendorGroupsTitle: string;
     vendorLabel: (name: string) => string;
@@ -2452,15 +2453,12 @@ export const enMessages: Messages = {
     inactive: "Inactive",
     keyLabel: "Key",
     leaveBlankForUnlimited: "Leave blank for unlimited.",
-    loadMetrics: "Load 24h Metrics",
     loadbalanceStrategy: "Loadbalance Strategy",
     loadbalanceStrategyLabel: "Loadbalance Strategy",
     maxInFlightNonStream: "Max In-Flight (Non-Stream)",
     maxInFlightStream: "Max In-Flight (Stream)",
-    metricsLoaded: "24h Metrics Loaded",
     modelConfigurationAndConnectionRouting: "Model configuration and connection routing",
     modelIdLabel: "Model ID",
-    modelKpis24h: "Model KPIs (24h)",
     modelSettingsDescription:
       "Update model identity, vendor metadata, and API family compatibility for this profile.",
     modelSettingsTitle: "Model Settings",
@@ -2478,7 +2476,6 @@ export const enMessages: Messages = {
     openaiProbeEndpointVariantHint:
       "Choose which OpenAI endpoint backend-managed monitoring should use for synthetic probes on this connection.",
     openaiProbeResponses: "POST /v1/responses",
-    p95Latency24h: "P95 latency (24h)",
     pricingOff: "Pricing Off",
     pricingOn: "Pricing On",
     pricingTemplate: "Pricing Template",
@@ -2494,6 +2491,7 @@ export const enMessages: Messages = {
     monitoringProbeIntervalSeconds: "Probe interval (seconds)",
     latestProbeAt: (value) => `Last probe ${value}`,
     latestProbeStatus: (status) => `Latest probe ${status}`,
+    nextUpdateIn: (value) => `Next Update ${value}`,
     lastLiveFailureKind: (value) => `Failure ${value}`,
     lastLiveSuccessAt: (value) => `Last success ${value}`,
     endpointMonitoringValue: (value) => `Endpoint ${value}`,
@@ -2519,10 +2517,6 @@ export const enMessages: Messages = {
     selectVendor: "Select vendor",
     spend24h: (currencyCode) => `Spend (24h, ${currencyCode})`,
     successfulRequests: (count) => `${count} successful`,
-    successRate24h: "Success rate (24h)",
-    successRateSample: (count) => `n=${count}`,
-    successRateTooltip:
-      "Success rate = successful requests / total requests for this connection in the last 24 hours. n = total requests counted in that 24h window.",
     routingObjective: "Routing Objective",
     strategyRecovery: "Strategy Recovery",
     testConnection: "Test Connection",
@@ -2613,6 +2607,12 @@ export const enMessages: Messages = {
     notAvailable: "Not available",
     monitoringCadence: (seconds) => `${seconds}s cadence`,
     past60ProbesTitle: "Past 60 probes",
+    probeTooltipConversationLatency: (duration) => `Conversation latency: ${duration}`,
+    probeTooltipConversationStatus: (status) => `Conversation status: ${status}`,
+    probeTooltipFailureKind: (kind) => `Failure kind: ${kind}`,
+    probeTooltipPingStatus: (status) => `Ping status: ${status}`,
+    probeTooltipPingTime: (duration) => `Ping time: ${duration}`,
+    probeStatusNoData: "No data",
     probing: "Probing...",
     probeStatusDegraded: "Degraded",
     probeStatusDown: "Failed",
@@ -2621,6 +2621,7 @@ export const enMessages: Messages = {
     recentHistoryTitle: "Recent history",
     refresh: "Refresh monitoring",
     runProbe: "Run probe",
+    vendorKeyBadge: (key) => `Vendor key: ${key}`,
     vendorGroupsDescription: "Start at the vendor rollup, then scan models and the latest probe streak for each connection.",
     vendorGroupsTitle: "Vendor groups",
     vendorLabel: (name) => `Vendor: ${name}`,

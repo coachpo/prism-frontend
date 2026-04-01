@@ -43,7 +43,6 @@ describe("AppHeader", () => {
           selectedProfileName="Viewing"
           setProfileQuery={vi.fn()}
           setProfileSwitcherOpen={vi.fn()}
-          setSidebarOpen={vi.fn()}
           username="alice"
         />
       </LocaleProvider>,
@@ -95,7 +94,6 @@ describe("AppHeader", () => {
           selectedProfileName="Viewing"
           setProfileQuery={vi.fn()}
           setProfileSwitcherOpen={vi.fn()}
-          setSidebarOpen={vi.fn()}
           username={null}
         />
       </LocaleProvider>,

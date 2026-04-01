@@ -28,6 +28,10 @@ export function ConnectionCardCooldownState({
     return null;
   }
 
+  if (currentState.state === "counting" && currentState.consecutive_failures <= 0) {
+    return null;
+  }
+
   const tone = getCurrentStateTone(currentState.state, copy);
   const failureCountLabel = copy.failureCount(currentState.consecutive_failures);
 

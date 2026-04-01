@@ -1,9 +1,11 @@
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { useModelDetailData } from "../useModelDetailData";
 import { useModelDetailPageShell } from "../useModelDetailPageShell";
 
-const { mockNavigate, mockUseModelDetailData, mockSetIsEditModelDialogOpen } = vi.hoisted(() => ({
+const { mockNavigate, mockOverviewCards, mockUseModelDetailData, mockSetIsEditModelDialogOpen } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
+  mockOverviewCards: vi.fn(),
   mockUseModelDetailData: vi.fn(),
   mockSetIsEditModelDialogOpen: vi.fn(),
 }));
@@ -22,7 +24,10 @@ vi.mock("../useModelDetailData", () => ({
 }));
 
 vi.mock("../OverviewCards", () => ({
-  OverviewCards: () => <div>overview-cards</div>,
+  OverviewCards: (props: unknown) => {
+    mockOverviewCards(props);
+    return <div>overview-cards</div>;
+  },
 }));
 
 vi.mock("../ProxyTargetsCard", () => ({
@@ -85,84 +90,95 @@ vi.mock("../ModelDetailTabs", () => ({
   ),
 }));
 
-function buildModelDetailData(modelType: "native" | "proxy" = "native") {
-  return {
+type ModelDetailDataResult = ReturnType<typeof useModelDetailData>;
+
+function buildModelDetailData(modelType: "native" | "proxy" = "native"): ModelDetailDataResult {
+  const vendor = {
+    id: 1,
+    key: "openai",
+    name: "OpenAI",
+    description: null,
+    icon_key: null,
+    audit_enabled: false,
+    audit_capture_bodies: false,
+    created_at: "",
+    updated_at: "",
+  };
+
+  const data: ModelDetailDataResult = {
     model: {
       id: 5,
       vendor_id: 1,
-      vendor: {
-        id: 1,
-        key: "openai",
-        name: "OpenAI",
-        description: null,
-        audit_enabled: false,
-        audit_capture_bodies: false,
-        created_at: "",
-        updated_at: "",
-      },
+      vendor,
       api_family: "openai",
       model_id: "gpt-5.4",
       display_name: "GPT-5.4",
       model_type: modelType,
       is_enabled: true,
-      proxy_targets: modelType === "proxy" ? [{ target_model_id: "gpt-4o" }] : [],
+      proxy_targets: modelType === "proxy" ? [{ target_model_id: "gpt-4o", position: 0 }] : [],
       created_at: "2026-03-25T10:00:00Z",
+      updated_at: "2026-03-25T10:00:00Z",
+      connections: [],
+      loadbalance_strategy_id: null,
       loadbalance_strategy: null,
     },
     loading: false,
     loadbalanceStrategies: [],
+    vendors: [vendor],
     isEditModelDialogOpen: false,
     setIsEditModelDialogOpen: mockSetIsEditModelDialogOpen,
-    editLoadbalanceStrategyId: null,
+    editLoadbalanceStrategyId: "",
     setEditLoadbalanceStrategyId: vi.fn(),
-    editProxyTargets: modelType === "proxy" ? [{ target_model_id: "gpt-4o" }] : [],
+    editProxyTargets: modelType === "proxy" ? [{ target_model_id: "gpt-4o", position: 0 }] : [],
+    setEditProxyTargets: vi.fn(),
     spending: null,
     spendingLoading: false,
     spendingCurrencySymbol: "$",
     spendingCurrencyCode: "USD",
-    metrics24hLoading: false,
-    connectionMetricsEnabled: true,
-    connectionMetricsLoading: false,
     connections: [],
     isConnectionDialogOpen: false,
     setIsConnectionDialogOpen: vi.fn(),
     editingConnection: null,
     connectionSearch: "",
     setConnectionSearch: vi.fn(),
-    setConnectionMetricsEnabled: vi.fn(),
     healthCheckingIds: new Set<number>(),
     dialogTestingConnection: false,
     dialogTestResult: null,
-    connectionMetrics24h: {},
-    currentStateByConnectionId: {},
+    currentStateByConnectionId: new Map(),
+    monitoringByConnectionId: new Map(),
+    monitoringLoading: false,
     resettingConnectionIds: new Set<number>(),
     focusedConnectionId: null,
-    connectionCardRefs: new Map<number, HTMLDivElement | null>(),
+    connectionCardRefs: new Map<number, HTMLDivElement>(),
     globalEndpoints: [],
-    createMode: "existing",
+    createMode: "select",
     setCreateMode: vi.fn(),
-    selectedEndpointId: null,
+    selectedEndpointId: "",
     setSelectedEndpointId: vi.fn(),
-    newEndpointForm: {},
+    newEndpointForm: { name: "", base_url: "", api_key: "" },
     setNewEndpointForm: vi.fn(),
-    connectionForm: {},
+    connectionForm: {
+      name: "",
+      is_active: true,
+      custom_headers: null,
+      pricing_template_id: null,
+      monitoring_probe_interval_seconds: 300,
+      openai_probe_endpoint_variant: "responses",
+      qps_limit: null,
+      max_in_flight_non_stream: null,
+      max_in_flight_stream: null,
+    },
     setConnectionForm: vi.fn(),
     headerRows: [],
     setHeaderRows: vi.fn(),
-    modelKpis: {
-      successRate: null,
-      p95LatencyMs: null,
-      requestCount24h: 0,
-      spend24hMicros: null,
-    },
     proxyTargetOptions: [{ modelId: "gpt-4o", label: "GPT-4o" }],
     proxyTargetSummary: {
       targetCount: modelType === "proxy" ? 1 : 0,
       firstTargetId: modelType === "proxy" ? "gpt-4o" : null,
       firstTargetLabel: modelType === "proxy" ? "GPT-4o" : null,
       routePolicyLabel: "Ordered priority routing",
-    },
-    endpointSourceDefaultName: "",
+    } as ModelDetailDataResult["proxyTargetSummary"],
+    endpointSourceDefaultName: null,
     openConnectionDialog: vi.fn(),
     handleConnectionSubmit: vi.fn(),
     handleDeleteConnection: vi.fn(),
@@ -176,7 +192,9 @@ function buildModelDetailData(modelType: "native" | "proxy" = "native") {
     reorderInFlight: false,
     handleReorderConnections: vi.fn(),
     handleResetCooldown: vi.fn(),
-  } as const;
+  };
+
+  return data;
 }
 
 describe("useModelDetailPageShell", () => {
@@ -201,6 +219,7 @@ describe("useModelDetailPageShell", () => {
 describe("ModelDetailPage shell", () => {
   beforeEach(() => {
     mockNavigate.mockReset();
+    mockOverviewCards.mockReset();
     mockSetIsEditModelDialogOpen.mockReset();
     mockUseModelDetailData.mockReset();
     mockUseModelDetailData.mockReturnValue(buildModelDetailData("native"));
@@ -211,6 +230,11 @@ describe("ModelDetailPage shell", () => {
 
     render(<ModelDetailPage />);
 
+    expect(mockUseModelDetailData).toHaveBeenCalledWith("5");
+    const overviewProps = mockOverviewCards.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(overviewProps).toBeDefined();
+    expect(overviewProps).not.toHaveProperty("metrics24hLoading");
+    expect(overviewProps).not.toHaveProperty("modelKpis");
     expect(screen.getByText("model-detail-header:gpt-5.4")).toBeInTheDocument();
     expect(screen.getByText("model-detail-tabs:gpt-5.4:connections")).toBeInTheDocument();
     expect(screen.queryByText(/proxy-targets:/)).not.toBeInTheDocument();

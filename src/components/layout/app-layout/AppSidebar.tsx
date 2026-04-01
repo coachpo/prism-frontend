@@ -47,7 +47,9 @@ export function AppSidebar({
   sidebarItems,
 }: Props) {
   const { messages } = useLocale();
-  const { isMobile, setOpenMobile, state } = useSidebar();
+  const { isMobile, setOpenMobile, state, toggleSidebar } = useSidebar();
+  const desktopToggleLabel =
+    state === "collapsed" ? messages.shell.expandSidebar : messages.shell.collapseSidebar;
   const resolvedSidebarItems =
     sidebarItems ??
     SHELL_SIDEBAR_ITEMS.map((item) => ({
@@ -77,7 +79,18 @@ export function AppSidebar({
     >
       <SidebarHeader className="gap-3 border-b border-sidebar-border/70 p-3">
         <div className="flex items-center gap-3 px-1">
-          <div className="flex size-8 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={toggleSidebar}
+            aria-label={desktopToggleLabel}
+            title={desktopToggleLabel}
+            className="hidden rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm hover:bg-sidebar-primary/90 hover:text-sidebar-primary-foreground lg:inline-flex"
+          >
+            <Zap className="h-4 w-4" />
+          </Button>
+          <div className="flex size-8 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm lg:hidden">
             <Zap className="h-4 w-4" />
           </div>
           <div className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">

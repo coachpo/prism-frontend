@@ -28,21 +28,18 @@ export function ModelDetailPage() {
     spendingLoading,
     spendingCurrencySymbol,
     spendingCurrencyCode,
-    metrics24hLoading,
-    connectionMetricsEnabled,
-    connectionMetricsLoading,
     connections,
     isConnectionDialogOpen,
     setIsConnectionDialogOpen,
     editingConnection,
     connectionSearch,
     setConnectionSearch,
-    setConnectionMetricsEnabled,
     healthCheckingIds,
     dialogTestingConnection,
     dialogTestResult,
-    connectionMetrics24h,
     currentStateByConnectionId,
+    monitoringByConnectionId,
+    monitoringLoading,
     resettingConnectionIds,
     focusedConnectionId,
     connectionCardRefs,
@@ -57,7 +54,6 @@ export function ModelDetailPage() {
     setConnectionForm,
     headerRows,
     setHeaderRows,
-    modelKpis,
     proxyTargetSummary,
     endpointSourceDefaultName,
     openConnectionDialog,
@@ -107,8 +103,6 @@ export function ModelDetailPage() {
         spendingLoading={spendingLoading}
         spendingCurrencySymbol={spendingCurrencySymbol}
         spendingCurrencyCode={spendingCurrencyCode}
-        metrics24hLoading={metrics24hLoading}
-        modelKpis={modelKpis}
         proxyTargetSummary={proxyTargetSummary}
         onViewRequestLogs={() => navigateToRequestLogs(model.model_id)}
       />
@@ -119,17 +113,15 @@ export function ModelDetailPage() {
         connections={connections}
         connectionSearch={connectionSearch}
         setConnectionSearch={setConnectionSearch}
-        setConnectionMetricsEnabled={setConnectionMetricsEnabled}
         openConnectionDialog={openConnectionDialog}
         handleDeleteConnection={handleDeleteConnection}
         handleHealthCheck={handleHealthCheck}
         handleHealthCheckAll={handleHealthCheckAll}
         handleToggleActive={handleToggleActive}
         handleReorderConnections={handleReorderConnections}
-        connectionMetricsEnabled={connectionMetricsEnabled}
-        connectionMetricsLoading={connectionMetricsLoading}
-        connectionMetrics24h={connectionMetrics24h}
         currentStateByConnectionId={currentStateByConnectionId}
+        monitoringByConnectionId={monitoringByConnectionId}
+        monitoringLoading={monitoringLoading}
         resettingConnectionIds={resettingConnectionIds}
         healthCheckingIds={healthCheckingIds}
         focusedConnectionId={focusedConnectionId}

@@ -167,11 +167,13 @@ export function createNewModelFormData(vendors: Vendor[]): ModelConfigCreate {
 }
 
 export function toModelCreatePayload(formData: ModelConfigCreate): ModelConfigCreate {
+  const normalizedDisplayName = formData.display_name?.trim() || formData.model_id.trim();
+
   return {
     vendor_id: formData.vendor_id,
     api_family: formData.api_family,
     model_id: formData.model_id,
-    display_name: formData.display_name,
+    display_name: normalizedDisplayName,
     model_type: formData.model_type,
     is_enabled: formData.is_enabled,
     ...getNormalizedRoutingState(formData),
