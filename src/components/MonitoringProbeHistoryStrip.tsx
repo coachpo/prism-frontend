@@ -45,6 +45,7 @@ export function MonitoringProbeHistoryStrip({
     "no-data": copy.probeStatusNoData,
     ok: copy.probeStatusOk,
   };
+  const stripLabel = resolvedTitle ?? copy.past60ProbesTitle;
 
   return (
     <div className="space-y-2.5">
@@ -68,9 +69,10 @@ export function MonitoringProbeHistoryStrip({
         </div>
       ) : null}
 
-      <TooltipProvider delayDuration={0}>
-        <div
-          className="grid gap-1 rounded-xl border border-border/60 bg-muted/20 p-2"
+      <TooltipProvider delayDuration={0} disableHoverableContent>
+        <ul
+          aria-label={stripLabel}
+          className="grid list-none gap-1 rounded-xl border border-border/60 bg-muted/20 p-2"
           data-testid="monitoring-probe-strip"
           style={{ gridTemplateColumns: `repeat(${paddedHistory.length}, minmax(0, 1fr))` }}
         >
@@ -94,23 +96,23 @@ export function MonitoringProbeHistoryStrip({
                   ].filter(Boolean);
             const bucketLabel = cell.kind === "no-data" ? null : formatBucketLabel(cell.point.checked_at, locale);
             const ariaLabel = bucketLabel
-              ? `${resolvedTitle ?? copy.past60ProbesTitle} ${bucketLabel} ${statusLabels[probeStatus]}`
-              : `${resolvedTitle ?? copy.past60ProbesTitle} ${statusLabels[probeStatus]}`;
+              ? `${stripLabel} ${bucketLabel} ${statusLabels[probeStatus]}`
+              : `${stripLabel} ${statusLabels[probeStatus]}`;
 
             return (
-              <Tooltip key={cell.key}>
-                <TooltipTrigger asChild>
-                  <button
-                    aria-label={ariaLabel}
-                    className={cn(
-                      "h-4 min-w-0 w-full rounded-[4px] border transition-transform duration-150 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                      getProbeToneClass(probeStatus),
-                    )}
-                    data-status={probeStatus}
-                    data-testid={`monitoring-probe-cell-${probeStatus}`}
-                    type="button"
-                  />
-                </TooltipTrigger>
+                <Tooltip key={cell.key}>
+                  <TooltipTrigger asChild>
+                    <li
+                      aria-label={ariaLabel}
+                      className={cn(
+                        "h-4 min-w-0 w-full rounded-[4px] border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                        getProbeToneClass(probeStatus),
+                      )}
+                      data-status={probeStatus}
+                      data-testid={`monitoring-probe-cell-${probeStatus}`}
+                      tabIndex={-1}
+                    />
+                  </TooltipTrigger>
                 <TooltipContent
                   className="max-w-56 rounded-lg border border-border/60 bg-card px-3 py-2 text-card-foreground shadow-xl"
                   sideOffset={6}
@@ -130,7 +132,7 @@ export function MonitoringProbeHistoryStrip({
               </Tooltip>
             );
           })}
-        </div>
+        </ul>
       </TooltipProvider>
     </div>
   );
