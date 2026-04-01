@@ -9,26 +9,34 @@ import type { MonitoringConnectionHistoryPoint } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface MonitoringProbeHistoryStripProps {
+  columns?: number;
   history: MonitoringConnectionHistoryPoint[];
+  rows?: number;
   showLegend?: boolean;
   title?: string | null;
 }
 
-const PROBE_STRIP_CELL_COUNT = 60;
+const DEFAULT_PROBE_GRID_COLUMNS = 60;
+const DEFAULT_PROBE_GRID_ROWS = 1;
 
 export function MonitoringProbeHistoryStrip({
+  columns = DEFAULT_PROBE_GRID_COLUMNS,
   history,
+  rows = DEFAULT_PROBE_GRID_ROWS,
   showLegend = true,
   title,
 }: MonitoringProbeHistoryStripProps) {
   const { locale, messages } = useLocale();
   const copy = messages.monitoring;
+  const resolvedColumns = normalizeGridDimension(columns, DEFAULT_PROBE_GRID_COLUMNS);
+  const resolvedRows = normalizeGridDimension(rows, DEFAULT_PROBE_GRID_ROWS);
+  const gridCellCount = resolvedColumns * resolvedRows;
   const sortedHistory = [...history]
     .sort((left, right) => left.checked_at.localeCompare(right.checked_at))
-    .slice(-PROBE_STRIP_CELL_COUNT);
+    .slice(-gridCellCount);
   const resolvedTitle = title === undefined ? copy.past60ProbesTitle : title;
   const paddedHistory = [
-    ...Array.from({ length: Math.max(PROBE_STRIP_CELL_COUNT - sortedHistory.length, 0) }, (_, index) => ({
+    ...Array.from({ length: Math.max(gridCellCount - sortedHistory.length, 0) }, (_, index) => ({
       kind: "no-data" as const,
       key: `no-data-${index}`,
     })),
@@ -74,7 +82,10 @@ export function MonitoringProbeHistoryStrip({
           aria-label={stripLabel}
           className="grid list-none gap-1 rounded-xl border border-border/60 bg-muted/20 p-2"
           data-testid="monitoring-probe-strip"
-          style={{ gridTemplateColumns: `repeat(${paddedHistory.length}, minmax(0, 1fr))` }}
+          style={{
+            gridTemplateColumns: `repeat(${resolvedColumns}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${resolvedRows}, minmax(0, 1fr))`,
+          }}
         >
           {paddedHistory.map((cell) => {
             const probeStatus = cell.kind === "no-data" ? "no-data" : getProbeStatus(cell.point);
@@ -100,19 +111,19 @@ export function MonitoringProbeHistoryStrip({
               : `${stripLabel} ${statusLabels[probeStatus]}`;
 
             return (
-                <Tooltip key={cell.key}>
-                  <TooltipTrigger asChild>
-                    <li
-                      aria-label={ariaLabel}
-                      className={cn(
-                        "h-4 min-w-0 w-full rounded-[4px] border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                        getProbeToneClass(probeStatus),
-                      )}
-                      data-status={probeStatus}
-                      data-testid={`monitoring-probe-cell-${probeStatus}`}
-                      tabIndex={-1}
-                    />
-                  </TooltipTrigger>
+              <Tooltip key={cell.key}>
+                <TooltipTrigger asChild>
+                  <li
+                    aria-label={ariaLabel}
+                    className={cn(
+                      "h-4 min-w-0 w-full rounded-[4px] border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                      getProbeToneClass(probeStatus),
+                    )}
+                    data-status={probeStatus}
+                    data-testid={`monitoring-probe-cell-${probeStatus}`}
+                    tabIndex={-1}
+                  />
+                </TooltipTrigger>
                 <TooltipContent
                   className="max-w-56 rounded-lg border border-border/60 bg-card px-3 py-2 text-card-foreground shadow-xl"
                   sideOffset={6}
@@ -209,6 +220,14 @@ function getProbeStatus(point: MonitoringConnectionHistoryPoint): "ok" | "degrad
   }
 
   return "ok";
+}
+
+function normalizeGridDimension(value: number, fallback: number) {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(1, Math.floor(value));
 }
 
 function getProbeToneClass(status: ProbeCellStatus) {

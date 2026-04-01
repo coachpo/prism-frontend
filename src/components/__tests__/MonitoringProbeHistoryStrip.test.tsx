@@ -4,6 +4,11 @@ import { MonitoringProbeHistoryStrip } from "@/components/MonitoringProbeHistory
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { MonitoringConnectionHistoryPoint } from "@/lib/types";
 
+type ProbeHistoryStripRenderOptions = Partial<{
+  columns: number;
+  rows: number;
+}>;
+
 class ResizeObserverMock {
   observe() {}
 
@@ -12,10 +17,13 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-function renderProbeHistoryStrip(history: MonitoringConnectionHistoryPoint[]) {
+function renderProbeHistoryStrip(
+  history: MonitoringConnectionHistoryPoint[],
+  options: ProbeHistoryStripRenderOptions = {},
+) {
   render(
     <LocaleProvider>
-      <MonitoringProbeHistoryStrip history={history} />
+      <MonitoringProbeHistoryStrip history={history} {...options} />
     </LocaleProvider>,
   );
 }
@@ -28,6 +36,19 @@ describe("MonitoringProbeHistoryStrip", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("renders a configurable multi-row grid using the provided rows and columns", () => {
+    renderProbeHistoryStrip([], { columns: 3, rows: 2 });
+
+    const strip = screen.getByTestId("monitoring-probe-strip");
+
+    expect(strip).toHaveStyle({
+      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+      gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+    });
+    expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(6);
+    expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(6);
   });
 
   it("switches tooltip content when hovering across adjacent probe cells", async () => {
