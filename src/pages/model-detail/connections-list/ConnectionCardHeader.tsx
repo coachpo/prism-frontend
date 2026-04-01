@@ -1,8 +1,9 @@
 import { StatusBadge, ValueBadge } from "@/components/StatusBadge";
+import { StatusDot, type StatusDotIntent } from "@/components/ui/status-dot";
 import { useLocale } from "@/i18n/useLocale";
 import type { Connection } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { getHealthBadgeProps, getPriorityBadgeClasses } from "./ConnectionCardSectionsShared";
+import { getPriorityBadgeClasses } from "./ConnectionCardSectionsShared";
 
 export function ConnectionCardHeader({
   connection,
@@ -15,29 +16,19 @@ export function ConnectionCardHeader({
 }) {
   const { messages } = useLocale();
   const copy = messages.modelDetail;
-  const { healthLabel, healthIntent } = getHealthBadgeProps(connection.health_status, isChecking, {
-    checking: copy.healthChecking,
-    healthy: copy.healthHealthy,
-    unhealthy: copy.healthUnhealthy,
-    unknown: copy.healthUnknown,
-  });
+  const healthIntent: StatusDotIntent = isChecking
+    ? "primary"
+    : connection.health_status === "healthy"
+      ? "success"
+      : connection.health_status === "unhealthy"
+        ? "danger"
+        : "muted";
+  const healthAnimated = isChecking || connection.health_status !== "unknown";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span
-        className={cn(
-          "inline-flex h-2.5 w-2.5 shrink-0 rounded-full",
-          isChecking
-            ? "animate-pulse bg-primary/70"
-            : connection.health_status === "healthy"
-              ? "bg-emerald-500"
-              : connection.health_status === "unhealthy"
-                ? "bg-destructive"
-                : "bg-muted-foreground/50",
-        )}
-      />
+      <StatusDot intent={healthIntent} animated={healthAnimated} aria-hidden="true" />
       <span className="truncate text-sm font-medium">{connectionName}</span>
-      <StatusBadge label={healthLabel} intent={healthIntent} />
       <ValueBadge
         label={`P${connection.priority}`}
         intent="default"

@@ -179,6 +179,10 @@ function renderWithLocale(ui: React.ReactElement) {
   return render(<LocaleProvider>{ui}</LocaleProvider>);
 }
 
+function getStatusDot(container: HTMLElement) {
+  return container.querySelector('[data-slot="status-dot"]');
+}
+
 describe("ConnectionCard cooldown state", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -246,7 +250,7 @@ describe("ConnectionCard cooldown state", () => {
   });
 
   it("renders the archived probe-eligible timeout recovery copy for an unhealthy connection", () => {
-    renderWithLocale(
+    const { container } = renderWithLocale(
       <ConnectionCard
         connection={{ ...buildConnection(), health_status: "unhealthy" }}
         model={buildModel()}
@@ -271,7 +275,9 @@ describe("ConnectionCard cooldown state", () => {
       />,
     );
 
-    expect(screen.getByText("Unhealthy")).toBeInTheDocument();
+    expect(getStatusDot(container)).toHaveAttribute("data-intent", "danger");
+    expect(getStatusDot(container)).toHaveAttribute("data-animated", "true");
+    expect(screen.queryByText("Unhealthy")).not.toBeInTheDocument();
     expect(screen.getByText("Probe Eligible")).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -419,8 +425,8 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.queryByText("Recovery Blocked")).not.toBeInTheDocument();
   });
 
-  it("renders header pricing and inactive badges from the extracted header component", () => {
-    renderWithLocale(
+  it("renders header badges while leaving health visible only through the shared dot", () => {
+    const { container } = renderWithLocale(
       <ConnectionCardHeader
         connection={{ ...buildConnection(), is_active: false }}
         connectionName="Primary"
@@ -428,6 +434,9 @@ describe("ConnectionCard cooldown state", () => {
       />,
     );
 
+    expect(getStatusDot(container)).toHaveAttribute("data-intent", "success");
+    expect(getStatusDot(container)).toHaveAttribute("data-animated", "true");
+    expect(screen.queryByText("Healthy")).not.toBeInTheDocument();
     expect(screen.getByText("Pricing Off")).toBeInTheDocument();
     expect(screen.getByText("Inactive")).toBeInTheDocument();
   });

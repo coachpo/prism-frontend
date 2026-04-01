@@ -1,12 +1,5 @@
-import type { Connection, LoadbalanceCurrentStateItem } from "@/lib/types";
+import type { LoadbalanceCurrentStateItem } from "@/lib/types";
 import type { FormatTime } from "./connectionCardTypes";
-
-export type ConnectionCardHealthCopy = {
-  checking: string;
-  healthy: string;
-  unhealthy: string;
-  unknown: string;
-};
 
 export type ConnectionCardCurrentStateCopy = {
   consecutiveFailures: (count: number) => string;
@@ -32,26 +25,6 @@ export type ConnectionCardCurrentStateCopy = {
   failureKindTransientHttp: string;
   failureKindUnknown: string;
 };
-
-export function getHealthBadgeProps(
-  healthStatus: Connection["health_status"],
-  isChecking: boolean,
-  copy: ConnectionCardHealthCopy,
-): { healthLabel: string; healthIntent: "info" | "success" | "danger" | "muted" } {
-  if (isChecking) {
-    return { healthLabel: copy.checking, healthIntent: "info" };
-  }
-
-  if (healthStatus === "healthy") {
-    return { healthLabel: copy.healthy, healthIntent: "success" };
-  }
-
-  if (healthStatus === "unhealthy") {
-    return { healthLabel: copy.unhealthy, healthIntent: "danger" };
-  }
-
-  return { healthLabel: copy.unknown, healthIntent: "muted" };
-}
 
 export function getPriorityBadgeClasses(priority: number): string {
   if (priority === 0) {
