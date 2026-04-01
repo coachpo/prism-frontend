@@ -1,6 +1,5 @@
 import { Loader2 } from "lucide-react";
 import { useLocale } from "@/i18n/useLocale";
-import { StatusBadge } from "@/components/StatusBadge";
 import type { Connection, LoadbalanceCurrentStateItem } from "@/lib/types";
 import { formatLabel } from "@/lib/utils";
 import type { FormatTime } from "./connectionCardTypes";
@@ -53,16 +52,6 @@ export function ConnectionCardDetails({
           <span>{copy.notCheckedYet}</span>
         )}
       </div>
-
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        {loadbalanceCurrentState?.circuit_state ? (
-          <StatusBadge
-            label={formatLabel(loadbalanceCurrentState.circuit_state)}
-            intent={getMonitoringIntent(loadbalanceCurrentState.circuit_state)}
-          />
-        ) : null}
-      </div>
-
       {loadbalanceCurrentState ? (
         <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-3">
           <MonitoringEvidence label={copy.endpointMonitoringValue(formatMetric(endpointPing, formatNumber))} />
@@ -93,20 +82,4 @@ function formatMetric(
   formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string,
 ) {
   return typeof value === "number" ? `${formatNumber(value)} ms` : "—";
-}
-
-function getMonitoringIntent(status: string | null | undefined) {
-  if (status === "healthy" || status === "closed") {
-    return "success" as const;
-  }
-
-  if (status === "degraded" || status === "half_open" || status === "probe_eligible") {
-    return "warning" as const;
-  }
-
-  if (status === "failed" || status === "open" || status === "banned") {
-    return "danger" as const;
-  }
-
-  return "muted" as const;
 }

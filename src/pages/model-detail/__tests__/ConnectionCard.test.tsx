@@ -434,7 +434,7 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByText("Inactive")).toBeInTheDocument();
   });
 
-  it("renders monitoring evidence from the current-state payload", () => {
+  it("renders monitoring evidence without the standalone circuit-state line", () => {
     renderWithLocale(
       <ConnectionCard
         connection={buildConnection()}
@@ -469,7 +469,9 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByText("Endpoint 82 ms")).toBeInTheDocument();
     expect(screen.getByText("Conversation 310 ms")).toBeInTheDocument();
     expect(screen.getByText("P95 420 ms")).toBeInTheDocument();
-    expect(screen.getByText("Half Open")).toBeInTheDocument();
+    expect(screen.queryByText("Half Open")).not.toBeInTheDocument();
+    expect(screen.getByText("Recovery Blocked")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset Recovery State" })).toBeEnabled();
     expect(screen.queryByText("Degraded")).not.toBeInTheDocument();
     expect(screen.queryByText("Last probe formatted:2026-03-23T10:02:00Z")).not.toBeInTheDocument();
   });

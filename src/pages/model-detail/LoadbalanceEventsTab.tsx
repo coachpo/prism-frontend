@@ -53,14 +53,14 @@ function LoadbalanceEventsTabContent({ modelId, revision }: LoadbalanceEventsTab
 
           <Button
             type="button"
-            size="sm"
+            size="icon"
             variant="outline"
             onClick={() => void refresh()}
             disabled={loading}
             aria-label={copy.refresh}
             title={copy.refresh}
           >
-            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
 
