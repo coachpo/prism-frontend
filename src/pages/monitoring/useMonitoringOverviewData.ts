@@ -66,6 +66,5 @@ export function useMonitoringOverviewData({ revision, selectedProfileId }: UseMo
     data,
     error,
     loading,
-    refresh: fetchOverview,
   };
 }

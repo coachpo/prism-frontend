@@ -11,6 +11,7 @@ export interface MonitoringOverviewVendor {
   vendor_id: number;
   vendor_key: string;
   vendor_name: string;
+  icon_key: string | null;
   model_count: number;
   connection_count: number;
   healthy_connection_count: number;

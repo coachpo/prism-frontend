@@ -9,7 +9,6 @@ import {
 } from "@/lib/referenceData";
 import type {
   LoadbalanceStrategy,
-  ModelConfigCreate,
   ModelConfigListItem,
   Vendor,
 } from "@/lib/types";
@@ -19,6 +18,7 @@ import {
   createNewModelFormData,
   DEFAULT_MODEL_FORM_DATA,
   getNativeModelsForApiFamily,
+  type ModelFormData,
   setLoadbalanceStrategyIdOnForm,
   setModelTypeOnForm,
   toModelCreatePayload,
@@ -37,7 +37,7 @@ export function useModelsPageData(revision: number) {
   const [editingModel, setEditingModel] = useState<ModelConfigListItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ModelConfigListItem | null>(null);
   const [search, setSearch] = useState("");
-  const [formData, setFormData] = useState<ModelConfigCreate>(DEFAULT_MODEL_FORM_DATA);
+  const [formData, setFormData] = useState<ModelFormData>(DEFAULT_MODEL_FORM_DATA);
   const { metricsLoading, modelMetrics24h, modelSpend30dMicros } = useModelMetrics24h(models);
 
   const applyBootstrapData = useCallback((data: {
@@ -104,7 +104,7 @@ export function useModelsPageData(revision: number) {
       setFormData(createEditModelFormData(model));
     } else {
       setEditingModel(null);
-      setFormData(createNewModelFormData(vendors));
+      setFormData(createNewModelFormData(vendors, loadbalanceStrategies[0]?.id ?? null));
     }
     setIsDialogOpen(true);
   };
@@ -181,7 +181,9 @@ export function useModelsPageData(revision: number) {
   );
 
   const setModelType = (value: "native" | "proxy") => {
-    setFormData((current) => setModelTypeOnForm(current, value));
+    setFormData((current) =>
+      setModelTypeOnForm(current, value, loadbalanceStrategies[0]?.id ?? null),
+    );
   };
 
   const setLoadbalanceStrategyId = (value: number | null) => {

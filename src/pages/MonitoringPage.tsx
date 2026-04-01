@@ -1,5 +1,3 @@
-import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { useProfileContext } from "@/context/ProfileContext";
 import { useLocale } from "@/i18n/useLocale";
@@ -14,12 +12,7 @@ export function MonitoringPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={copy.monitoringTitle} description={copy.monitoringDescription}>
-        <Button type="button" variant="outline" onClick={() => void data.refresh()} disabled={data.loading}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${data.loading ? "animate-spin" : ""}`} />
-          {copy.refresh}
-        </Button>
-      </PageHeader>
+      <PageHeader title={copy.monitoringTitle} description={copy.monitoringDescription} />
 
       {data.data ? (
         <p className="text-sm text-muted-foreground">

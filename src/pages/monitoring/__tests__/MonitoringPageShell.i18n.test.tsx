@@ -18,6 +18,7 @@ vi.mock("../useMonitoringOverviewData", () => ({
           vendor_id: 1,
           vendor_key: "openai",
           vendor_name: "OpenAI",
+          icon_key: "openai",
           model_count: 1,
           connection_count: 2,
           healthy_connection_count: 1,
@@ -91,12 +92,11 @@ vi.mock("../useMonitoringOverviewData", () => ({
     },
     error: null,
     loading: false,
-    refresh: vi.fn(),
   }),
 }));
 
 describe("MonitoringPage", () => {
-  it("renders localized monitoring route copy", () => {
+  it("renders localized monitoring route copy without a manual refresh button", () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
     render(
@@ -106,7 +106,7 @@ describe("MonitoringPage", () => {
     );
 
     expect(screen.getByText("监控")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "刷新监控" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "刷新监控" })).not.toBeInTheDocument();
   });
 
   it("renders the vendor, model, and connection hierarchy on the single monitoring page", () => {
@@ -122,14 +122,18 @@ describe("MonitoringPage", () => {
     expect(screen.getByText("Primary endpoint")).toBeInTheDocument();
     expect(screen.getByText("82 ms")).toBeInTheDocument();
     expect(screen.getByText("310 ms")).toBeInTheDocument();
-    expect(screen.getByText("45s cadence")).toBeInTheDocument();
+    const vendorIcon = screen.getByRole("img", { name: "Vendor icon OpenAI" });
+
+    expect(vendorIcon.querySelector("svg")).not.toBeNull();
+    expect(vendorIcon).not.toHaveTextContent("O");
+    expect(screen.queryByText("45s cadence")).not.toBeInTheDocument();
     expect(screen.getByText("Past 60 probes")).toBeInTheDocument();
     expect(screen.getByTestId("monitoring-probe-strip")).toBeInTheDocument();
-    expect(screen.getAllByTestId("monitoring-probe-cell")).toHaveLength(4);
+    expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(60);
     expect(screen.getAllByTestId("monitoring-probe-cell-ok")).toHaveLength(2);
     expect(screen.getByTestId("monitoring-probe-cell-degraded")).toBeInTheDocument();
     expect(screen.getByTestId("monitoring-probe-cell-down")).toBeInTheDocument();
-    expect(screen.queryByTestId("monitoring-probe-cell-empty")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(56);
     expect(screen.queryByText("24h availability")).not.toBeInTheDocument();
     expect(screen.queryByText("Recent history")).not.toBeInTheDocument();
     expect(screen.queryByText("Recent windows")).not.toBeInTheDocument();
@@ -143,6 +147,7 @@ describe("MonitoringPage", () => {
         vendor_id: 1,
         vendor_key: "openai",
         vendor_name: "OpenAI",
+        icon_key: "openai",
         model_count: 1,
         connection_count: 1,
         healthy_connection_count: 1,

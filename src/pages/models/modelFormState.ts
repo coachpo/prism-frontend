@@ -10,6 +10,9 @@ import type {
 import { getStaticMessages } from "@/i18n/staticMessages";
 
 export type SubmitEventLike = Pick<Event, "preventDefault">;
+export type ModelFormData = ModelConfigCreate & {
+  last_auto_display_name?: string | null;
+};
 
 const DEFAULT_API_FAMILY: ApiFamily = "openai";
 
@@ -64,7 +67,7 @@ function resolveModelVendor(
   };
 }
 
-export const DEFAULT_MODEL_FORM_DATA: ModelConfigCreate = {
+export const DEFAULT_MODEL_FORM_DATA: ModelFormData = {
   vendor_id: 0,
   api_family: DEFAULT_API_FAMILY,
   model_id: "",
@@ -73,7 +76,13 @@ export const DEFAULT_MODEL_FORM_DATA: ModelConfigCreate = {
   proxy_targets: [],
   loadbalance_strategy_id: null,
   is_enabled: true,
+  last_auto_display_name: "",
 };
+
+function shouldAutoSyncDisplayName(formData: ModelFormData): boolean {
+  const displayName = formData.display_name ?? "";
+  return displayName.trim() === "" || displayName === (formData.last_auto_display_name ?? "");
+}
 
 export function normalizeProxyTargets(proxyTargets: ProxyTarget[] | null | undefined): ProxyTarget[] {
   const seenTargetIds = new Set<string>();
@@ -97,7 +106,7 @@ export function normalizeProxyTargets(proxyTargets: ProxyTarget[] | null | undef
     }));
 }
 
-function getNormalizedRoutingState(formData: ModelConfigCreate) {
+function getNormalizedRoutingState(formData: ModelFormData) {
   return {
     proxy_targets: formData.model_type === "proxy" ? normalizeProxyTargets(formData.proxy_targets) : [],
     loadbalance_strategy_id:
@@ -140,22 +149,27 @@ export function removeProxyTarget(proxyTargets: ProxyTarget[], targetModelId: st
   );
 }
 
-export function createEditModelFormData(model: ModelConfigListItem): ModelConfigCreate {
+export function createEditModelFormData(model: ModelConfigListItem): ModelFormData {
   const vendorId = resolveModelVendorId(model);
+  const displayName = model.display_name || "";
 
   return {
     vendor_id: vendorId,
     api_family: resolveModelApiFamily(model),
     model_id: model.model_id,
-    display_name: model.display_name || "",
+    display_name: displayName,
     model_type: model.model_type,
     proxy_targets: normalizeProxyTargets(model.proxy_targets),
     loadbalance_strategy_id: model.loadbalance_strategy_id,
     is_enabled: model.is_enabled,
+    last_auto_display_name: displayName === model.model_id ? model.model_id : displayName,
   };
 }
 
-export function createNewModelFormData(vendors: Vendor[]): ModelConfigCreate {
+export function createNewModelFormData(
+  vendors: Vendor[],
+  loadbalanceStrategyId: number | null,
+): ModelFormData {
   const firstVendor = vendors[0];
   const vendorId = firstVendor?.id ?? 0;
 
@@ -163,10 +177,11 @@ export function createNewModelFormData(vendors: Vendor[]): ModelConfigCreate {
     ...DEFAULT_MODEL_FORM_DATA,
     vendor_id: vendorId,
     api_family: vendorKeyToApiFamily(firstVendor?.key),
+    loadbalance_strategy_id: loadbalanceStrategyId,
   };
 }
 
-export function toModelCreatePayload(formData: ModelConfigCreate): ModelConfigCreate {
+export function toModelCreatePayload(formData: ModelFormData): ModelConfigCreate {
   const normalizedDisplayName = formData.display_name?.trim() || formData.model_id.trim();
 
   return {
@@ -180,7 +195,7 @@ export function toModelCreatePayload(formData: ModelConfigCreate): ModelConfigCr
   };
 }
 
-export function toModelUpdatePayload(formData: ModelConfigCreate): ModelConfigUpdate {
+export function toModelUpdatePayload(formData: ModelFormData): ModelConfigUpdate {
   return {
     vendor_id: formData.vendor_id,
     api_family: formData.api_family,
@@ -193,21 +208,44 @@ export function toModelUpdatePayload(formData: ModelConfigCreate): ModelConfigUp
 }
 
 export function setModelTypeOnForm(
-  formData: ModelConfigCreate,
+  formData: ModelFormData,
   modelType: "native" | "proxy",
-): ModelConfigCreate {
+  defaultLoadbalanceStrategyId: number | null,
+): ModelFormData {
   return {
     ...formData,
     model_type: modelType,
     proxy_targets: modelType === "native" ? [] : normalizeProxyTargets(formData.proxy_targets),
+    loadbalance_strategy_id:
+      modelType === "native"
+        ? formData.loadbalance_strategy_id ?? defaultLoadbalanceStrategyId
+        : null,
   };
 }
 
 export function setLoadbalanceStrategyIdOnForm(
-  formData: ModelConfigCreate,
+  formData: ModelFormData,
   strategyId: number | null,
-): ModelConfigCreate {
+): ModelFormData {
   return { ...formData, loadbalance_strategy_id: strategyId };
+}
+
+export function setModelIdOnForm(formData: ModelFormData, modelId: string): ModelFormData {
+  const autoDisplayName = modelId;
+
+  return {
+    ...formData,
+    model_id: modelId,
+    display_name: shouldAutoSyncDisplayName(formData) ? autoDisplayName : formData.display_name,
+    last_auto_display_name: autoDisplayName,
+  };
+}
+
+export function setDisplayNameOnForm(formData: ModelFormData, displayName: string): ModelFormData {
+  return {
+    ...formData,
+    display_name: displayName,
+  };
 }
 
 export function getNativeModelsForApiFamily(

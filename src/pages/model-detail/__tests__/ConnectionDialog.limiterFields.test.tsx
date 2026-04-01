@@ -343,7 +343,7 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByRole("button", { name: "保存连接" })).toBeInTheDocument();
   });
 
-  it("uses a wider dialog shell with an internal scroll area instead of page-level overflow", async () => {
+  it("keeps the approved connection dialog layout anchors while tightening section density", async () => {
     renderWithLocale(<ConnectionDialogHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
@@ -352,13 +352,16 @@ describe("ConnectionDialog limiter fields", () => {
 
     const dialogContent = document.querySelector('[data-slot="dialog-content"]');
     const scrollArea = document.querySelector('[data-slot="scroll-area"]');
+    const endpointSourceSection = screen.getByTestId("connection-dialog-endpoint-source-section");
+    const scrollBody = endpointSourceSection.parentElement;
 
     expect(dialogContent).toHaveClass("max-w-4xl", "overflow-hidden");
     expect(dialogContent).toHaveClass("h-[min(92vh,60rem)]");
     expect(dialogContent).not.toHaveClass("overflow-y-auto");
     expect(scrollArea).toBeInTheDocument();
     expect(scrollArea).toHaveClass("min-h-0", "flex-1");
-    expect(scrollArea?.querySelector("div.space-y-6")).toHaveClass("pb-28");
+    expect(scrollBody).toHaveClass("space-y-5", "pb-32");
+    expect(endpointSourceSection).toHaveClass("space-y-3", "bg-muted/20", "p-3.5", "lg:p-4");
 
     const mainGrid = screen.getByTestId("connection-dialog-main-grid");
     const leftColumn = screen.getByTestId("connection-dialog-left-column");
@@ -366,7 +369,12 @@ describe("ConnectionDialog limiter fields", () => {
     const limiterCard = screen.getByTestId("connection-dialog-limiter-card");
     const headersCard = screen.getByTestId("connection-dialog-custom-headers-card");
 
-    expect(mainGrid).toHaveClass("xl:grid-cols-[minmax(0,1fr)_22rem]");
+    expect(mainGrid).toHaveClass("items-start", "gap-5", "xl:grid-cols-[minmax(0,1fr)_22rem]");
+    expect(leftColumn).toHaveClass("space-y-5");
+    expect(rightColumn).toHaveClass("space-y-4");
+    expect(limiterCard).toHaveClass("bg-muted/15", "p-3.5");
+    expect(headersCard).toHaveClass("bg-muted/10", "p-3.5");
+    expect(headersCard).not.toHaveClass("mb-2");
     expect(leftColumn.compareDocumentPosition(rightColumn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(limiterCard.compareDocumentPosition(headersCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(leftColumn).getByLabelText("Name (Optional)")).toBeInTheDocument();
@@ -398,6 +406,24 @@ describe("ConnectionDialog limiter fields", () => {
     expect(endpointApiKey).not.toBeNull();
     expect(endpointName!.compareDocumentPosition(endpointBaseUrl!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(endpointBaseUrl!.compareDocumentPosition(endpointApiKey!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("keeps the footer shell unchanged while giving custom headers more breathing room above it", async () => {
+    renderWithLocale(<ConnectionDialogHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
+
+    const scrollArea = document.querySelector('[data-slot="scroll-area"]');
+    const footerShell = document.querySelector('[data-slot="dialog-footer"]')?.parentElement;
+    const headersCard = screen.getByTestId("connection-dialog-custom-headers-card");
+    const scrollBody = screen.getByTestId("connection-dialog-endpoint-source-section").parentElement;
+
+    expect(scrollArea).toBeInTheDocument();
+    expect(scrollBody).toHaveClass("space-y-5", "pb-32");
+    expect(footerShell).toHaveClass("shrink-0", "border-t", "px-6", "py-4");
+    expect(headersCard).not.toHaveClass("mb-2");
   });
 
   it("shows the OpenAI probe variant selector only for OpenAI models", async () => {

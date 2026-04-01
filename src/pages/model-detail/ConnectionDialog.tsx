@@ -152,9 +152,9 @@ export function ConnectionDialog({
             value={connectionForm.openai_probe_endpoint_variant ?? "responses"}
           />
           <ScrollArea className="min-h-0 flex-1">
-            <div className="space-y-6 px-6 py-5 pb-28">
-              <div className="space-y-4 rounded-xl border bg-muted/30 p-4 lg:p-5" data-testid="connection-dialog-endpoint-source-section">
-                <div className="flex items-start justify-between gap-3">
+            <div className="space-y-5 px-6 py-4 pb-32">
+              <div className="space-y-3 rounded-xl border bg-muted/20 p-3.5 lg:p-4" data-testid="connection-dialog-endpoint-source-section">
+                <div className="flex items-start justify-between gap-2.5">
                   <div>
                     <Label className="text-sm font-medium">{copy.endpointSource}</Label>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -167,14 +167,14 @@ export function ConnectionDialog({
                 <Tabs
                   value={createMode}
                   onValueChange={(value) => setCreateMode(value as "select" | "new")}
-                  className="gap-4"
+                  className="gap-3"
                 >
                   <TabsList className="grid w-full md:max-w-sm grid-cols-2">
                     <TabsTrigger value="select">{copy.selectExisting}</TabsTrigger>
                     <TabsTrigger value="new">{copy.createNew}</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="select" className="space-y-3">
+                  <TabsContent value="select" className="space-y-2.5">
                     <div className="space-y-2">
                       <Label htmlFor="conn-selected-endpoint">{copy.selectEndpoint}</Label>
                       <Select value={selectedEndpointId} onValueChange={setSelectedEndpointId}>
@@ -202,7 +202,7 @@ export function ConnectionDialog({
                     ) : null}
                   </TabsContent>
 
-                  <TabsContent value="new" className="grid gap-4 md:grid-cols-2" data-testid="connection-dialog-create-new-grid">
+                  <TabsContent value="new" className="grid gap-3 md:grid-cols-2" data-testid="connection-dialog-create-new-grid">
                     <div className="space-y-2">
                       <Label htmlFor="endpoint-name">{copy.endpointName}</Label>
                       <Input
@@ -243,8 +243,8 @@ export function ConnectionDialog({
                 </Tabs>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]" data-testid="connection-dialog-main-grid">
-                <div className="space-y-6" data-testid="connection-dialog-left-column">
+              <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]" data-testid="connection-dialog-main-grid">
+                <div className="space-y-5" data-testid="connection-dialog-left-column">
                   <div className="space-y-2">
                     <Label htmlFor="conn-name">{copy.connectionNameOptional}</Label>
                     <Input
@@ -353,11 +353,11 @@ export function ConnectionDialog({
                   ) : null}
                 </div>
 
-                <div className="space-y-6" data-testid="connection-dialog-right-column">
-                  <div className="rounded-xl border bg-muted/20 p-4" data-testid="connection-dialog-limiter-card">
-                    <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+                <div className="space-y-4" data-testid="connection-dialog-right-column">
+                  <div className="rounded-xl border bg-muted/15 p-3.5" data-testid="connection-dialog-limiter-card">
+                    <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
                       {limiterFields.map((field) => (
-                        <div key={field.field} className="grid content-start gap-2">
+                        <div key={field.field} className="grid content-start gap-1.5">
                           <div className="min-h-14 space-y-1">
                             <Label htmlFor={field.id}>{field.label}</Label>
                             <p className="text-[11px] text-muted-foreground">{copy.leaveBlankForUnlimited}</p>
@@ -375,7 +375,7 @@ export function ConnectionDialog({
                     </div>
                   </div>
 
-                  <div className="space-y-3 rounded-xl border bg-muted/20 p-4 mb-2" data-testid="connection-dialog-custom-headers-card">
+                  <div className="space-y-3 rounded-xl border bg-muted/10 p-3.5" data-testid="connection-dialog-custom-headers-card">
                     <div className="flex items-center justify-between gap-3">
                       <Label>{copy.customHeaders}</Label>
                       <Button

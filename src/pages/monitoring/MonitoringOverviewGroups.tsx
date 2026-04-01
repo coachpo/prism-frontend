@@ -78,7 +78,7 @@ export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsPr
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <VendorIcon
-                        vendor={{ key: vendor.vendor_key, name: vendor.vendor_name }}
+                        vendor={{ key: vendor.vendor_key, name: vendor.vendor_name, icon_key: vendor.icon_key }}
                         size={20}
                         className="rounded-lg"
                       />

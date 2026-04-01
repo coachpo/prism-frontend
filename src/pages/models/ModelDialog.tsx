@@ -17,26 +17,27 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type {
   LoadbalanceStrategy,
-  ModelConfigCreate,
   ModelConfigListItem,
   Vendor,
 } from "@/lib/types";
-import type { SubmitEventLike } from "./modelFormState";
+import type { ModelFormData, SubmitEventLike } from "./modelFormState";
 import {
   appendProxyTarget,
   moveProxyTarget,
   normalizeProxyTargets,
   removeProxyTarget,
+  setDisplayNameOnForm,
+  setModelIdOnForm,
 } from "./modelFormState";
 
 type Props = {
   editingModel: ModelConfigListItem | null;
-  formData: ModelConfigCreate;
+  formData: ModelFormData;
   isDialogOpen: boolean;
   loadbalanceStrategies: LoadbalanceStrategy[];
   nativeModelsForApiFamily: ModelConfigListItem[];
   vendors: Vendor[];
-  setFormData: (value: ModelConfigCreate | ((prev: ModelConfigCreate) => ModelConfigCreate)) => void;
+  setFormData: (value: ModelFormData | ((prev: ModelFormData) => ModelFormData)) => void;
   setIsDialogOpen: (open: boolean) => void;
   setLoadbalanceStrategyId: (value: number | null) => void;
   setModelType: (value: "native" | "proxy") => void;
@@ -162,7 +163,7 @@ export function ModelDialog({
                 id="model-id"
                 name="model_id"
                 value={formData.model_id}
-                onChange={(e) => setFormData({ ...formData, model_id: e.target.value })}
+                onChange={(e) => setFormData((prev) => setModelIdOnForm(prev, e.target.value))}
                 placeholder={copy.modelIdPlaceholder}
                 required
               />
@@ -175,7 +176,7 @@ export function ModelDialog({
               id="model-display-name"
               name="display_name"
               value={formData.display_name ?? ""}
-              onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+              onChange={(e) => setFormData((prev) => setDisplayNameOnForm(prev, e.target.value))}
               placeholder={copy.optionalFriendlyName}
             />
           </div>

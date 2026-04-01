@@ -12,12 +12,17 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-function buildVendors(): MonitoringOverviewVendor[] {
+function buildVendorFixture(vendor: MonitoringOverviewVendor) {
+  return vendor;
+}
+
+function buildVendors() {
   return [
-    {
+    buildVendorFixture({
       vendor_id: 1,
       vendor_key: "openai",
       vendor_name: "OpenAI",
+      icon_key: "openai",
       model_count: 1,
       connection_count: 1,
       healthy_connection_count: 0,
@@ -70,7 +75,7 @@ function buildVendors(): MonitoringOverviewVendor[] {
           ],
         },
       ],
-    },
+    }),
   ];
 }
 
@@ -103,7 +108,12 @@ describe("MonitoringOverviewGroups", () => {
     const trigger = screen.getByRole("button", { name: /OpenAI/i });
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(within(trigger).getByText("OpenAI")).toBeInTheDocument();
-    expect(within(trigger).getByRole("img", { name: "Vendor icon OpenAI" })).toBeInTheDocument();
+
+    const vendorIcon = within(trigger).getByRole("img", { name: "Vendor icon OpenAI" });
+
+    expect(vendorIcon).toBeInTheDocument();
+    expect(vendorIcon.querySelector("svg")).not.toBeNull();
+    expect(vendorIcon).not.toHaveTextContent("O");
     expect(within(trigger).queryByText(/^Vendor:/i)).not.toBeInTheDocument();
     expect(within(trigger).queryByText("1 models")).not.toBeInTheDocument();
     expect(within(trigger).queryByText("1 connections")).not.toBeInTheDocument();

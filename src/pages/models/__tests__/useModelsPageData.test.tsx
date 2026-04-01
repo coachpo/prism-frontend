@@ -358,6 +358,26 @@ describe("useModelsPageData", () => {
     );
   });
 
+  it("defaults new native model dialogs to the first available loadbalance strategy", async () => {
+    api.loadbalanceStrategies.list.mockResolvedValue([
+      buildLoadbalanceStrategy({ id: 200, name: "first-listed" }),
+      buildLoadbalanceStrategy({ id: 100, name: "second-listed" }),
+    ]);
+
+    const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      result.current.handleOpenDialog();
+    });
+
+    expect(result.current.formData.model_type).toBe("native");
+    expect(result.current.formData.loadbalance_strategy_id).toBe(200);
+  });
+
   it("still requires a loadbalance strategy for native models", async () => {
     const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
 

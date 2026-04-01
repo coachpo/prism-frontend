@@ -189,6 +189,46 @@ function EmptyProxyTargetsHarness() {
   );
 }
 
+function NewNativeModelHarness({
+  loadbalanceStrategyList = loadbalanceStrategies,
+}: {
+  loadbalanceStrategyList?: LoadbalanceStrategy[];
+}) {
+  const vendors = [buildVendor()];
+  const [formData, setFormData] = useState<ModelConfigCreate>({
+    vendor_id: 7,
+    api_family: "openai",
+    model_id: "",
+    display_name: "",
+    model_type: "native",
+    loadbalance_strategy_id: loadbalanceStrategyList[0]?.id ?? null,
+    is_enabled: true,
+    proxy_targets: [],
+  });
+
+  return (
+    <LocaleProvider>
+      <ModelDialog
+        editingModel={null}
+        formData={formData}
+        isDialogOpen
+        loadbalanceStrategies={loadbalanceStrategyList}
+        nativeModelsForApiFamily={[]}
+        vendors={vendors}
+        setFormData={setFormData}
+        setIsDialogOpen={vi.fn()}
+        setLoadbalanceStrategyId={(value) => {
+          setFormData((current) => ({ ...current, loadbalance_strategy_id: value }));
+        }}
+        setModelType={(value) => {
+          setFormData((current) => ({ ...current, model_type: value }));
+        }}
+        onSubmit={vi.fn()}
+      />
+    </LocaleProvider>
+  );
+}
+
 describe("ModelDialog proxy target editing", () => {
   beforeEach(() => {
     const localStorageMock = createLocalStorageMock();
@@ -425,6 +465,38 @@ describe("ModelDialog proxy target editing", () => {
     expect(screen.getAllByRole("combobox")[3]).toHaveTextContent(
       "adaptive-availability (Adaptive routing · Maximize availability)",
     );
+  });
+
+  it("syncs display name from model id until the user replaces the auto-generated value", () => {
+    render(<NewNativeModelHarness />);
+
+    const modelIdInput = screen.getByLabelText("Model ID");
+    const displayNameInput = screen.getByLabelText("Display Name");
+
+    fireEvent.change(modelIdInput, { target: { value: "gpt-4o" } });
+    expect(displayNameInput).toHaveValue("gpt-4o");
+
+    fireEvent.change(modelIdInput, { target: { value: "gpt-4.1" } });
+    expect(displayNameInput).toHaveValue("gpt-4.1");
+
+    fireEvent.change(displayNameInput, { target: { value: "Friendly Gateway" } });
+    fireEvent.change(modelIdInput, { target: { value: "gpt-5.1" } });
+    expect(displayNameInput).toHaveValue("Friendly Gateway");
+
+    fireEvent.change(displayNameInput, { target: { value: "" } });
+    fireEvent.change(modelIdInput, { target: { value: "gpt-5.4-mini" } });
+    expect(displayNameInput).toHaveValue("gpt-5.4-mini");
+  });
+
+  it("replaces the native strategy select with a create-one notice when no strategies exist", () => {
+    render(<NewNativeModelHarness loadbalanceStrategyList={[]} />);
+
+    expect(
+      screen.getByText(
+        "No loadbalance strategies are available for this profile. Create one on the Loadbalance Strategies page first.",
+      ),
+    ).toBeInTheDocument();
+    expect(document.getElementById("model-loadbalance-strategy")).not.toBeInTheDocument();
   });
 
   it.fails("tracks the 390px long-text clipping regression for model identifiers", () => {
