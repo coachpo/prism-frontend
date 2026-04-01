@@ -1,9 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { MonitoringOverviewVendor } from "@/lib/types";
 import { MonitoringOverviewGroups } from "../MonitoringOverviewGroups";
 import { MonitoringPage } from "../../MonitoringPage";
+
+const { overviewRefreshSpy } = vi.hoisted(() => ({
+  overviewRefreshSpy: vi.fn(),
+}));
 
 vi.mock("@/context/ProfileContext", () => ({
   useProfileContext: () => ({ revision: 1, selectedProfileId: 7 }),
@@ -92,11 +96,16 @@ vi.mock("../useMonitoringOverviewData", () => ({
     },
     error: null,
     loading: false,
+    refresh: overviewRefreshSpy,
   }),
 }));
 
 describe("MonitoringPage", () => {
-  it("renders localized monitoring route copy without a manual refresh button", () => {
+  beforeEach(() => {
+    overviewRefreshSpy.mockClear();
+  });
+
+  it("renders localized monitoring route copy with an icon-only refresh button and no generated-at text", () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
     render(
@@ -106,7 +115,23 @@ describe("MonitoringPage", () => {
     );
 
     expect(screen.getByText("监控")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "刷新监控" })).not.toBeInTheDocument();
+    const refreshButton = screen.getByRole("button", { name: "刷新监控" });
+
+    expect(refreshButton).toBeInTheDocument();
+    expect(refreshButton).not.toHaveTextContent("刷新");
+    expect(screen.queryByText(/更新于/)).not.toBeInTheDocument();
+  });
+
+  it("reloads the monitoring overview when the refresh icon button is clicked", () => {
+    render(
+      <LocaleProvider>
+        <MonitoringPage />
+      </LocaleProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh monitoring" }));
+
+    expect(overviewRefreshSpy).toHaveBeenCalledTimes(1);
   });
 
   it("renders the vendor, model, and connection hierarchy on the single monitoring page", () => {

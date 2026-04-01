@@ -170,7 +170,6 @@ function buildHookValue(modelType: "native" | "proxy"): ModelDetailDataResult {
     handleConnectionSubmit: vi.fn(),
     handleDeleteConnection: vi.fn(),
     handleHealthCheck: vi.fn(),
-    handleHealthCheckAll: vi.fn(),
     handleDialogTestConnection: vi.fn(),
     handleToggleActive: vi.fn(),
     handleEditModelSubmit: vi.fn(),

@@ -113,7 +113,6 @@ export function useModelDetailData(id: string | undefined) {
     reorderInFlight,
     handleReorderConnections,
     handleHealthCheck,
-    handleHealthCheckAll,
     handleDialogTestConnection,
   } = useModelDetailConnectionFlows({
     connections,
@@ -254,7 +253,6 @@ export function useModelDetailData(id: string | undefined) {
     handleConnectionSubmit,
     handleDeleteConnection,
     handleHealthCheck,
-    handleHealthCheckAll,
     handleDialogTestConnection,
     handleToggleActive,
     handleEditModelSubmit,

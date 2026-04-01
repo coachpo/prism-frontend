@@ -89,7 +89,6 @@ export function ConnectionCard({
             />
 
             <ConnectionCardMetrics
-              formatTime={formatTime}
               monitoringConnection={monitoringConnection}
               monitoringLoading={monitoringLoading}
             />

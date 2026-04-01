@@ -94,6 +94,7 @@ describe("MonitoringOverviewGroups", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.doUnmock("@/components/MonitoringProbeHistoryStrip");
     vi.resetModules();
@@ -139,6 +140,61 @@ describe("MonitoringOverviewGroups", () => {
 
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByTestId("monitoring-connection-summary-grid")).not.toBeInTheDocument();
+  });
+
+  it("shows the next probe timing beside the latest probe timing", () => {
+    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-03-30T10:00:00Z").getTime());
+
+    const vendors = buildVendors();
+    vendors[0].models[0].connections[0].monitoring_probe_interval_seconds = 240;
+
+    renderMonitoringOverviewGroups(vendors);
+
+    expect(screen.getByText("Latest probe")).toBeInTheDocument();
+    expect(screen.getByText("1 min. ago")).toBeInTheDocument();
+    expect(screen.queryByText(/Next probe/i)).toBeInTheDocument();
+    expect(screen.getByText("in 3 min.")).toBeInTheDocument();
+  });
+
+  it("falls back to the latest successful probe history for last success and hides empty failure-kind detail", () => {
+    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-03-30T10:00:00Z").getTime());
+
+    const vendors = buildVendors();
+    const connection = vendors[0].models[0].connections[0];
+    connection.last_live_success_at = null;
+    connection.last_live_failure_at = null;
+    connection.last_live_failure_kind = null;
+    connection.recent_history = [
+      {
+        checked_at: "2026-03-30T09:00:00Z",
+        endpoint_ping_status: "healthy",
+        endpoint_ping_ms: 88,
+        conversation_status: "healthy",
+        conversation_delay_ms: 250,
+        failure_kind: null,
+      },
+      {
+        checked_at: "2026-03-30T09:30:00Z",
+        endpoint_ping_status: "failed",
+        endpoint_ping_ms: null,
+        conversation_status: "failed",
+        conversation_delay_ms: null,
+        failure_kind: "connect_error",
+      },
+      {
+        checked_at: "2026-03-30T09:45:00Z",
+        endpoint_ping_status: "failed",
+        endpoint_ping_ms: null,
+        conversation_status: "failed",
+        conversation_delay_ms: null,
+        failure_kind: "timeout",
+      },
+    ];
+
+    renderMonitoringOverviewGroups(vendors);
+
+    expect(screen.getByText("1 hr. ago")).toBeInTheDocument();
+    expect(screen.queryByText("Failure kind: None")).not.toBeInTheDocument();
   });
 
   it("renders the probe strip title, legend, tooltip details, and status-specific cell test ids", async () => {

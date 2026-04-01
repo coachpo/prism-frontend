@@ -125,9 +125,7 @@ function buildMonitoringConnection(connectionId: number, endpointName: string): 
     connection_name: `monitoring-${connectionId}`,
     endpoint_id: connectionId + 100,
     endpoint_name: endpointName,
-    monitoring_probe_interval_seconds: 300,
     last_probe_status: "healthy",
-    last_probe_at: "2026-03-20T10:05:00Z",
     circuit_state: "closed",
     live_p95_latency_ms: 125,
     last_live_failure_kind: null,
@@ -160,7 +158,6 @@ function renderSubject() {
         openConnectionDialog={vi.fn()}
         handleDeleteConnection={vi.fn()}
         handleHealthCheck={vi.fn()}
-        handleHealthCheckAll={vi.fn()}
         handleToggleActive={vi.fn()}
         handleReorderConnections={vi.fn().mockResolvedValue(undefined)}
         currentStateByConnectionId={new Map()}
@@ -191,7 +188,7 @@ describe("ConnectionsList", () => {
     expect(
       screen.queryByText("Connection metrics and health checks load on demand to avoid large page-open bursts."),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Check All" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check All" })).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText("Filter connections...")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add Connection" })).toBeInTheDocument();
 

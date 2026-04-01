@@ -143,9 +143,7 @@ function buildMonitoringConnection(
     connection_name: "Primary",
     endpoint_id: 7,
     endpoint_name: "Primary endpoint",
-    monitoring_probe_interval_seconds: 45,
     last_probe_status: "degraded",
-    last_probe_at: "2026-03-23T10:02:00Z",
     circuit_state: "half_open",
     live_p95_latency_ms: 420,
     last_live_failure_kind: "timeout",
@@ -514,13 +512,12 @@ describe("ConnectionCard cooldown state", () => {
 
       renderWithLocale(
         <ConnectionCardMetrics
-          formatTime={(value) => `formatted:${value}`}
           monitoringConnection={buildMonitoringConnection()}
           monitoringLoading={false}
         />,
       );
 
-      expect(screen.getByText("Next Update in 1 min.")).toBeInTheDocument();
+      expect(screen.queryByText(/Next Update/i)).not.toBeInTheDocument();
       expect(screen.queryByText("Healthy")).not.toBeInTheDocument();
       expect(screen.queryByText("Degraded")).not.toBeInTheDocument();
       expect(screen.queryByText("Latest Probe Degraded")).not.toBeInTheDocument();
@@ -540,7 +537,6 @@ describe("ConnectionCard cooldown state", () => {
   it("renders a compact placeholder while monitoring is still loading without a row", () => {
     renderWithLocale(
       <ConnectionCardMetrics
-        formatTime={(value) => `formatted:${value}`}
         monitoringConnection={undefined}
         monitoringLoading
       />,
@@ -554,7 +550,6 @@ describe("ConnectionCard cooldown state", () => {
   it("renders a 60-cell no-data strip once monitoring finishes without a row", () => {
     renderWithLocale(
       <ConnectionCardMetrics
-        formatTime={(value) => `formatted:${value}`}
         monitoringConnection={undefined}
         monitoringLoading={false}
       />,

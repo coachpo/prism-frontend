@@ -110,19 +110,6 @@ export function useModelDetailConnectionFlows({
     [runHealthChecks],
   );
 
-  const handleHealthCheckAll = useCallback(async () => {
-    const { failedCount, successfulChecks } = await runHealthChecks(
-      connections.map((connection) => connection.id)
-    );
-
-    if (successfulChecks.size > 0) {
-      toast.success(getStaticMessages().modelDetailData.checkedConnections(String(successfulChecks.size)));
-    }
-    if (failedCount > 0) {
-      toast.error(getStaticMessages().modelDetailData.healthCheckFailedFor(String(failedCount)));
-    }
-  }, [connections, runHealthChecks]);
-
   const handleDialogTestConnection = useCallback(async () => {
     if (!modelConfigId || !Number.isFinite(modelConfigId)) {
       return;
@@ -177,7 +164,6 @@ export function useModelDetailConnectionFlows({
     reorderInFlight,
     handleReorderConnections,
     handleHealthCheck,
-    handleHealthCheckAll,
     handleDialogTestConnection,
   };
 }

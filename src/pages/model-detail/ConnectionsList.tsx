@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/EmptyState";
 import { useLocale } from "@/i18n/useLocale";
-import { Activity, Loader2, Plus, Search, Shield } from "lucide-react";
+import { Plus, Search, Shield } from "lucide-react";
 import { useTimezone } from "@/hooks/useTimezone";
 import type { LoadbalanceCurrentStateItem, MonitoringModelConnection } from "@/lib/types";
 import { ConnectionCard } from "./connections-list/ConnectionCard";
@@ -44,7 +44,6 @@ interface ConnectionsListProps {
   openConnectionDialog: (connection?: Connection) => void;
   handleDeleteConnection: (id: number) => void;
   handleHealthCheck: (id: number) => void;
-  handleHealthCheckAll: () => void;
   handleToggleActive: (connection: Connection) => void;
   handleReorderConnections: (connectionId: number, toIndex: number) => Promise<void>;
   monitoringByConnectionId: Map<number, MonitoringModelConnection>;
@@ -66,7 +65,6 @@ export function ConnectionsList({
   openConnectionDialog,
   handleDeleteConnection,
   handleHealthCheck,
-  handleHealthCheckAll,
   handleToggleActive,
   handleReorderConnections,
   monitoringByConnectionId,
@@ -160,19 +158,6 @@ export function ConnectionsList({
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => void handleHealthCheckAll()}
-            disabled={connections.length === 0 || healthCheckingIds.size > 0}
-          >
-            {healthCheckingIds.size > 0 ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Activity className="mr-1.5 h-3.5 w-3.5" />
-            )}
-            {copy.checkAll}
-          </Button>
           {connections.length > 3 ? (
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />

@@ -30,11 +30,11 @@ export interface MonitoringVendorModel {
   display_name: string | null;
   fused_status: string;
   connection_count: number;
-  connections?: MonitoringModelConnection[];
+  connections?: MonitoringOverviewConnection[];
 }
 
 export interface MonitoringOverviewModel extends MonitoringVendorModel {
-  connections: MonitoringModelConnection[];
+  connections: MonitoringOverviewConnection[];
 }
 
 export interface MonitoringVendorResponse {
@@ -54,14 +54,12 @@ export interface MonitoringConnectionHistoryPoint {
   failure_kind: string | null;
 }
 
-export interface MonitoringModelConnection {
+interface MonitoringConnectionBase {
   connection_id: number;
   connection_name: string | null;
   endpoint_id: number;
   endpoint_name: string;
-  monitoring_probe_interval_seconds: number;
   last_probe_status: string | null;
-  last_probe_at: string | null;
   circuit_state: string | null;
   live_p95_latency_ms: number | null;
   last_live_failure_kind: string | null;
@@ -74,6 +72,13 @@ export interface MonitoringModelConnection {
   fused_status: string;
   recent_history: MonitoringConnectionHistoryPoint[];
 }
+
+export interface MonitoringOverviewConnection extends MonitoringConnectionBase {
+  monitoring_probe_interval_seconds: number;
+  last_probe_at: string | null;
+}
+
+export interface MonitoringModelConnection extends MonitoringConnectionBase {}
 
 export interface MonitoringModelResponse {
   generated_at: string;

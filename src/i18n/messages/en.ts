@@ -828,7 +828,6 @@ export interface Messages {
     backToModels: string;
     banned: string;
     cancel: string;
-    checkAll: string;
     checkedAt: (time: string) => string;
     checkingNow: string;
     connectionActions: string;
@@ -939,7 +938,6 @@ export interface Messages {
     monitoringProbeIntervalSeconds: string;
     latestProbeAt: (value: string) => string;
     latestProbeStatus: (status: string) => string;
-    nextUpdateIn: (value: string) => string;
     lastLiveFailureKind: (value: string) => string;
     lastLiveSuccessAt: (value: string) => string;
     endpointMonitoringValue: (value: string) => string;
@@ -1147,7 +1145,6 @@ export interface Messages {
     updateFailed: string;
   };
   modelDetailData: {
-    checkedConnections: (count: string) => string;
     connectionFallback: (id: string) => string;
     connectionCreated: string;
     connectionDeleted: string;
@@ -1158,7 +1155,6 @@ export interface Messages {
     fillEndpointFields: string;
     healthCheckResult: (status: string, latencyMs: string) => string;
     healthCheckFailed: string;
-    healthCheckFailedFor: (count: string) => string;
     loadRecoveryStateFailed: string;
     modelUpdated: string;
     proxyTargetsUpdated: string;
@@ -1197,6 +1193,7 @@ export interface Messages {
     lastFailureLabel: string;
     lastProbeSummary: (connectionId: string, checkedAt: string, detail: string) => string;
     lastProbeLabel: string;
+    nextProbeLabel: string;
     lastSuccessLabel: string;
     liveP95SummaryLabel: string;
     loadModelFailed: string;
@@ -2379,7 +2376,6 @@ export const enMessages: Messages = {
     backToModels: "Back to models",
     banned: "Banned",
     cancel: "Cancel",
-    checkAll: "Check All",
     checkedAt: (time) => `Checked ${time}`,
     checkingNow: "Checking now...",
     connectionActions: "Connection actions",
@@ -2491,7 +2487,6 @@ export const enMessages: Messages = {
     monitoringProbeIntervalSeconds: "Probe interval (seconds)",
     latestProbeAt: (value) => `Last probe ${value}`,
     latestProbeStatus: (status) => `Latest probe ${status}`,
-    nextUpdateIn: (value) => `Next Update ${value}`,
     lastLiveFailureKind: (value) => `Failure ${value}`,
     lastLiveSuccessAt: (value) => `Last success ${value}`,
     endpointMonitoringValue: (value) => `Endpoint ${value}`,
@@ -2535,7 +2530,6 @@ export const enMessages: Messages = {
     viewRequestLogs: "View Request Logs",
   },
   modelDetailData: {
-    checkedConnections: (count) => `Checked ${count} connection${count === "1" ? "" : "s"}`,
     connectionFallback: (id) => `Connection ${id}`,
     connectionCreated: "Connection created",
     connectionDeleted: "Connection deleted",
@@ -2546,7 +2540,6 @@ export const enMessages: Messages = {
     fillEndpointFields: "Please fill in all endpoint fields",
     healthCheckResult: (status, latencyMs) => `Health: ${status} (${latencyMs}ms)`,
     healthCheckFailed: "Health check failed",
-    healthCheckFailedFor: (count) => `Health check failed for ${count} connection${count === "1" ? "" : "s"}`,
     loadRecoveryStateFailed: "Failed to load recovery state",
     modelUpdated: "Model updated",
     proxyTargetsUpdated: "Proxy targets updated",
@@ -2586,6 +2579,7 @@ export const enMessages: Messages = {
     lastProbeSummary: (connectionId, checkedAt, detail) =>
       `Latest manual probe for connection #${connectionId} completed at ${checkedAt}: ${detail}`,
     lastProbeLabel: "Latest probe",
+    nextProbeLabel: "Next probe",
     lastSuccessLabel: "Last success",
     liveP95SummaryLabel: "Live p95",
     loadModelFailed: "Failed to load monitoring model data",
