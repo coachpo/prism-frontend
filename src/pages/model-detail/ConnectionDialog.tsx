@@ -153,7 +153,7 @@ export function ConnectionDialog({
           />
           <ScrollArea className="min-h-0 flex-1">
             <div className="space-y-6 px-6 py-5 pb-28">
-              <div className="space-y-4 rounded-xl border bg-muted/30 p-4 lg:p-5">
+              <div className="space-y-4 rounded-xl border bg-muted/30 p-4 lg:p-5" data-testid="connection-dialog-endpoint-source-section">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <Label className="text-sm font-medium">{copy.endpointSource}</Label>
@@ -202,7 +202,7 @@ export function ConnectionDialog({
                     ) : null}
                   </TabsContent>
 
-                  <TabsContent value="new" className="grid gap-4 md:grid-cols-2">
+                  <TabsContent value="new" className="grid gap-4 md:grid-cols-2" data-testid="connection-dialog-create-new-grid">
                     <div className="space-y-2">
                       <Label htmlFor="endpoint-name">{copy.endpointName}</Label>
                       <Input
@@ -243,122 +243,118 @@ export function ConnectionDialog({
                 </Tabs>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-                <div className="space-y-6">
-                  <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_18rem]">
-                    <div className="space-y-2">
-                      <Label htmlFor="conn-name">{copy.connectionNameOptional}</Label>
-                      <Input
-                        id="conn-name"
-                        name="name"
-                        placeholder={copy.connectionDisplayNamePlaceholder}
-                        value={connectionForm.name || ""}
-                        onChange={(e) => setConnectionForm({ ...connectionForm, name: e.target.value })}
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        {copy.useEndpointNameFallback(endpointSourceDefaultName)}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-dashed bg-muted/20 p-3 text-[11px] text-muted-foreground">
-                      {copy.routingPriorityHint}
-                    </div>
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]" data-testid="connection-dialog-main-grid">
+                <div className="space-y-6" data-testid="connection-dialog-left-column">
+                  <div className="space-y-2">
+                    <Label htmlFor="conn-name">{copy.connectionNameOptional}</Label>
+                    <Input
+                      id="conn-name"
+                      name="name"
+                      placeholder={copy.connectionDisplayNamePlaceholder}
+                      value={connectionForm.name || ""}
+                      onChange={(e) => setConnectionForm({ ...connectionForm, name: e.target.value })}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      {copy.useEndpointNameFallback(endpointSourceDefaultName)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{copy.routingPriorityHint}</p>
                   </div>
 
-                  <SwitchController
-                    label={copy.active}
-                    description={copy.includeInLoadBalancing}
-                    checked={connectionForm.is_active ?? true}
-                    onCheckedChange={(checked) => setConnectionForm({ ...connectionForm, is_active: checked })}
-                  />
+                  <div>
+                    <SwitchController
+                      label={copy.active}
+                      description={copy.includeInLoadBalancing}
+                      checked={connectionForm.is_active ?? true}
+                      onCheckedChange={(checked) => setConnectionForm({ ...connectionForm, is_active: checked })}
+                    />
+                  </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="conn-pricing-template">{copy.pricingTemplate}</Label>
+                    <Select
+                      value={connectionForm.pricing_template_id ? String(connectionForm.pricing_template_id) : "unpriced"}
+                      onValueChange={(value) => {
+                        setConnectionForm({
+                          ...connectionForm,
+                          pricing_template_id: value === "unpriced" ? null : parseInt(value, 10),
+                        });
+                      }}
+                    >
+                      <SelectTrigger id="conn-pricing-template">
+                        <SelectValue placeholder={copy.pricingTemplatePlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unpriced">{copy.unpricedNoCostTracking}</SelectItem>
+                        {pricingTemplates.map((template) => (
+                          <SelectItem key={template.id} value={String(template.id)}>
+                            {template.name} v{template.version}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">{copy.pricingTemplateHint}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="conn-monitoring-probe-interval-seconds">
+                      {copy.monitoringProbeIntervalSeconds}
+                    </Label>
+                    <Input
+                      id="conn-monitoring-probe-interval-seconds"
+                      name="monitoring_probe_interval_seconds"
+                      type="number"
+                      min="30"
+                      max="3600"
+                      step="1"
+                      value={connectionForm.monitoring_probe_interval_seconds ?? 300}
+                      onChange={(e) => {
+                        const rawValue = e.target.value;
+                        const parsedValue = Number.parseInt(rawValue, 10);
+                        setConnectionForm({
+                          ...connectionForm,
+                          monitoring_probe_interval_seconds:
+                            rawValue === "" || Number.isNaN(parsedValue)
+                              ? 300
+                              : normalizeConnectionProbeIntervalSeconds(parsedValue),
+                        });
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground">{copy.monitoringProbeIntervalHint}</p>
+                  </div>
+
+                  {showOpenAiProbeEndpointVariant ? (
                     <div className="space-y-2">
-                      <Label htmlFor="conn-pricing-template">{copy.pricingTemplate}</Label>
+                      <Label htmlFor="conn-openai-probe-endpoint-variant">{copy.openaiProbeEndpointVariant}</Label>
                       <Select
-                        value={connectionForm.pricing_template_id ? String(connectionForm.pricing_template_id) : "unpriced"}
+                        value={connectionForm.openai_probe_endpoint_variant ?? "responses"}
                         onValueChange={(value) => {
                           setConnectionForm({
                             ...connectionForm,
-                            pricing_template_id: value === "unpriced" ? null : parseInt(value, 10),
+                            openai_probe_endpoint_variant:
+                              value === "chat_completions" ? "chat_completions" : "responses",
                           });
                         }}
                       >
-                        <SelectTrigger id="conn-pricing-template">
-                          <SelectValue placeholder={copy.pricingTemplatePlaceholder} />
+                        <SelectTrigger
+                          id="conn-openai-probe-endpoint-variant"
+                          aria-label={copy.openaiProbeEndpointVariant}
+                        >
+                          <SelectValue placeholder={copy.openaiProbeEndpointVariant} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="unpriced">{copy.unpricedNoCostTracking}</SelectItem>
-                          {pricingTemplates.map((template) => (
-                            <SelectItem key={template.id} value={String(template.id)}>
-                              {template.name} v{template.version}
-                            </SelectItem>
-                          ))}
+                          <SelectItem value="responses">{copy.openaiProbeResponses}</SelectItem>
+                          <SelectItem value="chat_completions">{copy.openaiProbeChatCompletions}</SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-[11px] text-muted-foreground">{copy.pricingTemplateHint}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {copy.openaiProbeEndpointVariantHint}
+                      </p>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="conn-monitoring-probe-interval-seconds">
-                        {copy.monitoringProbeIntervalSeconds}
-                      </Label>
-                      <Input
-                        id="conn-monitoring-probe-interval-seconds"
-                        name="monitoring_probe_interval_seconds"
-                        type="number"
-                        min="30"
-                        max="3600"
-                        step="1"
-                        value={connectionForm.monitoring_probe_interval_seconds ?? 300}
-                        onChange={(e) => {
-                          const rawValue = e.target.value;
-                          const parsedValue = Number.parseInt(rawValue, 10);
-                          setConnectionForm({
-                            ...connectionForm,
-                            monitoring_probe_interval_seconds:
-                              rawValue === "" || Number.isNaN(parsedValue)
-                                ? 300
-                                : normalizeConnectionProbeIntervalSeconds(parsedValue),
-                          });
-                        }}
-                      />
-                      <p className="text-[11px] text-muted-foreground">{copy.monitoringProbeIntervalHint}</p>
-                    </div>
-
-                    {showOpenAiProbeEndpointVariant ? (
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="conn-openai-probe-endpoint-variant">{copy.openaiProbeEndpointVariant}</Label>
-                        <Select
-                          value={connectionForm.openai_probe_endpoint_variant ?? "responses"}
-                          onValueChange={(value) => {
-                            setConnectionForm({
-                              ...connectionForm,
-                              openai_probe_endpoint_variant:
-                                value === "chat_completions" ? "chat_completions" : "responses",
-                            });
-                          }}
-                        >
-                          <SelectTrigger
-                            id="conn-openai-probe-endpoint-variant"
-                            aria-label={copy.openaiProbeEndpointVariant}
-                          >
-                            <SelectValue placeholder={copy.openaiProbeEndpointVariant} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="responses">{copy.openaiProbeResponses}</SelectItem>
-                            <SelectItem value="chat_completions">{copy.openaiProbeChatCompletions}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="text-[11px] text-muted-foreground">
-                          {copy.openaiProbeEndpointVariantHint}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
+                  ) : null}
                 </div>
 
-                <div className="space-y-6">
-                  <div className="rounded-xl border bg-muted/20 p-4">
+                <div className="space-y-6" data-testid="connection-dialog-right-column">
+                  <div className="rounded-xl border bg-muted/20 p-4" data-testid="connection-dialog-limiter-card">
                     <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
                       {limiterFields.map((field) => (
                         <div key={field.field} className="grid content-start gap-2">
@@ -379,7 +375,7 @@ export function ConnectionDialog({
                     </div>
                   </div>
 
-                  <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+                  <div className="space-y-3 rounded-xl border bg-muted/20 p-4 mb-2" data-testid="connection-dialog-custom-headers-card">
                     <div className="flex items-center justify-between gap-3">
                       <Label>{copy.customHeaders}</Label>
                       <Button

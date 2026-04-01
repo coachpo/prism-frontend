@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
@@ -359,6 +359,45 @@ describe("ConnectionDialog limiter fields", () => {
     expect(scrollArea).toBeInTheDocument();
     expect(scrollArea).toHaveClass("min-h-0", "flex-1");
     expect(scrollArea?.querySelector("div.space-y-6")).toHaveClass("pb-28");
+
+    const mainGrid = screen.getByTestId("connection-dialog-main-grid");
+    const leftColumn = screen.getByTestId("connection-dialog-left-column");
+    const rightColumn = screen.getByTestId("connection-dialog-right-column");
+    const limiterCard = screen.getByTestId("connection-dialog-limiter-card");
+    const headersCard = screen.getByTestId("connection-dialog-custom-headers-card");
+
+    expect(mainGrid).toHaveClass("xl:grid-cols-[minmax(0,1fr)_22rem]");
+    expect(leftColumn.compareDocumentPosition(rightColumn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(limiterCard.compareDocumentPosition(headersCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(leftColumn).getByLabelText("Name (Optional)")).toBeInTheDocument();
+    expect(within(leftColumn).getByText("Active")).toBeInTheDocument();
+    expect(within(leftColumn).getByLabelText("Pricing Template")).toBeInTheDocument();
+    expect(within(leftColumn).getByLabelText("Probe interval (seconds)")).toBeInTheDocument();
+    expect(within(leftColumn).getByLabelText("OpenAI probe endpoint")).toBeInTheDocument();
+  });
+
+  it("groups create-new endpoint fields into a two-up row with api key below", async () => {
+    renderWithLocale(<ConnectionDialogHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
+
+    const createNewTab = screen.getByRole("tab", { name: "Create New" });
+    fireEvent.click(createNewTab);
+
+    const createNewGrid = screen.getByTestId("connection-dialog-create-new-grid");
+    const endpointName = screen.getByLabelText("Name").closest("div");
+    const endpointBaseUrl = screen.getByLabelText("Base URL").closest("div");
+    const endpointApiKey = screen.getByLabelText("API Key").closest("div");
+
+    expect(createNewGrid).toHaveClass("md:grid-cols-2");
+    expect(endpointApiKey).toHaveClass("md:col-span-2");
+    expect(endpointName).not.toBeNull();
+    expect(endpointBaseUrl).not.toBeNull();
+    expect(endpointApiKey).not.toBeNull();
+    expect(endpointName!.compareDocumentPosition(endpointBaseUrl!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(endpointBaseUrl!.compareDocumentPosition(endpointApiKey!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("shows the OpenAI probe variant selector only for OpenAI models", async () => {

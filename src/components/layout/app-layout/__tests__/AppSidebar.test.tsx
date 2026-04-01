@@ -84,6 +84,17 @@ describe("AppSidebar", () => {
     );
   });
 
+  it("renders the footer separator with inset width that stays inside the sidebar shell", async () => {
+    const { container } = await renderSidebar();
+
+    const separator = container.querySelector('[data-sidebar="separator"]');
+
+    expect(separator).not.toBeNull();
+    expect(separator?.className).toContain("data-[orientation=horizontal]:w-[calc(100%-1rem)]");
+    expect(separator?.className).not.toContain("mx-2");
+    expect(separator?.className).not.toContain("w-auto");
+  });
+
   it("renders the version label with the app version first and git metadata second", async () => {
     const { VERSION_LABEL } = await renderSidebar();
 
