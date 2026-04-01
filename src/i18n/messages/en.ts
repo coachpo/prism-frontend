@@ -1506,9 +1506,16 @@ export interface Messages {
     healthStatusDown: string;
     healthStatusIdle: string;
     healthStatusOk: string;
+    heatmapLegendLessAvailability: string;
+    heatmapLegendMoreAvailability: string;
+    latest: string;
     noTokenUsage: string;
+    oldest: string;
+    serviceHealthIntervalHours: (count: number) => string;
+    serviceHealthIntervalMinutes: (count: number) => string;
     successful: (count: string) => string;
     successfulCount: (count: string) => string;
+    serviceHealthWindowDays: (count: number) => string;
     successOnly: string;
     successRate: string;
     specialTokens: string;
@@ -3103,9 +3110,16 @@ export const enMessages: Messages = {
     healthStatusDown: "Down",
     healthStatusIdle: "Idle",
     healthStatusOk: "OK",
+    heatmapLegendLessAvailability: "Lower availability",
+    heatmapLegendMoreAvailability: "Higher availability",
+    latest: "Latest",
     noTokenUsage: "No token usage",
+    oldest: "Oldest",
+    serviceHealthIntervalHours: (count) => (count === 1 ? "1 hour" : `${count} hours`),
+    serviceHealthIntervalMinutes: (count) => (count === 1 ? "1 minute" : `${count} minutes`),
     successful: (count) => `${count} successful`,
     successfulCount: (count) => `${count} successful`,
+    serviceHealthWindowDays: (count: number) => (count === 1 ? "Last day" : `Last ${count} days`),
     successOnly: "Successful only",
     successRate: "Success Rate",
     specialTokens: "Special Tokens",

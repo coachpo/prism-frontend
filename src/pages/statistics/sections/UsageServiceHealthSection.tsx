@@ -1,7 +1,4 @@
-import { ActivitySquare } from "lucide-react";
-import { EmptyState } from "@/components/EmptyState";
-import { MetricCard } from "@/components/MetricCard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useLocale } from "@/i18n/useLocale";
 import type { UsageServiceHealth } from "@/lib/types";
 import { UsageHealthHeatmap } from "../charts/UsageHealthHeatmap";
@@ -14,83 +11,55 @@ export function UsageServiceHealthSection({ serviceHealth }: UsageServiceHealthS
   const { formatNumber, messages } = useLocale();
   const availabilityPercent =
     serviceHealth.availability_percentage === null || serviceHealth.availability_percentage === undefined
-      ? "—"
+      ? null
       : formatNumber(serviceHealth.availability_percentage, {
           minimumFractionDigits: 1,
           maximumFractionDigits: 1,
         });
+  const availabilitySummary = availabilityPercent === null ? "—" : `${availabilityPercent}%`;
+  const windowDayCount = resolveWindowDayCount(serviceHealth);
 
   return (
-    <section className="space-y-4">
-      <div className="space-y-1">
-        <h2 className="text-lg font-semibold tracking-tight">{messages.statistics.serviceHealthTitle}</h2>
-        <p className="text-sm text-muted-foreground">
-          {messages.statistics.requests} {formatNumber(serviceHealth.request_count)} · {messages.statistics.successRate} {availabilityPercent}%
-        </p>
-      </div>
+    <section>
+      <Card className="border-border/70 bg-card/95 shadow-none" data-testid="usage-service-health-card">
+        <CardHeader className="grid-cols-[1fr_auto] grid-rows-1 items-start gap-4 pb-2">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold tracking-tight">{messages.statistics.serviceHealthTitle}</h2>
+          </div>
 
-      <Card className="border-border/70 bg-card/95 shadow-none">
-        <CardHeader className="border-b border-border/60 pb-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <CardTitle className="text-base tracking-tight">{messages.statistics.availability}</CardTitle>
-                <CardDescription>{messages.statistics.health}</CardDescription>
-              </div>
-
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground" data-testid="usage-health-legend">
-                <span className="rounded-full border border-success/40 bg-success/10 px-2.5 py-1 text-success">
-                  {messages.statistics.healthStatusOk}
-                </span>
-                <span className="rounded-full border border-warning/40 bg-warning/15 px-2.5 py-1 text-warning-foreground dark:text-warning">
-                  {messages.statistics.healthStatusDegraded}
-                </span>
-                <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-destructive">
-                  {messages.statistics.healthStatusDown}
-                </span>
-                <span className="rounded-full border border-border/70 bg-muted/40 px-2.5 py-1">
-                  {messages.statistics.healthStatusIdle}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[26rem]">
-              <MetricCard
-                className="border-border/60 bg-muted/25 shadow-none [&_[data-slot=metric-label]]:text-xs [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em]"
-                label={messages.statistics.availability}
-                value={`${availabilityPercent}%`}
-              />
-              <MetricCard
-                className="border-border/60 bg-muted/25 shadow-none [&_[data-slot=metric-label]]:text-xs [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em]"
-                label={messages.statistics.requests}
-                value={formatNumber(serviceHealth.request_count)}
-              />
-              <MetricCard
-                className="border-border/60 bg-muted/25 shadow-none [&_[data-slot=metric-label]]:text-xs [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em]"
-                label={messages.statistics.errors}
-                value={formatNumber(serviceHealth.failed_count)}
-              />
+          <div className="flex flex-wrap items-center justify-end gap-2" data-testid="usage-health-header-meta">
+            <p
+              className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+              data-testid="usage-health-window-label"
+            >
+              {messages.statistics.serviceHealthWindowDays(windowDayCount)}
+            </p>
+            <div
+              className="inline-flex items-center rounded-full border border-border/50 bg-muted/20 px-3 py-1 text-sm font-semibold tabular-nums"
+              data-testid="usage-health-availability-badge"
+            >
+              {availabilitySummary}
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-6">
-          {serviceHealth.cells && serviceHealth.cells.length > 0 ? (
-            <div className="rounded-2xl border border-border/60 bg-muted/20 p-3 sm:p-4" data-testid="usage-health-strip">
-              <UsageHealthHeatmap
-                cells={serviceHealth.cells}
-                intervalMinutes={serviceHealth.interval_minutes}
-              />
-            </div>
-          ) : (
-            <EmptyState
-              className="py-8"
-              description={messages.statistics.noDataAvailable}
-              icon={<ActivitySquare className="h-6 w-6" />}
-              title={messages.statistics.serviceHealthTitle}
-            />
-          )}
+
+        <CardContent className="pt-5">
+          <UsageHealthHeatmap
+            cells={serviceHealth.cells ?? []}
+            days={serviceHealth.days}
+            intervalMinutes={serviceHealth.interval_minutes}
+          />
         </CardContent>
       </Card>
     </section>
   );
+}
+
+function resolveWindowDayCount(serviceHealth: UsageServiceHealth) {
+  if (serviceHealth.days && Number.isFinite(serviceHealth.days) && serviceHealth.days > 0) {
+    return Math.max(1, Math.floor(serviceHealth.days));
+  }
+
+  const uniqueDayCount = new Set((serviceHealth.cells ?? []).map((cell) => cell.bucket_start.slice(0, 10))).size;
+  return Math.max(1, uniqueDayCount || 1);
 }
