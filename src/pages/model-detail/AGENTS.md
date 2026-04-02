@@ -1,7 +1,7 @@
 # FRONTEND MODEL DETAIL DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/model-detail/` owns the heavy route logic behind `../ModelDetailPage.tsx` and `../ProxyModelDetailPage.tsx`: bootstrap and redirect handling, model data shaping, strategy summary display, ordered proxy-target summary/editing for proxy models, connection mutation flows, manual health checks, 24-hour KPIs, model-scoped loadbalance events, current recovery state (cooldown plus ban state), and the parent-covered `connections-list/` UI cluster.
+`pages/model-detail/` owns the heavy route logic behind `../ModelDetailPage.tsx` and `../ProxyModelDetailPage.tsx`: bootstrap and redirect handling, family-aware strategy summary display, ordered proxy-target summary/editing for proxy models, connection mutation flows, manual health checks, 24-hour KPIs, model-scoped loadbalance events, current recovery state (cooldown plus ban state), and the parent-covered `connections-list/` UI cluster.
 
 ## STRUCTURE
 ```
