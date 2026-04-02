@@ -41,13 +41,7 @@ function buildVendors() {
               endpoint_id: 5,
               endpoint_name: "Primary endpoint",
               monitoring_probe_interval_seconds: 45,
-              last_probe_status: "healthy",
               last_probe_at: "2026-03-30T09:59:00Z",
-              circuit_state: "closed",
-              live_p95_latency_ms: 480,
-              last_live_failure_kind: "connect_error",
-              last_live_failure_at: "2026-03-30T09:57:00Z",
-              last_live_success_at: "2026-03-30T09:58:00Z",
               endpoint_ping_status: "healthy",
               endpoint_ping_ms: 82,
               conversation_status: "degraded",
@@ -100,7 +94,7 @@ describe("MonitoringOverviewGroups", () => {
     vi.resetModules();
   });
 
-  it("starts collapsed and renders a compact connection summary grid after expansion", () => {
+  it("starts collapsed and renders only rollback-safe connection summaries after expansion", () => {
     renderMonitoringOverviewGroups(buildVendors());
 
     expect(screen.queryByText("Vendor groups")).not.toBeInTheDocument();
@@ -129,11 +123,14 @@ describe("MonitoringOverviewGroups", () => {
 
     const summaryGrid = screen.getByTestId("monitoring-connection-summary-grid");
 
-    expect(within(summaryGrid).getAllByTestId("monitoring-connection-summary-tile")).toHaveLength(6);
+    expect(within(summaryGrid).getAllByTestId("monitoring-connection-summary-tile")).toHaveLength(2);
     expect(screen.getByText("82 ms")).toBeInTheDocument();
     expect(screen.getByText("310 ms")).toBeInTheDocument();
-    expect(screen.getByText("480 ms")).toBeInTheDocument();
     expect(screen.getByText("#91")).toBeInTheDocument();
+    expect(screen.queryByText("480 ms")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Last success/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Last failure/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Failure kind$/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Fused Degraded")).not.toBeInTheDocument();
     expect(screen.queryByText("Closed")).not.toBeInTheDocument();
     expect(screen.queryByText("45s cadence")).not.toBeInTheDocument();
@@ -164,14 +161,11 @@ describe("MonitoringOverviewGroups", () => {
     expect(screen.getByText("in 3 min.")).toBeInTheDocument();
   });
 
-  it("falls back to the latest successful probe history for last success and hides empty failure-kind detail", () => {
+  it("keeps the rollback-safe overview limited to probe timing, summary latency, and history", () => {
     vi.spyOn(Date, "now").mockReturnValue(new Date("2026-03-30T10:00:00Z").getTime());
 
     const vendors = buildVendors();
     const connection = vendors[0].models[0].connections[0];
-    connection.last_live_success_at = null;
-    connection.last_live_failure_at = null;
-    connection.last_live_failure_kind = null;
     connection.recent_history = [
       {
         checked_at: "2026-03-30T09:00:00Z",
@@ -203,7 +197,11 @@ describe("MonitoringOverviewGroups", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /OpenAI/i }));
 
-    expect(screen.getByText("1 hr. ago")).toBeInTheDocument();
+    expect(screen.getByText("1 min. ago")).toBeInTheDocument();
+    expect(screen.getByText("Past 60 probes")).toBeInTheDocument();
+    expect(screen.queryByText("1 hr. ago")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Last success/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Last failure/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Failure kind: None")).not.toBeInTheDocument();
   });
 

@@ -8,37 +8,22 @@ function buildStrategy(overrides: Partial<LoadbalanceStrategy> = {}): Loadbalanc
   return {
     id: 12,
     profile_id: 3,
-    name: "adaptive-primary",
-    routing_policy: {
-      kind: "adaptive",
-      routing_objective: "maximize_availability",
-      deadline_budget_ms: 30000,
-      hedge: {
-        enabled: false,
-        delay_ms: 1500,
-        max_additional_attempts: 1,
-      },
-      circuit_breaker: {
-        failure_status_codes: [429, 503],
-        base_open_seconds: 45,
+    name: "legacy-round-robin",
+    strategy_type: "round-robin",
+    auto_recovery: {
+      mode: "enabled",
+      status_codes: [429, 503],
+      cooldown: {
+        base_seconds: 45,
         failure_threshold: 4,
         backoff_multiplier: 3.5,
-        max_open_seconds: 720,
+        max_cooldown_seconds: 720,
         jitter_ratio: 0.35,
-        ban_mode: "temporary",
-        max_open_strikes_before_ban: 3,
+      },
+      ban: {
+        mode: "temporary",
+        max_cooldown_strikes_before_ban: 3,
         ban_duration_seconds: 1800,
-      },
-      admission: {
-        respect_qps_limit: true,
-        respect_in_flight_limits: true,
-      },
-      monitoring: {
-        enabled: true,
-        stale_after_seconds: 300,
-        endpoint_ping_weight: 1,
-        conversation_delay_weight: 1,
-        failure_penalty_weight: 2,
       },
     },
     attached_model_count: 4,
@@ -108,7 +93,7 @@ describe("LoadbalanceStrategiesTable", () => {
     expect(editIcon).toHaveClass("animate-spin");
   });
 
-  it("shows adaptive routing copy and compact circuit-breaker summaries", () => {
+  it("shows legacy strategy labels and failover summaries without adaptive wording", () => {
     const strategy = buildStrategy();
 
     render(
@@ -126,11 +111,13 @@ describe("LoadbalanceStrategiesTable", () => {
 
     const table = screen.getByRole("table");
 
-    expect(table).toHaveTextContent("Adaptive routing");
-    expect(table).toHaveTextContent("Maximize Availability");
-    expect(table).toHaveTextContent("Threshold 4 • Base 45s • Max 720s");
-    expect(table).toHaveTextContent("Backoff ×3.5 • Jitter 0.35 • Failure status codes 429, 503");
-    expect(table).toHaveTextContent("Ban temporary");
+    expect(table).toHaveTextContent(/Round robin/i);
+    expect(table).toHaveTextContent("Auto recovery enabled");
+    expect(table).toHaveTextContent("Status codes 429, 503");
+    expect(table).toHaveTextContent("Cooldown 45s base • 720s max");
+    expect(table).toHaveTextContent("Temporary ban after 3 max-cooldown strikes • 1,800s");
+    expect(table).not.toHaveTextContent("Adaptive routing");
+    expect(table).not.toHaveTextContent("Maximize Availability");
   });
 
   it("renders localized table copy when the saved locale is Chinese", () => {
@@ -151,6 +138,6 @@ describe("LoadbalanceStrategiesTable", () => {
 
     expect(screen.getByText("负载均衡策略")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "新增策略" })).toBeInTheDocument();
-    expect(screen.getByText("当前没有配置负载均衡策略。")).toBeInTheDocument();
+    expect(screen.getByText("当前没有配置负载均衡策略。" )).toBeInTheDocument();
   });
 });

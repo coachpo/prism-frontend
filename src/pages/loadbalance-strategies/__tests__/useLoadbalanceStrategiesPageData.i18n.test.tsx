@@ -2,7 +2,8 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import type { LoadbalanceStrategy } from "@/lib/types";
-import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
+import { getDefaultAutoRecovery } from "@/lib/loadbalanceRoutingPolicy";
+import { getDefaultAutoRecoveryDraft } from "../loadbalanceStrategyFormState";
 import { useLoadbalanceStrategiesPageData } from "../useLoadbalanceStrategiesPageData";
 
 const api = vi.hoisted(() => ({
@@ -36,7 +37,8 @@ function buildStrategy(overrides: Partial<LoadbalanceStrategy> = {}): Loadbalanc
     id: 1,
     profile_id: 1,
     name: "Primary single",
-    routing_policy: createDefaultRoutingPolicy(),
+    strategy_type: "single",
+    auto_recovery: { mode: "disabled" },
     attached_model_count: 0,
     created_at: "2026-03-30T09:00:00Z",
     updated_at: "2026-03-30T10:00:00Z",
@@ -68,7 +70,9 @@ describe("useLoadbalanceStrategiesPageData i18n", () => {
   it("keeps the create draft stable while closing after a successful save", async () => {
     const created = buildStrategy({
       id: 3,
-      name: "Canary strategy",
+      name: "Canary fill-first",
+      strategy_type: "fill-first",
+      auto_recovery: getDefaultAutoRecovery("fill-first"),
       updated_at: "2026-03-30T11:00:00Z",
     });
     api.loadbalanceStrategies.create.mockResolvedValue(created);
@@ -83,7 +87,9 @@ describe("useLoadbalanceStrategiesPageData i18n", () => {
       result.current.openCreateLoadbalanceStrategyDialog();
       result.current.setLoadbalanceStrategyForm((prev) => ({
         ...prev,
-        name: "Canary strategy",
+        name: "Canary fill-first",
+        strategy_type: "fill-first",
+        auto_recovery: getDefaultAutoRecoveryDraft("fill-first"),
       }));
     });
 
@@ -92,14 +98,16 @@ describe("useLoadbalanceStrategiesPageData i18n", () => {
     });
 
     expect(api.loadbalanceStrategies.create).toHaveBeenCalledWith({
-      name: "Canary strategy",
-      routing_policy: createDefaultRoutingPolicy(),
+      name: "Canary fill-first",
+      strategy_type: "fill-first",
+      auto_recovery: getDefaultAutoRecovery("fill-first"),
     });
     expect(result.current.loadbalanceStrategyDialogOpen).toBe(false);
     expect(result.current.loadbalanceStrategyForm).toMatchObject({
-      name: "Canary strategy",
-      routing_policy: {
-        kind: "adaptive",
+      name: "Canary fill-first",
+      strategy_type: "fill-first",
+      auto_recovery: {
+        mode: "enabled",
       },
     });
   });
@@ -108,16 +116,20 @@ describe("useLoadbalanceStrategiesPageData i18n", () => {
     const summary = buildStrategy({
       id: 7,
       name: "Original strategy",
+      strategy_type: "single",
       updated_at: "2026-03-30T10:00:00Z",
     });
     const loaded = buildStrategy({
       id: 7,
       name: "Original strategy",
+      strategy_type: "single",
       updated_at: "2026-03-30T10:00:00Z",
     });
     const updated = buildStrategy({
       id: 7,
-      name: "Updated strategy",
+      name: "Updated round robin",
+      strategy_type: "round-robin",
+      auto_recovery: getDefaultAutoRecovery("round-robin"),
       updated_at: "2026-03-30T12:00:00Z",
     });
     referenceData.getSharedLoadbalanceStrategies.mockResolvedValueOnce([summary]);
@@ -138,7 +150,9 @@ describe("useLoadbalanceStrategiesPageData i18n", () => {
     act(() => {
       result.current.setLoadbalanceStrategyForm((prev) => ({
         ...prev,
-        name: "Updated strategy",
+        name: "Updated round robin",
+        strategy_type: "round-robin",
+        auto_recovery: getDefaultAutoRecoveryDraft("round-robin"),
       }));
     });
 
@@ -147,15 +161,17 @@ describe("useLoadbalanceStrategiesPageData i18n", () => {
     });
 
     expect(api.loadbalanceStrategies.update).toHaveBeenCalledWith(7, {
-      name: "Updated strategy",
-      routing_policy: createDefaultRoutingPolicy(),
+      name: "Updated round robin",
+      strategy_type: "round-robin",
+      auto_recovery: getDefaultAutoRecovery("round-robin"),
     });
     expect(result.current.loadbalanceStrategyDialogOpen).toBe(false);
     expect(result.current.editingLoadbalanceStrategy?.id).toBe(7);
     expect(result.current.loadbalanceStrategyForm).toMatchObject({
-      name: "Updated strategy",
-      routing_policy: {
-        kind: "adaptive",
+      name: "Updated round robin",
+      strategy_type: "round-robin",
+      auto_recovery: {
+        mode: "enabled",
       },
     });
   });

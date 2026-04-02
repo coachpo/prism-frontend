@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import { DeleteLoadbalanceStrategyDialog } from "../DeleteLoadbalanceStrategyDialog";
 
 describe("DeleteLoadbalanceStrategyDialog i18n", () => {
@@ -18,7 +17,8 @@ describe("DeleteLoadbalanceStrategyDialog i18n", () => {
             id: 1,
             profile_id: 1,
             name: "demo",
-            routing_policy: createDefaultRoutingPolicy(),
+            strategy_type: "single",
+            auto_recovery: { mode: "disabled" },
             attached_model_count: 0,
             created_at: "",
             updated_at: "",

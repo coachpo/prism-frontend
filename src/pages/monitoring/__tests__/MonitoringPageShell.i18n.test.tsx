@@ -41,13 +41,7 @@ vi.mock("../useMonitoringOverviewData", () => ({
                   endpoint_id: 5,
                   endpoint_name: "Primary endpoint",
                   monitoring_probe_interval_seconds: 45,
-                  last_probe_status: "healthy",
                   last_probe_at: "2026-03-30T09:59:00Z",
-                  circuit_state: "closed",
-                  live_p95_latency_ms: 480,
-                  last_live_failure_kind: null,
-                  last_live_failure_at: null,
-                  last_live_success_at: "2026-03-30T09:58:00Z",
                   endpoint_ping_status: "healthy",
                   endpoint_ping_ms: 82,
                   conversation_status: "degraded",
@@ -160,6 +154,9 @@ describe("MonitoringPage", () => {
 
     expect(vendorIcon.querySelector("svg")).not.toBeNull();
     expect(vendorIcon).not.toHaveTextContent("O");
+    expect(screen.queryByText(/Last success/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Last failure/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Failure kind$/i)).not.toBeInTheDocument();
     expect(screen.queryByText("45s cadence")).not.toBeInTheDocument();
     expect(screen.getByText("Past 60 probes")).toBeInTheDocument();
     expect(screen.getByTestId("monitoring-probe-strip")).toBeInTheDocument();
@@ -195,20 +192,14 @@ describe("MonitoringPage", () => {
             connection_count: 1,
             connections: [
               {
-                connection_id: 91,
-                connection_name: "Primary",
-                endpoint_id: 5,
-                endpoint_name: "Primary endpoint",
-                monitoring_probe_interval_seconds: 45,
-                last_probe_status: "healthy",
-                last_probe_at: "2026-03-30T09:59:00Z",
-                circuit_state: "closed",
-                live_p95_latency_ms: 320,
-                last_live_failure_kind: null,
-                last_live_failure_at: null,
-                last_live_success_at: "2026-03-30T09:58:00Z",
-                endpoint_ping_status: "healthy",
-                endpoint_ping_ms: 82,
+                  connection_id: 91,
+                  connection_name: "Primary",
+                  endpoint_id: 5,
+                  endpoint_name: "Primary endpoint",
+                  monitoring_probe_interval_seconds: 45,
+                  last_probe_at: "2026-03-30T09:59:00Z",
+                  endpoint_ping_status: "healthy",
+                  endpoint_ping_ms: 82,
                 conversation_status: "healthy",
                 conversation_delay_ms: 210,
                 fused_status: "healthy",

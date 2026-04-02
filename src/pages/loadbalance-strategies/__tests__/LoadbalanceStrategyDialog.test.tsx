@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LoadbalanceStrategyDialog } from "../LoadbalanceStrategyDialog";
 import {
   DEFAULT_LOADBALANCE_STRATEGY_FORM,
-  getDefaultRoutingPolicyDraft,
+  getDefaultAutoRecoveryDraft,
   type LoadbalanceStrategyFormState,
 } from "../loadbalanceStrategyFormState";
 
@@ -14,8 +14,9 @@ function buildForm(
 ): LoadbalanceStrategyFormState {
   return {
     ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
-    name: "adaptive-primary",
-    routing_policy: getDefaultRoutingPolicyDraft(),
+    name: "legacy-round-robin",
+    strategy_type: "round-robin",
+    auto_recovery: getDefaultAutoRecoveryDraft("round-robin"),
     ...overrides,
   };
 }
@@ -33,23 +34,13 @@ describe("LoadbalanceStrategyDialog", () => {
     );
   });
 
-  it("shows tooltip help for every adaptive circuit-breaker field", async () => {
+  it("shows a legacy strategy selector without adaptive routing copy", () => {
     render(
       <LocaleProvider>
         <TooltipProvider>
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={buildForm({
-              routing_policy: {
-                ...buildForm().routing_policy,
-                circuit_breaker: {
-                  ...buildForm().routing_policy.circuit_breaker,
-                  ban_mode: "temporary",
-                  max_open_strikes_before_ban: 3,
-                  ban_duration_seconds: 1800,
-                },
-              },
-            })}
+            loadbalanceStrategyForm={DEFAULT_LOADBALANCE_STRATEGY_FORM}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
             onOpenChange={vi.fn()}
@@ -61,54 +52,15 @@ describe("LoadbalanceStrategyDialog", () => {
       </LocaleProvider>,
     );
 
-    const helpButtons = [
-      {
-        label: "Explain Base Open Window (seconds)",
-        text: "Starting open window applied after transient failures once the threshold is reached.",
-      },
-      {
-        label: "Explain Failure Threshold",
-        text: "Number of consecutive failures required before the circuit breaker opens.",
-      },
-      {
-        label: "Explain Backoff Multiplier",
-        text: "Multiplier applied to the open window after each failure beyond the threshold.",
-      },
-      {
-        label: "Explain Max Open Window (seconds)",
-        text: "Upper limit for the computed open window, even after repeated failures.",
-      },
-      {
-        label: "Explain Jitter Ratio",
-        text: "Random spread applied to the open window so retries do not all happen at the same instant.",
-      },
-      {
-        label: "Explain Failure Status Codes",
-        text: "HTTP status codes that should count toward the adaptive circuit breaker.",
-      },
-      {
-        label: "Explain Ban Mode",
-        text: "Choose whether repeated max-open strikes stay off, expire automatically, or wait for a manual dismiss.",
-      },
-      {
-        label: "Explain Max Open Strikes Before Ban",
-        text: "Number of max-open strike events required before this connection is marked as banned.",
-      },
-      {
-        label: "Explain Ban Duration (seconds)",
-        text: "How long a temporary ban lasts before the connection becomes probe-eligible again.",
-      },
-    ];
+    expect(screen.getByText("Strategy Type")).toBeInTheDocument();
+    expect(screen.queryByText("Adaptive routing")).not.toBeInTheDocument();
+    expect(screen.getByText("Auto Recovery")).toBeInTheDocument();
 
-    for (const { label, text } of helpButtons) {
-      const trigger = screen.getByRole("button", { name: label });
-      fireEvent.focus(trigger);
-      expect(await screen.findByRole("tooltip", { name: text })).toBeInTheDocument();
-      fireEvent.blur(trigger);
-    }
+    const typeSelect = screen.getByRole("combobox", { name: "Strategy Type" });
+    expect(typeSelect).toHaveTextContent("Single");
   });
 
-  it("renders localized dialog copy when the saved locale is Chinese", () => {
+  it("renders localized legacy dialog copy when the saved locale is Chinese", () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
     render(
@@ -116,7 +68,7 @@ describe("LoadbalanceStrategyDialog", () => {
         <TooltipProvider>
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={buildForm()}
+            loadbalanceStrategyForm={DEFAULT_LOADBALANCE_STRATEGY_FORM}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
             onOpenChange={vi.fn()}
@@ -130,10 +82,11 @@ describe("LoadbalanceStrategyDialog", () => {
 
     expect(screen.getByText("新增负载均衡策略")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存策略" })).toBeInTheDocument();
-    expect(screen.getByText("自适应路由")).toBeInTheDocument();
+    expect(screen.getByText("策略类型")).toBeInTheDocument();
+    expect(screen.queryByText("自适应路由")).not.toBeInTheDocument();
   });
 
-  it("submits through a real form and exposes routing_policy field names", () => {
+  it("submits through a real form without exposing adaptive routing_policy fields", () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -141,7 +94,7 @@ describe("LoadbalanceStrategyDialog", () => {
         <TooltipProvider>
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={buildForm()}
+            loadbalanceStrategyForm={DEFAULT_LOADBALANCE_STRATEGY_FORM}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
             onOpenChange={vi.fn()}
@@ -154,9 +107,7 @@ describe("LoadbalanceStrategyDialog", () => {
     );
 
     expect(screen.getByLabelText("Name")).toHaveAttribute("name", "name");
-    expect(document.querySelector('input[type="hidden"][name="routing_policy.kind"]')).toHaveValue(
-      "adaptive",
-    );
+    expect(document.querySelector('input[name="routing_policy.kind"]')).toBeNull();
 
     const form = screen.getByRole("button", { name: "Save Strategy" }).closest("form");
     expect(form).not.toBeNull();
@@ -166,75 +117,32 @@ describe("LoadbalanceStrategyDialog", () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the ban duration field only for temporary ban mode", () => {
-    const setLoadbalanceStrategyForm = vi.fn();
-
+  it("shows failover controls for enabled fill-first recovery and hides them when auto recovery is disabled", () => {
     const { rerender } = render(
       <LocaleProvider>
         <TooltipProvider>
           <LoadbalanceStrategyDialog
             editingLoadbalanceStrategy={null}
             loadbalanceStrategyForm={buildForm({
-              routing_policy: {
-                ...getDefaultRoutingPolicyDraft(),
-                circuit_breaker: {
-                  ...getDefaultRoutingPolicyDraft().circuit_breaker,
-                  ban_mode: "temporary",
-                  max_open_strikes_before_ban: 3,
+              strategy_type: "fill-first",
+              auto_recovery: {
+                mode: "enabled",
+                status_codes: [429, 503],
+                status_code_input: "",
+                cooldown: {
+                  base_seconds: 60,
+                  failure_threshold: 2,
+                  backoff_multiplier: 2,
+                  max_cooldown_seconds: 900,
+                  jitter_ratio: 0.2,
+                },
+                ban: {
+                  mode: "temporary",
+                  max_cooldown_strikes_before_ban: 3,
                   ban_duration_seconds: 1800,
                 },
               },
             })}
-            loadbalanceStrategySaving={false}
-            onClose={vi.fn()}
-            onOpenChange={vi.fn()}
-            onSave={vi.fn().mockResolvedValue(undefined)}
-            open
-            setLoadbalanceStrategyForm={setLoadbalanceStrategyForm}
-          />
-        </TooltipProvider>
-      </LocaleProvider>,
-    );
-
-    expect(screen.getByLabelText("Ban Duration (seconds)")).toBeInTheDocument();
-
-    rerender(
-      <LocaleProvider>
-        <TooltipProvider>
-          <LoadbalanceStrategyDialog
-            editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={buildForm({
-              routing_policy: {
-                ...getDefaultRoutingPolicyDraft(),
-                circuit_breaker: {
-                  ...getDefaultRoutingPolicyDraft().circuit_breaker,
-                  ban_mode: "manual",
-                  max_open_strikes_before_ban: 3,
-                  ban_duration_seconds: 0,
-                },
-              },
-            })}
-            loadbalanceStrategySaving={false}
-            onClose={vi.fn()}
-            onOpenChange={vi.fn()}
-            onSave={vi.fn().mockResolvedValue(undefined)}
-            open
-            setLoadbalanceStrategyForm={setLoadbalanceStrategyForm}
-          />
-        </TooltipProvider>
-      </LocaleProvider>,
-    );
-
-    expect(screen.queryByLabelText("Ban Duration (seconds)")).not.toBeInTheDocument();
-  });
-
-  it("shows adaptive routing copy instead of the retired strategy-type selector", () => {
-    render(
-      <LocaleProvider>
-        <TooltipProvider>
-          <LoadbalanceStrategyDialog
-            editingLoadbalanceStrategy={null}
-            loadbalanceStrategyForm={buildForm()}
             loadbalanceStrategySaving={false}
             onClose={vi.fn()}
             onOpenChange={vi.fn()}
@@ -246,11 +154,30 @@ describe("LoadbalanceStrategyDialog", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.queryByText("Strategy Type")).not.toBeInTheDocument();
-    expect(screen.getByText("Adaptive routing")).toBeInTheDocument();
     expect(screen.getByLabelText("Failure Status Codes")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add Status Code" })).toBeInTheDocument();
-    expect(screen.getByText("429")).toBeInTheDocument();
-    expect(screen.getByText("503")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ban Duration (seconds)")).toBeInTheDocument();
+
+    rerender(
+      <LocaleProvider>
+        <TooltipProvider>
+          <LoadbalanceStrategyDialog
+            editingLoadbalanceStrategy={null}
+            loadbalanceStrategyForm={{
+              ...DEFAULT_LOADBALANCE_STRATEGY_FORM,
+              auto_recovery: { mode: "disabled" },
+            }}
+            loadbalanceStrategySaving={false}
+            onClose={vi.fn()}
+            onOpenChange={vi.fn()}
+            onSave={vi.fn().mockResolvedValue(undefined)}
+            open
+            setLoadbalanceStrategyForm={vi.fn()}
+          />
+        </TooltipProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.queryByLabelText("Failure Status Codes")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Ban Duration (seconds)")).not.toBeInTheDocument();
   });
 });

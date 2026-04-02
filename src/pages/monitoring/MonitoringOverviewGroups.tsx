@@ -9,7 +9,6 @@ import { VendorIcon } from "@/components/VendorIcon";
 import { CompactMetricTile } from "@/components/CompactMetricTile";
 import { MonitoringProbeHistoryStrip } from "@/components/MonitoringProbeHistoryStrip";
 import { ValueBadge } from "@/components/StatusBadge";
-import { formatLabel } from "@/lib/utils";
 import type {
   MonitoringOverviewVendor,
 } from "@/lib/types";
@@ -126,7 +125,6 @@ export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsPr
                                     ? formatRelativeTimeFromNow(connection.last_probe_at)
                                     : copy.notAvailable;
                                   const nextProbeLabel = formatNextProbeLabel(connection, formatRelativeTimeFromNow, copy.notAvailable);
-                                  const lastSuccessLabel = formatLastSuccessLabel(connection, formatRelativeTimeFromNow, copy.notAvailable);
 
                                   return (
                                     <div
@@ -156,33 +154,16 @@ export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsPr
                                           </div>
                                         </div>
 
-                                         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" data-testid="monitoring-connection-summary-grid">
-                                           <SummaryTile
-                                             label={copy.endpointPingSummaryLabel}
-                                             value={formatLatency(connection.endpoint_ping_ms, formatNumber)}
-                                           />
-                                           <SummaryTile
-                                             label={copy.conversationDelaySummaryLabel}
-                                             value={formatLatency(connection.conversation_delay_ms, formatNumber)}
-                                           />
-                                           <SummaryTile
-                                             label={copy.liveP95SummaryLabel}
-                                             value={formatLatency(connection.live_p95_latency_ms, formatNumber)}
-                                          />
-                                          <SummaryTile
-                                            label={copy.lastSuccessLabel}
-                                            value={lastSuccessLabel}
-                                          />
-                                          <SummaryTile
-                                            detail={connection.last_live_failure_kind ? `${copy.failureKindLabel}: ${formatLabel(connection.last_live_failure_kind)}` : undefined}
-                                            label={copy.lastFailureLabel}
-                                            value={connection.last_live_failure_at ? formatRelativeTimeFromNow(connection.last_live_failure_at) : copy.notAvailable}
-                                          />
-                                          <SummaryTile
-                                            label={copy.failureKindLabel}
-                                            value={connection.last_live_failure_kind ? formatLabel(connection.last_live_failure_kind) : copy.noneLabel}
-                                          />
-                                        </div>
+                                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" data-testid="monitoring-connection-summary-grid">
+                                            <SummaryTile
+                                              label={copy.endpointPingSummaryLabel}
+                                              value={formatLatency(connection.endpoint_ping_ms, formatNumber)}
+                                            />
+                                            <SummaryTile
+                                              label={copy.conversationDelaySummaryLabel}
+                                              value={formatLatency(connection.conversation_delay_ms, formatNumber)}
+                                            />
+                                         </div>
 
                                         <MonitoringProbeHistoryStrip history={connection.recent_history} />
                                       </div>
@@ -251,32 +232,4 @@ function formatNextProbeLabel(
   );
 
   return formatRelativeTimeFromNow(nextProbeAt.toISOString()) || fallbackLabel;
-}
-
-function formatLastSuccessLabel(
-  connection: MonitoringOverviewVendor["models"][number]["connections"][number],
-  formatRelativeTimeFromNow: ReturnType<typeof useLocale>["formatRelativeTimeFromNow"],
-  fallbackLabel: string,
-) {
-  if (connection.last_live_success_at) {
-    return formatRelativeTimeFromNow(connection.last_live_success_at) || fallbackLabel;
-  }
-
-  const latestSuccessfulProbeAt = connection.recent_history.reduce<string | null>((latest, point) => {
-    if (!isSuccessfulProbe(point)) {
-      return latest;
-    }
-
-    if (!latest || point.checked_at > latest) {
-      return point.checked_at;
-    }
-
-    return latest;
-  }, null);
-
-  return latestSuccessfulProbeAt ? formatRelativeTimeFromNow(latestSuccessfulProbeAt) || fallbackLabel : fallbackLabel;
-}
-
-function isSuccessfulProbe(point: MonitoringOverviewVendor["models"][number]["connections"][number]["recent_history"][number]) {
-  return !point.failure_kind && point.endpoint_ping_status !== "failed" && point.conversation_status !== "failed";
 }

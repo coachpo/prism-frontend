@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import { getDefaultRoutingPolicyDraft } from "../loadbalanceStrategyFormState";
 import { LoadbalanceStrategiesPage } from "@/pages/LoadbalanceStrategiesPage";
 
 vi.mock("@/context/ProfileContext", () => ({
@@ -22,7 +21,8 @@ vi.mock("../useLoadbalanceStrategiesPageData", () => ({
     editingLoadbalanceStrategy: null,
     loadbalanceStrategyForm: {
       name: "",
-      routing_policy: getDefaultRoutingPolicyDraft(),
+      strategy_type: "single",
+      auto_recovery: { mode: "disabled" },
     },
     loadbalanceStrategySaving: false,
     closeLoadbalanceStrategyDialog: vi.fn(),
@@ -31,7 +31,10 @@ vi.mock("../useLoadbalanceStrategiesPageData", () => ({
     loadbalanceStrategyDialogOpen: false,
     setLoadbalanceStrategyForm: vi.fn(),
     deleteLoadbalanceStrategyConfirm: null,
+    displayedDeleteLoadbalanceStrategyConfirm: null,
+    deleteLoadbalanceStrategyDialogOpen: false,
     loadbalanceStrategyDeleting: false,
+    closeDeleteLoadbalanceStrategyDialog: vi.fn(),
     setDeleteLoadbalanceStrategyConfirm: vi.fn(),
     handleDeleteLoadbalanceStrategy: vi.fn(),
   }),
@@ -43,7 +46,7 @@ describe("LoadbalanceStrategiesPage shell i18n", () => {
     localStorage.setItem("prism.locale", "zh-CN");
   });
 
-  it("renders localized page shell copy", () => {
+  it("renders localized page shell copy for the legacy strategy workflow", () => {
     render(
       <LocaleProvider>
         <LoadbalanceStrategiesPage />
@@ -51,7 +54,8 @@ describe("LoadbalanceStrategiesPage shell i18n", () => {
     );
 
     expect(screen.getByRole("heading", { name: "负载均衡策略" })).toBeInTheDocument();
-    expect(screen.getByText("管理此配置档案中可复用的原生模型自适应路由策略")).toBeInTheDocument();
+    expect(screen.getByText("管理此配置档案中可复用的 single、fill-first 和 round-robin 原生模型策略")).toBeInTheDocument();
     expect(screen.getByText("配置档案作用域设置")).toBeInTheDocument();
+    expect(screen.queryByText(/自适应/i)).not.toBeInTheDocument();
   });
 });
