@@ -63,7 +63,8 @@ describe("useDashboardPageData", () => {
         loadbalance_strategy: {
           id: 100,
           name: "single-primary",
-          strategy_type: "single",
+          strategy_type: "legacy",
+          legacy_strategy_type: "single",
           auto_recovery: getDefaultAutoRecovery("single"),
         },
         is_enabled: true,
@@ -95,18 +96,10 @@ describe("useDashboardPageData", () => {
         loadbalance_strategy: {
           id: 101,
           name: "round-robin-primary",
-          strategy_type: "round-robin",
-          auto_recovery: {
-            mode: "enabled",
-            status_codes: [429, 503],
-            cooldown: {
-              base_seconds: 45,
-              failure_threshold: 4,
-              backoff_multiplier: 3.5,
-              max_cooldown_seconds: 720,
-              jitter_ratio: 0.35,
-            },
-            ban: { mode: "off" },
+          strategy_type: "adaptive",
+          routing_policy: {
+            kind: "adaptive",
+            routing_objective: "maximize_availability",
           },
         },
         is_enabled: true,
@@ -407,6 +400,11 @@ describe("useDashboardPageData", () => {
     expect(result.current.metricSnapshot.averageRpmRequestTotal).toBe(20);
     expect(result.current.metricSnapshot.totalRequests).toBe(24);
     expect(result.current.metricSnapshot.totalModels).toBe(2);
+    expect(result.current.strategyFamilySummary).toEqual({
+      adaptiveCount: 1,
+      legacyCount: 1,
+      unassignedCount: 0,
+    });
     expect(result.current.routingDiagramData?.links).toHaveLength(2);
     expect(result.current.modelDisplayNames.get("gpt-5.4")).toBe("GPT-5.4");
   });

@@ -35,7 +35,8 @@ function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigLi
     loadbalance_strategy: {
       id: 100,
       name: "single-primary",
-      strategy_type: "single",
+      strategy_type: "legacy",
+      legacy_strategy_type: "single",
       auto_recovery: { mode: "disabled" },
     },
     is_enabled: true,

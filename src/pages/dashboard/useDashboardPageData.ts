@@ -25,6 +25,12 @@ export interface DashboardMetricSnapshot {
   totalRequests: number;
 }
 
+export interface DashboardStrategyFamilySummary {
+  adaptiveCount: number;
+  legacyCount: number;
+  unassignedCount: number;
+}
+
 export function useDashboardPageData({
   revision,
   selectedProfileId,
@@ -118,6 +124,30 @@ export function useDashboardPageData({
     return spending?.top_spending_models ?? [];
   }, [spending]);
 
+  const strategyFamilySummary = useMemo<DashboardStrategyFamilySummary>(() => {
+    return models.reduce(
+      (summary, model) => {
+        if (!model.loadbalance_strategy) {
+          summary.unassignedCount += 1;
+          return summary;
+        }
+
+        if (model.loadbalance_strategy.strategy_type === "adaptive") {
+          summary.adaptiveCount += 1;
+        } else {
+          summary.legacyCount += 1;
+        }
+
+        return summary;
+      },
+      {
+        adaptiveCount: 0,
+        legacyCount: 0,
+        unassignedCount: 0,
+      },
+    );
+  }, [models]);
+
   return {
     clearRecentRequestHighlight,
     connectionState,
@@ -134,6 +164,7 @@ export function useDashboardPageData({
     routingDiagramData,
     routingDiagramError,
     routingDiagramLoading,
+    strategyFamilySummary,
     topSpendingModels,
   };
 }

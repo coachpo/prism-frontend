@@ -20,6 +20,7 @@ describe("DashboardHighlightsGrid", () => {
         onOpenStatistics={vi.fn()}
         onReviewRequests={vi.fn()}
         apiFamilyRows={[]}
+        strategyFamilySummary={{ adaptiveCount: 1, legacyCount: 2, unassignedCount: 0 }}
         snapshot={{
           activeModels: 2,
           averageRpm: 0,
@@ -97,6 +98,7 @@ describe("DashboardHighlightsGrid", () => {
             total_tokens: 200,
           },
         ]}
+        strategyFamilySummary={{ adaptiveCount: 1, legacyCount: 2, unassignedCount: 0 }}
         snapshot={{
           activeModels: 2,
           averageRpm: 0,
@@ -124,6 +126,9 @@ describe("DashboardHighlightsGrid", () => {
     expect(openAiLabel.previousElementSibling?.tagName).toBe("svg");
     expect(anthropicLabel.previousElementSibling?.tagName).toBe("svg");
     expect(geminiLabel.previousElementSibling?.tagName).toBe("svg");
+    expect(screen.getByText("Routing strategy mix")).toBeInTheDocument();
+    expect(screen.getByText("Legacy strategy 2")).toBeInTheDocument();
+    expect(screen.getByText("Adaptive strategy 1")).toBeInTheDocument();
   });
 
   it("renders localized dashboard highlight copy when the saved locale is Chinese", () => {
@@ -136,6 +141,7 @@ describe("DashboardHighlightsGrid", () => {
         onOpenStatistics={vi.fn()}
         onReviewRequests={vi.fn()}
         apiFamilyRows={[]}
+        strategyFamilySummary={{ adaptiveCount: 1, legacyCount: 2, unassignedCount: 0 }}
         snapshot={{
           activeModels: 2,
           averageRpm: 0,
@@ -155,5 +161,8 @@ describe("DashboardHighlightsGrid", () => {
     expect(screen.getByText("性能概览")).toBeInTheDocument();
     expect(screen.getByText("打开统计")).toBeInTheDocument();
     expect(screen.getByText("暂无 API 家族活动")).toBeInTheDocument();
+    expect(screen.getByText("路由策略分布")).toBeInTheDocument();
+    expect(screen.getByText("传统策略 2")).toBeInTheDocument();
+    expect(screen.getByText("自适应策略 1")).toBeInTheDocument();
   });
 });
