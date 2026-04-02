@@ -22,9 +22,8 @@ interface MonitoringOverviewGroupsProps {
 export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsProps) {
   const { formatNumber, formatRelativeTimeFromNow, messages } = useLocale();
   const copy = messages.monitoring;
-  const [openVendorIds, setOpenVendorIds] = useState<Set<number>>(
-    () => new Set(vendors.map((vendor) => vendor.vendor_id)),
-  );
+  const [openVendorIds, setOpenVendorIds] = useState<Set<number>>(() => new Set());
+  const hasInitializedVendorLoadRef = useRef(vendors.length > 0);
   const previousVendorIdsRef = useRef<Set<number>>(new Set(vendors.map((vendor) => vendor.vendor_id)));
 
   useEffect(() => {
@@ -32,16 +31,21 @@ export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsPr
       const validVendorIds = new Set(vendors.map((vendor) => vendor.vendor_id));
       const next = new Set(Array.from(current).filter((vendorId) => validVendorIds.has(vendorId)));
 
-      vendors.forEach((vendor) => {
-        if (!previousVendorIdsRef.current.has(vendor.vendor_id)) {
-          next.add(vendor.vendor_id);
-        }
-      });
+      if (hasInitializedVendorLoadRef.current) {
+        vendors.forEach((vendor) => {
+          if (!previousVendorIdsRef.current.has(vendor.vendor_id)) {
+            next.add(vendor.vendor_id);
+          }
+        });
+      }
 
       return next;
     });
 
     previousVendorIdsRef.current = new Set(vendors.map((vendor) => vendor.vendor_id));
+    if (vendors.length > 0) {
+      hasInitializedVendorLoadRef.current = true;
+    }
   }, [vendors]);
 
   const toggleVendor = (vendorId: number, nextOpen: boolean) => {

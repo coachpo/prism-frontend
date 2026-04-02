@@ -100,14 +100,14 @@ describe("MonitoringOverviewGroups", () => {
     vi.resetModules();
   });
 
-  it("renders a compact connection summary grid above the shared probe strip", () => {
+  it("starts collapsed and renders a compact connection summary grid after expansion", () => {
     renderMonitoringOverviewGroups(buildVendors());
 
     expect(screen.queryByText("Vendor groups")).not.toBeInTheDocument();
     expect(screen.queryByText(/Start at the vendor rollup/i)).not.toBeInTheDocument();
 
     const trigger = screen.getByRole("button", { name: /OpenAI/i });
-    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
     expect(within(trigger).getByText("OpenAI")).toBeInTheDocument();
 
     const vendorIcon = within(trigger).getByRole("img", { name: "Vendor icon OpenAI" });
@@ -120,6 +120,12 @@ describe("MonitoringOverviewGroups", () => {
     expect(within(trigger).queryByText("1 connections")).not.toBeInTheDocument();
     expect(within(trigger).queryByText("0 healthy")).not.toBeInTheDocument();
     expect(within(trigger).queryByText("1 degraded")).not.toBeInTheDocument();
+
+    expect(screen.queryByTestId("monitoring-connection-summary-grid")).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
 
     const summaryGrid = screen.getByTestId("monitoring-connection-summary-grid");
 
@@ -149,6 +155,8 @@ describe("MonitoringOverviewGroups", () => {
     vendors[0].models[0].connections[0].monitoring_probe_interval_seconds = 240;
 
     renderMonitoringOverviewGroups(vendors);
+
+    fireEvent.click(screen.getByRole("button", { name: /OpenAI/i }));
 
     expect(screen.getByText("Latest probe")).toBeInTheDocument();
     expect(screen.getByText("1 min. ago")).toBeInTheDocument();
@@ -193,12 +201,16 @@ describe("MonitoringOverviewGroups", () => {
 
     renderMonitoringOverviewGroups(vendors);
 
+    fireEvent.click(screen.getByRole("button", { name: /OpenAI/i }));
+
     expect(screen.getByText("1 hr. ago")).toBeInTheDocument();
     expect(screen.queryByText("Failure kind: None")).not.toBeInTheDocument();
   });
 
   it("renders the probe strip title, legend, tooltip details, and status-specific cell test ids", async () => {
     renderMonitoringOverviewGroups(buildVendors());
+
+    fireEvent.click(screen.getByRole("button", { name: /OpenAI/i }));
 
     expect(screen.getByText("Past 60 probes")).toBeInTheDocument();
     expect(screen.getAllByText("Healthy").length).toBeGreaterThan(0);
@@ -239,6 +251,8 @@ describe("MonitoringOverviewGroups", () => {
 
     renderMonitoringOverviewGroups(vendors);
 
+    fireEvent.click(screen.getByRole("button", { name: /OpenAI/i }));
+
     expect(screen.getByTestId("monitoring-probe-strip")).toBeInTheDocument();
     expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(60);
     expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(60);
@@ -263,6 +277,8 @@ describe("MonitoringOverviewGroups", () => {
         <MonitoringOverviewGroups vendors={buildVendors()} />
       </IsolatedLocaleProvider>,
     );
+
+    fireEvent.click(screen.getByRole("button", { name: /OpenAI/i }));
 
     expect(screen.getByTestId("shared-monitoring-probe-history-strip")).toBeInTheDocument();
     expect(probeHistoryStripSpy).toHaveBeenCalledWith(

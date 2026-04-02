@@ -134,14 +134,23 @@ describe("MonitoringPage", () => {
     expect(overviewRefreshSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("renders the vendor, model, and connection hierarchy on the single monitoring page", () => {
+  it("starts vendors collapsed on the single monitoring page and reveals details after expansion", () => {
     render(
       <LocaleProvider>
         <MonitoringPage />
       </LocaleProvider>,
     );
 
+    const trigger = screen.getByRole("button", { name: /OpenAI/i });
+
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("GPT-4.1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Primary")).not.toBeInTheDocument();
+    expect(screen.queryByText("Past 60 probes")).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+
     expect(screen.getByText("GPT-4.1")).toBeInTheDocument();
     expect(screen.getByText("Primary")).toBeInTheDocument();
     expect(screen.getByText("Primary endpoint")).toBeInTheDocument();
@@ -166,7 +175,7 @@ describe("MonitoringPage", () => {
     expect(screen.queryByRole("link", { name: "GPT-4.1" })).not.toBeInTheDocument();
   });
 
-  it("keeps vendor collapse state stable after rerendered monitoring data", async () => {
+  it("keeps vendors collapsed on first data load and preserves manual expansion after rerendered monitoring data", async () => {
     const vendors: MonitoringOverviewVendor[] = [
       {
         vendor_id: 1,
@@ -222,17 +231,23 @@ describe("MonitoringPage", () => {
 
     const { rerender } = render(
       <LocaleProvider>
+        <MonitoringOverviewGroups vendors={[]} />
+      </LocaleProvider>,
+    );
+
+    rerender(
+      <LocaleProvider>
         <MonitoringOverviewGroups vendors={vendors} />
       </LocaleProvider>,
     );
 
     const trigger = screen.getByRole("button", { name: /OpenAI/i });
-    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
 
     fireEvent.click(trigger);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /OpenAI/i })).toHaveAttribute("aria-expanded", "false");
+      expect(screen.getByRole("button", { name: /OpenAI/i })).toHaveAttribute("aria-expanded", "true");
     });
 
     rerender(
@@ -248,7 +263,7 @@ describe("MonitoringPage", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /OpenAI/i })).toHaveAttribute("aria-expanded", "false");
+      expect(screen.getByRole("button", { name: /OpenAI/i })).toHaveAttribute("aria-expanded", "true");
     });
   });
 });
