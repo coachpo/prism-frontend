@@ -1,7 +1,7 @@
 # FRONTEND DASHBOARD DOMAIN KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/dashboard/` owns the main landing page data flow under `../DashboardPage.tsx`: initial bootstrap, realtime reconciliation, KPI cards, recent activity, top-spend summaries, and the parent-covered routing visualization cluster.
+`pages/dashboard/` owns the main landing page data flow under `../DashboardPage.tsx`: initial bootstrap, realtime reconciliation, KPI cards, recent activity, top-spend summaries, dual-strategy summary wording, and the parent-covered routing visualization cluster.
 
 ## STRUCTURE
 ```
