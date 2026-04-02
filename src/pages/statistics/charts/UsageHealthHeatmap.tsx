@@ -1,17 +1,28 @@
 import * as React from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTimezone } from "@/hooks/useTimezone";
 import { useLocale } from "@/i18n/useLocale";
 import type { UsageServiceHealthCell } from "@/lib/types";
 
 interface UsageHealthHeatmapProps {
   cells: UsageServiceHealthCell[];
-  days?: number;
-  intervalMinutes?: number;
+  intervalMinutes: number;
 }
 
 const CELL_SIZE_PX = 12;
 const CELL_GAP_PX = 4;
+const HEATMAP_ROW_COUNT = 12;
+const HEATMAP_COLUMN_COUNT = 56;
+const HEATMAP_CELL_COUNT = HEATMAP_ROW_COUNT * HEATMAP_COLUMN_COUNT;
+const BUCKET_LABEL_FORMAT_OPTIONS = {
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  month: "short",
+  second: undefined,
+  year: undefined,
+} satisfies Intl.DateTimeFormatOptions;
 const AVAILABILITY_PALETTE = [
   "rgb(203, 213, 225)",
   "rgb(239, 68, 68)",
@@ -25,10 +36,12 @@ type HeatmapCell = {
   key: string;
   label: string;
   level: number;
+  rangeLabel: string;
 };
 
-export function UsageHealthHeatmap({ cells, days, intervalMinutes }: UsageHealthHeatmapProps) {
-  const { formatNumber, locale, messages } = useLocale();
+export function UsageHealthHeatmap({ cells, intervalMinutes }: UsageHealthHeatmapProps) {
+  const { formatNumber, messages } = useLocale();
+  const { format: formatTime } = useTimezone();
 
   const statusLabels: Record<UsageServiceHealthCell["status"], string> = {
     degraded: messages.statistics.healthStatusDegraded,
@@ -38,19 +51,19 @@ export function UsageHealthHeatmap({ cells, days, intervalMinutes }: UsageHealth
   };
 
   const rows = React.useMemo(
-    () => buildHeatmapRows({ cells, days, intervalMinutes, locale }),
-    [cells, days, intervalMinutes, locale],
+    () => buildHeatmapRows({ cells, formatBucketTime: formatTime, intervalMinutes }),
+    [cells, formatTime, intervalMinutes],
   );
 
   return (
     <div className="space-y-3" data-testid="usage-health-heatmap">
       <div className="space-y-3" data-testid="usage-health-heatmap-calendar">
         <ScrollArea className="w-full" data-testid="usage-health-grid-scroll">
-          <div className="min-w-max px-1 py-2">
+          <div className="flex w-full justify-center px-1 py-2">
             <TooltipProvider delayDuration={0} disableHoverableContent>
               <section
                 aria-label={messages.statistics.serviceHealthTitle}
-                className="flex flex-col"
+                className="flex min-w-max flex-col"
                 data-testid="usage-health-grid"
                 style={{ gap: `${CELL_GAP_PX}px` }}
               >
@@ -81,8 +94,7 @@ export function UsageHealthHeatmap({ cells, days, intervalMinutes }: UsageHealth
                         <TooltipContent data-testid="usage-health-tooltip" side="top" sideOffset={6}>
                           <div className="space-y-1.5">
                             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-background/80">
-                              {cell.label}
-                              {intervalMinutes ? ` · ${formatIntervalLabel(intervalMinutes, messages)}` : ""}
+                              {cell.rangeLabel}
                             </p>
                             <p className="font-medium text-background/90">{statusLabels[cell.bucket.status]}</p>
                             <p className="font-medium">
@@ -107,14 +119,13 @@ export function UsageHealthHeatmap({ cells, days, intervalMinutes }: UsageHealth
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
 
-        <div className="min-w-35" data-testid="usage-health-legend">
-          <div className="mb-2 text-xs text-muted-foreground">
-            <span data-testid="usage-health-legend-less">{messages.statistics.heatmapLegendLessAvailability}</span>
-            <span aria-hidden> → </span>
-            <span data-testid="usage-health-legend-more">{messages.statistics.heatmapLegendMoreAvailability}</span>
-          </div>
+        <div
+          className="mx-auto flex w-fit items-center justify-center gap-2 text-center text-xs text-muted-foreground"
+          data-testid="usage-health-legend"
+        >
+          <span data-testid="usage-health-legend-oldest">{messages.statistics.oldest}</span>
 
-          <div className="flex items-center" style={{ gap: `${CELL_GAP_PX}px` }}>
+          <div className="flex items-center justify-center" style={{ gap: `${CELL_GAP_PX}px` }}>
             {AVAILABILITY_PALETTE.map((color, level) => (
               <div
                 aria-hidden="true"
@@ -130,6 +141,8 @@ export function UsageHealthHeatmap({ cells, days, intervalMinutes }: UsageHealth
               />
             ))}
           </div>
+
+          <span data-testid="usage-health-legend-latest">{messages.statistics.latest}</span>
         </div>
       </div>
     </div>
@@ -138,52 +151,97 @@ export function UsageHealthHeatmap({ cells, days, intervalMinutes }: UsageHealth
 
 function buildHeatmapRows({
   cells,
-  days,
+  formatBucketTime,
   intervalMinutes,
-  locale,
 }: {
   cells: UsageServiceHealthCell[];
-  days?: number;
-  intervalMinutes?: number;
-  locale: string;
+  formatBucketTime: (bucketStart: string, options?: Intl.DateTimeFormatOptions) => string;
+  intervalMinutes: number;
 }) {
-  const uniqueDayCount = new Set(cells.map((cell) => formatUtcDayKey(cell.bucket_start))).size;
-  const dayCount = normalizePositiveInteger(days, uniqueDayCount || 1);
   const resolvedIntervalMinutes = normalizeIntervalMinutes(intervalMinutes);
-  const bucketCountPerDay = Math.max(1, Math.round((24 * 60) / resolvedIntervalMinutes));
-  const lastBucketStart = [...cells]
-    .map((cell) => normalizeBucketStart(cell.bucket_start))
-    .sort((leftBucket, rightBucket) => leftBucket.localeCompare(rightBucket))
-    .at(-1);
-  const anchorDay = startOfUtcDay(lastBucketStart ? new Date(lastBucketStart) : new Date());
-  const firstDay = addUtcDays(anchorDay, -(dayCount - 1));
-  const cellsByBucket = new Map(cells.map((cell) => [normalizeBucketStart(cell.bucket_start), cell] as const));
+  const orderedCells = normalizeOrderedCells({
+    cells,
+    intervalMinutes: resolvedIntervalMinutes,
+  });
 
-  return Array.from({ length: dayCount }, (_, dayIndex) => {
-    const dayStart = addUtcDays(firstDay, dayIndex);
-
-    return Array.from({ length: bucketCountPerDay }, (_, bucketIndex) => {
-      const bucketStart = normalizeBucketStart(
-        new Date(dayStart.getTime() + bucketIndex * resolvedIntervalMinutes * 60_000).toISOString(),
-      );
-      const bucket =
-        cellsByBucket.get(bucketStart) ?? {
-          availability_percentage: null,
-          bucket_start: bucketStart,
-          failed_count: 0,
-          request_count: 0,
-          status: "empty" as const,
-          success_count: 0,
-        };
+  return Array.from({ length: HEATMAP_ROW_COUNT }, (_, rowIndex) =>
+    Array.from({ length: HEATMAP_COLUMN_COUNT }, (_, columnIndex) => {
+      const bucket = orderedCells[columnIndex * HEATMAP_ROW_COUNT + rowIndex];
 
       return {
         bucket,
         key: bucket.bucket_start,
-        label: formatBucketLabel(bucket.bucket_start, locale),
+        label: formatBucketLabel(bucket.bucket_start, formatBucketTime),
         level: resolveAvailabilityLevel(bucket.availability_percentage),
+        rangeLabel: formatBucketRange(bucket.bucket_start, intervalMinutes, formatBucketTime),
       } satisfies HeatmapCell;
+    }),
+  );
+}
+
+function normalizeOrderedCells({
+  cells,
+  intervalMinutes,
+}: {
+  cells: UsageServiceHealthCell[];
+  intervalMinutes: number;
+}) {
+  const normalizedCells = cells
+    .slice(0, HEATMAP_CELL_COUNT)
+    .map((cell) => ({
+      ...cell,
+      bucket_start: normalizeBucketStart(cell.bucket_start),
+    }));
+
+  if (normalizedCells.length === 0) {
+    return buildFallbackCells({
+      count: HEATMAP_CELL_COUNT,
+      intervalMinutes,
     });
-  });
+  }
+
+  const orderedCells = [...normalizedCells];
+  while (orderedCells.length < HEATMAP_CELL_COUNT) {
+    const lastBucketStart = new Date(
+      orderedCells[orderedCells.length - 1].bucket_start,
+    ).getTime();
+    orderedCells.push(
+      buildEmptyCell(
+        new Date(lastBucketStart + intervalMinutes * 60_000).toISOString(),
+      ),
+    );
+  }
+
+  return orderedCells;
+}
+
+function buildFallbackCells({
+  count,
+  intervalMinutes,
+}: {
+  count: number;
+  intervalMinutes: number;
+}) {
+  const latestCompletedBucketStart = Math.floor(
+    (Date.now() - 1) / (intervalMinutes * 60_000),
+  ) * intervalMinutes * 60_000;
+  const firstBucketStart =
+    latestCompletedBucketStart - (count - 1) * intervalMinutes * 60_000;
+
+  return Array.from({ length: count }, (_, index) =>
+    buildEmptyCell(new Date(firstBucketStart + index * intervalMinutes * 60_000).toISOString()),
+  );
+}
+
+function buildEmptyCell(bucketStart: string): UsageServiceHealthCell {
+  return {
+    availability_percentage: null,
+    bucket_start: normalizeBucketStart(bucketStart),
+    failed_count: 0,
+    request_count: 0,
+    status: "empty",
+    success_count: 0,
+  };
 }
 
 function clampLevel(level: number, levelCount: number) {
@@ -225,28 +283,25 @@ function formatAvailabilityLine(
   })}%`;
 }
 
-function formatBucketLabel(bucketStart: string, locale: string) {
-  const date = new Date(bucketStart);
-
-  return new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    month: "short",
-    timeZone: "UTC",
-  }).format(date);
+function formatBucketLabel(
+  bucketStart: string,
+  formatBucketTime: (bucketStart: string, options?: Intl.DateTimeFormatOptions) => string,
+) {
+  return formatBucketTime(bucketStart, BUCKET_LABEL_FORMAT_OPTIONS);
 }
 
-function formatIntervalLabel(intervalMinutes: number, messages: ReturnType<typeof useLocale>["messages"]) {
-  if (intervalMinutes % 60 === 0) {
-    return messages.statistics.serviceHealthIntervalHours(intervalMinutes / 60);
-  }
+function formatBucketRange(
+  bucketStart: string,
+  intervalMinutes: number,
+  formatBucketTime: (bucketStart: string, options?: Intl.DateTimeFormatOptions) => string,
+) {
+  const bucketStartMs = Date.parse(bucketStart);
+  const scheduledBucketEndMs = bucketStartMs + intervalMinutes * 60_000;
+  const now = Date.now();
+  const bucketEndMs =
+    now > bucketStartMs && now < scheduledBucketEndMs ? now : scheduledBucketEndMs;
 
-  return messages.statistics.serviceHealthIntervalMinutes(intervalMinutes);
-}
-
-function formatUtcDayKey(bucketStart: string) {
-  return bucketStart.slice(0, 10);
+  return `${formatBucketLabel(bucketStart, formatBucketTime)} - ${formatBucketLabel(new Date(bucketEndMs).toISOString(), formatBucketTime)}`;
 }
 
 function normalizeBucketStart(bucketStart: string) {
@@ -259,20 +314,4 @@ function normalizeIntervalMinutes(value?: number) {
   }
 
   return Math.max(1, Math.floor(value));
-}
-
-function normalizePositiveInteger(value: number | undefined, fallback: number) {
-  if (!value || !Number.isFinite(value) || value <= 0) {
-    return fallback;
-  }
-
-  return Math.max(1, Math.floor(value));
-}
-
-function startOfUtcDay(date: Date) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-}
-
-function addUtcDays(date: Date, dayOffset: number) {
-  return new Date(date.getTime() + dayOffset * 24 * 60 * 60_000);
 }

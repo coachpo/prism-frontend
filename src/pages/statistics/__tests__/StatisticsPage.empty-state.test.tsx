@@ -6,6 +6,16 @@ import type { UsageSnapshotResponse } from "@/lib/types";
 import { StatisticsPage } from "@/pages/StatisticsPage";
 import { installLocalStorageMock } from "./storage";
 
+const api = vi.hoisted(() => ({
+  settings: {
+    timezone: {
+      get: vi.fn(),
+    },
+  },
+}));
+
+vi.mock("@/lib/api", () => ({ api }));
+
 const mockUsageState = {
   setChartGranularity: vi.fn(),
   setSelectedModelLines: vi.fn(),
@@ -82,8 +92,9 @@ function createEmptySnapshot(): UsageSnapshotResponse {
     request_trends: { daily: [], hourly: [] },
     service_health: {
       availability_percentage: null,
-      daily: [],
+      cells: [],
       failed_count: 0,
+      interval_minutes: 15,
       request_count: 0,
       success_count: 0,
     },
@@ -101,6 +112,7 @@ describe("StatisticsPage empty states", () => {
   beforeEach(() => {
     installLocalStorageMock();
     localStorage.clear();
+    api.settings.timezone.get.mockResolvedValue({ timezone_preference: "UTC" });
     mockUsageData = {
       availableModelLineIds: [],
       costOverviewSeries: [],

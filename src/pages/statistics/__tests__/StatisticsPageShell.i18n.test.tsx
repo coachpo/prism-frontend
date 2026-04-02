@@ -12,6 +12,16 @@ import type {
 import { StatisticsPage } from "@/pages/StatisticsPage";
 import { installLocalStorageMock } from "./storage";
 
+const api = vi.hoisted(() => ({
+  settings: {
+    timezone: {
+      get: vi.fn(),
+    },
+  },
+}));
+
+vi.mock("@/lib/api", () => ({ api }));
+
 vi.mock("recharts", async () => {
   const actual = await vi.importActual<typeof import("recharts")>("recharts");
   return {
@@ -226,16 +236,6 @@ function createSnapshot(): UsageSnapshotResponse {
           success_count: 2,
         },
       ],
-      daily: [
-        {
-          availability_percentage: 100,
-          bucket_start: "2026-03-27T00:00:00Z",
-          failed_count: 0,
-          request_count: 4,
-          success_count: 4,
-        },
-      ],
-      days: 7,
       failed_count: 0,
       interval_minutes: 15,
       request_count: 4,
@@ -353,6 +353,7 @@ describe("StatisticsPage shell i18n", () => {
   beforeEach(() => {
     installLocalStorageMock();
     localStorage.clear();
+    api.settings.timezone.get.mockResolvedValue({ timezone_preference: "UTC" });
     localStorage.setItem("prism.locale", "zh-CN");
     Object.defineProperty(globalThis, "ResizeObserver", {
       configurable: true,

@@ -44,11 +44,7 @@ export function UsageServiceHealthSection({ serviceHealth }: UsageServiceHealthS
         </CardHeader>
 
         <CardContent className="pt-5">
-          <UsageHealthHeatmap
-            cells={serviceHealth.cells ?? []}
-            days={serviceHealth.days}
-            intervalMinutes={serviceHealth.interval_minutes}
-          />
+          <UsageHealthHeatmap cells={serviceHealth.cells} intervalMinutes={serviceHealth.interval_minutes} />
         </CardContent>
       </Card>
     </section>
@@ -56,10 +52,10 @@ export function UsageServiceHealthSection({ serviceHealth }: UsageServiceHealthS
 }
 
 function resolveWindowDayCount(serviceHealth: UsageServiceHealth) {
-  if (serviceHealth.days && Number.isFinite(serviceHealth.days) && serviceHealth.days > 0) {
-    return Math.max(1, Math.floor(serviceHealth.days));
+  const totalWindowMinutes = serviceHealth.cells.length * serviceHealth.interval_minutes;
+  if (!Number.isFinite(totalWindowMinutes) || totalWindowMinutes <= 0) {
+    return 1;
   }
 
-  const uniqueDayCount = new Set((serviceHealth.cells ?? []).map((cell) => cell.bucket_start.slice(0, 10))).size;
-  return Math.max(1, uniqueDayCount || 1);
+  return Math.max(1, Math.ceil(totalWindowMinutes / (24 * 60)));
 }

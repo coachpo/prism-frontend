@@ -15,6 +15,11 @@ vi.mock("recharts", async () => {
 });
 
 const api = vi.hoisted(() => ({
+  settings: {
+    timezone: {
+      get: vi.fn(),
+    },
+  },
   stats: {
     usageSnapshot: vi.fn(),
   },
@@ -141,16 +146,18 @@ function createSnapshot(
     },
     service_health: {
       availability_percentage: statusCode >= 400 ? 50 : 100,
-      daily: [
+      cells: [
         {
           availability_percentage: statusCode >= 400 ? 50 : 100,
-          bucket_start: "2026-03-27T00:00:00Z",
+          bucket_start: "2026-03-27T11:45:00Z",
           failed_count: statusCode >= 400 ? 1 : 0,
           request_count: totalRequests,
+          status: statusCode >= 400 ? "degraded" : "ok",
           success_count: statusCode >= 400 ? Math.max(0, totalRequests - 1) : totalRequests,
         },
       ],
       failed_count: statusCode >= 400 ? 1 : 0,
+      interval_minutes: 15,
       request_count: totalRequests,
       success_count: statusCode >= 400 ? Math.max(0, totalRequests - 1) : totalRequests,
     },
@@ -209,6 +216,7 @@ describe("StatisticsPage refresh flow", () => {
     installLocalStorageMock();
     localStorage.clear();
     vi.clearAllMocks();
+    api.settings.timezone.get.mockResolvedValue({ timezone_preference: "UTC" });
     Object.defineProperty(globalThis, "ResizeObserver", {
       configurable: true,
       value: ResizeObserverMock,

@@ -215,16 +215,6 @@ function createSnapshot(): UsageSnapshotResponse {
           success_count: 1,
         },
       ],
-      daily: [
-        {
-          availability_percentage: 50,
-          bucket_start: "2026-03-27T00:00:00Z",
-          failed_count: 1,
-          request_count: 2,
-          success_count: 1,
-        },
-      ],
-      days: 7,
       failed_count: 1,
       interval_minutes: 15,
       request_count: 2,

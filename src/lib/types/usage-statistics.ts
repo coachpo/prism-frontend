@@ -50,14 +50,6 @@ export interface UsageSnapshotOverview {
   rolling_tpm?: number;
 }
 
-export interface UsageServiceHealthPoint {
-  bucket_start: string;
-  request_count: number;
-  success_count: number;
-  failed_count: number;
-  availability_percentage: number | null;
-}
-
 export type UsageServiceHealthCellStatus = "ok" | "degraded" | "down" | "empty";
 
 export interface UsageServiceHealthCell {
@@ -74,10 +66,8 @@ export interface UsageServiceHealth {
   request_count: number;
   success_count: number;
   failed_count: number;
-  days?: number;
-  interval_minutes?: number;
-  daily: UsageServiceHealthPoint[];
-  cells?: UsageServiceHealthCell[];
+  interval_minutes: number;
+  cells: UsageServiceHealthCell[];
 }
 
 export interface UsageRequestTrendPoint {
