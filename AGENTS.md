@@ -28,16 +28,18 @@ frontend/
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
 - Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/models/:id/proxy`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/monitoring`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
 - `/` redirects to `/dashboard`
+- Monitoring vendor/model drill-down page components stay page-owned under `src/pages/` but are not top-level mounted routes in `src/App.tsx`
 
 ## HIERARCHY
 - `src/App.tsx` owns the mounted route surface.
-- `src/pages/AGENTS.md` owns route-domain handoff.
+- `src/pages/AGENTS.md` owns route-domain handoff plus page-owned monitoring drill-down surfaces that are not mounted at the app root.
 - `src/components/AGENTS.md` owns shared shell and widget work.
 - `src/components/loadbalance/AGENTS.md` and `src/components/statistics/AGENTS.md` own the shared cross-route renderers in those folders.
 - `src/lib/websocket/AGENTS.md` owns the helper split beneath the singleton realtime client.
 
 ## WHERE TO LOOK
-- Mounted routes, auth/public split, monitoring route mount, and protected shell mounts: `src/App.tsx`
+- Mounted routes, auth/public split, and protected shell mounts: `src/App.tsx`
+- Page-owned but unmounted monitoring drill-down surfaces: `src/pages/AGENTS.md`, `src/pages/monitoring/AGENTS.md`
 - Shell chrome, sidebar entries, profile-prefixed navigation, visible version label, and profile-switcher dialog state: `src/components/AGENTS.md`, `src/components/layout/app-layout/AGENTS.md`
 - Selected-profile state, revision bumps, auth bootstrap, and `X-Profile-Id` management scoping: `src/context/AGENTS.md`, `src/context/auth/AGENTS.md`, `src/context/profile/AGENTS.md`
 - Typed API boundary and shared request plumbing: `src/lib/AGENTS.md`, `src/lib/api/AGENTS.md`, `src/lib/api.ts`
@@ -48,6 +50,7 @@ frontend/
 
 ## CONVENTIONS
 - Treat `src/App.tsx` as the source of truth for routes and shell boundaries.
+- Keep unmounted page-owned drill-down components out of the top-level route map even when they live beside mounted pages under `src/pages/`.
 - Keep selected profile separate from active runtime routing. `selectedProfile` scopes management APIs; it does not switch proxy traffic.
 - Keep backend access on the typed `src/lib/api.ts` boundary and the modules it re-exports.
 - Keep realtime ownership in `src/lib/websocket.ts` and consume it through hooks instead of creating ad hoc clients.

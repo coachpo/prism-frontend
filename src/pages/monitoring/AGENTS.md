@@ -1,12 +1,12 @@
-# FRONTEND MONITORING ROUTE KNOWLEDGE BASE
+# FRONTEND MONITORING PAGE CLUSTER KNOWLEDGE BASE
 
 ## OVERVIEW
-`pages/monitoring/` is the shared helper cluster behind `../MonitoringPage.tsx`, `../MonitoringVendorPage.tsx`, and `../MonitoringModelPage.tsx`. It owns monitoring polling cadence, overview or drill-down data hooks, vendor and connection tables, recent history rendering, and manual probe interactions.
+`pages/monitoring/` is the shared monitoring page cluster behind the mounted `../MonitoringPage.tsx` route shell and the local `../MonitoringVendorPage.tsx` and `../MonitoringModelPage.tsx` drill-down page components. It owns monitoring polling cadence, overview or drill-down data hooks, vendor and connection tables, recent history rendering, and manual probe interactions.
 
 ## STRUCTURE
 ```
 monitoring/
-├── MonitoringOverviewGroups.tsx        # Overview vendor-group cards linking into drill-down routes
+├── MonitoringOverviewGroups.tsx        # Overview vendor-group cards and collapsible connection summaries
 ├── MonitoringVendorModelsTable.tsx     # Vendor drill-down model table
 ├── MonitoringModelConnectionsTable.tsx # Model drill-down connection rows and manual probe actions
 ├── MonitoringModelHistoryCard.tsx      # Recent probe history across model connections
@@ -14,19 +14,19 @@ monitoring/
 ├── useMonitoringOverviewData.ts        # Overview polling hook
 ├── useMonitoringVendorData.ts          # Vendor drill-down polling hook
 ├── useMonitoringModelData.ts           # Model drill-down polling + manual probe hook
-└── __tests__/                          # Route-shell i18n, vendor/model, and manual-probe coverage
+└── __tests__/                          # Monitoring page-cluster i18n and hook coverage
 ```
 
 ## WHERE TO LOOK
-- Thin route shells that hand off into this cluster: `../MonitoringPage.tsx`, `../MonitoringVendorPage.tsx`, `../MonitoringModelPage.tsx`
+- Mounted monitoring route shell plus local vendor/model drill-down page components that hand off into this cluster: `../MonitoringPage.tsx`, `../MonitoringVendorPage.tsx`, `../MonitoringModelPage.tsx`
 - Poll-interval loading, clamping, and milliseconds conversion: `monitoringPolling.ts`
 - Overview polling and vendor-group presentation: `useMonitoringOverviewData.ts`, `MonitoringOverviewGroups.tsx`
 - Vendor drill-down polling and model list presentation: `useMonitoringVendorData.ts`, `MonitoringVendorModelsTable.tsx`
 - Model drill-down polling, manual probe flow, connection table, and recent history: `useMonitoringModelData.ts`, `MonitoringModelConnectionsTable.tsx`, `MonitoringModelHistoryCard.tsx`
-- Local regression coverage: `__tests__/MonitoringPageShell.i18n.test.tsx`, `__tests__/MonitoringVendorPage.test.tsx`, `__tests__/MonitoringModelPage.test.tsx`, `__tests__/useMonitoringModelData.test.tsx`
+- Local regression coverage: `__tests__/MonitoringPageShell.i18n.test.tsx`, `__tests__/MonitoringOverviewGroups.test.tsx`, `__tests__/useMonitoringModelData.test.tsx`
 
 ## CONVENTIONS
-- Keep the three route shells thin; polling, fetch sequencing, and error state live in the local hooks.
+- Keep the mounted monitoring route shell and the two local drill-down page components thin; polling, fetch sequencing, and error state live in the local hooks.
 - Keep `monitoringPolling.ts` as the single source of truth for settings-backed interval clamping.
 - Keep manual probe orchestration in `useMonitoringModelData.ts`; table components should emit actions, not call APIs directly.
 - Keep user-facing copy and empty states on the shared locale boundary through `useLocale()`.

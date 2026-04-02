@@ -1,7 +1,7 @@
 # FRONTEND PAGES KNOWLEDGE BASE
 
 ## OVERVIEW
-`src/pages/` is the route-domain layer for Prism's mounted frontend pages.
+`src/pages/` is the route-domain layer for Prism's mounted frontend pages plus a small set of page-owned drill-down surfaces that are not mounted at the app root.
 
 ## ROUTE SURFACE
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
@@ -10,7 +10,7 @@
 
 ## DOMAINS
 - Auth entry and recovery: `LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`
-- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestLogsPage.tsx`, `MonitoringPage.tsx`, plus the unmounted drill-down page components `MonitoringVendorPage.tsx` and `MonitoringModelPage.tsx` with the shared `monitoring/AGENTS.md` helper cluster
+- Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestLogsPage.tsx`, `MonitoringPage.tsx`, plus the page-owned but unmounted drill-down components `MonitoringVendorPage.tsx` and `MonitoringModelPage.tsx` with the shared `monitoring/AGENTS.md` helper cluster
 - Configuration and routing: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `ProxyModelDetailPage.tsx`, `EndpointsPage.tsx`, `LoadbalanceStrategiesPage.tsx`, `PricingTemplatesPage.tsx`
 - Access control and runtime credentials: `ProxyApiKeysPage.tsx`
 - Settings shell: `SettingsPage.tsx` with `settings/sections/` and `settings/costing/`
