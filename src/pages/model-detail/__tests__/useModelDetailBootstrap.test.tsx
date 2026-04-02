@@ -5,6 +5,8 @@ import type { LoadbalanceStrategySummary, SpendingSummary } from "@/lib/types";
 import { buildProxyTargetOptions } from "../useModelDetailDataSupport";
 import { useModelDetailBootstrap } from "../useModelDetailBootstrap";
 
+type LegacyStrategySummary = Extract<LoadbalanceStrategySummary, { strategy_type: "legacy" }>;
+
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((res) => {
@@ -40,11 +42,12 @@ vi.mock("sonner", () => ({
   },
 }));
 
-function buildLoadbalanceStrategySummary(overrides: Partial<LoadbalanceStrategySummary> = {}): LoadbalanceStrategySummary {
+function buildLoadbalanceStrategySummary(overrides: Partial<LegacyStrategySummary> = {}): LegacyStrategySummary {
   return {
     id: 100,
     name: "single-primary",
-    strategy_type: "single",
+    strategy_type: "legacy",
+    legacy_strategy_type: "single",
     auto_recovery: { mode: "disabled" },
     ...overrides,
   };

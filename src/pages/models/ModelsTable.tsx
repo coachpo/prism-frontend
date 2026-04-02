@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/collapsible";
 import { formatMoneyMicros } from "@/lib/costing";
 import type { ModelConfigListItem } from "@/lib/types";
+import { getAdaptiveRoutingObjectiveLabel } from "@/lib/loadbalanceRoutingPolicy";
 import { cn, formatApiFamily } from "@/lib/utils";
 import {
   formatLatencyForDisplay,
@@ -212,14 +213,21 @@ function ModelRow({
   const statusIntent = model.is_enabled ? "success" : "muted";
   const showModelId = Boolean(model.display_name && model.display_name !== model.model_id);
   const strategyTypeLabel = model.loadbalance_strategy
-    ? model.loadbalance_strategy.strategy_type === "single"
-      ? strategyCopy.singleLabel
-      : model.loadbalance_strategy.strategy_type === "fill-first"
-        ? strategyCopy.fillFirstLabel
-        : strategyCopy.roundRobinLabel
+    ? model.loadbalance_strategy.strategy_type === "adaptive"
+      ? strategyCopy.adaptiveFamilyLabel
+      : model.loadbalance_strategy.legacy_strategy_type === "single"
+        ? strategyCopy.singleLabel
+        : model.loadbalance_strategy.legacy_strategy_type === "fill-first"
+          ? strategyCopy.fillFirstLabel
+          : strategyCopy.roundRobinLabel
+    : null;
+  const strategySummaryLabel = model.loadbalance_strategy
+    ? model.loadbalance_strategy.strategy_type === "adaptive"
+      ? `${strategyCopy.adaptiveFamilyLabel} • ${getAdaptiveRoutingObjectiveLabel(model.loadbalance_strategy.routing_policy.routing_objective, strategyCopy)}`
+      : strategyTypeLabel
     : null;
   const strategySummary = model.loadbalance_strategy
-    ? `${model.loadbalance_strategy.name} · ${strategyTypeLabel}`
+    ? `${model.loadbalance_strategy.name} · ${strategySummaryLabel}`
     : copy.strategyNotConfigured;
   const successRateText =
       metricsLoading && !metrics24h

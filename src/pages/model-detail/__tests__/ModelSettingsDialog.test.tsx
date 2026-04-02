@@ -1,8 +1,43 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { ModelConfig, Vendor } from "@/lib/types";
+import type { LoadbalanceStrategy, ModelConfig, Vendor } from "@/lib/types";
 import { ModelSettingsDialog } from "../ModelSettingsDialog";
+
+function buildAdaptiveRoutingPolicy() {
+  return {
+    kind: "adaptive" as const,
+    routing_objective: "minimize_latency" as const,
+    deadline_budget_ms: 1500,
+    hedge: {
+      enabled: false,
+      delay_ms: 75,
+      max_additional_attempts: 1,
+    },
+    circuit_breaker: {
+      failure_status_codes: [429, 503, 504],
+      base_open_seconds: 60,
+      failure_threshold: 2,
+      backoff_multiplier: 2,
+      max_open_seconds: 900,
+      jitter_ratio: 0.2,
+      ban_mode: "off" as const,
+      max_open_strikes_before_ban: 0,
+      ban_duration_seconds: 0,
+    },
+    admission: {
+      respect_qps_limit: true,
+      respect_in_flight_limits: true,
+    },
+    monitoring: {
+      enabled: true,
+      stale_after_seconds: 30,
+      endpoint_ping_weight: 0.4,
+      conversation_delay_weight: 0.35,
+      failure_penalty_weight: 0.25,
+    },
+  };
+}
 
 describe("ModelSettingsDialog", () => {
   beforeEach(() => {
@@ -108,5 +143,82 @@ describe("ModelSettingsDialog", () => {
     expect(screen.getByText("显示名称")).toBeInTheDocument();
     expect(screen.getByText("代理目标")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存更改" })).toBeInTheDocument();
+  });
+
+  it("shows legacy and adaptive assignment options with kind-aware summaries for native models", () => {
+    const vendor: Vendor = {
+      id: 7,
+      key: "openai",
+      name: "OpenAI",
+      description: null,
+      icon_key: null,
+      audit_enabled: false,
+      audit_capture_bodies: false,
+      created_at: "",
+      updated_at: "",
+    };
+    const model: ModelConfig = {
+      id: 11,
+      vendor_id: 7,
+      vendor,
+      api_family: "openai",
+      model_id: "gpt-5.4",
+      display_name: "GPT-5.4",
+      model_type: "native",
+      proxy_targets: [],
+      loadbalance_strategy_id: 101,
+      loadbalance_strategy: {
+        id: 101,
+        name: "round-robin-primary",
+        strategy_type: "legacy",
+        legacy_strategy_type: "round-robin",
+        auto_recovery: { mode: "disabled" },
+      },
+      is_enabled: true,
+      connections: [],
+      created_at: "",
+      updated_at: "",
+    };
+    const strategies: LoadbalanceStrategy[] = [
+      {
+        id: 101,
+        profile_id: 1,
+        name: "round-robin-primary",
+        strategy_type: "legacy",
+        legacy_strategy_type: "round-robin",
+        auto_recovery: { mode: "disabled" },
+        attached_model_count: 1,
+        created_at: "",
+        updated_at: "",
+      },
+      {
+        id: 102,
+        profile_id: 1,
+        name: "adaptive-availability",
+        strategy_type: "adaptive",
+        routing_policy: buildAdaptiveRoutingPolicy(),
+        attached_model_count: 2,
+        created_at: "",
+        updated_at: "",
+      },
+    ];
+
+    render(
+      <LocaleProvider>
+        <ModelSettingsDialog
+          editLoadbalanceStrategyId="101"
+          isOpen={true}
+          loadbalanceStrategies={strategies}
+          onOpenChange={vi.fn()}
+          vendors={[vendor]}
+          setEditLoadbalanceStrategyId={vi.fn()}
+          handleEditModelSubmit={vi.fn()}
+          model={model}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getAllByText("round-robin-primary (Legacy strategy • Round robin)").length).toBeGreaterThan(0);
+    expect(screen.getByText("adaptive-availability (Adaptive strategy • Minimize latency)")).toBeInTheDocument();
   });
 });

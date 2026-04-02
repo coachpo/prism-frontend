@@ -20,6 +20,7 @@ import type {
   ModelConfigListItem,
   Vendor,
 } from "@/lib/types";
+import { getAdaptiveRoutingObjectiveLabel } from "@/lib/loadbalanceRoutingPolicy";
 import type { ModelFormData, SubmitEventLike } from "./modelFormState";
 import {
   appendProxyTarget,
@@ -69,11 +70,13 @@ export function ModelDialog({
   );
 
   const getStrategyTypeLabel = (strategy: LoadbalanceStrategy) =>
-    strategy.strategy_type === "single"
-      ? strategyCopy.singleLabel
-      : strategy.strategy_type === "fill-first"
-        ? strategyCopy.fillFirstLabel
-        : strategyCopy.roundRobinLabel;
+    strategy.strategy_type === "adaptive"
+      ? `${strategyCopy.adaptiveFamilyLabel} • ${getAdaptiveRoutingObjectiveLabel(strategy.routing_policy.routing_objective, strategyCopy)}`
+      : strategy.legacy_strategy_type === "single"
+        ? strategyCopy.singleLabel
+        : strategy.legacy_strategy_type === "fill-first"
+          ? strategyCopy.fillFirstLabel
+          : strategyCopy.roundRobinLabel;
 
   const resolveTargetLabel = (targetModelId: string) => {
     const matchedModel = nativeModelsForApiFamily.find((model) => model.model_id === targetModelId);

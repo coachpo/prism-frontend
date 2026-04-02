@@ -42,7 +42,8 @@ function buildModel(): ModelConfig {
     loadbalance_strategy: {
       id: 101,
       name: "round-robin-primary",
-      strategy_type: "round-robin",
+      strategy_type: "legacy",
+      legacy_strategy_type: "round-robin",
       auto_recovery: {
         mode: "enabled",
         status_codes: [429, 503],

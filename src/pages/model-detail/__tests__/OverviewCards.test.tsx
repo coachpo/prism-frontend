@@ -4,6 +4,41 @@ import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { OverviewCards } from "../OverviewCards";
 
+function buildAdaptiveRoutingPolicy() {
+  return {
+    kind: "adaptive" as const,
+    routing_objective: "minimize_latency" as const,
+    deadline_budget_ms: 1500,
+    hedge: {
+      enabled: false,
+      delay_ms: 75,
+      max_additional_attempts: 1,
+    },
+    circuit_breaker: {
+      failure_status_codes: [429, 503, 504],
+      base_open_seconds: 60,
+      failure_threshold: 2,
+      backoff_multiplier: 2,
+      max_open_seconds: 900,
+      jitter_ratio: 0.2,
+      ban_mode: "off" as const,
+      max_open_strikes_before_ban: 0,
+      ban_duration_seconds: 0,
+    },
+    admission: {
+      respect_qps_limit: true,
+      respect_in_flight_limits: true,
+    },
+    monitoring: {
+      enabled: true,
+      stale_after_seconds: 30,
+      endpoint_ping_weight: 0.4,
+      conversation_delay_weight: 0.35,
+      failure_penalty_weight: 0.25,
+    },
+  };
+}
+
 vi.mock("@/hooks/useTimezone", () => ({
   useTimezone: () => ({
     format: () => "2026-03-25",
@@ -37,7 +72,8 @@ function buildModel() {
     loadbalance_strategy: {
       id: 101,
       name: "round-robin-primary",
-      strategy_type: "round-robin" as const,
+      strategy_type: "legacy" as const,
+      legacy_strategy_type: "round-robin" as const,
       auto_recovery: {
         mode: "enabled" as const,
         status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
@@ -57,6 +93,19 @@ function buildModel() {
     connections: [],
     created_at: "2026-03-20T10:00:00Z",
     updated_at: "2026-03-20T10:00:00Z",
+  };
+}
+
+function buildAdaptiveModel() {
+  return {
+    ...buildModel(),
+    loadbalance_strategy_id: 202,
+    loadbalance_strategy: {
+      id: 202,
+      name: "adaptive-availability",
+      strategy_type: "adaptive" as const,
+      routing_policy: buildAdaptiveRoutingPolicy(),
+    },
   };
 }
 
@@ -135,5 +184,23 @@ describe("OverviewCards", () => {
     fireEvent.click(screen.getByRole("button", { name: "View Request Logs" }));
 
     expect(handleViewRequestLogs).toHaveBeenCalledOnce();
+  });
+
+  it("shows adaptive strategy family and routing objective for native strategies", () => {
+    render(
+      <LocaleProvider>
+        <OverviewCards
+          model={buildAdaptiveModel()}
+          spending={null}
+          spendingLoading={false}
+          spendingCurrencySymbol="$"
+          spendingCurrencyCode="USD"
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText("adaptive-availability")).toBeInTheDocument();
+    expect(screen.getAllByText(/Adaptive strategy/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Minimize latency")).toBeInTheDocument();
   });
 });

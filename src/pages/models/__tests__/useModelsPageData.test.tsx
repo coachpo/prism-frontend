@@ -61,7 +61,8 @@ function buildLoadbalanceStrategySummary(overrides: Record<string, unknown> = {}
   return {
     id: 100,
     name: "single-primary",
-    strategy_type: "single",
+    strategy_type: "legacy",
+    legacy_strategy_type: "single",
     auto_recovery: { mode: "disabled" },
     ...overrides,
   };

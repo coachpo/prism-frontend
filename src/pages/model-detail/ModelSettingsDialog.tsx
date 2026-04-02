@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useLocale } from "@/i18n/useLocale";
+import { getAdaptiveRoutingObjectiveLabel } from "@/lib/loadbalanceRoutingPolicy";
 import type { LoadbalanceStrategy, ModelConfig, Vendor } from "@/lib/types";
 
 interface ModelSettingsDialogProps {
@@ -99,7 +100,13 @@ type ModelSettingsFormProps = {
   onOpenChange: (open: boolean) => void;
   setEditLoadbalanceStrategyId: (value: string) => void;
   strategyCopy: {
+    adaptiveFamilyLabel: string;
     fillFirstLabel: string;
+    legacyFamilyLabel: string;
+    maximizeAvailabilityLabel: string;
+    maximizeAvailabilitySummary: string;
+    minimizeLatencyLabel: string;
+    minimizeLatencySummary: string;
     roundRobinLabel: string;
     singleLabel: string;
   };
@@ -129,15 +136,17 @@ function ModelSettingsForm({
     setSelectedApiFamily(value as "openai" | "anthropic" | "gemini");
   };
 
-  const getStrategyOptionText = (strategy: LoadbalanceStrategy) => {
-    const strategyTypeLabel =
-      strategy.strategy_type === "single"
-        ? strategyCopy.singleLabel
-        : strategy.strategy_type === "fill-first"
-          ? strategyCopy.fillFirstLabel
-          : strategyCopy.roundRobinLabel;
+  const getStrategyDetailLabel = (strategy: LoadbalanceStrategy) =>
+    strategy.strategy_type === "adaptive"
+      ? `${strategyCopy.adaptiveFamilyLabel} • ${getAdaptiveRoutingObjectiveLabel(strategy.routing_policy.routing_objective, strategyCopy)}`
+      : strategy.legacy_strategy_type === "single"
+        ? `${strategyCopy.legacyFamilyLabel} • ${strategyCopy.singleLabel}`
+        : strategy.legacy_strategy_type === "fill-first"
+          ? `${strategyCopy.legacyFamilyLabel} • ${strategyCopy.fillFirstLabel}`
+          : `${strategyCopy.legacyFamilyLabel} • ${strategyCopy.roundRobinLabel}`;
 
-    return `${strategy.name} (${strategyTypeLabel})`;
+  const getStrategyOptionText = (strategy: LoadbalanceStrategy) => {
+    return `${strategy.name} (${getStrategyDetailLabel(strategy)})`;
   };
 
   return (

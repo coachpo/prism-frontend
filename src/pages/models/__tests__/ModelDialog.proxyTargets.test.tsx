@@ -73,11 +73,53 @@ const loadbalanceStrategies: LoadbalanceStrategy[] = [
     id: 100,
     profile_id: 1,
     name: "single-primary",
-    strategy_type: "single",
+    strategy_type: "legacy",
+    legacy_strategy_type: "single",
     auto_recovery: {
       mode: "disabled",
     },
     attached_model_count: 1,
+    created_at: "2026-03-20T10:00:00Z",
+    updated_at: "2026-03-20T10:00:00Z",
+  },
+  {
+    id: 101,
+    profile_id: 1,
+    name: "adaptive-availability",
+    strategy_type: "adaptive",
+    routing_policy: {
+      kind: "adaptive",
+      routing_objective: "minimize_latency",
+      deadline_budget_ms: 1500,
+      hedge: {
+        enabled: false,
+        delay_ms: 75,
+        max_additional_attempts: 1,
+      },
+      circuit_breaker: {
+        failure_status_codes: [429, 503, 504],
+        base_open_seconds: 60,
+        failure_threshold: 2,
+        backoff_multiplier: 2,
+        max_open_seconds: 900,
+        jitter_ratio: 0.2,
+        ban_mode: "off",
+        max_open_strikes_before_ban: 0,
+        ban_duration_seconds: 0,
+      },
+      admission: {
+        respect_qps_limit: true,
+        respect_in_flight_limits: true,
+      },
+      monitoring: {
+        enabled: true,
+        stale_after_seconds: 30,
+        endpoint_ping_weight: 0.4,
+        conversation_delay_weight: 0.35,
+        failure_penalty_weight: 0.25,
+      },
+    },
+    attached_model_count: 2,
     created_at: "2026-03-20T10:00:00Z",
     updated_at: "2026-03-20T10:00:00Z",
   },
@@ -334,6 +376,38 @@ describe("ModelDialog proxy target editing", () => {
     );
   });
 
+  it("shows legacy and adaptive strategy options with kind-aware summaries", () => {
+    render(
+      <LocaleProvider>
+        <ModelDialog
+          editingModel={null}
+          formData={{
+            vendor_id: 7,
+            api_family: "openai",
+            model_id: "gpt-4o-mini",
+            display_name: "GPT-4o Mini",
+            model_type: "native",
+            proxy_targets: [],
+            loadbalance_strategy_id: 100,
+            is_enabled: true,
+          }}
+          isDialogOpen
+          loadbalanceStrategies={loadbalanceStrategies}
+          nativeModelsForApiFamily={[]}
+          vendors={[buildVendor()]}
+          setFormData={vi.fn()}
+          setIsDialogOpen={vi.fn()}
+          setLoadbalanceStrategyId={vi.fn()}
+          setModelType={vi.fn()}
+          onSubmit={vi.fn()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getAllByText("single-primary (Single)").length).toBeGreaterThan(0);
+    expect(screen.getByText("adaptive-availability (Adaptive strategy • Minimize latency)")).toBeInTheDocument();
+  });
+
   it("keeps proxy target rows and add-target controls contained on narrow widths", () => {
     render(<Harness />);
 
@@ -417,7 +491,8 @@ describe("ModelDialog proxy target editing", () => {
               ...loadbalanceStrategies[0],
               id: 101,
               name: "round-robin-availability",
-              strategy_type: "round-robin",
+      strategy_type: "legacy",
+      legacy_strategy_type: "round-robin",
               auto_recovery: {
                 mode: "enabled",
                 status_codes: [429, 503],

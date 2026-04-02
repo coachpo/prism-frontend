@@ -57,7 +57,8 @@ function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigLi
     loadbalance_strategy: {
       id: 100,
       name: "single-primary",
-      strategy_type: "single",
+      strategy_type: "legacy",
+      legacy_strategy_type: "single",
       auto_recovery: {
         mode: "disabled",
       },
@@ -71,6 +72,53 @@ function buildModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigLi
     updated_at: "2026-03-20T10:00:00Z",
     ...overrides,
   };
+}
+
+function buildAdaptiveModel(overrides: Partial<ModelConfigListItem> = {}): ModelConfigListItem {
+  return buildModel({
+    id: 21,
+    model_id: "adaptive-model",
+    display_name: "Adaptive Model",
+    loadbalance_strategy_id: 101,
+    loadbalance_strategy: {
+      id: 101,
+      name: "adaptive-availability",
+      strategy_type: "adaptive",
+      routing_policy: {
+        kind: "adaptive",
+        routing_objective: "minimize_latency",
+        deadline_budget_ms: 1500,
+        hedge: {
+          enabled: false,
+          delay_ms: 75,
+          max_additional_attempts: 1,
+        },
+        circuit_breaker: {
+          failure_status_codes: [429, 503, 504],
+          base_open_seconds: 60,
+          failure_threshold: 2,
+          backoff_multiplier: 2,
+          max_open_seconds: 900,
+          jitter_ratio: 0.2,
+          ban_mode: "off",
+          max_open_strikes_before_ban: 0,
+          ban_duration_seconds: 0,
+        },
+        admission: {
+          respect_qps_limit: true,
+          respect_in_flight_limits: true,
+        },
+        monitoring: {
+          enabled: true,
+          stale_after_seconds: 30,
+          endpoint_ping_weight: 0.4,
+          conversation_delay_weight: 0.35,
+          failure_penalty_weight: 0.25,
+        },
+      },
+    },
+    ...overrides,
+  });
 }
 
 function renderTable({
@@ -322,6 +370,15 @@ describe("ModelsTable", () => {
     expect(screen.getAllByText("Anthropic").length).toBeGreaterThan(0);
   });
 
+  it("shows kind-aware strategy summaries for legacy and adaptive assignments", () => {
+    renderTable({
+      filtered: [buildModel(), buildAdaptiveModel()],
+    });
+
+    expect(screen.getByText("single-primary · Single")).toBeInTheDocument();
+    expect(screen.getByText("adaptive-availability · Adaptive strategy • Minimize latency")).toBeInTheDocument();
+  });
+
   it("sorts vendor groups predictably with Unknown vendor last", () => {
     renderTable({
       filtered: [
@@ -483,7 +540,8 @@ describe("ModelsTable", () => {
             ...buildModel().loadbalance_strategy!,
             id: 101,
             name: "fill-first-primary",
-            strategy_type: "fill-first",
+      strategy_type: "legacy",
+      legacy_strategy_type: "fill-first",
             auto_recovery: {
               mode: "enabled",
               status_codes: [429, 503],
