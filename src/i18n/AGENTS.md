@@ -1,7 +1,7 @@
 # FRONTEND I18N KNOWLEDGE BASE
 
 ## OVERVIEW
-`src/i18n/` owns Prism's frontend-only locale boundary, including locale selection, persistence, catalogs, shared formatting helpers, and static label helpers for non-hook code.
+`src/i18n/` owns Prism's frontend-only locale boundary, including locale selection, persistence, large locale catalogs, shared formatting helpers, and static label helpers for non-hook code.
 
 ## STRUCTURE
 ```
@@ -27,9 +27,9 @@ i18n/
 
 - Keep locale selection frontend-only.
 - Keep `document.documentElement.lang` synchronized through `LocaleProvider.tsx`.
-- Add new user-facing strings to the catalogs when they belong to reusable shell or route surfaces.
+- Add new user-facing strings to the catalogs when they belong to reusable shell or route surfaces, including shared dual-strategy family and objective wording.
 - Route shared formatting through `format.ts` or `useLocale()` instead of ad hoc `Intl.*` usage.
-- Use `staticMessages.ts` when a non-hook caller needs locale-aware fallback labels or known-label comparisons.
+- Use `staticMessages.ts` when a non-hook caller needs locale-aware fallback labels, objective labels, or known-label comparisons.
 - When doing upgrade work, backward compatibility with the pre-upgrade implementation is not a goal unless explicitly requested. Prefer the best current implementation shape over preserving the old one. Do not add compatibility shims, dual paths, or fallback behavior solely to preserve the old interface.
 
 ## ANTI-PATTERNS

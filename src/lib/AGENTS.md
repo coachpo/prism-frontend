@@ -1,7 +1,7 @@
 # FRONTEND LIB KNOWLEDGE BASE
 
 ## OVERVIEW
-`src/lib/` is the frontend boundary to backend contracts and browser integrations. Keep the shared hotspots here: `api/core.ts`, `websocket.ts`, `referenceData.ts`, `configImportValidation.ts`, `loadbalanceRoutingPolicy.ts`, `appVersion.ts`, `timezone.ts`, `costing.ts`, `clipboard.ts`, and `webauthn.ts`. `websocket/AGENTS.md` owns the helper split beneath the singleton client, and stats callers should go through the typed observability clients for the unified usage-snapshot route and the retained shared stats routes.
+`src/lib/` is the frontend boundary to backend contracts and browser integrations. Keep the shared hotspots here: `api/core.ts`, `websocket.ts`, `referenceData.ts`, `configImportValidation.ts`, `loadbalanceRoutingPolicy.ts`, `appVersion.ts`, `timezone.ts`, `costing.ts`, `clipboard.ts`, and `webauthn.ts`. This layer now owns the dual-family loadbalance contract mirror, including full adaptive `routing_policy` round-trips, family-specific import validation, and shared objective/ban-policy defaults. `websocket/AGENTS.md` owns the helper split beneath the singleton client, and stats callers should go through the typed observability clients for the unified usage-snapshot route and the retained shared stats routes.
 
 ## STRUCTURE
 ```
@@ -20,7 +20,7 @@ lib/
 ├── referenceDataRegistry.ts      # Registry of shared reference-data datasets
 ├── configImportValidation.ts     # Frontend-side config import validation mirrored from backend contracts
 ├── configImportValidationReferences.ts
-├── loadbalanceRoutingPolicy.ts   # Legacy load-balance defaults and failure-status normalization
+├── loadbalanceRoutingPolicy.ts   # Dual-family defaults, adaptive objective labels, and ban/failure-policy normalization
 ├── appVersion.ts                 # Browser-facing app version helper built from Vite-injected package metadata
 ├── webauthn.ts                   # Browser passkey ceremony helpers
 ├── types.ts + types/             # Backend-aligned payload and domain types
@@ -36,7 +36,7 @@ lib/
 - Typed `/api/*` client split, grouped surfaces, and `api/core.ts` request rules: `api/AGENTS.md`
 - Shared vendor cache, request dedupe, and dataset registry: `referenceData.ts`, `referenceDataRegistry.ts`
 - Frontend-side config import reference validation: `configImportValidation.ts`, `configImportValidationReferences.ts`
-- Shared legacy load-balance defaults and failure-status normalization: `loadbalanceRoutingPolicy.ts`
+- Shared dual-family load-balance defaults, adaptive objective labels, and failure-status or ban-policy normalization: `loadbalanceRoutingPolicy.ts`
 - Browser app version label formatting and Vite-injected package metadata: `appVersion.ts`
 - WebSocket connection state, reconnects, channel ref-counts, protocol parsing, and profile switching: `websocket.ts`, `websocket/AGENTS.md`
 - Shared timezone preference lookup and formatting helpers consumed by `useTimezone()`: `timezone.ts`
@@ -57,8 +57,8 @@ lib/
 - `request()` handles cookie credentials, `ApiError`, and one refresh retry for eligible `/api/*` paths.
 - Let `api/AGENTS.md` own the typed client split instead of expanding this parent with module-by-module endpoint detail.
 - `referenceData.ts` and `referenceDataRegistry.ts` own shared cache reuse, request dedupe, and revision-keyed invalidation for lookup datasets.
-- `configImportValidation.ts` owns frontend-side validation of the current import payload shape, including legacy `strategy_type` plus `auto_recovery` strategy data and vendor `icon_key` presence, instead of leaving that logic in page components.
-- `loadbalanceRoutingPolicy.ts` owns legacy load-balance defaults and normalized failure-status handling used by settings and model flows.
+- `configImportValidation.ts` owns frontend-side validation of the current import payload shape, including family-specific legacy/adaptive strategy data, inactive-side `null` fields from backend export, and vendor `icon_key` presence, instead of leaving that logic in page components.
+- `loadbalanceRoutingPolicy.ts` owns dual-family defaults, adaptive objective labels, full-policy preservation helpers, and normalized failure-status or ban-policy handling used by settings and model flows.
 - `appVersion.ts` owns the browser-facing frontend version contract so shell chrome reads the synced `frontend/package.json` version through Vite instead of hard-coded literals.
 - `websocket.ts` owns the singleton client, while `websocket/AGENTS.md` owns protocol parsing, subscription bookkeeping, and reconnect transport helpers. Consumers should use `useRealtimeData()` instead of creating clients directly.
 - `timezone.ts` owns shared timezone preference caching and helper access beneath `useTimezone()`.

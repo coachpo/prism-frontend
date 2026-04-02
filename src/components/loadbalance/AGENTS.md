@@ -1,7 +1,7 @@
 # FRONTEND LOADBALANCE COMPONENTS KNOWLEDGE BASE
 
 ## OVERVIEW
-`loadbalance/` holds shared renderers for loadbalance badges, event rows, and the event detail sheet.
+`loadbalance/` holds shared renderers for family-aware loadbalance badges, event rows, and the event detail sheet.
 
 ## WHERE TO LOOK
 - `LoadbalanceBadges.tsx`
