@@ -2,7 +2,7 @@ import { StrictMode, type ReactNode } from "react";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
-import { clearSharedReferenceData } from "@/lib/referenceData";
+import { clearSharedReferenceData, setSharedVendors } from "@/lib/referenceData";
 import { useModelsPageData } from "../useModelsPageData";
 
 function createDeferred<T>() {
@@ -194,6 +194,30 @@ describe("useModelsPageData", () => {
     expect(result.current.modelSpend30dMicros[1]).toBe(123456);
   });
 
+  it("refreshes new-model vendors from shared cache before opening the dialog", async () => {
+    const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      setSharedVendors(1, [
+        buildVendor({ id: 20, key: "google", name: "Google", icon_key: "google" }),
+        buildVendor(),
+      ]);
+    });
+
+    await act(async () => {
+      await result.current.handleOpenDialog();
+    });
+
+    expect(result.current.vendors.map((vendor) => vendor.id)).toEqual([20, 10]);
+    expect(result.current.formData.vendor_id).toBe(20);
+    expect(result.current.formData.api_family).toBe("gemini");
+    expect(result.current.isDialogOpen).toBe(true);
+  });
+
   it("ignores stale in-flight bootstrap results after revision changes", async () => {
     const deferredModels = createDeferred<Parameters<typeof api.models.list.mockResolvedValue>[0]>();
     const deferredVendors = createDeferred<Parameters<typeof api.vendors.list.mockResolvedValue>[0]>();
@@ -272,8 +296,11 @@ describe("useModelsPageData", () => {
       expect(result.current.loading).toBe(false);
     });
 
+    await act(async () => {
+      await result.current.handleOpenDialog();
+    });
+
     act(() => {
-      result.current.handleOpenDialog();
       result.current.setFormData(
         (current) =>
           ({
@@ -332,8 +359,11 @@ describe("useModelsPageData", () => {
       expect(result.current.loading).toBe(false);
     });
 
+    await act(async () => {
+      await result.current.handleOpenDialog();
+    });
+
     act(() => {
-      result.current.handleOpenDialog();
       result.current.setFormData((current) => ({
         ...current,
         vendor_id: 10,
@@ -370,8 +400,8 @@ describe("useModelsPageData", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    act(() => {
-      result.current.handleOpenDialog();
+    await act(async () => {
+      await result.current.handleOpenDialog();
     });
 
     expect(result.current.formData.model_type).toBe("native");
@@ -385,8 +415,11 @@ describe("useModelsPageData", () => {
       expect(result.current.loading).toBe(false);
     });
 
+    await act(async () => {
+      await result.current.handleOpenDialog();
+    });
+
     act(() => {
-      result.current.handleOpenDialog();
       result.current.setFormData((current) => ({
         ...current,
         vendor_id: 10,
@@ -440,8 +473,11 @@ describe("useModelsPageData", () => {
       expect(result.current.loading).toBe(false);
     });
 
+    await act(async () => {
+      await result.current.handleOpenDialog();
+    });
+
     act(() => {
-      result.current.handleOpenDialog();
       result.current.setFormData((current) => ({
         ...current,
         vendor_id: 30,
@@ -551,8 +587,11 @@ describe("useModelsPageData", () => {
       expect(result.current.loading).toBe(false);
     });
 
+    await act(async () => {
+      await result.current.handleOpenDialog();
+    });
+
     act(() => {
-      result.current.handleOpenDialog();
       result.current.setFormData((current) => ({ ...current, vendor_id: 0 }));
     });
 

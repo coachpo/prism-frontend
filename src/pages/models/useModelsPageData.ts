@@ -98,14 +98,24 @@ export function useModelsPageData(revision: number) {
     });
   };
 
-  const handleOpenDialog = (model?: ModelConfigListItem) => {
+  const handleOpenDialog = async (model?: ModelConfigListItem) => {
     if (model) {
       setEditingModel(model);
       setFormData(createEditModelFormData(model));
-    } else {
-      setEditingModel(null);
-      setFormData(createNewModelFormData(vendors, loadbalanceStrategies[0]?.id ?? null));
+      setIsDialogOpen(true);
+      return;
     }
+
+    let nextVendors = vendors;
+    try {
+      nextVendors = await getSharedVendors(revision);
+      setVendors(nextVendors);
+    } catch {
+      nextVendors = vendors;
+    }
+
+    setEditingModel(null);
+    setFormData(createNewModelFormData(nextVendors, loadbalanceStrategies[0]?.id ?? null));
     setIsDialogOpen(true);
   };
 
