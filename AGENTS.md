@@ -1,7 +1,7 @@
 # FRONTEND KNOWLEDGE BASE
 
 ## OVERVIEW
-`frontend/` is Prism's management dashboard. Keep this doc as the router for the frontend submodule, not a deep implementation guide.
+`frontend/` is Prism's management dashboard. It owns the browser-side management contract for dual-family loadbalance strategy selection (`legacy` and `adaptive`) while keeping this doc as the router for the frontend submodule, not a deep implementation guide.
 
 ## STRUCTURE
 ```text

@@ -11,7 +11,7 @@
 ## DOMAINS
 - Auth entry and recovery: `LoginPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`
 - Observability: `DashboardPage.tsx`, `StatisticsPage.tsx`, `RequestLogsPage.tsx`, `MonitoringPage.tsx`, plus the page-owned but unmounted drill-down components `MonitoringVendorPage.tsx` and `MonitoringModelPage.tsx` with the shared `monitoring/AGENTS.md` helper cluster
-- Configuration and routing: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `ProxyModelDetailPage.tsx`, `EndpointsPage.tsx`, `LoadbalanceStrategiesPage.tsx`, `PricingTemplatesPage.tsx`
+- Configuration and routing: `ModelsPage.tsx`, `ModelDetailPage.tsx`, `ProxyModelDetailPage.tsx`, `EndpointsPage.tsx`, `LoadbalanceStrategiesPage.tsx`, `PricingTemplatesPage.tsx`; this is also where dual-family strategy selection and assignment surfaces live
 - Access control and runtime credentials: `ProxyApiKeysPage.tsx`
 - Settings shell: `SettingsPage.tsx` with `settings/sections/` and `settings/costing/`
 
