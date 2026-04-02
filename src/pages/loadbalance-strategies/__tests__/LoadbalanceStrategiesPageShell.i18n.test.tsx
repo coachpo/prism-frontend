@@ -21,7 +21,8 @@ vi.mock("../useLoadbalanceStrategiesPageData", () => ({
     editingLoadbalanceStrategy: null,
     loadbalanceStrategyForm: {
       name: "",
-      strategy_type: "single",
+      strategy_type: "legacy",
+      legacy_strategy_type: "single",
       auto_recovery: { mode: "disabled" },
     },
     loadbalanceStrategySaving: false,
@@ -46,7 +47,7 @@ describe("LoadbalanceStrategiesPage shell i18n", () => {
     localStorage.setItem("prism.locale", "zh-CN");
   });
 
-  it("renders localized page shell copy for the legacy strategy workflow", () => {
+  it("renders localized page shell copy for the dual-strategy workflow", () => {
     render(
       <LocaleProvider>
         <LoadbalanceStrategiesPage />
@@ -54,8 +55,8 @@ describe("LoadbalanceStrategiesPage shell i18n", () => {
     );
 
     expect(screen.getByRole("heading", { name: "负载均衡策略" })).toBeInTheDocument();
-    expect(screen.getByText("管理此配置档案中可复用的 single、fill-first 和 round-robin 原生模型策略")).toBeInTheDocument();
+    expect(screen.getByText("管理此配置档案中可复用的传统与自适应原生模型策略")).toBeInTheDocument();
     expect(screen.getByText("配置档案作用域设置")).toBeInTheDocument();
-    expect(screen.queryByText(/自适应/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/自适应/).length).toBeGreaterThan(0);
   });
 });

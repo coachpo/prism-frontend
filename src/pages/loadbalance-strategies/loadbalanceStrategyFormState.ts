@@ -1,10 +1,12 @@
 import type {
   LoadbalanceAutoRecovery,
   LoadbalanceBanMode,
+  LoadbalanceRoutingPolicy,
   LoadbalanceStrategy,
-  LoadbalanceStrategyType,
+  LegacyLoadbalanceStrategyType,
 } from "@/lib/types";
 import {
+  createDefaultAdaptiveRoutingPolicy,
   getDefaultAutoRecovery,
   normalizeFailureStatusCodes,
 } from "@/lib/loadbalanceRoutingPolicy";
@@ -44,17 +46,35 @@ export type LoadbalanceAutoRecoveryDraft =
   | AutoRecoveryDisabledDraft
   | AutoRecoveryEnabledDraft;
 
-export type LoadbalanceStrategyFormState = {
+type LegacyLoadbalanceStrategyFormState = {
   name: string;
-  strategy_type: LoadbalanceStrategyType;
+  strategy_type: "legacy";
+  legacy_strategy_type: LegacyLoadbalanceStrategyType;
   auto_recovery: LoadbalanceAutoRecoveryDraft;
 };
 
-export type LoadbalanceStrategyFormPayload = {
+type AdaptiveLoadbalanceStrategyFormState = {
   name: string;
-  strategy_type: LoadbalanceStrategyType;
-  auto_recovery: LoadbalanceAutoRecovery;
+  strategy_type: "adaptive";
+  routing_policy: LoadbalanceRoutingPolicy;
 };
+
+export type LoadbalanceStrategyFormState =
+  | LegacyLoadbalanceStrategyFormState
+  | AdaptiveLoadbalanceStrategyFormState;
+
+export type LoadbalanceStrategyFormPayload =
+  | {
+      name: string;
+      strategy_type: "legacy";
+      legacy_strategy_type: LegacyLoadbalanceStrategyType;
+      auto_recovery: LoadbalanceAutoRecovery;
+    }
+  | {
+      name: string;
+      strategy_type: "adaptive";
+      routing_policy: LoadbalanceRoutingPolicy;
+    };
 
 function normalizeInteger(value: number) {
   return Math.trunc(value);
@@ -89,38 +109,72 @@ function autoRecoveryDraftFromValue(autoRecovery: LoadbalanceAutoRecovery): Load
 }
 
 export function getDefaultAutoRecoveryDraft(
-  strategyType: LoadbalanceStrategyType,
+  strategyType: LegacyLoadbalanceStrategyType,
 ): LoadbalanceAutoRecoveryDraft {
   return autoRecoveryDraftFromValue(getDefaultAutoRecovery(strategyType));
 }
 
 export const DEFAULT_LOADBALANCE_STRATEGY_FORM: LoadbalanceStrategyFormState = {
   name: "",
-  strategy_type: "single",
+  strategy_type: "legacy",
+  legacy_strategy_type: "single",
   auto_recovery: getDefaultAutoRecoveryDraft("single"),
 };
 
 export function loadbalanceStrategyFormStateFromStrategy(
   strategy: LoadbalanceStrategy,
 ): LoadbalanceStrategyFormState {
+  if (strategy.strategy_type === "adaptive") {
+    return {
+      name: strategy.name,
+      strategy_type: "adaptive",
+      routing_policy: { ...strategy.routing_policy },
+    };
+  }
+
   return {
     name: strategy.name,
-    strategy_type: strategy.strategy_type,
+    strategy_type: "legacy",
+    legacy_strategy_type: strategy.legacy_strategy_type,
     auto_recovery: autoRecoveryDraftFromValue(strategy.auto_recovery),
   };
 }
 
-export function setLoadbalanceStrategyStrategyType(
+export function setLoadbalanceStrategyFamily(
   formState: LoadbalanceStrategyFormState,
-  strategyType: LoadbalanceStrategyType,
+  strategyFamily: LoadbalanceStrategyFormState["strategy_type"],
 ): LoadbalanceStrategyFormState {
-  if (strategyType === formState.strategy_type) {
+  if (strategyFamily === formState.strategy_type) {
+    return formState;
+  }
+
+  if (strategyFamily === "adaptive") {
+    return {
+      name: formState.name,
+      strategy_type: "adaptive",
+      routing_policy: createDefaultAdaptiveRoutingPolicy(),
+    };
+  }
+
+  return {
+    name: formState.name,
+    strategy_type: "legacy",
+    legacy_strategy_type: "single",
+    auto_recovery: getDefaultAutoRecoveryDraft("single"),
+  };
+}
+
+export function setLegacyLoadbalanceStrategyType(
+  formState: LoadbalanceStrategyFormState,
+  strategyType: LegacyLoadbalanceStrategyType,
+): LoadbalanceStrategyFormState {
+  if (formState.strategy_type !== "legacy" || strategyType === formState.legacy_strategy_type) {
     return formState;
   }
 
   return {
     ...formState,
-    strategy_type: strategyType,
+    legacy_strategy_type: strategyType,
     auto_recovery:
       formState.auto_recovery.mode === "enabled"
         ? formState.auto_recovery
@@ -132,6 +186,10 @@ export function setLoadbalanceStrategyAutoRecoveryMode(
   formState: LoadbalanceStrategyFormState,
   mode: "disabled" | "enabled",
 ): LoadbalanceStrategyFormState {
+  if (formState.strategy_type !== "legacy") {
+    return formState;
+  }
+
   if (mode === "disabled") {
     return {
       ...formState,
@@ -144,7 +202,7 @@ export function setLoadbalanceStrategyAutoRecoveryMode(
     auto_recovery:
       formState.auto_recovery.mode === "enabled"
         ? formState.auto_recovery
-        : getDefaultAutoRecoveryDraft(formState.strategy_type),
+        : getDefaultAutoRecoveryDraft(formState.legacy_strategy_type),
   };
 }
 
@@ -152,7 +210,7 @@ export function setLoadbalanceStrategyBanMode(
   formState: LoadbalanceStrategyFormState,
   mode: LoadbalanceBanMode,
 ): LoadbalanceStrategyFormState {
-  if (formState.auto_recovery.mode !== "enabled") {
+  if (formState.strategy_type !== "legacy" || formState.auto_recovery.mode !== "enabled") {
     return formState;
   }
 
@@ -217,7 +275,7 @@ export function getCircuitBreakerStatusCodeInputError(
 export function addCircuitBreakerStatusCode(
   formState: LoadbalanceStrategyFormState,
 ): LoadbalanceStrategyFormState {
-  if (formState.auto_recovery.mode !== "enabled") {
+  if (formState.strategy_type !== "legacy" || formState.auto_recovery.mode !== "enabled") {
     return formState;
   }
 
@@ -244,7 +302,7 @@ export function removeCircuitBreakerStatusCode(
   formState: LoadbalanceStrategyFormState,
   statusCodeToRemove: number,
 ): LoadbalanceStrategyFormState {
-  if (formState.auto_recovery.mode !== "enabled") {
+  if (formState.strategy_type !== "legacy" || formState.auto_recovery.mode !== "enabled") {
     return formState;
   }
 
@@ -302,9 +360,18 @@ function autoRecoveryDraftToPayload(autoRecovery: LoadbalanceAutoRecoveryDraft):
 export function toLoadbalanceStrategyPayload(
   formState: LoadbalanceStrategyFormState,
 ): LoadbalanceStrategyFormPayload {
+  if (formState.strategy_type === "adaptive") {
+    return {
+      name: formState.name.trim(),
+      strategy_type: "adaptive",
+      routing_policy: { ...formState.routing_policy },
+    };
+  }
+
   return {
     name: formState.name.trim(),
-    strategy_type: formState.strategy_type,
+    strategy_type: "legacy",
+    legacy_strategy_type: formState.legacy_strategy_type,
     auto_recovery: autoRecoveryDraftToPayload(formState.auto_recovery),
   };
 }
@@ -318,7 +385,7 @@ export function getLoadbalanceStrategyFormValidationError(
     return messages.nameRequired;
   }
 
-  if (formState.auto_recovery.mode === "disabled") {
+  if (formState.strategy_type !== "legacy" || formState.auto_recovery.mode === "disabled") {
     return null;
   }
 
@@ -398,6 +465,7 @@ export function getLoadbalanceStrategyFormValidationError(
     if (!Number.isInteger(autoRecovery.ban.ban_duration_seconds)) {
       return messages.banDurationIntegerSeconds;
     }
+
     if (autoRecovery.ban.ban_duration_seconds < 1) {
       return messages.banDurationTemporaryMin;
     }

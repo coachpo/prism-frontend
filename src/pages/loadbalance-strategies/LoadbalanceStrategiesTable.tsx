@@ -5,6 +5,12 @@ import { TypeBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  getAdaptiveRoutingObjectiveLabel,
+  getAdaptiveRoutingObjectiveSummary,
+  isAdaptiveLoadbalanceStrategy,
+  isLegacyLoadbalanceStrategy,
+} from "@/lib/loadbalanceRoutingPolicy";
+import {
   Table,
   TableBody,
   TableCell,
@@ -36,20 +42,31 @@ export function LoadbalanceStrategiesTable({
   const strategyCopy = messages.loadbalanceStrategyCopy;
 
   const getStrategyTypeLabel = (strategy: LoadbalanceStrategy) =>
-    strategy.strategy_type === "single"
-      ? strategyCopy.singleLabel
-      : strategy.strategy_type === "fill-first"
-        ? strategyCopy.fillFirstLabel
-        : strategyCopy.roundRobinLabel;
+    isLegacyLoadbalanceStrategy(strategy)
+      ? strategyCopy.legacyFamilyLabel
+      : strategyCopy.adaptiveFamilyLabel;
 
-  const getStrategySummary = (strategy: LoadbalanceStrategy) =>
-    strategy.strategy_type === "single"
-      ? strategyCopy.singleSummary
-      : strategy.strategy_type === "fill-first"
-        ? strategyCopy.fillFirstSummary
-        : strategyCopy.roundRobinSummary;
+  const getStrategySummary = (strategy: LoadbalanceStrategy) => {
+    if (isAdaptiveLoadbalanceStrategy(strategy)) {
+      return getAdaptiveRoutingObjectiveSummary(strategy.routing_policy.routing_objective, strategyCopy);
+    }
+
+    return strategy.legacy_strategy_type === "single"
+      ? `${strategyCopy.singleLabel} • ${strategyCopy.singleSummary}`
+      : strategy.legacy_strategy_type === "fill-first"
+        ? `${strategyCopy.fillFirstLabel} • ${strategyCopy.fillFirstSummary}`
+        : `${strategyCopy.roundRobinLabel} • ${strategyCopy.roundRobinSummary}`;
+  };
 
   const getRecoverySummary = (strategy: LoadbalanceStrategy) => {
+    if (isAdaptiveLoadbalanceStrategy(strategy)) {
+      return [
+        tableCopy.adaptiveRoutingSummary(
+          getAdaptiveRoutingObjectiveLabel(strategy.routing_policy.routing_objective, strategyCopy),
+        ),
+      ];
+    }
+
     if (strategy.auto_recovery.mode === "disabled") {
       return [tableCopy.autoRecoveryDisabled];
     }

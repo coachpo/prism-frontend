@@ -81,6 +81,7 @@ export interface Messages {
     apiFamilyMixDescription: string;
     quickActions: string;
     quickActionsDescription: string;
+    routingStrategyMix: string;
     recentActivity: string;
     recentActivityDescription: string;
     refreshDashboard: string;
@@ -122,6 +123,7 @@ export interface Messages {
     activeRoutes: (count: string) => string;
     endpointCount: (count: string) => string;
     modelCount: (count: string) => string;
+    strategyFamilyCount: (label: string, count: string) => string;
     totalConfigured: (count: string) => string;
     totalRequests: (count: string) => string;
     successRate: (rate: string) => string;
@@ -178,16 +180,25 @@ export interface Messages {
     maxCooldownStrikesBeforeBanLabel: string;
     maxCooldownDescription: string;
     maxCooldownLabel: string;
+    legacyStrategyTypeLabel: string;
     nameLabel: string;
     namePlaceholder: string;
     removeStatusCode: (code: number) => string;
+    routingPolicyLabel: string;
     save: string;
     saving: string;
+    strategyFamilyLabel: string;
     strategyTypeLabel: string;
   };
   loadbalanceStrategyCopy: {
+    adaptiveFamilyLabel: string;
     fillFirstLabel: string;
     fillFirstSummary: string;
+    legacyFamilyLabel: string;
+    maximizeAvailabilityLabel: string;
+    maximizeAvailabilitySummary: string;
+    minimizeLatencyLabel: string;
+    minimizeLatencySummary: string;
     roundRobinLabel: string;
     roundRobinSummary: string;
     singleLabel: string;
@@ -258,6 +269,7 @@ export interface Messages {
     emptyTitle: string;
   };
   loadbalanceStrategiesTable: {
+    adaptiveRoutingSummary: (label: string) => string;
     actions: string;
     addStrategy: string;
     attachedModels: string;
@@ -1631,6 +1643,7 @@ export const enMessages: Messages = {
   apiFamilyMixDescription: "Request distribution by API family (24h)",
     quickActions: "Quick Actions",
     quickActionsDescription: "Jump to focused spending analysis",
+    routingStrategyMix: "Routing strategy mix",
     recentActivity: "Recent Activity",
     recentActivityDescription: "Latest requests processed by the gateway",
     refreshDashboard: "Refresh dashboard",
@@ -1675,6 +1688,7 @@ export const enMessages: Messages = {
     activeRoutes: (count) => `${count} active route${count === "1" ? "" : "s"}`,
     endpointCount: (count) => `${count} endpoint${count === "1" ? "" : "s"}`,
     modelCount: (count) => `${count} model${count === "1" ? "" : "s"}`,
+    strategyFamilyCount: (label, count) => `${label} ${count}`,
     totalConfigured: (count) => `of ${count} total configured`,
     totalRequests: (count) => `${count} total requests`,
     successRate: (rate) => `${rate}% success rate`,
@@ -1743,16 +1757,25 @@ export const enMessages: Messages = {
     maxCooldownDescription:
       "Upper limit for the computed open window, even after repeated failures.",
     maxCooldownLabel: "Max Open Window (seconds)",
+    legacyStrategyTypeLabel: "Legacy Strategy Type",
     nameLabel: "Name",
     namePlaceholder: "e.g. round-robin-primary",
     removeStatusCode: (code) => `Remove status code ${code}`,
+    routingPolicyLabel: "Routing Policy",
     save: "Save Strategy",
     saving: "Saving...",
+    strategyFamilyLabel: "Strategy Family",
     strategyTypeLabel: "Strategy Type",
   },
   loadbalanceStrategyCopy: {
+    adaptiveFamilyLabel: "Adaptive strategy",
     fillFirstLabel: "Fill first",
     fillFirstSummary: "Keep using the first eligible connection until it becomes unavailable.",
+    legacyFamilyLabel: "Legacy strategy",
+    maximizeAvailabilityLabel: "Maximize availability",
+    maximizeAvailabilitySummary: "Adaptive routing that prioritizes the healthiest available path.",
+    minimizeLatencyLabel: "Minimize latency",
+    minimizeLatencySummary: "Adaptive routing that prefers the fastest healthy path.",
     roundRobinLabel: "Round robin",
     roundRobinSummary: "Rotate the starting connection across eligible connections.",
     singleLabel: "Single",
@@ -1760,7 +1783,7 @@ export const enMessages: Messages = {
   },
   loadbalanceStrategiesPage: {
     description:
-      "Manage reusable single, fill-first, and round-robin native-model strategies for this profile",
+      "Manage reusable legacy and adaptive native-model strategies for this profile",
     selectedProfileFallback: "the selected profile",
     scopeCallout: (profileLabel) =>
       `Changes here affect ${profileLabel} and native models attached to these strategies.`,
@@ -1825,6 +1848,7 @@ export const enMessages: Messages = {
     emptyTitle: "No loadbalance events yet",
   },
   loadbalanceStrategiesTable: {
+    adaptiveRoutingSummary: (label) => `Routing policy ${label}`,
     actions: "Actions",
     addStrategy: "Add Strategy",
     attachedModels: "Attached Models",
@@ -1837,7 +1861,7 @@ export const enMessages: Messages = {
     cooldownSummary: (baseSeconds, maxSeconds) =>
       `Cooldown ${baseSeconds}s base • ${maxSeconds}s max`,
     description:
-      "Reuse legacy load-balance strategies across native models instead of redefining routing behavior per model.",
+      "Reuse legacy and adaptive load-balance strategies across native models instead of redefining routing behavior per model.",
     disabled: "Disabled",
     edit: "Edit",
     enabled: "Enabled",

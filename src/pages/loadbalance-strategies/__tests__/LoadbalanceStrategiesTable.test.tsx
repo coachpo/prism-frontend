@@ -4,12 +4,50 @@ import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { LoadbalanceStrategy } from "@/lib/types";
 import { LoadbalanceStrategiesTable } from "../LoadbalanceStrategiesTable";
 
-function buildStrategy(overrides: Partial<LoadbalanceStrategy> = {}): LoadbalanceStrategy {
+type LegacyStrategy = Extract<LoadbalanceStrategy, { strategy_type: "legacy" }>;
+
+function buildAdaptiveRoutingPolicy() {
+  return {
+    kind: "adaptive" as const,
+    routing_objective: "minimize_latency" as const,
+    deadline_budget_ms: 1500,
+    hedge: {
+      enabled: false,
+      delay_ms: 75,
+      max_additional_attempts: 1,
+    },
+    circuit_breaker: {
+      failure_status_codes: [429, 503, 504],
+      base_open_seconds: 60,
+      failure_threshold: 2,
+      backoff_multiplier: 2,
+      max_open_seconds: 900,
+      jitter_ratio: 0.2,
+      ban_mode: "off" as const,
+      max_open_strikes_before_ban: 0,
+      ban_duration_seconds: 0,
+    },
+    admission: {
+      respect_qps_limit: true,
+      respect_in_flight_limits: true,
+    },
+    monitoring: {
+      enabled: true,
+      stale_after_seconds: 30,
+      endpoint_ping_weight: 0.4,
+      conversation_delay_weight: 0.35,
+      failure_penalty_weight: 0.25,
+    },
+  };
+}
+
+function buildStrategy(overrides: Partial<LegacyStrategy> = {}): LegacyStrategy {
   return {
     id: 12,
     profile_id: 3,
     name: "legacy-round-robin",
-    strategy_type: "round-robin",
+    strategy_type: "legacy",
+    legacy_strategy_type: "round-robin",
     auto_recovery: {
       mode: "enabled",
       status_codes: [429, 503],
@@ -93,13 +131,23 @@ describe("LoadbalanceStrategiesTable", () => {
     expect(editIcon).toHaveClass("animate-spin");
   });
 
-  it("shows legacy strategy labels and failover summaries without adaptive wording", () => {
-    const strategy = buildStrategy();
+  it("shows distinct legacy and adaptive strategy labels instead of one generic type bucket", () => {
+    const legacyStrategy = buildStrategy();
+    const adaptiveStrategy: Extract<LoadbalanceStrategy, { strategy_type: "adaptive" }> = {
+      id: 18,
+      profile_id: 3,
+      name: "adaptive-availability",
+      strategy_type: "adaptive",
+      routing_policy: buildAdaptiveRoutingPolicy(),
+      attached_model_count: 4,
+      created_at: "2026-03-25T08:00:00Z",
+      updated_at: "2026-03-25T08:00:00Z",
+    };
 
     render(
       <LocaleProvider>
         <LoadbalanceStrategiesTable
-          loadbalanceStrategies={[strategy]}
+          loadbalanceStrategies={[legacyStrategy, adaptiveStrategy]}
           loadbalanceStrategiesLoading={false}
           loadbalanceStrategyPreparingEditId={null}
           onCreate={vi.fn()}
@@ -111,13 +159,14 @@ describe("LoadbalanceStrategiesTable", () => {
 
     const table = screen.getByRole("table");
 
+    expect(table).toHaveTextContent(/Legacy strategy/i);
     expect(table).toHaveTextContent(/Round robin/i);
+    expect(table).toHaveTextContent(/Adaptive strategy/i);
+    expect(table).toHaveTextContent(/Minimize latency/i);
     expect(table).toHaveTextContent("Auto recovery enabled");
     expect(table).toHaveTextContent("Status codes 429, 503");
     expect(table).toHaveTextContent("Cooldown 45s base • 720s max");
     expect(table).toHaveTextContent("Temporary ban after 3 max-cooldown strikes • 1,800s");
-    expect(table).not.toHaveTextContent("Adaptive routing");
-    expect(table).not.toHaveTextContent("Maximize Availability");
   });
 
   it("renders localized table copy when the saved locale is Chinese", () => {

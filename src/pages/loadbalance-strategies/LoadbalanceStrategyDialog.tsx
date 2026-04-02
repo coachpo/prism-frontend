@@ -20,14 +20,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { LoadbalanceStrategy } from "@/lib/types";
-import { LOADBALANCE_STRATEGY_TYPES } from "@/lib/loadbalanceRoutingPolicy";
+import {
+  getAdaptiveRoutingObjectiveLabel,
+  LOADBALANCE_ADAPTIVE_ROUTING_OBJECTIVES,
+  LOADBALANCE_LEGACY_STRATEGY_TYPES,
+} from "@/lib/loadbalanceRoutingPolicy";
 import {
   addCircuitBreakerStatusCode,
   getCircuitBreakerStatusCodeInputError,
   removeCircuitBreakerStatusCode,
+  setLegacyLoadbalanceStrategyType,
   setLoadbalanceStrategyAutoRecoveryMode,
   setLoadbalanceStrategyBanMode,
-  setLoadbalanceStrategyStrategyType,
+  setLoadbalanceStrategyFamily,
   type LoadbalanceStrategyFormState,
 } from "./loadbalanceStrategyFormState";
 
@@ -55,11 +60,14 @@ export function LoadbalanceStrategyDialog({
   const { messages } = useLocale();
   const dialogMessages = messages.loadbalanceStrategyDialog;
   const strategyCopy = messages.loadbalanceStrategyCopy;
-  const autoRecovery = loadbalanceStrategyForm.auto_recovery;
+  const legacyForm =
+    loadbalanceStrategyForm.strategy_type === "legacy" ? loadbalanceStrategyForm : null;
+  const adaptiveForm =
+    loadbalanceStrategyForm.strategy_type === "adaptive" ? loadbalanceStrategyForm : null;
+  const enabledAutoRecovery =
+    legacyForm?.auto_recovery.mode === "enabled" ? legacyForm.auto_recovery : null;
   const statusCodeInputError =
-    autoRecovery.mode === "enabled"
-      ? getCircuitBreakerStatusCodeInputError(autoRecovery)
-      : null;
+    enabledAutoRecovery ? getCircuitBreakerStatusCodeInputError(enabledAutoRecovery) : null;
 
   const parseNumericInput = (value: string, fallback: number) => {
     if (!value.trim()) {
@@ -78,16 +86,6 @@ export function LoadbalanceStrategyDialog({
     event.preventDefault();
     void onSave();
   };
-
-  const strategyOptions = LOADBALANCE_STRATEGY_TYPES.map((strategyType) => ({
-    strategyType,
-    label:
-      strategyType === "single"
-        ? strategyCopy.singleLabel
-        : strategyType === "fill-first"
-          ? strategyCopy.fillFirstLabel
-          : strategyCopy.roundRobinLabel,
-  }));
 
   return (
     <Dialog
@@ -123,56 +121,80 @@ export function LoadbalanceStrategyDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="loadbalance-strategy-type">{dialogMessages.strategyTypeLabel}</Label>
+            <Label htmlFor="loadbalance-strategy-family">{dialogMessages.strategyFamilyLabel}</Label>
             <Select
               value={loadbalanceStrategyForm.strategy_type}
               onValueChange={(value) =>
                 setLoadbalanceStrategyForm((prev) =>
-                  setLoadbalanceStrategyStrategyType(prev, value as (typeof LOADBALANCE_STRATEGY_TYPES)[number]),
+                  setLoadbalanceStrategyFamily(prev, value as "legacy" | "adaptive"),
                 )
               }
+              disabled={Boolean(editingLoadbalanceStrategy)}
             >
-              <SelectTrigger id="loadbalance-strategy-type" className="w-full">
+              <SelectTrigger id="loadbalance-strategy-family" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {strategyOptions.map((option) => (
-                  <SelectItem key={option.strategyType} value={option.strategyType}>
-                    {option.label}
-                  </SelectItem>
-                ))}
+                <SelectItem value="legacy">{strategyCopy.legacyFamilyLabel}</SelectItem>
+                <SelectItem value="adaptive">{strategyCopy.adaptiveFamilyLabel}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="loadbalance-strategy-auto-recovery-mode">
-              {dialogMessages.autoRecoveryLabel}
-            </Label>
-            <Select
-              value={autoRecovery.mode}
-              onValueChange={(value) =>
-                setLoadbalanceStrategyForm((prev) =>
-                  setLoadbalanceStrategyAutoRecoveryMode(prev, value as "disabled" | "enabled"),
-                )
-              }
-            >
-              <SelectTrigger id="loadbalance-strategy-auto-recovery-mode" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="disabled">
-                  {dialogMessages.autoRecoveryDisabledOption}
-                </SelectItem>
-                <SelectItem value="enabled">
-                  {dialogMessages.autoRecoveryEnabledOption}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {autoRecovery.mode === "enabled" ? (
+          {legacyForm ? (
             <>
+              <div className="space-y-2">
+                <Label htmlFor="loadbalance-strategy-type">{dialogMessages.legacyStrategyTypeLabel}</Label>
+                <Select
+                  value={legacyForm.legacy_strategy_type}
+                  onValueChange={(value) =>
+                    setLoadbalanceStrategyForm((prev) =>
+                      setLegacyLoadbalanceStrategyType(
+                        prev,
+                        value as (typeof LOADBALANCE_LEGACY_STRATEGY_TYPES)[number],
+                      ),
+                    )
+                  }
+                >
+                  <SelectTrigger id="loadbalance-strategy-type" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="single">{strategyCopy.singleLabel}</SelectItem>
+                    <SelectItem value="fill-first">{strategyCopy.fillFirstLabel}</SelectItem>
+                    <SelectItem value="round-robin">{strategyCopy.roundRobinLabel}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="loadbalance-strategy-auto-recovery-mode">
+                  {dialogMessages.autoRecoveryLabel}
+                </Label>
+                <Select
+                  value={legacyForm.auto_recovery.mode}
+                  onValueChange={(value) =>
+                    setLoadbalanceStrategyForm((prev) =>
+                      setLoadbalanceStrategyAutoRecoveryMode(prev, value as "disabled" | "enabled"),
+                    )
+                  }
+                >
+                  <SelectTrigger id="loadbalance-strategy-auto-recovery-mode" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="disabled">
+                      {dialogMessages.autoRecoveryDisabledOption}
+                    </SelectItem>
+                    <SelectItem value="enabled">
+                      {dialogMessages.autoRecoveryEnabledOption}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {enabledAutoRecovery ? (
+                <>
                   <div className="grid gap-4 rounded-md border bg-muted/20 p-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="circuit-breaker-base-open-seconds">
@@ -183,10 +205,10 @@ export function LoadbalanceStrategyDialog({
                         type="number"
                         min={0}
                         step={1}
-                        value={autoRecovery.cooldown.base_seconds}
+                        value={enabledAutoRecovery.cooldown.base_seconds}
                         onChange={(event) =>
                           setLoadbalanceStrategyForm((prev) =>
-                            prev.auto_recovery.mode !== "enabled"
+                            prev.strategy_type !== "legacy" || prev.auto_recovery.mode !== "enabled"
                               ? prev
                               : {
                                   ...prev,
@@ -216,10 +238,10 @@ export function LoadbalanceStrategyDialog({
                         min={1}
                         max={50}
                         step={1}
-                        value={autoRecovery.cooldown.failure_threshold}
+                        value={enabledAutoRecovery.cooldown.failure_threshold}
                         onChange={(event) =>
                           setLoadbalanceStrategyForm((prev) =>
-                            prev.auto_recovery.mode !== "enabled"
+                            prev.strategy_type !== "legacy" || prev.auto_recovery.mode !== "enabled"
                               ? prev
                               : {
                                   ...prev,
@@ -249,10 +271,10 @@ export function LoadbalanceStrategyDialog({
                         min={1}
                         max={10}
                         step={0.1}
-                        value={autoRecovery.cooldown.backoff_multiplier}
+                        value={enabledAutoRecovery.cooldown.backoff_multiplier}
                         onChange={(event) =>
                           setLoadbalanceStrategyForm((prev) =>
-                            prev.auto_recovery.mode !== "enabled"
+                            prev.strategy_type !== "legacy" || prev.auto_recovery.mode !== "enabled"
                               ? prev
                               : {
                                   ...prev,
@@ -282,10 +304,10 @@ export function LoadbalanceStrategyDialog({
                         min={1}
                         max={86400}
                         step={1}
-                        value={autoRecovery.cooldown.max_cooldown_seconds}
+                        value={enabledAutoRecovery.cooldown.max_cooldown_seconds}
                         onChange={(event) =>
                           setLoadbalanceStrategyForm((prev) =>
-                            prev.auto_recovery.mode !== "enabled"
+                            prev.strategy_type !== "legacy" || prev.auto_recovery.mode !== "enabled"
                               ? prev
                               : {
                                   ...prev,
@@ -315,10 +337,10 @@ export function LoadbalanceStrategyDialog({
                         min={0}
                         max={1}
                         step={0.05}
-                        value={autoRecovery.cooldown.jitter_ratio}
+                        value={enabledAutoRecovery.cooldown.jitter_ratio}
                         onChange={(event) =>
                           setLoadbalanceStrategyForm((prev) =>
-                            prev.auto_recovery.mode !== "enabled"
+                            prev.strategy_type !== "legacy" || prev.auto_recovery.mode !== "enabled"
                               ? prev
                               : {
                                   ...prev,
@@ -348,10 +370,10 @@ export function LoadbalanceStrategyDialog({
                         <Input
                           id="circuit-breaker-status-code-input"
                           inputMode="numeric"
-                          value={autoRecovery.status_code_input}
+                          value={enabledAutoRecovery.status_code_input}
                           onChange={(event) =>
                             setLoadbalanceStrategyForm((prev) =>
-                              prev.auto_recovery.mode !== "enabled"
+                              prev.strategy_type !== "legacy" || prev.auto_recovery.mode !== "enabled"
                                 ? prev
                                 : {
                                     ...prev,
@@ -381,7 +403,7 @@ export function LoadbalanceStrategyDialog({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {autoRecovery.status_codes.map((statusCode) => (
+                      {enabledAutoRecovery.status_codes.map((statusCode) => (
                         <button
                           key={statusCode}
                           type="button"
@@ -404,7 +426,7 @@ export function LoadbalanceStrategyDialog({
                     <div className="space-y-2">
                       <Label htmlFor="circuit-breaker-ban-mode">{dialogMessages.banModeLabel}</Label>
                       <Select
-                        value={autoRecovery.ban.mode}
+                        value={enabledAutoRecovery.ban.mode}
                         onValueChange={(value) =>
                           setLoadbalanceStrategyForm((prev) =>
                             setLoadbalanceStrategyBanMode(prev, value as "off" | "manual" | "temporary"),
@@ -422,7 +444,7 @@ export function LoadbalanceStrategyDialog({
                       </Select>
                     </div>
 
-                    {autoRecovery.ban.mode !== "off" ? (
+                    {enabledAutoRecovery.ban.mode !== "off" ? (
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
                           <Label htmlFor="circuit-breaker-max-open-strikes-before-ban">
@@ -433,31 +455,24 @@ export function LoadbalanceStrategyDialog({
                             type="number"
                             min={1}
                             step={1}
-                            value={autoRecovery.ban.max_cooldown_strikes_before_ban}
+                            value={enabledAutoRecovery.ban.max_cooldown_strikes_before_ban}
                             onChange={(event) =>
                               setLoadbalanceStrategyForm((prev) =>
-                                prev.auto_recovery.mode !== "enabled" || prev.auto_recovery.ban.mode === "off"
+                                prev.strategy_type !== "legacy" ||
+                                prev.auto_recovery.mode !== "enabled" ||
+                                prev.auto_recovery.ban.mode === "off"
                                   ? prev
                                   : {
                                       ...prev,
                                       auto_recovery: {
                                         ...prev.auto_recovery,
-                                        ban:
-                                          prev.auto_recovery.ban.mode === "manual"
-                                            ? {
-                                                ...prev.auto_recovery.ban,
-                                                max_cooldown_strikes_before_ban: parseIntegerInput(
-                                                  event.target.value,
-                                                  prev.auto_recovery.ban.max_cooldown_strikes_before_ban,
-                                                ),
-                                              }
-                                            : {
-                                                ...prev.auto_recovery.ban,
-                                                max_cooldown_strikes_before_ban: parseIntegerInput(
-                                                  event.target.value,
-                                                  prev.auto_recovery.ban.max_cooldown_strikes_before_ban,
-                                                ),
-                                              },
+                                        ban: {
+                                          ...prev.auto_recovery.ban,
+                                          max_cooldown_strikes_before_ban: parseIntegerInput(
+                                            event.target.value,
+                                            prev.auto_recovery.ban.max_cooldown_strikes_before_ban,
+                                          ),
+                                        },
                                       },
                                     },
                               )
@@ -465,7 +480,7 @@ export function LoadbalanceStrategyDialog({
                           />
                         </div>
 
-                        {autoRecovery.ban.mode === "temporary" ? (
+                        {enabledAutoRecovery.ban.mode === "temporary" ? (
                           <div className="space-y-2">
                             <Label htmlFor="circuit-breaker-ban-duration-seconds">
                               {dialogMessages.banDurationLabel}
@@ -475,10 +490,12 @@ export function LoadbalanceStrategyDialog({
                               type="number"
                               min={1}
                               step={1}
-                              value={autoRecovery.ban.ban_duration_seconds}
+                              value={enabledAutoRecovery.ban.ban_duration_seconds}
                               onChange={(event) =>
                                 setLoadbalanceStrategyForm((prev) =>
-                                  prev.auto_recovery.mode !== "enabled" || prev.auto_recovery.ban.mode !== "temporary"
+                                  prev.strategy_type !== "legacy" ||
+                                  prev.auto_recovery.mode !== "enabled" ||
+                                  prev.auto_recovery.ban.mode !== "temporary"
                                     ? prev
                                     : {
                                         ...prev,
@@ -503,6 +520,41 @@ export function LoadbalanceStrategyDialog({
                   </div>
                 </>
               ) : null}
+            </>
+          ) : adaptiveForm ? (
+            <div className="space-y-4 rounded-md border bg-muted/20 p-4">
+              <div className="space-y-2">
+                <Label htmlFor="adaptive-routing-policy">{dialogMessages.routingPolicyLabel}</Label>
+                <Select
+                  value={adaptiveForm.routing_policy.routing_objective}
+                  onValueChange={(value) =>
+                    setLoadbalanceStrategyForm((prev) =>
+                      prev.strategy_type !== "adaptive"
+                        ? prev
+                        : {
+                            ...prev,
+                            routing_policy: {
+                              ...prev.routing_policy,
+                              routing_objective: value as (typeof LOADBALANCE_ADAPTIVE_ROUTING_OBJECTIVES)[number],
+                            },
+                          },
+                    )
+                  }
+                >
+                  <SelectTrigger id="adaptive-routing-policy" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOADBALANCE_ADAPTIVE_ROUTING_OBJECTIVES.map((routingObjective) => (
+                      <SelectItem key={routingObjective} value={routingObjective}>
+                        {getAdaptiveRoutingObjectiveLabel(routingObjective, strategyCopy)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ) : null}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
