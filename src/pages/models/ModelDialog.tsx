@@ -68,10 +68,12 @@ export function ModelDialog({
     (model) => !selectedProxyTargetIds.has(model.model_id),
   );
 
-  const getRoutingObjectiveLabel = (strategy: LoadbalanceStrategy) =>
-    strategy.routing_policy.routing_objective === "maximize_availability"
-      ? strategyCopy.maximizeAvailabilityLabel
-      : strategyCopy.minimizeLatencyLabel;
+  const getStrategyTypeLabel = (strategy: LoadbalanceStrategy) =>
+    strategy.strategy_type === "single"
+      ? strategyCopy.singleLabel
+      : strategy.strategy_type === "fill-first"
+        ? strategyCopy.fillFirstLabel
+        : strategyCopy.roundRobinLabel;
 
   const resolveTargetLabel = (targetModelId: string) => {
     const matchedModel = nativeModelsForApiFamily.find((model) => model.model_id === targetModelId);
@@ -85,7 +87,7 @@ export function ModelDialog({
   };
 
   const getStrategyOptionText = (strategy: LoadbalanceStrategy) => {
-    return `${strategy.name} (${strategyCopy.adaptiveSummary} · ${getRoutingObjectiveLabel(strategy)})`;
+    return `${strategy.name} (${getStrategyTypeLabel(strategy)})`;
   };
 
   const loadbalanceStrategyValue = String(formData.loadbalance_strategy_id ?? "");

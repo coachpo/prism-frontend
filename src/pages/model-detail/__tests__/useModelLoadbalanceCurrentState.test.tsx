@@ -24,7 +24,6 @@ function buildCurrentStateItem(
     last_failure_kind: "timeout",
     last_cooldown_seconds: 30,
     blocked_until_at: "2026-03-23T10:05:00Z",
-    probe_eligible_logged: false,
     state: "blocked",
     max_cooldown_strikes: 0,
     ban_mode: "off",
@@ -82,7 +81,7 @@ describe("useModelLoadbalanceCurrentState", () => {
         items: [
           buildCurrentStateItem({
             connection_id: 9,
-            state: "probe_eligible",
+            state: "blocked",
             blocked_until_at: "2026-03-23T10:10:00Z",
           }),
         ],
@@ -111,7 +110,7 @@ describe("useModelLoadbalanceCurrentState", () => {
 
     await waitFor(() => {
       expect(result.current.currentStateByConnectionId.get(9)?.state).toBe(
-        "probe_eligible"
+        "blocked"
       );
     });
 

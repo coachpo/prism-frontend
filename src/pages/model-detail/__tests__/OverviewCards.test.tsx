@@ -36,37 +36,20 @@ function buildModel() {
     loadbalance_strategy_id: 101,
     loadbalance_strategy: {
       id: 101,
-      name: "adaptive-availability",
-      routing_policy: {
-        kind: "adaptive" as const,
-        routing_objective: "maximize_availability" as const,
-        deadline_budget_ms: 30000,
-        hedge: {
-          enabled: false,
-          delay_ms: 1500,
-          max_additional_attempts: 1,
-        },
-        circuit_breaker: {
-          failure_status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
-          base_open_seconds: 45,
+      name: "round-robin-primary",
+      strategy_type: "round-robin" as const,
+      auto_recovery: {
+        mode: "enabled" as const,
+        status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
+        cooldown: {
+          base_seconds: 45,
           failure_threshold: 4,
           backoff_multiplier: 3.5,
-          max_open_seconds: 720,
+          max_cooldown_seconds: 720,
           jitter_ratio: 0.35,
-          ban_mode: "off" as const,
-          max_open_strikes_before_ban: 0,
-          ban_duration_seconds: 0,
         },
-        admission: {
-          respect_qps_limit: true,
-          respect_in_flight_limits: true,
-        },
-        monitoring: {
-          enabled: true,
-          stale_after_seconds: 300,
-          endpoint_ping_weight: 1,
-          conversation_delay_weight: 1,
-          failure_penalty_weight: 2,
+        ban: {
+          mode: "off" as const,
         },
       },
     },
@@ -82,7 +65,7 @@ describe("OverviewCards", () => {
     localStorage.clear();
   });
 
-  it("shows adaptive routing wording and the routing objective for native strategies", () => {
+  it("shows legacy strategy wording for native strategies", () => {
     render(
       <LocaleProvider>
         <OverviewCards
@@ -95,9 +78,10 @@ describe("OverviewCards", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByText("adaptive-availability")).toBeInTheDocument();
-    expect(screen.getByText("Adaptive routing")).toBeInTheDocument();
-    expect(screen.getByText("Maximize availability")).toBeInTheDocument();
+    expect(screen.getByText("round-robin-primary")).toBeInTheDocument();
+    expect(screen.getAllByText("Round robin").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Adaptive routing")).not.toBeInTheDocument();
+    expect(screen.queryByText("Maximize availability")).not.toBeInTheDocument();
     expect(screen.getByText("Vendor")).toBeInTheDocument();
     expect(screen.getByText("Together AI")).toBeInTheDocument();
     expect(screen.getByText("API Family")).toBeInTheDocument();
@@ -124,7 +108,8 @@ describe("OverviewCards", () => {
     expect(screen.getByText("成本概览")).toBeInTheDocument();
     expect(screen.queryByText("模型 KPI（24 小时）")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看请求日志" })).toBeInTheDocument();
-    expect(screen.getByText("自适应路由")).toBeInTheDocument();
+    expect(screen.getAllByText("轮询").length).toBeGreaterThan(0);
+    expect(screen.queryByText("自适应路由")).not.toBeInTheDocument();
   });
 
   it("keeps the request-log action after retiring the archived 24-hour KPI card", () => {

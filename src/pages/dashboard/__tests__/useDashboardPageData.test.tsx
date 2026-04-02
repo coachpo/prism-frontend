@@ -1,7 +1,7 @@
 import { StrictMode, type ReactNode } from "react";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
+import { getDefaultAutoRecovery } from "@/lib/loadbalanceRoutingPolicy";
 import { clearSharedReferenceData } from "@/lib/referenceData";
 import { useDashboardPageData } from "../useDashboardPageData";
 
@@ -63,7 +63,8 @@ describe("useDashboardPageData", () => {
         loadbalance_strategy: {
           id: 100,
           name: "single-primary",
-          routing_policy: createDefaultRoutingPolicy(),
+          strategy_type: "single",
+          auto_recovery: getDefaultAutoRecovery("single"),
         },
         is_enabled: true,
         connection_count: 1,
@@ -93,17 +94,19 @@ describe("useDashboardPageData", () => {
         loadbalance_strategy_id: 101,
         loadbalance_strategy: {
           id: 101,
-          name: "failover-primary",
-          routing_policy: {
-            ...createDefaultRoutingPolicy("maximize_availability"),
-            circuit_breaker: {
-              ...createDefaultRoutingPolicy("maximize_availability").circuit_breaker,
-              base_open_seconds: 45,
+          name: "round-robin-primary",
+          strategy_type: "round-robin",
+          auto_recovery: {
+            mode: "enabled",
+            status_codes: [429, 503],
+            cooldown: {
+              base_seconds: 45,
               failure_threshold: 4,
               backoff_multiplier: 3.5,
-              max_open_seconds: 720,
+              max_cooldown_seconds: 720,
               jitter_ratio: 0.35,
             },
+            ban: { mode: "off" },
           },
         },
         is_enabled: true,

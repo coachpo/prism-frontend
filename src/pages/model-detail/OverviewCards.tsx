@@ -40,10 +40,12 @@ export function OverviewCards({
   const fieldCopy = messages.common;
   const apiFamily = model.api_family ?? "openai";
   const vendorLabel = model.vendor?.name ?? formatApiFamily(apiFamily);
-  const routingObjectiveLabel = model.loadbalance_strategy
-    ? model.loadbalance_strategy.routing_policy.routing_objective === "maximize_availability"
-      ? strategyCopy.maximizeAvailabilityLabel
-      : strategyCopy.minimizeLatencyLabel
+  const strategyTypeLabel = model.loadbalance_strategy
+    ? model.loadbalance_strategy.strategy_type === "single"
+      ? strategyCopy.singleLabel
+      : model.loadbalance_strategy.strategy_type === "fill-first"
+        ? strategyCopy.fillFirstLabel
+        : strategyCopy.roundRobinLabel
     : null;
 
   return (
@@ -85,7 +87,7 @@ export function OverviewCards({
                     <div className="space-y-0.5">
                       <div>{model.loadbalance_strategy.name}</div>
                       <div className="text-xs font-normal text-muted-foreground">
-                        {strategyCopy.adaptiveSummary}
+                        {strategyTypeLabel}
                       </div>
                     </div>
                   ) : (
@@ -96,8 +98,8 @@ export function OverviewCards({
               <div>
                 <p className="text-xs text-muted-foreground mb-1">{copy.routingObjective}</p>
                 <span className="text-sm font-medium">
-                  {model.model_type === "native" && routingObjectiveLabel ? (
-                    routingObjectiveLabel
+                  {model.model_type === "native" && strategyTypeLabel ? (
+                    strategyTypeLabel
                   ) : (
                     <span className="text-muted-foreground">{messages.common.notApplicable}</span>
                   )}

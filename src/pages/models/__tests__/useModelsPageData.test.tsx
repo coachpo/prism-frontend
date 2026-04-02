@@ -1,7 +1,6 @@
 import { StrictMode, type ReactNode } from "react";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import { clearSharedReferenceData, setSharedVendors } from "@/lib/referenceData";
 import { useModelsPageData } from "../useModelsPageData";
 
@@ -62,7 +61,8 @@ function buildLoadbalanceStrategySummary(overrides: Record<string, unknown> = {}
   return {
     id: 100,
     name: "single-primary",
-    routing_policy: createDefaultRoutingPolicy(),
+    strategy_type: "single",
+    auto_recovery: { mode: "disabled" },
     ...overrides,
   };
 }

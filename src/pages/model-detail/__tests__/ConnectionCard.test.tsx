@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import { createDefaultRoutingPolicy } from "@/lib/loadbalanceRoutingPolicy";
 import type {
   Connection,
   LoadbalanceCurrentStateItem,
@@ -42,18 +41,21 @@ function buildModel(): ModelConfig {
     loadbalance_strategy_id: 101,
     loadbalance_strategy: {
       id: 101,
-      name: "failover-primary",
-      routing_policy: {
-        ...createDefaultRoutingPolicy("maximize_availability"),
-        circuit_breaker: {
-          ...createDefaultRoutingPolicy("maximize_availability").circuit_breaker,
-          base_open_seconds: 45,
+      name: "round-robin-primary",
+      strategy_type: "round-robin",
+      auto_recovery: {
+        mode: "enabled",
+        status_codes: [429, 503],
+        cooldown: {
+          base_seconds: 45,
           failure_threshold: 4,
           backoff_multiplier: 3.5,
-          max_open_seconds: 720,
+          max_cooldown_seconds: 720,
           jitter_ratio: 0.35,
-          ban_mode: "temporary",
-          max_open_strikes_before_ban: 3,
+        },
+        ban: {
+          mode: "temporary",
+          max_cooldown_strikes_before_ban: 3,
           ban_duration_seconds: 1800,
         },
       },
@@ -110,7 +112,6 @@ function buildCurrentState(
     last_failure_kind: "timeout",
     last_cooldown_seconds: 45,
     blocked_until_at: "2026-03-23T10:05:00Z",
-    probe_eligible_logged: state === "probe_eligible",
     state,
     max_cooldown_strikes: state === "banned" ? 3 : 0,
     ban_mode: state === "banned" ? "temporary" : "off",
@@ -143,12 +144,6 @@ function buildMonitoringConnection(
     connection_name: "Primary",
     endpoint_id: 7,
     endpoint_name: "Primary endpoint",
-    last_probe_status: "degraded",
-    circuit_state: "half_open",
-    live_p95_latency_ms: 420,
-    last_live_failure_kind: "timeout",
-    last_live_failure_at: "2026-03-23T10:01:30Z",
-    last_live_success_at: "2026-03-23T09:58:00Z",
     endpoint_ping_status: "healthy",
     endpoint_ping_ms: 82,
     conversation_status: "degraded",
@@ -190,7 +185,6 @@ describe("ConnectionCard cooldown state", () => {
 
   it.each([
     ["blocked", "Recovery Blocked"],
-    ["probe_eligible", "Probe Eligible"],
     ["counting", "Recovery Counting"],
     ["banned", "Banned"],
   ] as const)("renders the %s cooldown signal", (state, badgeLabel) => {
@@ -247,43 +241,6 @@ describe("ConnectionCard cooldown state", () => {
     expect(
       screen.queryByText(/Tracking 0 consecutive failures after an unknown failure/i),
     ).not.toBeInTheDocument();
-  });
-
-  it("renders the archived probe-eligible timeout recovery copy for an unhealthy connection", () => {
-    const { container } = renderWithLocale(
-      <ConnectionCard
-        connection={{ ...buildConnection(), health_status: "unhealthy" }}
-        model={buildModel()}
-        monitoringConnection={undefined}
-        monitoringLoading={false}
-        loadbalanceCurrentState={buildCurrentState("probe_eligible", {
-          consecutive_failures: 1,
-          last_cooldown_seconds: 61,
-          blocked_until_at: "2026-03-23T10:05:00Z",
-          last_failure_kind: "timeout",
-        })}
-        isChecking={false}
-        isResettingCooldown={false}
-        isFocused={false}
-        formatTime={(value) => `formatted:${value}`}
-        reorderDisabled={false}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onHealthCheck={vi.fn()}
-        onResetCooldown={vi.fn()}
-        onToggleActive={vi.fn()}
-      />,
-    );
-
-    expect(getStatusDot(container)).toHaveAttribute("data-intent", "unhealthy");
-    expect(getStatusDot(container)).toHaveAttribute("data-animated", "true");
-    expect(screen.queryByText("Unhealthy")).not.toBeInTheDocument();
-    expect(screen.getByText("Probe Eligible")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "The last 1m 1s cooldown expired at formatted:2026-03-23T10:05:00Z. This connection is now eligible for the next routed probe after a timeout.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("renders temporary ban copy with the ban expiry time", () => {
@@ -441,24 +398,14 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByText("Inactive")).toBeInTheDocument();
   });
 
-  it("renders monitoring evidence without the standalone circuit-state line", () => {
+  it("hides adaptive monitoring evidence from load-balance current state", () => {
     renderWithLocale(
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
         monitoringConnection={buildMonitoringConnection()}
         monitoringLoading={false}
-        loadbalanceCurrentState={buildCurrentState("blocked", {
-          last_probe_status: "degraded",
-          last_probe_at: "2026-03-23T10:02:00Z",
-          live_p95_latency_ms: 420,
-          last_live_failure_kind: "timeout",
-          last_live_failure_at: "2026-03-23T10:01:30Z",
-          last_live_success_at: "2026-03-23T09:58:00Z",
-          endpoint_ping_ewma_ms: 82,
-          conversation_delay_ewma_ms: 310,
-          circuit_state: "half_open",
-        })}
+        loadbalanceCurrentState={buildCurrentState("blocked")}
         isChecking={false}
         isResettingCooldown={false}
         isFocused={false}
@@ -473,9 +420,11 @@ describe("ConnectionCard cooldown state", () => {
     );
 
     expect(screen.queryByText("45s cadence")).not.toBeInTheDocument();
-    expect(screen.getByText("Endpoint 82 ms")).toBeInTheDocument();
-    expect(screen.getByText("Conversation 310 ms")).toBeInTheDocument();
-    expect(screen.getByText("P95 420 ms")).toBeInTheDocument();
+    expect(screen.queryByText("Endpoint 82 ms")).not.toBeInTheDocument();
+    expect(screen.queryByText("Conversation 310 ms")).not.toBeInTheDocument();
+    expect(screen.queryByText("P95 420 ms")).not.toBeInTheDocument();
+    expect(screen.queryByText("Last success formatted:2026-03-23T09:58:00Z")).not.toBeInTheDocument();
+    expect(screen.queryByText("Failure Timeout")).not.toBeInTheDocument();
     expect(screen.queryByText("Half Open")).not.toBeInTheDocument();
     expect(screen.getByText("Recovery Blocked")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reset Recovery State" })).toBeEnabled();
