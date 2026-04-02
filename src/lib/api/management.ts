@@ -1,9 +1,11 @@
 import type {
   Connection,
   ConnectionCreate,
+  LoadbalanceAutoRecovery,
   LoadbalanceStrategySummary,
   LoadbalanceStrategy,
   LoadbalanceStrategyCreate,
+  LoadbalanceStrategyType,
   LoadbalanceStrategyUpdate,
   ModelConnectionsBatchParams,
   ModelConnectionsBatchResponse,
@@ -36,48 +38,25 @@ import type {
   VendorCreate,
   VendorUpdate,
 } from "../types";
-import { createDefaultRoutingPolicy, normalizeFailureStatusCodes } from "../loadbalanceRoutingPolicy";
+import { normalizeFailureStatusCodes } from "../loadbalanceRoutingPolicy";
 import { request } from "./core";
 
-type RawAdaptiveRoutingPolicy = {
-  kind?: string;
-  routing_objective?: string;
-  deadline_budget_ms?: unknown;
-  hedge?: {
-    enabled?: unknown;
-    delay_ms?: unknown;
-    max_additional_attempts?: unknown;
-  };
-  circuit_breaker?: {
-    failure_status_codes?: unknown;
-    base_open_seconds?: unknown;
-    failure_threshold?: unknown;
-    backoff_multiplier?: unknown;
-    max_open_seconds?: unknown;
-    jitter_ratio?: unknown;
-    ban_mode?: unknown;
-    max_open_strikes_before_ban?: unknown;
-    ban_duration_seconds?: unknown;
-  };
-  admission?: {
-    respect_qps_limit?: unknown;
-    respect_in_flight_limits?: unknown;
-  };
-  monitoring?: {
-    enabled?: unknown;
-    stale_after_seconds?: unknown;
-    endpoint_ping_weight?: unknown;
-    conversation_delay_weight?: unknown;
-    failure_penalty_weight?: unknown;
-  };
+type RawLoadbalanceStrategySummary = {
+  id: number;
+  name: string;
+  strategy_type?: unknown;
+  auto_recovery?: unknown;
 };
 
-type RawLoadbalanceStrategySummary = Omit<LoadbalanceStrategySummary, "routing_policy"> & {
-  routing_policy?: RawAdaptiveRoutingPolicy;
-};
-
-type RawLoadbalanceStrategy = Omit<LoadbalanceStrategy, "routing_policy"> & {
-  routing_policy?: RawAdaptiveRoutingPolicy;
+type RawLoadbalanceStrategy = {
+  id: number;
+  profile_id: number;
+  name: string;
+  strategy_type?: unknown;
+  auto_recovery?: unknown;
+  attached_model_count: number;
+  created_at: string;
+  updated_at: string;
 };
 
 type RawModelConfigListItem = Omit<ModelConfigListItem, "loadbalance_strategy"> & {
@@ -95,119 +74,137 @@ type RawEndpointModelsBatchResponse = {
   }>;
 };
 
-function normalizeNumber(value: unknown, fallback: number) {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+function unsupportedLoadbalanceStrategy(reason: string): never {
+  throw new Error(`Unsupported loadbalance strategy contract from management API: ${reason}`);
 }
 
-function normalizeBoolean(value: unknown, fallback: boolean) {
-  return typeof value === "boolean" ? value : fallback;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeInteger(value: unknown, field: string) {
+  if (typeof value !== "number" || !Number.isFinite(value) || !Number.isInteger(value)) {
+    unsupportedLoadbalanceStrategy(field);
+  }
+
+  return value;
+}
+
+function normalizeNumber(value: unknown, field: string) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    unsupportedLoadbalanceStrategy(field);
+  }
+
+  return value;
+}
+
+function normalizeStrategyType(value: unknown): LoadbalanceStrategyType {
+  if (value === "single" || value === "fill-first" || value === "round-robin") {
+    return value;
+  }
+
+  unsupportedLoadbalanceStrategy("strategy_type");
 }
 
 function normalizeStatusCodes(value: unknown) {
-  return Array.isArray(value)
-    ? normalizeFailureStatusCodes(
-        value.filter((statusCode): statusCode is number => typeof statusCode === "number"),
-      )
-    : [];
+  if (!Array.isArray(value) || value.some((statusCode) => typeof statusCode !== "number")) {
+    unsupportedLoadbalanceStrategy("auto_recovery.status_codes");
+  }
+
+  return normalizeFailureStatusCodes(value);
 }
 
-function normalizeRoutingPolicy(routingPolicy?: RawAdaptiveRoutingPolicy): LoadbalanceStrategy["routing_policy"] {
-  const defaultPolicy = createDefaultRoutingPolicy(
-    routingPolicy?.routing_objective === "maximize_availability"
-      ? "maximize_availability"
-      : "minimize_latency",
-  );
-  const hedge = routingPolicy?.hedge;
-  const circuitBreaker = routingPolicy?.circuit_breaker;
-  const admission = routingPolicy?.admission;
-  const monitoring = routingPolicy?.monitoring;
-  const banMode =
-    circuitBreaker?.ban_mode === "temporary" || circuitBreaker?.ban_mode === "manual"
-      ? circuitBreaker.ban_mode
-      : "off";
-  const maxOpenStrikesBeforeBan = normalizeNumber(
-    circuitBreaker?.max_open_strikes_before_ban,
-    defaultPolicy.circuit_breaker.max_open_strikes_before_ban,
-  );
-  const banDurationSeconds = normalizeNumber(
-    circuitBreaker?.ban_duration_seconds,
-    defaultPolicy.circuit_breaker.ban_duration_seconds,
-  );
+function normalizeAutoRecovery(
+  value: unknown,
+  _strategyType: LoadbalanceStrategyType,
+): LoadbalanceAutoRecovery {
+  if (!isRecord(value)) {
+    unsupportedLoadbalanceStrategy("auto_recovery");
+  }
 
-  return {
-    kind: "adaptive",
-    routing_objective: defaultPolicy.routing_objective,
-    deadline_budget_ms: normalizeNumber(
-      routingPolicy?.deadline_budget_ms,
-      defaultPolicy.deadline_budget_ms,
-    ),
-    hedge: {
-      enabled: normalizeBoolean(hedge?.enabled, defaultPolicy.hedge.enabled),
-      delay_ms: normalizeNumber(hedge?.delay_ms, defaultPolicy.hedge.delay_ms),
-      max_additional_attempts: normalizeNumber(
-        hedge?.max_additional_attempts,
-        defaultPolicy.hedge.max_additional_attempts,
-      ),
-    },
-    circuit_breaker: {
-      failure_status_codes:
-        routingPolicy?.circuit_breaker?.failure_status_codes === undefined
-          ? [...defaultPolicy.circuit_breaker.failure_status_codes]
-          : normalizeStatusCodes(routingPolicy.circuit_breaker.failure_status_codes),
-      base_open_seconds: normalizeNumber(
-        circuitBreaker?.base_open_seconds,
-        defaultPolicy.circuit_breaker.base_open_seconds,
-      ),
-      failure_threshold: normalizeNumber(
-        circuitBreaker?.failure_threshold,
-        defaultPolicy.circuit_breaker.failure_threshold,
-      ),
-      backoff_multiplier: normalizeNumber(
-        circuitBreaker?.backoff_multiplier,
-        defaultPolicy.circuit_breaker.backoff_multiplier,
-      ),
-      max_open_seconds: normalizeNumber(
-        circuitBreaker?.max_open_seconds,
-        defaultPolicy.circuit_breaker.max_open_seconds,
-      ),
-      jitter_ratio: normalizeNumber(
-        circuitBreaker?.jitter_ratio,
-        defaultPolicy.circuit_breaker.jitter_ratio,
-      ),
-      ban_mode: banMode,
-      max_open_strikes_before_ban: banMode === "off" ? 0 : Math.max(maxOpenStrikesBeforeBan, 1),
-      ban_duration_seconds: banMode === "temporary" ? Math.max(banDurationSeconds, 1) : 0,
-    },
-    admission: {
-      respect_qps_limit: normalizeBoolean(
-        admission?.respect_qps_limit,
-        defaultPolicy.admission.respect_qps_limit,
-      ),
-      respect_in_flight_limits: normalizeBoolean(
-        admission?.respect_in_flight_limits,
-        defaultPolicy.admission.respect_in_flight_limits,
-      ),
-    },
-    monitoring: {
-      enabled: normalizeBoolean(monitoring?.enabled, defaultPolicy.monitoring.enabled),
-      stale_after_seconds: normalizeNumber(
-        monitoring?.stale_after_seconds,
-        defaultPolicy.monitoring.stale_after_seconds,
-      ),
-      endpoint_ping_weight: normalizeNumber(
-        monitoring?.endpoint_ping_weight,
-        defaultPolicy.monitoring.endpoint_ping_weight,
-      ),
-      conversation_delay_weight: normalizeNumber(
-        monitoring?.conversation_delay_weight,
-        defaultPolicy.monitoring.conversation_delay_weight,
-      ),
-      failure_penalty_weight: normalizeNumber(
-        monitoring?.failure_penalty_weight,
-        defaultPolicy.monitoring.failure_penalty_weight,
-      ),
-    },
-  };
+  if (value.mode === "disabled") {
+    return { mode: "disabled" };
+  }
+
+  if (value.mode !== "enabled") {
+    unsupportedLoadbalanceStrategy("auto_recovery.mode");
+  }
+
+  const cooldown = value.cooldown;
+  if (!isRecord(cooldown)) {
+    unsupportedLoadbalanceStrategy("auto_recovery.cooldown");
+  }
+
+  const ban = value.ban;
+  if (!isRecord(ban)) {
+    unsupportedLoadbalanceStrategy("auto_recovery.ban");
+  }
+
+  const normalizedBanMode = ban.mode;
+  if (normalizedBanMode === "off") {
+    return {
+      mode: "enabled",
+      status_codes: normalizeStatusCodes(value.status_codes),
+      cooldown: {
+        base_seconds: normalizeInteger(cooldown.base_seconds, "auto_recovery.cooldown.base_seconds"),
+        failure_threshold: normalizeInteger(cooldown.failure_threshold, "auto_recovery.cooldown.failure_threshold"),
+        backoff_multiplier: normalizeNumber(cooldown.backoff_multiplier, "auto_recovery.cooldown.backoff_multiplier"),
+        max_cooldown_seconds: normalizeInteger(cooldown.max_cooldown_seconds, "auto_recovery.cooldown.max_cooldown_seconds"),
+        jitter_ratio: normalizeNumber(cooldown.jitter_ratio, "auto_recovery.cooldown.jitter_ratio"),
+      },
+      ban: {
+        mode: "off",
+      },
+    };
+  }
+
+  if (normalizedBanMode === "manual") {
+    return {
+      mode: "enabled",
+      status_codes: normalizeStatusCodes(value.status_codes),
+      cooldown: {
+        base_seconds: normalizeInteger(cooldown.base_seconds, "auto_recovery.cooldown.base_seconds"),
+        failure_threshold: normalizeInteger(cooldown.failure_threshold, "auto_recovery.cooldown.failure_threshold"),
+        backoff_multiplier: normalizeNumber(cooldown.backoff_multiplier, "auto_recovery.cooldown.backoff_multiplier"),
+        max_cooldown_seconds: normalizeInteger(cooldown.max_cooldown_seconds, "auto_recovery.cooldown.max_cooldown_seconds"),
+        jitter_ratio: normalizeNumber(cooldown.jitter_ratio, "auto_recovery.cooldown.jitter_ratio"),
+      },
+      ban: {
+        mode: "manual",
+        max_cooldown_strikes_before_ban: normalizeInteger(
+          ban.max_cooldown_strikes_before_ban,
+          "auto_recovery.ban.max_cooldown_strikes_before_ban",
+        ),
+      },
+    };
+  }
+
+  if (normalizedBanMode === "temporary") {
+    return {
+      mode: "enabled",
+      status_codes: normalizeStatusCodes(value.status_codes),
+      cooldown: {
+        base_seconds: normalizeInteger(cooldown.base_seconds, "auto_recovery.cooldown.base_seconds"),
+        failure_threshold: normalizeInteger(cooldown.failure_threshold, "auto_recovery.cooldown.failure_threshold"),
+        backoff_multiplier: normalizeNumber(cooldown.backoff_multiplier, "auto_recovery.cooldown.backoff_multiplier"),
+        max_cooldown_seconds: normalizeInteger(cooldown.max_cooldown_seconds, "auto_recovery.cooldown.max_cooldown_seconds"),
+        jitter_ratio: normalizeNumber(cooldown.jitter_ratio, "auto_recovery.cooldown.jitter_ratio"),
+      },
+      ban: {
+        mode: "temporary",
+        max_cooldown_strikes_before_ban: normalizeInteger(
+          ban.max_cooldown_strikes_before_ban,
+          "auto_recovery.ban.max_cooldown_strikes_before_ban",
+        ),
+        ban_duration_seconds: normalizeInteger(
+          ban.ban_duration_seconds,
+          "auto_recovery.ban.ban_duration_seconds",
+        ),
+      },
+    };
+  }
+
+  unsupportedLoadbalanceStrategy("auto_recovery.ban.mode");
 }
 
 function normalizeLoadbalanceStrategySummary(
@@ -217,21 +214,30 @@ function normalizeLoadbalanceStrategySummary(
     return null;
   }
 
-  const { routing_policy: routingPolicy, ...rest } = strategy;
-
   return {
-    ...rest,
-    routing_policy: normalizeRoutingPolicy(routingPolicy),
+    id: strategy.id,
+    name: strategy.name,
+    strategy_type: normalizeStrategyType(strategy.strategy_type),
+    auto_recovery: normalizeAutoRecovery(
+      strategy.auto_recovery,
+      normalizeStrategyType(strategy.strategy_type),
+    ),
   };
 }
 
 function normalizeLoadbalanceStrategy(strategy: RawLoadbalanceStrategy): LoadbalanceStrategy {
-  const normalizedSummary = normalizeLoadbalanceStrategySummary(strategy);
-  if (!normalizedSummary) {
-    throw new Error("Loadbalance strategy normalization unexpectedly received null");
-  }
+  const strategyType = normalizeStrategyType(strategy.strategy_type);
 
-  return normalizedSummary as LoadbalanceStrategy;
+  return {
+    id: strategy.id,
+    profile_id: strategy.profile_id,
+    name: strategy.name,
+    strategy_type: strategyType,
+    auto_recovery: normalizeAutoRecovery(strategy.auto_recovery, strategyType),
+    attached_model_count: strategy.attached_model_count,
+    created_at: strategy.created_at,
+    updated_at: strategy.updated_at,
+  };
 }
 
 function normalizeModelConfigListItem(model: RawModelConfigListItem): ModelConfigListItem {

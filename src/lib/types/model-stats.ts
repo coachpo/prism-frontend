@@ -2,48 +2,42 @@ import type { ApiFamily, Vendor } from "./vendor";
 import type { Connection } from "./routing";
 
 export type ModelType = "native" | "proxy";
-export type RoutingObjective = "minimize_latency" | "maximize_availability";
+export type LoadbalanceStrategyType = "single" | "fill-first" | "round-robin";
 
-export interface RoutingPolicyHedge {
-  enabled: boolean;
-  delay_ms: number;
-  max_additional_attempts: number;
-}
-
-export interface RoutingPolicyCircuitBreaker {
-  failure_status_codes: number[];
-  base_open_seconds: number;
+export interface LoadbalanceAutoRecoveryCooldown {
+  base_seconds: number;
   failure_threshold: number;
   backoff_multiplier: number;
-  max_open_seconds: number;
+  max_cooldown_seconds: number;
   jitter_ratio: number;
-  ban_mode: "off" | "manual" | "temporary";
-  max_open_strikes_before_ban: number;
-  ban_duration_seconds: number;
 }
 
-export interface RoutingPolicyAdmission {
-  respect_qps_limit: boolean;
-  respect_in_flight_limits: boolean;
+export type LoadbalanceAutoRecoveryBan =
+  | {
+      mode: "off";
+    }
+  | {
+      mode: "manual";
+      max_cooldown_strikes_before_ban: number;
+    }
+  | {
+      mode: "temporary";
+      max_cooldown_strikes_before_ban: number;
+      ban_duration_seconds: number;
+    };
+
+export interface LoadbalanceAutoRecoveryEnabled {
+  mode: "enabled";
+  status_codes: number[];
+  cooldown: LoadbalanceAutoRecoveryCooldown;
+  ban: LoadbalanceAutoRecoveryBan;
 }
 
-export interface RoutingPolicyMonitoring {
-  enabled: boolean;
-  stale_after_seconds: number;
-  endpoint_ping_weight: number;
-  conversation_delay_weight: number;
-  failure_penalty_weight: number;
-}
-
-export interface RoutingPolicy {
-  kind: "adaptive";
-  routing_objective: RoutingObjective;
-  deadline_budget_ms: number;
-  hedge: RoutingPolicyHedge;
-  circuit_breaker: RoutingPolicyCircuitBreaker;
-  admission: RoutingPolicyAdmission;
-  monitoring: RoutingPolicyMonitoring;
-}
+export type LoadbalanceAutoRecovery =
+  | {
+      mode: "disabled";
+    }
+  | LoadbalanceAutoRecoveryEnabled;
 
 export interface ProxyTarget {
   target_model_id: string;
@@ -53,14 +47,16 @@ export interface ProxyTarget {
 export interface LoadbalanceStrategySummary {
   id: number;
   name: string;
-  routing_policy: RoutingPolicy;
+  strategy_type: LoadbalanceStrategyType;
+  auto_recovery: LoadbalanceAutoRecovery;
 }
 
 export interface LoadbalanceStrategy {
   id: number;
   profile_id: number;
   name: string;
-  routing_policy: RoutingPolicy;
+  strategy_type: LoadbalanceStrategyType;
+  auto_recovery: LoadbalanceAutoRecovery;
   attached_model_count: number;
   created_at: string;
   updated_at: string;
@@ -68,12 +64,14 @@ export interface LoadbalanceStrategy {
 
 export interface LoadbalanceStrategyCreate {
   name: string;
-  routing_policy: RoutingPolicy;
+  strategy_type: LoadbalanceStrategyType;
+  auto_recovery: LoadbalanceAutoRecovery;
 }
 
 export interface LoadbalanceStrategyUpdate {
   name: string;
-  routing_policy: RoutingPolicy;
+  strategy_type: LoadbalanceStrategyType;
+  auto_recovery: LoadbalanceAutoRecovery;
 }
 
 export interface ModelConfig {

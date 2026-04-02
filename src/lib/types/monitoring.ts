@@ -59,12 +59,6 @@ interface MonitoringConnectionBase {
   connection_name: string | null;
   endpoint_id: number;
   endpoint_name: string;
-  last_probe_status: string | null;
-  circuit_state: string | null;
-  live_p95_latency_ms: number | null;
-  last_live_failure_kind: string | null;
-  last_live_failure_at: string | null;
-  last_live_success_at: string | null;
   endpoint_ping_status: string;
   endpoint_ping_ms: number | null;
   conversation_status: string;

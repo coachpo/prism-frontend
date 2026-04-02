@@ -1,7 +1,8 @@
 import type {
+  LoadbalanceAutoRecovery,
   ModelType,
   ProxyTarget,
-  RoutingPolicy,
+  LoadbalanceStrategyType,
 } from "./model-stats";
 import type { ApiFamily } from "./vendor";
 
@@ -32,12 +33,14 @@ export type ConfigPricingTemplateImport = ConfigPricingTemplateExport;
 
 export interface ConfigLoadbalanceStrategyExport {
   name: string;
-  routing_policy: RoutingPolicy;
+  strategy_type: LoadbalanceStrategyType;
+  auto_recovery: LoadbalanceAutoRecovery;
 }
 
 export interface ConfigLoadbalanceStrategyImport {
   name: string;
-  routing_policy: RoutingPolicy;
+  strategy_type: LoadbalanceStrategyType;
+  auto_recovery: LoadbalanceAutoRecovery;
 }
 
 export interface ConfigConnectionExport {

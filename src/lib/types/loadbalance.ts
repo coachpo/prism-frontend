@@ -3,7 +3,6 @@ export type LoadbalanceEventType =
   | "extended"
   | "max_cooldown_strike"
   | "banned"
-  | "probe_eligible"
   | "recovered"
   | "not_opened";
 
@@ -17,26 +16,14 @@ export type LoadbalanceFailureKind =
 export type LoadbalanceCurrentStateValue =
   | "counting"
   | "blocked"
-  | "probe_eligible"
   | "banned";
 
 export interface LoadbalanceCurrentStateItem {
   connection_id: number;
   consecutive_failures: number;
   last_failure_kind: LoadbalanceFailureKind | null;
-  last_probe_status?: string | null;
-  last_probe_at?: string | null;
-  live_p95_latency_ms?: number | null;
-  last_live_failure_kind?: LoadbalanceFailureKind | null;
-  last_live_failure_at?: string | null;
-  last_live_success_at?: string | null;
-  endpoint_ping_ewma_ms?: number | null;
-  conversation_delay_ewma_ms?: number | null;
-  circuit_state?: string | null;
-  probe_available_at?: string | null;
   last_cooldown_seconds: number;
   blocked_until_at: string | null;
-  probe_eligible_logged: boolean;
   max_cooldown_strikes: number;
   ban_mode: LoadbalanceBanMode;
   banned_until_at: string | null;

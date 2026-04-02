@@ -42,91 +42,45 @@ const FailureStatusCodesImportSchema = z
   })
   .transform((codes) => [...codes].sort((left, right) => left - right));
 
-const RoutingPolicyHedgeImportSchema = z.strictObject({
-  enabled: z.boolean(),
-  delay_ms: z.number().int().min(0).max(300_000),
-  max_additional_attempts: z.number().int().min(1).max(10),
-});
-
-const RoutingPolicyCircuitBreakerImportSchema = z.strictObject({
-  failure_status_codes: FailureStatusCodesImportSchema,
-  base_open_seconds: z.number().int().min(0),
+const AutoRecoveryCooldownImportSchema = z.strictObject({
+  base_seconds: z.number().int().min(0),
   failure_threshold: z.number().int().min(1).max(50),
   backoff_multiplier: z.number().min(1).max(10),
-  max_open_seconds: z.number().int().min(1).max(86_400),
+  max_cooldown_seconds: z.number().int().min(1).max(86_400),
   jitter_ratio: z.number().min(0).max(1),
-  ban_mode: z.enum(["off", "manual", "temporary"]),
-  max_open_strikes_before_ban: z.number().int().min(0).max(100),
-  ban_duration_seconds: z.number().int().min(0).max(86_400),
-}).superRefine((policy, ctx) => {
-  if (policy.ban_mode === "off") {
-    if (policy.max_open_strikes_before_ban !== 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["max_open_strikes_before_ban"],
-        message: getStaticMessages().loadbalanceStrategyValidation.banModeOffZero,
-      });
-    }
-    if (policy.ban_duration_seconds !== 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["ban_duration_seconds"],
-        message: getStaticMessages().loadbalanceStrategyValidation.banModeOffZero,
-      });
-    }
-  }
-
-  if (policy.ban_mode !== "off" && policy.max_open_strikes_before_ban < 1) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["max_open_strikes_before_ban"],
-      message: getStaticMessages().loadbalanceStrategyValidation.maxCooldownStrikesMin,
-    });
-  }
-
-  if (policy.ban_mode === "manual" && policy.ban_duration_seconds !== 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["ban_duration_seconds"],
-      message: getStaticMessages().loadbalanceStrategyValidation.banDurationManualDismissZero,
-    });
-  }
-
-  if (policy.ban_mode === "temporary" && policy.ban_duration_seconds < 1) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["ban_duration_seconds"],
-      message: getStaticMessages().loadbalanceStrategyValidation.banDurationTemporaryMin,
-    });
-  }
 });
 
-const RoutingPolicyAdmissionImportSchema = z.strictObject({
-  respect_qps_limit: z.boolean(),
-  respect_in_flight_limits: z.boolean(),
-});
+const AutoRecoveryBanImportSchema = z.union([
+  z.strictObject({
+    mode: z.literal("off"),
+  }),
+  z.strictObject({
+    mode: z.literal("manual"),
+    max_cooldown_strikes_before_ban: z.number().int().min(1).max(100),
+  }),
+  z.strictObject({
+    mode: z.literal("temporary"),
+    max_cooldown_strikes_before_ban: z.number().int().min(1).max(100),
+    ban_duration_seconds: z.number().int().min(1).max(86_400),
+  }),
+]);
 
-const RoutingPolicyMonitoringImportSchema = z.strictObject({
-  enabled: z.boolean(),
-  stale_after_seconds: z.number().int().min(1).max(86_400),
-  endpoint_ping_weight: z.number().min(0).max(10),
-  conversation_delay_weight: z.number().min(0).max(10),
-  failure_penalty_weight: z.number().min(0).max(10),
-});
-
-const RoutingPolicyImportSchema = z.strictObject({
-  kind: z.literal("adaptive"),
-  routing_objective: z.enum(["minimize_latency", "maximize_availability"]),
-  deadline_budget_ms: z.number().int().min(1).max(300_000),
-  hedge: RoutingPolicyHedgeImportSchema,
-  circuit_breaker: RoutingPolicyCircuitBreakerImportSchema,
-  admission: RoutingPolicyAdmissionImportSchema,
-  monitoring: RoutingPolicyMonitoringImportSchema,
-});
+const AutoRecoveryImportSchema = z.union([
+  z.strictObject({
+    mode: z.literal("disabled"),
+  }),
+  z.strictObject({
+    mode: z.literal("enabled"),
+    status_codes: FailureStatusCodesImportSchema,
+    cooldown: AutoRecoveryCooldownImportSchema,
+    ban: AutoRecoveryBanImportSchema,
+  }),
+]);
 
 const LoadbalanceStrategyImportSchema = z.strictObject({
   name: z.string(),
-  routing_policy: RoutingPolicyImportSchema,
+  strategy_type: z.enum(["single", "fill-first", "round-robin"]),
+  auto_recovery: AutoRecoveryImportSchema,
 });
 
 const VendorImportSchema = z.strictObject({

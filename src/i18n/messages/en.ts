@@ -150,12 +150,11 @@ export interface Messages {
   loadbalanceStrategyDialog: {
     addTitle: string;
     addStatusCode: string;
-    adaptivePolicyDescription: string;
-    adaptivePolicyLabel: string;
+    autoRecoveryDisabledOption: string;
+    autoRecoveryEnabledOption: string;
+    autoRecoveryLabel: string;
     banDurationDescription: string;
     banDurationLabel: string;
-    banEscalationDescription: string;
-    banEscalationLabel: string;
     banModeDescription: string;
     banModeLabel: string;
     banModeManualOption: string;
@@ -184,12 +183,15 @@ export interface Messages {
     removeStatusCode: (code: number) => string;
     save: string;
     saving: string;
+    strategyTypeLabel: string;
   };
   loadbalanceStrategyCopy: {
-    adaptiveLabel: string;
-    adaptiveSummary: string;
-    maximizeAvailabilityLabel: string;
-    minimizeLatencyLabel: string;
+    fillFirstLabel: string;
+    fillFirstSummary: string;
+    roundRobinLabel: string;
+    roundRobinSummary: string;
+    singleLabel: string;
+    singleSummary: string;
   };
   loadbalanceStrategiesPage: {
     description: string;
@@ -259,10 +261,12 @@ export interface Messages {
     actions: string;
     addStrategy: string;
     attachedModels: string;
-    backoffJitterStatusCodes: (multiplier: string, jitterRatio: string, statusCodes: string) => string;
+    autoRecoveryDisabled: string;
+    autoRecoveryEnabled: string;
     banManualDismiss: (strikes: string) => string;
     banOff: string;
     banTemporary: (strikes: string, durationSeconds: string) => string;
+    cooldownSummary: (baseSeconds: string, maxSeconds: string) => string;
     description: string;
     disabled: string;
     edit: string;
@@ -272,10 +276,8 @@ export interface Messages {
     deleteStrategyInUse: (count: string) => string;
     name: string;
     noStrategiesConfigured: string;
-    objective: string;
     recovery: string;
     statusCodes: (codes: string) => string;
-    thresholdBaseMax: (threshold: string, baseSeconds: string, maxSeconds: string) => string;
     title: string;
     type: string;
   };
@@ -624,7 +626,6 @@ export interface Messages {
     referenceLabelPricingTemplate: string;
     referenceLabelVendor: string;
     referenceNameEmpty: (referenceLabel: string) => string;
-    singleStrategyNoRecovery: string;
     statusCodesUnique: string;
     unknownEndpointName: (endpointName: string) => string;
     unknownLoadbalanceStrategy: (strategyName: string) => string;
@@ -938,11 +939,6 @@ export interface Messages {
     monitoringProbeIntervalSeconds: string;
     latestProbeAt: (value: string) => string;
     latestProbeStatus: (status: string) => string;
-    lastLiveFailureKind: (value: string) => string;
-    lastLiveSuccessAt: (value: string) => string;
-    endpointMonitoringValue: (value: string) => string;
-    conversationMonitoringValue: (value: string) => string;
-    p95MonitoringValue: (value: string) => string;
     qpsLimit: string;
     recoveryBlocked: string;
     recoveryCounting: string;
@@ -1710,15 +1706,12 @@ export const enMessages: Messages = {
   loadbalanceStrategyDialog: {
     addTitle: "Add Loadbalance Strategy",
     addStatusCode: "Add Status Code",
-    adaptivePolicyDescription:
-      "Prism now persists one adaptive routing contract for native models. This dialog edits the circuit-breaker branch of that routing policy.",
-    adaptivePolicyLabel: "Adaptive routing",
+    autoRecoveryDisabledOption: "Disabled",
+    autoRecoveryEnabledOption: "Enabled",
+    autoRecoveryLabel: "Auto Recovery",
     banDurationDescription:
       "How long a temporary ban lasts before the connection becomes probe-eligible again.",
     banDurationLabel: "Ban Duration (seconds)",
-    banEscalationDescription:
-      "Escalate repeated max-open strikes into a temporary or manual-dismiss ban without replacing the existing circuit-breaker policy.",
-    banEscalationLabel: "Ban escalation",
     banModeDescription:
       "Choose whether repeated max-open strikes stay off, expire automatically, or wait for a manual dismiss.",
     banModeLabel: "Ban Mode",
@@ -1732,14 +1725,14 @@ export const enMessages: Messages = {
       "Starting open window applied after transient failures once the threshold is reached.",
     baseCooldownLabel: "Base Open Window (seconds)",
     cancel: "Cancel",
-    description: "Configure reusable adaptive routing policies for native models in this profile.",
+    description: "Configure reusable legacy load-balance strategies for native models in this profile.",
     editTitle: "Edit Loadbalance Strategy",
     explainField: (label) => `Explain ${label}`,
     failureThresholdDescription:
       "Number of consecutive failures required before the circuit breaker opens.",
     failureThresholdLabel: "Failure Threshold",
     failureStatusCodesDescription:
-      "HTTP status codes that should count toward the adaptive circuit breaker.",
+      "HTTP status codes that should count toward automatic recovery.",
     failureStatusCodesLabel: "Failure Status Codes",
     jitterRatioDescription:
       "Random spread applied to the open window so retries do not all happen at the same instant.",
@@ -1751,19 +1744,23 @@ export const enMessages: Messages = {
       "Upper limit for the computed open window, even after repeated failures.",
     maxCooldownLabel: "Max Open Window (seconds)",
     nameLabel: "Name",
-    namePlaceholder: "e.g. adaptive-primary",
+    namePlaceholder: "e.g. round-robin-primary",
     removeStatusCode: (code) => `Remove status code ${code}`,
     save: "Save Strategy",
     saving: "Saving...",
+    strategyTypeLabel: "Strategy Type",
   },
   loadbalanceStrategyCopy: {
-    adaptiveLabel: "Adaptive",
-    adaptiveSummary: "Adaptive routing",
-    maximizeAvailabilityLabel: "Maximize availability",
-    minimizeLatencyLabel: "Minimize latency",
+    fillFirstLabel: "Fill first",
+    fillFirstSummary: "Keep using the first eligible connection until it becomes unavailable.",
+    roundRobinLabel: "Round robin",
+    roundRobinSummary: "Rotate the starting connection across eligible connections.",
+    singleLabel: "Single",
+    singleSummary: "Use the first eligible connection and fall through on failure.",
   },
   loadbalanceStrategiesPage: {
-    description: "Manage reusable adaptive routing policies for native models in this profile",
+    description:
+      "Manage reusable single, fill-first, and round-robin native-model strategies for this profile",
     selectedProfileFallback: "the selected profile",
     scopeCallout: (profileLabel) =>
       `Changes here affect ${profileLabel} and native models attached to these strategies.`,
@@ -1831,14 +1828,16 @@ export const enMessages: Messages = {
     actions: "Actions",
     addStrategy: "Add Strategy",
     attachedModels: "Attached Models",
-    backoffJitterStatusCodes: (multiplier, jitterRatio, statusCodes) =>
-      `Backoff ×${multiplier} • Jitter ${jitterRatio} • ${statusCodes}`,
-    banManualDismiss: (strikes) => `Ban manual dismiss • ${strikes} max-open strikes`,
+    autoRecoveryDisabled: "Auto recovery disabled",
+    autoRecoveryEnabled: "Auto recovery enabled",
+    banManualDismiss: (strikes) => `Ban manual dismiss after ${strikes} max-cooldown strikes`,
     banOff: "Ban off",
     banTemporary: (strikes, durationSeconds) =>
-      `Ban temporary • ${strikes} max-open strikes • ${durationSeconds}s`,
+      `Temporary ban after ${strikes} max-cooldown strikes • ${durationSeconds}s`,
+    cooldownSummary: (baseSeconds, maxSeconds) =>
+      `Cooldown ${baseSeconds}s base • ${maxSeconds}s max`,
     description:
-      "Reuse adaptive routing policies across native models instead of redefining circuit-breaker behavior per model.",
+      "Reuse legacy load-balance strategies across native models instead of redefining routing behavior per model.",
     disabled: "Disabled",
     edit: "Edit",
     enabled: "Enabled",
@@ -1847,11 +1846,8 @@ export const enMessages: Messages = {
     deleteStrategyInUse: (count) => `This strategy is attached to ${count} native model${count === "1" ? "" : "s"} and cannot be deleted yet.`,
     name: "Name",
     noStrategiesConfigured: "No loadbalance strategies configured.",
-    objective: "Objective",
     recovery: "Recovery",
-    statusCodes: (codes) => `Failure status codes ${codes}`,
-    thresholdBaseMax: (threshold, baseSeconds, maxSeconds) =>
-      `Threshold ${threshold} • Base ${baseSeconds}s • Max ${maxSeconds}s`,
+    statusCodes: (codes) => `Status codes ${codes}`,
     title: "Loadbalance Strategies",
     type: "Type",
   },
@@ -2219,7 +2215,6 @@ export const enMessages: Messages = {
     referenceLabelPricingTemplate: "pricing template",
     referenceLabelVendor: "vendor",
     referenceNameEmpty: (referenceLabel) => `${referenceLabel} name must not be empty`,
-    singleStrategyNoRecovery: "Single strategies must not enable failover recovery",
     statusCodesUnique: "Failover status codes must be unique",
     unknownEndpointName: (endpointName) =>
       `Unknown endpoint_name '${endpointName}' in import payload`,
@@ -2494,11 +2489,6 @@ export const enMessages: Messages = {
     monitoringProbeIntervalSeconds: "Probe interval (seconds)",
     latestProbeAt: (value) => `Last probe ${value}`,
     latestProbeStatus: (status) => `Latest probe ${status}`,
-    lastLiveFailureKind: (value) => `Failure ${value}`,
-    lastLiveSuccessAt: (value) => `Last success ${value}`,
-    endpointMonitoringValue: (value) => `Endpoint ${value}`,
-    conversationMonitoringValue: (value) => `Conversation ${value}`,
-    p95MonitoringValue: (value) => `P95 ${value}`,
     qpsLimit: "QPS Limit",
     recoveryBlocked: "Recovery Blocked",
     recoveryCounting: "Recovery Counting",
@@ -2519,7 +2509,7 @@ export const enMessages: Messages = {
     selectVendor: "Select vendor",
     spend24h: (currencyCode) => `Spend (24h, ${currencyCode})`,
     successfulRequests: (count) => `${count} successful`,
-    routingObjective: "Routing Objective",
+    routingObjective: "Strategy Type",
     strategyRecovery: "Strategy Recovery",
     testConnection: "Test Connection",
     testingConnection: "Testing...",
