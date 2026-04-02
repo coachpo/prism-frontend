@@ -352,28 +352,30 @@ describe("ConnectionDialog limiter fields", () => {
 
     const dialogContent = document.querySelector('[data-slot="dialog-content"]');
     const scrollArea = document.querySelector('[data-slot="scroll-area"]');
+    const scrollBody = screen.getByTestId("connection-dialog-scroll-body");
     const endpointSourceSection = screen.getByTestId("connection-dialog-endpoint-source-section");
-    const scrollBody = endpointSourceSection.parentElement;
 
-    expect(dialogContent).toHaveClass("max-w-4xl", "overflow-hidden");
-    expect(dialogContent).toHaveClass("h-[min(92vh,60rem)]");
+    expect(dialogContent).toHaveClass("max-w-5xl", "overflow-hidden");
+    expect(dialogContent).toHaveClass("h-[min(94vh,64rem)]");
     expect(dialogContent).not.toHaveClass("overflow-y-auto");
     expect(scrollArea).toBeInTheDocument();
     expect(scrollArea).toHaveClass("min-h-0", "flex-1");
-    expect(scrollBody).toHaveClass("space-y-5", "pb-32");
-    expect(endpointSourceSection).toHaveClass("space-y-3", "bg-muted/20", "p-3.5", "lg:p-4");
+    expect(scrollBody).toHaveClass("grid", "gap-6", "px-6", "py-5", "sm:px-7");
+    expect(endpointSourceSection).toHaveClass("space-y-4", "bg-muted/20", "p-4", "sm:p-5");
 
     const mainGrid = screen.getByTestId("connection-dialog-main-grid");
     const leftColumn = screen.getByTestId("connection-dialog-left-column");
     const rightColumn = screen.getByTestId("connection-dialog-right-column");
     const limiterCard = screen.getByTestId("connection-dialog-limiter-card");
     const headersCard = screen.getByTestId("connection-dialog-custom-headers-card");
+    const headersScrollArea = screen.getByTestId("connection-dialog-custom-headers-scroll-area");
 
-    expect(mainGrid).toHaveClass("items-start", "gap-5", "xl:grid-cols-[minmax(0,1fr)_22rem]");
+    expect(mainGrid).toHaveClass("items-start", "gap-6", "xl:grid-cols-[minmax(0,1.6fr)_minmax(19rem,0.9fr)]");
     expect(leftColumn).toHaveClass("space-y-5");
-    expect(rightColumn).toHaveClass("space-y-4");
-    expect(limiterCard).toHaveClass("bg-muted/15", "p-3.5");
-    expect(headersCard).toHaveClass("bg-muted/10", "p-3.5");
+    expect(rightColumn).toHaveClass("flex", "min-h-0", "flex-col", "gap-4");
+    expect(limiterCard).toHaveClass("rounded-2xl", "bg-muted/15", "p-4");
+    expect(headersCard).toHaveClass("flex", "min-h-0", "flex-col", "bg-muted/10", "p-4");
+    expect(headersScrollArea).toHaveClass("max-h-[min(32vh,22rem)]", "w-full");
     expect(headersCard).not.toHaveClass("mb-2");
     expect(leftColumn.compareDocumentPosition(rightColumn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(limiterCard.compareDocumentPosition(headersCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -418,12 +420,14 @@ describe("ConnectionDialog limiter fields", () => {
     const scrollArea = document.querySelector('[data-slot="scroll-area"]');
     const footerShell = document.querySelector('[data-slot="dialog-footer"]')?.parentElement;
     const headersCard = screen.getByTestId("connection-dialog-custom-headers-card");
-    const scrollBody = screen.getByTestId("connection-dialog-endpoint-source-section").parentElement;
+    const headersScrollArea = screen.getByTestId("connection-dialog-custom-headers-scroll-area");
+    const scrollBody = screen.getByTestId("connection-dialog-scroll-body");
 
     expect(scrollArea).toBeInTheDocument();
-    expect(scrollBody).toHaveClass("space-y-5", "pb-32");
-    expect(footerShell).toHaveClass("shrink-0", "border-t", "px-6", "py-4");
+    expect(scrollBody).toHaveClass("grid", "gap-6");
+    expect(footerShell).toHaveClass("shrink-0", "border-t", "bg-background", "px-6", "py-4", "sm:px-7");
     expect(headersCard).not.toHaveClass("mb-2");
+    expect(headersScrollArea).toHaveClass("max-h-[min(32vh,22rem)]");
   });
 
   it("shows the OpenAI probe variant selector only for OpenAI models", async () => {

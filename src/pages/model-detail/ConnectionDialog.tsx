@@ -128,8 +128,8 @@ export function ConnectionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[min(92vh,60rem)] max-h-[92vh] max-w-4xl flex-col overflow-hidden p-0 sm:max-w-4xl">
-        <DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4">
+      <DialogContent className="flex h-[min(94vh,64rem)] max-h-[94vh] max-w-5xl flex-col overflow-hidden p-0 sm:max-w-5xl">
+        <DialogHeader className="shrink-0 border-b bg-background px-6 py-5 sm:px-7">
           <DialogTitle>{editingConnection ? copy.editConnection : copy.addConnection}</DialogTitle>
           <DialogDescription>{copy.connectionDialogDescription}</DialogDescription>
         </DialogHeader>
@@ -152,8 +152,11 @@ export function ConnectionDialog({
             value={connectionForm.openai_probe_endpoint_variant ?? "responses"}
           />
           <ScrollArea className="min-h-0 flex-1">
-            <div className="space-y-5 px-6 py-4 pb-32">
-              <div className="space-y-3 rounded-xl border bg-muted/20 p-3.5 lg:p-4" data-testid="connection-dialog-endpoint-source-section">
+            <div className="grid gap-6 px-6 py-5 sm:px-7" data-testid="connection-dialog-scroll-body">
+              <div
+                className="space-y-4 rounded-2xl border bg-muted/20 p-4 sm:p-5"
+                data-testid="connection-dialog-endpoint-source-section"
+              >
                 <div className="flex items-start justify-between gap-2.5">
                   <div>
                     <Label className="text-sm font-medium">{copy.endpointSource}</Label>
@@ -167,9 +170,9 @@ export function ConnectionDialog({
                 <Tabs
                   value={createMode}
                   onValueChange={(value) => setCreateMode(value as "select" | "new")}
-                  className="gap-3"
+                  className="gap-4"
                 >
-                  <TabsList className="grid w-full md:max-w-sm grid-cols-2">
+                  <TabsList className="grid w-full md:max-w-md grid-cols-2">
                     <TabsTrigger value="select">{copy.selectExisting}</TabsTrigger>
                     <TabsTrigger value="new">{copy.createNew}</TabsTrigger>
                   </TabsList>
@@ -243,7 +246,10 @@ export function ConnectionDialog({
                 </Tabs>
               </div>
 
-              <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]" data-testid="connection-dialog-main-grid">
+              <div
+                className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(19rem,0.9fr)]"
+                data-testid="connection-dialog-main-grid"
+              >
                 <div className="space-y-5" data-testid="connection-dialog-left-column">
                   <div className="space-y-2">
                     <Label htmlFor="conn-name">{copy.connectionNameOptional}</Label>
@@ -353,8 +359,8 @@ export function ConnectionDialog({
                   ) : null}
                 </div>
 
-                <div className="space-y-4" data-testid="connection-dialog-right-column">
-                  <div className="rounded-xl border bg-muted/15 p-3.5" data-testid="connection-dialog-limiter-card">
+                <div className="flex min-h-0 flex-col gap-4" data-testid="connection-dialog-right-column">
+                  <div className="rounded-2xl border bg-muted/15 p-4" data-testid="connection-dialog-limiter-card">
                     <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
                       {limiterFields.map((field) => (
                         <div key={field.field} className="grid content-start gap-1.5">
@@ -375,7 +381,10 @@ export function ConnectionDialog({
                     </div>
                   </div>
 
-                  <div className="space-y-3 rounded-xl border bg-muted/10 p-3.5" data-testid="connection-dialog-custom-headers-card">
+                  <div
+                    className="flex min-h-0 flex-col gap-3 rounded-2xl border bg-muted/10 p-4"
+                    data-testid="connection-dialog-custom-headers-card"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       <Label>{copy.customHeaders}</Label>
                       <Button
@@ -388,52 +397,64 @@ export function ConnectionDialog({
                         {copy.addHeader}
                       </Button>
                     </div>
-                    {headerRows.length === 0 ? (
-                      <p className="text-xs italic text-muted-foreground">{copy.noCustomHeadersConfigured}</p>
-                    ) : null}
-                    <div className="space-y-2">
-                      {headerRows.map((row, index) => (
-                        <div key={row.id} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center">
-                          <Input
-                            id={`connection-header-key-${index}`}
-                            name={`custom_headers.${index}.key`}
-                            aria-label={copy.headerKey}
-                            placeholder={copy.headerKey}
-                            value={row.key}
-                            onChange={(e) => {
-                              const newRows = [...headerRows];
-                              newRows[index].key = e.target.value;
-                              setHeaderRows(newRows);
-                            }}
-                            className="flex-1"
-                          />
-                          <Input
-                            id={`connection-header-value-${index}`}
-                            name={`custom_headers.${index}.value`}
-                            aria-label={copy.headerValue}
-                            placeholder={copy.headerValue}
-                            value={row.value}
-                            onChange={(e) => {
-                              const newRows = [...headerRows];
-                              newRows[index].value = e.target.value;
-                              setHeaderRows(newRows);
-                            }}
-                            className="flex-1"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              const newRows = [...headerRows];
-                              newRows.splice(index, 1);
-                              setHeaderRows(newRows);
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                    <div className="min-h-0 overflow-hidden rounded-xl border border-dashed bg-background/70">
+                      <ScrollArea
+                        className="max-h-[min(32vh,22rem)] w-full"
+                        data-testid="connection-dialog-custom-headers-scroll-area"
+                      >
+                        <div className="space-y-2 p-2 sm:p-3">
+                          {headerRows.length === 0 ? (
+                            <p className="px-1 py-2 text-xs italic text-muted-foreground">
+                              {copy.noCustomHeadersConfigured}
+                            </p>
+                          ) : null}
+                          {headerRows.map((row, index) => (
+                            <div
+                              key={row.id}
+                              className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center"
+                            >
+                              <Input
+                                id={`connection-header-key-${index}`}
+                                name={`custom_headers.${index}.key`}
+                                aria-label={copy.headerKey}
+                                placeholder={copy.headerKey}
+                                value={row.key}
+                                onChange={(e) => {
+                                  const newRows = [...headerRows];
+                                  newRows[index].key = e.target.value;
+                                  setHeaderRows(newRows);
+                                }}
+                                className="flex-1"
+                              />
+                              <Input
+                                id={`connection-header-value-${index}`}
+                                name={`custom_headers.${index}.value`}
+                                aria-label={copy.headerValue}
+                                placeholder={copy.headerValue}
+                                value={row.value}
+                                onChange={(e) => {
+                                  const newRows = [...headerRows];
+                                  newRows[index].value = e.target.value;
+                                  setHeaderRows(newRows);
+                                }}
+                                className="flex-1"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const newRows = [...headerRows];
+                                  newRows.splice(index, 1);
+                                  setHeaderRows(newRows);
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </ScrollArea>
                     </div>
                   </div>
                 </div>
@@ -441,7 +462,7 @@ export function ConnectionDialog({
             </div>
           </ScrollArea>
 
-          <div className="shrink-0 border-t px-6 py-4">
+          <div className="shrink-0 border-t bg-background px-6 py-4 sm:px-7">
             {dialogTestResult ? (
               <div
                 className={cn(
