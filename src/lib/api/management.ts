@@ -1,12 +1,16 @@
 import type {
+  AdaptiveRoutingObjective,
   Connection,
   ConnectionCreate,
   LoadbalanceAutoRecovery,
-  LoadbalanceStrategySummary,
+  LoadbalanceBanMode,
+  LoadbalanceRoutingPolicy,
   LoadbalanceStrategy,
   LoadbalanceStrategyCreate,
-  LoadbalanceStrategyType,
+  LoadbalanceStrategyFamily,
+  LoadbalanceStrategySummary,
   LoadbalanceStrategyUpdate,
+  LegacyLoadbalanceStrategyType,
   ModelConnectionsBatchParams,
   ModelConnectionsBatchResponse,
   ConnectionDropdownResponse,
@@ -45,7 +49,9 @@ type RawLoadbalanceStrategySummary = {
   id: number;
   name: string;
   strategy_type?: unknown;
+  legacy_strategy_type?: unknown;
   auto_recovery?: unknown;
+  routing_policy?: unknown;
 };
 
 type RawLoadbalanceStrategy = {
@@ -53,7 +59,9 @@ type RawLoadbalanceStrategy = {
   profile_id: number;
   name: string;
   strategy_type?: unknown;
+  legacy_strategy_type?: unknown;
   auto_recovery?: unknown;
+  routing_policy?: unknown;
   attached_model_count: number;
   created_at: string;
   updated_at: string;
@@ -98,12 +106,145 @@ function normalizeNumber(value: unknown, field: string) {
   return value;
 }
 
-function normalizeStrategyType(value: unknown): LoadbalanceStrategyType {
-  if (value === "single" || value === "fill-first" || value === "round-robin") {
+function normalizeBoolean(value: unknown, field: string) {
+  if (typeof value !== "boolean") {
+    unsupportedLoadbalanceStrategy(field);
+  }
+
+  return value;
+}
+
+function normalizeStrategyFamily(value: unknown): LoadbalanceStrategyFamily {
+  if (value === "legacy" || value === "adaptive") {
     return value;
   }
 
   unsupportedLoadbalanceStrategy("strategy_type");
+}
+
+function normalizeLegacyStrategyType(value: unknown): LegacyLoadbalanceStrategyType {
+  if (value === "single" || value === "fill-first" || value === "round-robin") {
+    return value;
+  }
+
+  unsupportedLoadbalanceStrategy("legacy_strategy_type");
+}
+
+function normalizeRoutingPolicy(value: unknown): LoadbalanceRoutingPolicy {
+  if (!isRecord(value)) {
+    unsupportedLoadbalanceStrategy("routing_policy");
+  }
+
+  if (value.kind !== "adaptive") {
+    unsupportedLoadbalanceStrategy("routing_policy.kind");
+  }
+
+  if (
+    value.routing_objective !== "maximize_availability" &&
+    value.routing_objective !== "minimize_latency"
+  ) {
+    unsupportedLoadbalanceStrategy("routing_policy.routing_objective");
+  }
+
+  const hedge = value.hedge;
+  if (!isRecord(hedge)) {
+    unsupportedLoadbalanceStrategy("routing_policy.hedge");
+  }
+
+  const circuitBreaker = value.circuit_breaker;
+  if (!isRecord(circuitBreaker)) {
+    unsupportedLoadbalanceStrategy("routing_policy.circuit_breaker");
+  }
+
+  const admission = value.admission;
+  if (!isRecord(admission)) {
+    unsupportedLoadbalanceStrategy("routing_policy.admission");
+  }
+
+  const monitoring = value.monitoring;
+  if (!isRecord(monitoring)) {
+    unsupportedLoadbalanceStrategy("routing_policy.monitoring");
+  }
+
+  const banMode = circuitBreaker.ban_mode;
+  if (banMode !== "off" && banMode !== "temporary" && banMode !== "manual") {
+    unsupportedLoadbalanceStrategy("routing_policy.circuit_breaker.ban_mode");
+  }
+
+  return {
+    kind: "adaptive",
+    routing_objective: value.routing_objective as AdaptiveRoutingObjective,
+    deadline_budget_ms: normalizeInteger(value.deadline_budget_ms, "routing_policy.deadline_budget_ms"),
+    hedge: {
+      enabled: normalizeBoolean(hedge.enabled, "routing_policy.hedge.enabled"),
+      delay_ms: normalizeInteger(hedge.delay_ms, "routing_policy.hedge.delay_ms"),
+      max_additional_attempts: normalizeInteger(
+        hedge.max_additional_attempts,
+        "routing_policy.hedge.max_additional_attempts",
+      ),
+    },
+    circuit_breaker: {
+      failure_status_codes: normalizeStatusCodes(circuitBreaker.failure_status_codes),
+      base_open_seconds: normalizeNumber(
+        circuitBreaker.base_open_seconds,
+        "routing_policy.circuit_breaker.base_open_seconds",
+      ),
+      failure_threshold: normalizeInteger(
+        circuitBreaker.failure_threshold,
+        "routing_policy.circuit_breaker.failure_threshold",
+      ),
+      backoff_multiplier: normalizeNumber(
+        circuitBreaker.backoff_multiplier,
+        "routing_policy.circuit_breaker.backoff_multiplier",
+      ),
+      max_open_seconds: normalizeInteger(
+        circuitBreaker.max_open_seconds,
+        "routing_policy.circuit_breaker.max_open_seconds",
+      ),
+      jitter_ratio: normalizeNumber(
+        circuitBreaker.jitter_ratio,
+        "routing_policy.circuit_breaker.jitter_ratio",
+      ),
+      ban_mode: banMode as LoadbalanceBanMode,
+      max_open_strikes_before_ban: normalizeInteger(
+        circuitBreaker.max_open_strikes_before_ban,
+        "routing_policy.circuit_breaker.max_open_strikes_before_ban",
+      ),
+      ban_duration_seconds: normalizeInteger(
+        circuitBreaker.ban_duration_seconds,
+        "routing_policy.circuit_breaker.ban_duration_seconds",
+      ),
+    },
+    admission: {
+      respect_qps_limit: normalizeBoolean(
+        admission.respect_qps_limit,
+        "routing_policy.admission.respect_qps_limit",
+      ),
+      respect_in_flight_limits: normalizeBoolean(
+        admission.respect_in_flight_limits,
+        "routing_policy.admission.respect_in_flight_limits",
+      ),
+    },
+    monitoring: {
+      enabled: normalizeBoolean(monitoring.enabled, "routing_policy.monitoring.enabled"),
+      stale_after_seconds: normalizeInteger(
+        monitoring.stale_after_seconds,
+        "routing_policy.monitoring.stale_after_seconds",
+      ),
+      endpoint_ping_weight: normalizeNumber(
+        monitoring.endpoint_ping_weight,
+        "routing_policy.monitoring.endpoint_ping_weight",
+      ),
+      conversation_delay_weight: normalizeNumber(
+        monitoring.conversation_delay_weight,
+        "routing_policy.monitoring.conversation_delay_weight",
+      ),
+      failure_penalty_weight: normalizeNumber(
+        monitoring.failure_penalty_weight,
+        "routing_policy.monitoring.failure_penalty_weight",
+      ),
+    },
+  };
 }
 
 function normalizeStatusCodes(value: unknown) {
@@ -116,7 +257,6 @@ function normalizeStatusCodes(value: unknown) {
 
 function normalizeAutoRecovery(
   value: unknown,
-  _strategyType: LoadbalanceStrategyType,
 ): LoadbalanceAutoRecovery {
   if (!isRecord(value)) {
     unsupportedLoadbalanceStrategy("auto_recovery");
@@ -207,33 +347,54 @@ function normalizeAutoRecovery(
   unsupportedLoadbalanceStrategy("auto_recovery.ban.mode");
 }
 
-function normalizeLoadbalanceStrategySummary(
-  strategy: RawLoadbalanceStrategySummary | null,
-): LoadbalanceStrategySummary | null {
+function normalizeLoadbalanceStrategySummary(strategy: RawLoadbalanceStrategySummary | null): LoadbalanceStrategySummary | null {
   if (!strategy) {
     return null;
+  }
+
+  const strategyFamily = normalizeStrategyFamily(strategy.strategy_type);
+
+  if (strategyFamily === "legacy") {
+    return {
+      id: strategy.id,
+      name: strategy.name,
+      strategy_type: "legacy",
+      legacy_strategy_type: normalizeLegacyStrategyType(strategy.legacy_strategy_type),
+      auto_recovery: normalizeAutoRecovery(strategy.auto_recovery),
+    };
   }
 
   return {
     id: strategy.id,
     name: strategy.name,
-    strategy_type: normalizeStrategyType(strategy.strategy_type),
-    auto_recovery: normalizeAutoRecovery(
-      strategy.auto_recovery,
-      normalizeStrategyType(strategy.strategy_type),
-    ),
+    strategy_type: "adaptive",
+    routing_policy: normalizeRoutingPolicy(strategy.routing_policy),
   };
 }
 
 function normalizeLoadbalanceStrategy(strategy: RawLoadbalanceStrategy): LoadbalanceStrategy {
-  const strategyType = normalizeStrategyType(strategy.strategy_type);
+  const strategyFamily = normalizeStrategyFamily(strategy.strategy_type);
+
+  if (strategyFamily === "legacy") {
+    return {
+      id: strategy.id,
+      profile_id: strategy.profile_id,
+      name: strategy.name,
+      strategy_type: "legacy",
+      legacy_strategy_type: normalizeLegacyStrategyType(strategy.legacy_strategy_type),
+      auto_recovery: normalizeAutoRecovery(strategy.auto_recovery),
+      attached_model_count: strategy.attached_model_count,
+      created_at: strategy.created_at,
+      updated_at: strategy.updated_at,
+    };
+  }
 
   return {
     id: strategy.id,
     profile_id: strategy.profile_id,
     name: strategy.name,
-    strategy_type: strategyType,
-    auto_recovery: normalizeAutoRecovery(strategy.auto_recovery, strategyType),
+    strategy_type: "adaptive",
+    routing_policy: normalizeRoutingPolicy(strategy.routing_policy),
     attached_model_count: strategy.attached_model_count,
     created_at: strategy.created_at,
     updated_at: strategy.updated_at,

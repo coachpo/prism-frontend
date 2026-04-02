@@ -53,10 +53,13 @@ const AutoRecoveryCooldownImportSchema = z.strictObject({
 const AutoRecoveryBanImportSchema = z.union([
   z.strictObject({
     mode: z.literal("off"),
+    max_cooldown_strikes_before_ban: z.literal(0).optional(),
+    ban_duration_seconds: z.literal(0).optional(),
   }),
   z.strictObject({
     mode: z.literal("manual"),
     max_cooldown_strikes_before_ban: z.number().int().min(1).max(100),
+    ban_duration_seconds: z.literal(0).optional(),
   }),
   z.strictObject({
     mode: z.literal("temporary"),
@@ -77,11 +80,104 @@ const AutoRecoveryImportSchema = z.union([
   }),
 ]);
 
-const LoadbalanceStrategyImportSchema = z.strictObject({
-  name: z.string(),
-  strategy_type: z.enum(["single", "fill-first", "round-robin"]),
-  auto_recovery: AutoRecoveryImportSchema,
+const AdaptiveCircuitBreakerImportSchema = z
+  .strictObject({
+    failure_status_codes: FailureStatusCodesImportSchema,
+    base_open_seconds: z.number().min(0),
+    failure_threshold: z.number().int().min(1),
+    backoff_multiplier: z.number().min(1),
+    max_open_seconds: z.number().int().min(1),
+    jitter_ratio: z.number().min(0).max(1),
+    ban_mode: z.enum(["off", "temporary", "manual"]),
+    max_open_strikes_before_ban: z.number().int().min(0),
+    ban_duration_seconds: z.number().int().min(0),
+  })
+  .superRefine((value, ctx) => {
+    if (value.ban_mode === "off") {
+      if (value.max_open_strikes_before_ban !== 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["max_open_strikes_before_ban"],
+          message: "ban_mode 'off' requires max_open_strikes_before_ban = 0",
+        });
+      }
+      if (value.ban_duration_seconds !== 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["ban_duration_seconds"],
+          message: "ban_mode 'off' requires ban_duration_seconds = 0",
+        });
+      }
+      return;
+    }
+
+    if (value.max_open_strikes_before_ban < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["max_open_strikes_before_ban"],
+        message: `ban_mode '${value.ban_mode}' requires max_open_strikes_before_ban >= 1`,
+      });
+    }
+
+    if (value.ban_mode === "manual") {
+      if (value.ban_duration_seconds !== 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["ban_duration_seconds"],
+          message: "ban_mode 'manual' requires ban_duration_seconds = 0",
+        });
+      }
+      return;
+    }
+
+    if (value.ban_duration_seconds < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ban_duration_seconds"],
+        message: "ban_mode 'temporary' requires ban_duration_seconds >= 1",
+      });
+    }
+  });
+
+const AdaptiveRoutingPolicyImportSchema = z.strictObject({
+  kind: z.literal("adaptive"),
+  routing_objective: z.enum(["maximize_availability", "minimize_latency"]),
+  deadline_budget_ms: z.number().int().min(1),
+  hedge: z.strictObject({
+    enabled: z.boolean(),
+    delay_ms: z.number().int().min(0),
+    max_additional_attempts: z.number().int().min(0),
+  }),
+  circuit_breaker: AdaptiveCircuitBreakerImportSchema,
+  admission: z.strictObject({
+    respect_qps_limit: z.boolean(),
+    respect_in_flight_limits: z.boolean(),
+  }),
+  monitoring: z.strictObject({
+    enabled: z.boolean(),
+    stale_after_seconds: z.number().int().min(1),
+    endpoint_ping_weight: z.number().min(0),
+    conversation_delay_weight: z.number().min(0),
+    failure_penalty_weight: z.number().min(0),
+  }),
 });
+
+const LoadbalanceStrategyImportSchema = z.discriminatedUnion("strategy_type", [
+  z.strictObject({
+    name: z.string(),
+    strategy_type: z.literal("legacy"),
+    legacy_strategy_type: z.enum(["single", "fill-first", "round-robin"]),
+    auto_recovery: AutoRecoveryImportSchema,
+    routing_policy: z.null().optional(),
+  }),
+  z.strictObject({
+    name: z.string(),
+    strategy_type: z.literal("adaptive"),
+    routing_policy: AdaptiveRoutingPolicyImportSchema,
+    legacy_strategy_type: z.null().optional(),
+    auto_recovery: z.null().optional(),
+  }),
+]);
 
 const VendorImportSchema = z.strictObject({
   key: z.string(),

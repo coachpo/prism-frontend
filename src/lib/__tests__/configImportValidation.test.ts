@@ -12,6 +12,8 @@ function buildAutoRecoveryEnabled(options?: {
   ban?:
     | {
         mode: "off";
+        max_cooldown_strikes_before_ban?: number;
+        ban_duration_seconds?: number;
       }
     | {
         mode: "manual";
@@ -42,7 +44,13 @@ function buildAutoRecoveryEnabled(options?: {
       jitter_ratio: 0.2,
       ...(options?.cooldown ?? {}),
     },
-    ban: options?.ban ?? { mode: "off" as const },
+    ban:
+      options?.ban ??
+      {
+        mode: "off" as const,
+        max_cooldown_strikes_before_ban: 0,
+        ban_duration_seconds: 0,
+      },
   };
 }
 
@@ -72,7 +80,8 @@ function buildImportPayload() {
     loadbalance_strategies: [
       {
         name: "single-primary",
-        strategy_type: "single" as const,
+        strategy_type: "legacy" as const,
+        legacy_strategy_type: "single" as const,
         auto_recovery: buildAutoRecoveryDisabled(),
       },
     ],
@@ -99,6 +108,42 @@ function buildImportPayload() {
         ],
       },
     ],
+  };
+}
+
+function buildAdaptiveRoutingPolicy(overrides: Record<string, unknown> = {}) {
+  return {
+    kind: "adaptive",
+    routing_objective: "minimize_latency",
+    deadline_budget_ms: 1500,
+    hedge: {
+      enabled: false,
+      delay_ms: 75,
+      max_additional_attempts: 1,
+    },
+    circuit_breaker: {
+      failure_status_codes: [429, 503, 504],
+      base_open_seconds: 60,
+      failure_threshold: 2,
+      backoff_multiplier: 2,
+      max_open_seconds: 900,
+      jitter_ratio: 0.2,
+      ban_mode: "off",
+      max_open_strikes_before_ban: 0,
+      ban_duration_seconds: 0,
+    },
+    admission: {
+      respect_qps_limit: true,
+      respect_in_flight_limits: true,
+    },
+    monitoring: {
+      enabled: true,
+      stale_after_seconds: 30,
+      endpoint_ping_weight: 0.4,
+      conversation_delay_weight: 0.35,
+      failure_penalty_weight: 0.25,
+    },
+    ...overrides,
   };
 }
 
@@ -195,13 +240,14 @@ describe("ConfigImportSchema", () => {
     expect(normalizeReferenceName(null)).toBeNull();
   });
 
-  it("accepts round-robin strategies with enabled legacy auto_recovery settings", () => {
+  it("accepts legacy round-robin strategies with enabled auto_recovery settings", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
           name: "legacy-round-robin",
-          strategy_type: "round-robin",
+          strategy_type: "legacy",
+          legacy_strategy_type: "round-robin",
           auto_recovery: buildAutoRecoveryEnabled({
             status_codes: [504, 429, 503],
             cooldown: {
@@ -230,7 +276,8 @@ describe("ConfigImportSchema", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.loadbalance_strategies[0]).toMatchObject({
-        strategy_type: "round-robin",
+        strategy_type: "legacy",
+        legacy_strategy_type: "round-robin",
         auto_recovery: {
           mode: "enabled",
           status_codes: [429, 503, 504],
@@ -287,19 +334,20 @@ describe("ConfigImportSchema", () => {
     ]);
   });
 
-  it("requires explicit strategy_type and auto_recovery in the legacy strategy format", () => {
+  it("requires explicit family-specific legacy fields in the merged strategy format", () => {
     const payload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
           name: "single-primary",
+          strategy_type: "legacy",
         },
       ],
     };
 
     expect(getIssuePairs(payload)).toEqual([
       {
-        path: ["loadbalance_strategies", 0, "strategy_type"],
+        path: ["loadbalance_strategies", 0, "legacy_strategy_type"],
         message: 'Invalid option: expected one of "single"|"fill-first"|"round-robin"',
       },
       {
@@ -309,43 +357,261 @@ describe("ConfigImportSchema", () => {
     ]);
   });
 
-  it("rejects adaptive routing_policy imports", () => {
+  it("accepts adaptive routing_policy imports for minimize_latency", () => {
+    const result = ConfigImportSchema.safeParse({
+      ...buildImportPayload(),
+      loadbalance_strategies: [
+        {
+          name: "adaptive-primary",
+          strategy_type: "adaptive",
+          routing_policy: buildAdaptiveRoutingPolicy(),
+        },
+      ],
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          loadbalance_strategy_name: "adaptive-primary",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.loadbalance_strategies[0]).toMatchObject({
+        name: "adaptive-primary",
+        strategy_type: "adaptive",
+        routing_policy: buildAdaptiveRoutingPolicy(),
+      });
+    }
+  });
+
+  it("accepts the exact backend-exported family-null and off-ban shape", () => {
+    const result = ConfigImportSchema.safeParse({
+      ...buildImportPayload(),
+      loadbalance_strategies: [
+        {
+          name: "Default adaptive routing",
+          strategy_type: "adaptive",
+          legacy_strategy_type: null,
+          auto_recovery: null,
+          routing_policy: buildAdaptiveRoutingPolicy({
+            deadline_budget_ms: 30000,
+            hedge: {
+              enabled: false,
+              delay_ms: 1500,
+              max_additional_attempts: 1,
+            },
+            monitoring: {
+              enabled: true,
+              stale_after_seconds: 300,
+              endpoint_ping_weight: 1,
+              conversation_delay_weight: 1,
+              failure_penalty_weight: 2,
+            },
+          }),
+        },
+        {
+          name: "Default legacy routing",
+          strategy_type: "legacy",
+          legacy_strategy_type: "round-robin",
+          auto_recovery: buildAutoRecoveryEnabled({
+            status_codes: [403, 422, 429, 500, 502, 503, 504, 529],
+            ban: {
+              mode: "off",
+              max_cooldown_strikes_before_ban: 0,
+              ban_duration_seconds: 0,
+            },
+          }),
+          routing_policy: null,
+        },
+      ],
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          loadbalance_strategy_name: "Default adaptive routing",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects non-null family crossover fields on exported strategies", () => {
+    expect(
+      getIssuePairs({
+        ...buildImportPayload(),
+        loadbalance_strategies: [
+          {
+            name: "bad-adaptive",
+            strategy_type: "adaptive",
+            legacy_strategy_type: "single",
+            auto_recovery: null,
+            routing_policy: buildAdaptiveRoutingPolicy(),
+          },
+        ],
+        models: [
+          {
+            ...buildImportPayload().models[0],
+            loadbalance_strategy_name: "bad-adaptive",
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        path: ["loadbalance_strategies", 0, "legacy_strategy_type"],
+        message: "Invalid input: expected null, received string",
+      },
+    ]);
+
+    expect(
+      getIssuePairs({
+        ...buildImportPayload(),
+        loadbalance_strategies: [
+          {
+            name: "bad-legacy",
+            strategy_type: "legacy",
+            legacy_strategy_type: "single",
+            auto_recovery: buildAutoRecoveryDisabled(),
+            routing_policy: buildAdaptiveRoutingPolicy(),
+          },
+        ],
+        models: [
+          {
+            ...buildImportPayload().models[0],
+            loadbalance_strategy_name: "bad-legacy",
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        path: ["loadbalance_strategies", 0, "routing_policy"],
+        message: "Invalid input: expected null, received object",
+      },
+    ]);
+  });
+
+  it("validates adaptive circuit breaker ban semantics by ban_mode", () => {
+    const manualResult = ConfigImportSchema.safeParse({
+      ...buildImportPayload(),
+      loadbalance_strategies: [
+        {
+          name: "adaptive-manual",
+          strategy_type: "adaptive",
+          routing_policy: buildAdaptiveRoutingPolicy({
+            circuit_breaker: {
+              ...buildAdaptiveRoutingPolicy().circuit_breaker,
+              ban_mode: "manual",
+              max_open_strikes_before_ban: 2,
+              ban_duration_seconds: 0,
+            },
+          }),
+        },
+      ],
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          loadbalance_strategy_name: "adaptive-manual",
+        },
+      ],
+    });
+
+    expect(manualResult.success).toBe(true);
+
+    const temporaryResult = ConfigImportSchema.safeParse({
+      ...buildImportPayload(),
+      loadbalance_strategies: [
+        {
+          name: "adaptive-temporary",
+          strategy_type: "adaptive",
+          routing_policy: buildAdaptiveRoutingPolicy({
+            circuit_breaker: {
+              ...buildAdaptiveRoutingPolicy().circuit_breaker,
+              ban_mode: "temporary",
+              max_open_strikes_before_ban: 2,
+              ban_duration_seconds: 120,
+            },
+          }),
+        },
+      ],
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          loadbalance_strategy_name: "adaptive-temporary",
+        },
+      ],
+    });
+
+    expect(temporaryResult.success).toBe(true);
+
+    const payload = {
+      ...buildImportPayload(),
+      loadbalance_strategies: [
+        {
+          name: "adaptive-invalid",
+          strategy_type: "adaptive",
+          routing_policy: buildAdaptiveRoutingPolicy({
+            circuit_breaker: {
+              ...buildAdaptiveRoutingPolicy().circuit_breaker,
+              ban_mode: "off",
+              max_open_strikes_before_ban: 3,
+              ban_duration_seconds: 1800,
+            },
+          }),
+        },
+      ],
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          loadbalance_strategy_name: "adaptive-invalid",
+        },
+      ],
+    };
+
+    expect(getIssuePairs(payload)).toEqual([
+      {
+        path: ["loadbalance_strategies", 0, "routing_policy", "circuit_breaker", "max_open_strikes_before_ban"],
+        message: "ban_mode 'off' requires max_open_strikes_before_ban = 0",
+      },
+      {
+        path: ["loadbalance_strategies", 0, "routing_policy", "circuit_breaker", "ban_duration_seconds"],
+        message: "ban_mode 'off' requires ban_duration_seconds = 0",
+      },
+    ]);
+  });
+
+  it("rejects adaptive strategies that omit routing_policy", () => {
     const payload = {
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
           name: "adaptive-primary",
-          routing_policy: {
-            kind: "adaptive",
-            routing_objective: "maximize_availability",
-          },
+          strategy_type: "adaptive",
+        },
+      ],
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          loadbalance_strategy_name: "adaptive-primary",
         },
       ],
     };
 
     expect(getIssuePairs(payload)).toEqual([
       {
-        path: ["loadbalance_strategies", 0, "strategy_type"],
-        message: 'Invalid option: expected one of "single"|"fill-first"|"round-robin"',
-      },
-      {
-        path: ["loadbalance_strategies", 0, "auto_recovery"],
-        message: "Invalid input",
-      },
-      {
-        path: ["loadbalance_strategies", 0],
-        message: 'Unrecognized key: "routing_policy"',
+        path: ["loadbalance_strategies", 0, "routing_policy"],
+        message: "Invalid input: expected object, received undefined",
       },
     ]);
   });
 
-  it("accepts single strategies that enable failover recovery", () => {
+  it("accepts legacy single strategies that enable failover recovery", () => {
     const result = ConfigImportSchema.safeParse({
       ...buildImportPayload(),
       loadbalance_strategies: [
         {
           name: "single-with-recovery",
-          strategy_type: "single",
+          strategy_type: "legacy",
+          legacy_strategy_type: "single",
           auto_recovery: buildAutoRecoveryEnabled(),
         },
       ],
@@ -366,12 +632,14 @@ describe("ConfigImportSchema", () => {
       loadbalance_strategies: [
         {
           name: "single-primary",
-          strategy_type: "single",
+          strategy_type: "legacy",
+          legacy_strategy_type: "single",
           auto_recovery: buildAutoRecoveryDisabled(),
         },
         {
           name: "  single-primary  ",
-          strategy_type: "fill-first",
+          strategy_type: "legacy",
+          legacy_strategy_type: "fill-first",
           auto_recovery: buildAutoRecoveryEnabled(),
         },
       ],
