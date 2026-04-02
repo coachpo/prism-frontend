@@ -1,77 +1,14 @@
 import type { ApiFamily, Vendor } from "./vendor";
 import type { Connection } from "./routing";
+import type {
+  LoadbalanceStrategySummary,
+} from "./loadbalance";
 
 export type ModelType = "native" | "proxy";
-export type LoadbalanceStrategyType = "single" | "fill-first" | "round-robin";
-
-export interface LoadbalanceAutoRecoveryCooldown {
-  base_seconds: number;
-  failure_threshold: number;
-  backoff_multiplier: number;
-  max_cooldown_seconds: number;
-  jitter_ratio: number;
-}
-
-export type LoadbalanceAutoRecoveryBan =
-  | {
-      mode: "off";
-    }
-  | {
-      mode: "manual";
-      max_cooldown_strikes_before_ban: number;
-    }
-  | {
-      mode: "temporary";
-      max_cooldown_strikes_before_ban: number;
-      ban_duration_seconds: number;
-    };
-
-export interface LoadbalanceAutoRecoveryEnabled {
-  mode: "enabled";
-  status_codes: number[];
-  cooldown: LoadbalanceAutoRecoveryCooldown;
-  ban: LoadbalanceAutoRecoveryBan;
-}
-
-export type LoadbalanceAutoRecovery =
-  | {
-      mode: "disabled";
-    }
-  | LoadbalanceAutoRecoveryEnabled;
 
 export interface ProxyTarget {
   target_model_id: string;
   position: number;
-}
-
-export interface LoadbalanceStrategySummary {
-  id: number;
-  name: string;
-  strategy_type: LoadbalanceStrategyType;
-  auto_recovery: LoadbalanceAutoRecovery;
-}
-
-export interface LoadbalanceStrategy {
-  id: number;
-  profile_id: number;
-  name: string;
-  strategy_type: LoadbalanceStrategyType;
-  auto_recovery: LoadbalanceAutoRecovery;
-  attached_model_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface LoadbalanceStrategyCreate {
-  name: string;
-  strategy_type: LoadbalanceStrategyType;
-  auto_recovery: LoadbalanceAutoRecovery;
-}
-
-export interface LoadbalanceStrategyUpdate {
-  name: string;
-  strategy_type: LoadbalanceStrategyType;
-  auto_recovery: LoadbalanceAutoRecovery;
 }
 
 export interface ModelConfig {
