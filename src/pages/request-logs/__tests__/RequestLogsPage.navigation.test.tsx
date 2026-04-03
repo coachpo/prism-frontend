@@ -1,37 +1,17 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RequestLogDetail, RequestLogListItem } from "@/lib/types";
 
 let RequestLogsPage: typeof import("../../RequestLogsPage").RequestLogsPage;
 
 const {
-  mockConnectionsOwner,
-  mockNavigate,
   mockUseRequestLogDetail,
   mockUseRequestLogPageState,
   mockUseRequestLogsPageData,
 } = vi.hoisted(() => ({
-  mockConnectionsOwner: vi.fn(),
-  mockNavigate: vi.fn(),
   mockUseRequestLogDetail: vi.fn(),
   mockUseRequestLogPageState: vi.fn(),
   mockUseRequestLogsPageData: vi.fn(),
-}));
-
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock("@/lib/api", () => ({
-  api: {
-    connections: {
-      owner: mockConnectionsOwner,
-    },
-  },
 }));
 
 vi.mock("@/context/ProfileContext", () => ({
@@ -122,13 +102,11 @@ vi.mock("../RequestLogsTable", () => ({
 vi.mock("../RequestLogDetailSheet", () => ({
   RequestLogDetailSheet: ({
     onClose,
-    onNavigateToConnection,
     open,
     request,
   }: {
     activeTab: "overview" | "audit";
     onClose: () => void;
-    onNavigateToConnection: (connectionId: number) => void;
     onTabChange: (tab: "overview" | "audit") => void;
     open: boolean;
     request: RequestLogDetail | null;
@@ -140,13 +118,6 @@ vi.mock("../RequestLogDetailSheet", () => ({
     return (
       <div data-testid="request-log-detail-sheet">
         <div>{`Request #${request.summary.id}`}</div>
-        <button
-          data-testid="request-log-connection-link"
-          type="button"
-          onClick={() => onNavigateToConnection(request.routing.connection_id ?? -1)}
-        >
-          navigate-to-connection
-        </button>
         <button type="button" onClick={onClose}>
           close-request
         </button>
@@ -269,7 +240,6 @@ function createPageState(
       ingress_request_id: "",
       model_id: "",
       api_family: "",
-      connection_id: "",
       endpoint_id: "",
       time_range: "24h",
       status_family: "all",
@@ -282,7 +252,6 @@ function createPageState(
       triage: false,
       request_id: "",
       detail_tab: "overview" as const,
-      view: "all" as const,
       limit: 100,
       offset: 0,
       ...overrides,
@@ -304,20 +273,17 @@ describe("RequestLogsPage request detail loading", () => {
   beforeEach(() => {
     const stableDetail = buildRequestLogDetail();
 
-    mockConnectionsOwner.mockReset();
-    mockNavigate.mockReset();
     mockUseRequestLogDetail.mockReset();
     mockUseRequestLogPageState.mockReset();
     mockUseRequestLogsPageData.mockReset();
 
-    mockConnectionsOwner.mockResolvedValue({ model_config_id: 99 });
     mockUseRequestLogPageState.mockReturnValue(createPageState());
     mockUseRequestLogsPageData.mockReturnValue({
       items: [buildRequestLogListItem()],
       total: 1,
       loading: false,
       error: null,
-      filterOptions: { models: [] },
+      filterOptions: { apiFamilies: [], endpoints: [], models: [] },
       filterOptionsLoaded: true,
       refresh: vi.fn(),
     });
@@ -343,7 +309,7 @@ describe("RequestLogsPage request detail loading", () => {
       total: 1,
       loading: false,
       error: null,
-      filterOptions: { models: [] },
+      filterOptions: { apiFamilies: [], endpoints: [], models: [] },
       filterOptionsLoaded: true,
       refresh: vi.fn(),
     });
@@ -365,7 +331,7 @@ describe("RequestLogsPage request detail loading", () => {
       total: 1,
       loading: false,
       error: null,
-      filterOptions: { models: [] },
+      filterOptions: { apiFamilies: [], endpoints: [], models: [] },
       filterOptionsLoaded: true,
       refresh: vi.fn(),
     });
@@ -383,36 +349,6 @@ describe("RequestLogsPage request detail loading", () => {
 
     expect(screen.getByTestId("request-log-not-found")).toBeInTheDocument();
     expect(screen.queryByTestId("request-log-detail-sheet")).not.toBeInTheDocument();
-  });
-
-  it("uses the dedicated detail payload for selected-row connection navigation", async () => {
-    mockUseRequestLogsPageData.mockReturnValue({
-      items: [buildRequestLogListItem({ connection_id: null })],
-      total: 1,
-      loading: false,
-      error: null,
-      filterOptions: { models: [] },
-      filterOptionsLoaded: true,
-      refresh: vi.fn(),
-    });
-
-    render(<RequestLogsPage />);
-
-    fireEvent.click(screen.getByRole("button", { name: "open-request" }));
-
-    await waitFor(() => {
-      expect(mockUseRequestLogDetail).toHaveBeenLastCalledWith({
-        requestId: 42,
-        enabled: true,
-      });
-    });
-
-    fireEvent.click(screen.getByTestId("request-log-connection-link"));
-
-    await waitFor(() => {
-      expect(mockConnectionsOwner).toHaveBeenCalledWith(34);
-    });
-    expect(mockNavigate).toHaveBeenCalledWith("/models/99?focus_connection_id=34");
   });
 
   it("clears exact mode when the focused request is closed", () => {

@@ -1,27 +1,89 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
+import { FiltersBar } from "../FiltersBar";
 import { FiltersBarPrimaryFilters } from "../FiltersBarPrimaryFilters";
-import { FiltersBarSecondaryFilters } from "../FiltersBarSecondaryFilters";
+import type { RequestLogPageActions } from "../useRequestLogPageState";
 
 function renderWithLocale(ui: React.ReactElement) {
   return render(<LocaleProvider>{ui}</LocaleProvider>);
 }
 
-describe("request log filter split components", () => {
+function createPrimaryActions() {
+  return {
+    setIngressRequestId: vi.fn(),
+    setRequestId: vi.fn(),
+    setEndpointId: vi.fn(),
+    setModelId: vi.fn(),
+    setApiFamily: vi.fn(),
+    setSearch: vi.fn(),
+    setStatusFamily: vi.fn(),
+    setTimeRange: vi.fn(),
+  };
+}
+
+function createFiltersBarActions(): RequestLogPageActions {
+  return {
+    state: {
+      ingress_request_id: "",
+      model_id: "",
+      api_family: "",
+      endpoint_id: "",
+      time_range: "24h" as const,
+      status_family: "all" as const,
+      search: "",
+      outcome_filter: "all" as const,
+      stream_filter: "all" as const,
+      latency_bucket: "all" as const,
+      token_min: "",
+      token_max: "",
+      triage: false,
+      request_id: "",
+      detail_tab: "overview" as const,
+      limit: 100,
+      offset: 0,
+    },
+    isExactMode: false,
+    hasActiveFilters: false,
+    clearFilters: vi.fn(),
+    setIngressRequestId: vi.fn(),
+    setRequestId: vi.fn(),
+    setEndpointId: vi.fn(),
+    setModelId: vi.fn(),
+    setApiFamily: vi.fn(),
+    setSearch: vi.fn(),
+    setStatusFamily: vi.fn(),
+    setTimeRange: vi.fn(),
+    setOutcomeFilter: vi.fn(),
+    setStreamFilter: vi.fn(),
+    setLatencyBucket: vi.fn(),
+    setTokenMin: vi.fn(),
+    setTokenMax: vi.fn(),
+    setTriage: vi.fn(),
+    setLimit: vi.fn(),
+    setOffset: vi.fn(),
+    selectRequest: vi.fn(),
+    clearRequest: vi.fn(),
+    setDetailTab: vi.fn(),
+    goToNextPage: vi.fn(),
+    goToPreviousPage: vi.fn(),
+  };
+}
+
+describe("request log filters", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("renders the primary filter controls and wires search changes", () => {
-    const setSearch = vi.fn();
+  it("renders request lookup and ingress filtering in the primary controls", () => {
+    const actions = createPrimaryActions();
 
     renderWithLocale(
       <FiltersBarPrimaryFilters
-        filterOptions={{ apiFamilies: [], connections: [], endpoints: [], models: [] }}
+        filterOptions={{ apiFamilies: [], endpoints: [], models: [] }}
         filterOptionsLoaded={true}
         state={{
-          connection_id: "",
+          ingress_request_id: "",
           endpoint_id: "",
           model_id: "",
           api_family: "",
@@ -29,15 +91,7 @@ describe("request log filter split components", () => {
           status_family: "all",
           time_range: "24h",
         }}
-        actions={{
-          setConnectionId: vi.fn(),
-          setEndpointId: vi.fn(),
-          setModelId: vi.fn(),
-          setApiFamily: vi.fn(),
-          setSearch,
-          setStatusFamily: vi.fn(),
-          setTimeRange: vi.fn(),
-        }}
+        actions={actions}
       />,
     );
 
@@ -45,42 +99,44 @@ describe("request log filter split components", () => {
       target: { value: "gateway error" },
     });
 
+    const requestIdInput = screen.getByPlaceholderText("Request ID");
+    fireEvent.change(requestIdInput, { target: { value: "42" } });
+    fireEvent.keyDown(requestIdInput, { key: "Enter", code: "Enter", charCode: 13 });
+
+    fireEvent.change(screen.getByPlaceholderText("Ingress request ID"), {
+      target: { value: "ingress_req_42" },
+    });
+
     expect(screen.getByText("Search")).toBeInTheDocument();
-    expect(screen.getByText("Time range")).toBeInTheDocument();
-    expect(setSearch).toHaveBeenCalledWith("gateway error");
+    expect(screen.getByText("Request ID")).toBeInTheDocument();
+    expect(screen.getByText("Ingress request ID")).toBeInTheDocument();
+    expect(screen.queryByText("Connection")).not.toBeInTheDocument();
+    expect(actions.setSearch).toHaveBeenCalledWith("gateway error");
+    expect(actions.setRequestId).toHaveBeenCalledWith("42");
+    expect(actions.setIngressRequestId).toHaveBeenCalledWith("ingress_req_42");
   });
 
-  it("renders only supported secondary refinement controls", () => {
+  it("renders a single dense filter surface without local refinement or view controls", () => {
+    const actions = createFiltersBarActions();
+
     renderWithLocale(
-      <FiltersBarSecondaryFilters
-        localRefinementOpen={true}
-        onLocalRefinementOpenChange={vi.fn()}
-        state={{
-          latency_bucket: "all",
-          outcome_filter: "all",
-          stream_filter: "all",
-          token_max: "",
-          token_min: "",
-          triage: false,
-          view: "all",
-        }}
-        actions={{
-          setLatencyBucket: vi.fn(),
-          setOutcomeFilter: vi.fn(),
-          setStreamFilter: vi.fn(),
-          setTokenMax: vi.fn(),
-          setTokenMin: vi.fn(),
-          setTriage: vi.fn(),
-          setView: vi.fn(),
-        }}
+      <FiltersBar
+        actions={actions}
+        filterOptions={{ apiFamilies: [], endpoints: [], models: [] }}
+        filterOptionsLoaded={true}
+        onRefresh={vi.fn()}
+        isRefreshing={false}
       />,
     );
 
-    expect(screen.getByText("Local refinement")).toBeInTheDocument();
+    expect(screen.getByText("Outcome")).toBeInTheDocument();
+    expect(screen.getByText("Stream")).toBeInTheDocument();
+    expect(screen.getByText("Latency")).toBeInTheDocument();
+    expect(screen.getByText("Token range")).toBeInTheDocument();
     expect(screen.getByText("Triage")).toBeInTheDocument();
-    expect(screen.queryByText("Priced only")).not.toBeInTheDocument();
-    expect(screen.queryByText("Billable only")).not.toBeInTheDocument();
-    expect(screen.queryByText("Special tokens")).not.toBeInTheDocument();
+    expect(screen.queryByText("Local refinement")).not.toBeInTheDocument();
+    expect(screen.queryByText("View")).not.toBeInTheDocument();
+    expect(screen.queryByText("Connection")).not.toBeInTheDocument();
   });
 
   it("renders localized request-log filter copy when the saved locale is Chinese", () => {
@@ -88,10 +144,10 @@ describe("request log filter split components", () => {
 
     renderWithLocale(
       <FiltersBarPrimaryFilters
-        filterOptions={{ apiFamilies: [], connections: [], endpoints: [], models: [] }}
+        filterOptions={{ apiFamilies: [], endpoints: [], models: [] }}
         filterOptionsLoaded={true}
         state={{
-          connection_id: "",
+          ingress_request_id: "",
           endpoint_id: "",
           model_id: "",
           api_family: "",
@@ -99,21 +155,15 @@ describe("request log filter split components", () => {
           status_family: "all",
           time_range: "24h",
         }}
-        actions={{
-          setConnectionId: vi.fn(),
-          setEndpointId: vi.fn(),
-          setModelId: vi.fn(),
-          setApiFamily: vi.fn(),
-          setSearch: vi.fn(),
-          setStatusFamily: vi.fn(),
-          setTimeRange: vi.fn(),
-        }}
+        actions={createPrimaryActions()}
       />,
     );
 
     expect(screen.getByText("搜索")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("模型、供应商、路径或错误")).toBeInTheDocument();
-    expect(screen.getByText("时间范围")).toBeInTheDocument();
+    expect(screen.getByText("请求 ID")).toBeInTheDocument();
+    expect(screen.getByText("入口请求 ID")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("入口请求 ID")).toBeInTheDocument();
   });
 
   it("renders the selected model display name while preserving the model_id value", () => {
@@ -121,7 +171,6 @@ describe("request log filter split components", () => {
       <FiltersBarPrimaryFilters
         filterOptions={{
           apiFamilies: ["openai"],
-          connections: [],
           endpoints: [],
           models: [
             {
@@ -155,7 +204,7 @@ describe("request log filter split components", () => {
         }}
         filterOptionsLoaded={true}
         state={{
-          connection_id: "",
+          ingress_request_id: "",
           endpoint_id: "",
           model_id: "gpt-4o-mini",
           api_family: "",
@@ -163,15 +212,7 @@ describe("request log filter split components", () => {
           status_family: "all",
           time_range: "24h",
         }}
-        actions={{
-          setConnectionId: vi.fn(),
-          setEndpointId: vi.fn(),
-          setModelId: vi.fn(),
-          setApiFamily: vi.fn(),
-          setSearch: vi.fn(),
-          setStatusFamily: vi.fn(),
-          setTimeRange: vi.fn(),
-        }}
+        actions={createPrimaryActions()}
       />,
     );
 
@@ -179,91 +220,14 @@ describe("request log filter split components", () => {
     expect(screen.queryByText("gpt-4o-mini")).not.toBeInTheDocument();
   });
 
-  it("renders API Family copy instead of vendor labels", () => {
-    renderWithLocale(
-      <FiltersBarPrimaryFilters
-        filterOptions={{ apiFamilies: ["openai", "anthropic"], connections: [], endpoints: [], models: [] }}
-        filterOptionsLoaded={true}
-        state={{
-          connection_id: "",
-          endpoint_id: "",
-          model_id: "",
-          api_family: "openai",
-          search: "",
-          status_family: "all",
-          time_range: "24h",
-        }}
-        actions={{
-          setConnectionId: vi.fn(),
-          setEndpointId: vi.fn(),
-          setModelId: vi.fn(),
-          setApiFamily: vi.fn(),
-          setSearch: vi.fn(),
-          setStatusFamily: vi.fn(),
-          setTimeRange: vi.fn(),
-        }}
-      />,
-    );
-
-    expect(screen.getByText("API Family")).toBeInTheDocument();
-    expect(screen.queryByText("Provider")).not.toBeInTheDocument();
-  });
-
-  it("keeps the selected connection label inside a shrink-safe trigger for long values", () => {
-    const longConnectionLabel =
-      "Production OpenAI connection with a very long descriptive runtime label that should truncate";
-
-    renderWithLocale(
-      <FiltersBarPrimaryFilters
-        filterOptions={{
-          apiFamilies: [],
-          connections: [
-            {
-              id: 42,
-              label: longConnectionLabel,
-            },
-          ],
-          endpoints: [],
-          models: [],
-        }}
-        filterOptionsLoaded={true}
-        state={{
-          connection_id: "42",
-          endpoint_id: "",
-          model_id: "",
-          api_family: "",
-          search: "",
-          status_family: "all",
-          time_range: "24h",
-        }}
-        actions={{
-          setConnectionId: vi.fn(),
-          setEndpointId: vi.fn(),
-          setModelId: vi.fn(),
-          setApiFamily: vi.fn(),
-          setSearch: vi.fn(),
-          setStatusFamily: vi.fn(),
-          setTimeRange: vi.fn(),
-        }}
-      />,
-    );
-
-    const connectionTrigger = screen.getByText(longConnectionLabel).closest("button");
-
-    expect(connectionTrigger).toHaveClass("w-full");
-    expect(connectionTrigger).toHaveClass("min-w-0");
-    expect(connectionTrigger).toHaveClass("max-w-full");
-  });
-
-  it("renders the archived primary filter surface and keeps long endpoint labels shrink-safe", () => {
+  it("keeps long endpoint labels shrink-safe in the endpoint trigger", () => {
     const longEndpointLabel =
-      "CodexPool primary endpoint with an intentionally long descriptive label for archived request-log coverage";
+      "CodexPool primary endpoint with an intentionally long descriptive label for request-log coverage";
 
     renderWithLocale(
       <FiltersBarPrimaryFilters
         filterOptions={{
           apiFamilies: ["openai"],
-          connections: [],
           endpoints: [
             {
               id: 7,
@@ -280,7 +244,7 @@ describe("request log filter split components", () => {
         }}
         filterOptionsLoaded={true}
         state={{
-          connection_id: "",
+          ingress_request_id: "",
           endpoint_id: "7",
           model_id: "",
           api_family: "openai",
@@ -288,28 +252,11 @@ describe("request log filter split components", () => {
           status_family: "all",
           time_range: "24h",
         }}
-        actions={{
-          setConnectionId: vi.fn(),
-          setEndpointId: vi.fn(),
-          setModelId: vi.fn(),
-          setApiFamily: vi.fn(),
-          setSearch: vi.fn(),
-          setStatusFamily: vi.fn(),
-          setTimeRange: vi.fn(),
-        }}
+        actions={createPrimaryActions()}
       />,
     );
 
-    expect(screen.getByText("Search")).toBeInTheDocument();
-    expect(screen.getByText("Model")).toBeInTheDocument();
-    expect(screen.getByText("API Family")).toBeInTheDocument();
-    expect(screen.getByText("Endpoint")).toBeInTheDocument();
-    expect(screen.getByText("Status")).toBeInTheDocument();
-    expect(screen.getByText("Connection")).toBeInTheDocument();
-    expect(screen.getByText("Time range")).toBeInTheDocument();
-
     const endpointTrigger = screen.getByText(longEndpointLabel).closest("button");
-
     expect(endpointTrigger).toHaveClass("w-full");
     expect(endpointTrigger).toHaveClass("min-w-0");
     expect(endpointTrigger).toHaveClass("max-w-full");

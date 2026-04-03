@@ -12,14 +12,19 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { RequestLogListItem } from "@/lib/types";
-import { getColumns, ROW_HEIGHT, type ColumnDef } from "./columns";
-import { PAGE_SIZE_OPTIONS, type ViewMode } from "./queryParams";
+import {
+  getColumns,
+  ROW_HEIGHT,
+  type ColumnDef,
+  type RequestLogEndpointResolver,
+  type RequestLogModelResolver,
+} from "./columns";
+import { PAGE_SIZE_OPTIONS } from "./queryParams";
 
 interface RequestLogsTableProps {
   items: RequestLogListItem[];
   total: number;
   loading: boolean;
-  view: ViewMode;
   limit: number;
   offset: number;
   activeRequestId: number | null;
@@ -28,7 +33,8 @@ interface RequestLogsTableProps {
   onNextPage: () => void;
   onPreviousPage: () => void;
   formatTimestamp: (iso: string) => string;
-  resolveModelLabel: (modelId: string) => string;
+  resolveModelLabel: RequestLogModelResolver;
+  resolveEndpointLabel: RequestLogEndpointResolver;
 }
 
 interface ResolvedColumn extends ColumnDef {
@@ -90,7 +96,6 @@ export function RequestLogsTable({
   items,
   total,
   loading,
-  view,
   limit,
   offset,
   activeRequestId,
@@ -100,9 +105,10 @@ export function RequestLogsTable({
   onPreviousPage,
   formatTimestamp,
   resolveModelLabel,
+  resolveEndpointLabel,
 }: RequestLogsTableProps) {
   const { formatNumber, messages } = useLocale();
-  const columns = useMemo(() => getColumns(view), [view]);
+  const columns = useMemo(() => getColumns(), []);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(500);
@@ -196,7 +202,7 @@ export function RequestLogsTable({
               <div className="space-y-1">
                 <p className="text-sm font-medium">{messages.requestLogs.noRequestLogsMatchSlice}</p>
                 <p className="text-xs text-muted-foreground">
-                  {messages.requestLogs.relaxScope}
+                  {messages.statistics.adjustFiltersOrTimeRange}
                 </p>
               </div>
             </div>
@@ -228,13 +234,13 @@ export function RequestLogsTable({
                           "flex h-full shrink-0 items-center overflow-hidden px-3",
                           col.align === "right" && "justify-end text-right",
                           col.align === "center" && "justify-center text-center"
-                        )}
-                        style={{ width: col.resolvedWidth }}
-                      >
-                        {col.render(row, formatTimestamp, resolveModelLabel)}
-                      </div>
-                    ))}
-                  </button>
+                         )}
+                         style={{ width: col.resolvedWidth }}
+                       >
+                         {col.render(row, formatTimestamp, resolveModelLabel, resolveEndpointLabel)}
+                       </div>
+                     ))}
+                   </button>
                 );
               })}
             </div>

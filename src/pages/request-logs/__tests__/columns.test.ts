@@ -40,7 +40,7 @@ function renderModelCell(
   row: RequestLogListItem,
   resolveModelLabel: ReturnType<typeof createResolveModelLabel>,
 ) {
-  const modelColumn = getColumns("all").find((column) => column.key === "model_id");
+  const modelColumn = getColumns().find((column) => column.key === "model_id");
 
   expect(modelColumn).toBeDefined();
 
@@ -52,6 +52,7 @@ function renderModelCell(
         row,
         () => "formatted:2026-03-16T00:00:00.000Z",
         resolveModelLabel,
+        () => "—",
       ),
     ),
   );
@@ -133,15 +134,25 @@ describe("formatCost", () => {
     expect(screen.queryByText(/Resolved target/i)).not.toBeInTheDocument();
   });
 
-  it("keeps the vendor column next to api family and renders an em dash when vendor metadata is missing", () => {
-    const columns = getColumns("all");
-    const apiFamilyIndex = columns.findIndex((column) => column.key === "api_family");
-    const vendorIndex = columns.findIndex((column) => column.key === "vendor_name");
-    const vendorColumn = columns[vendorIndex];
+  it("renders the fixed denser request-log column set and drops separate vendor or id columns", () => {
+    const columns = getColumns();
+    const columnKeys = columns.map((column) => column.key);
 
-    expect(apiFamilyIndex).toBeGreaterThan(-1);
-    expect(vendorIndex).toBe(apiFamilyIndex + 1);
-    expect(vendorColumn.headerTestId).toBe("request-log-vendor-column");
+    expect(columnKeys).toEqual([
+      "created_at",
+      "model_id",
+      "vendor_api_family",
+      "status_code",
+      "total_tokens",
+      "total_cost",
+      "is_stream",
+      "endpoint_id",
+      "response_time_ms",
+    ]);
+    expect(columnKeys).not.toContain("vendor_name");
+    expect(columnKeys).not.toContain("api_family");
+    expect(columnKeys).not.toContain("request_id");
+    expect(columnKeys).not.toContain("ingress_request_id");
 
     render(
       React.createElement(
@@ -151,7 +162,6 @@ describe("formatCost", () => {
           items: [buildRow({ vendor_name: null, vendor_key: null, vendor_id: null })],
           total: 1,
           loading: false,
-          view: "all",
           limit: 100,
           offset: 0,
           activeRequestId: null,
@@ -161,13 +171,42 @@ describe("formatCost", () => {
           onPreviousPage: () => undefined,
           formatTimestamp: () => "formatted:2026-03-16T00:00:00.000Z",
           resolveModelLabel: createResolveModelLabel({ "claude-sonnet-4-5": "Claude Sonnet 4.5 Proxy" }),
+          resolveEndpointLabel: () => "—",
         })
       )
     );
 
-    expect(screen.getByTestId("request-log-vendor-column")).toBeInTheDocument();
+    expect(screen.getByText(/vendor \/ api/i)).toBeInTheDocument();
     expect(screen.getByTestId("request-log-page-size-select")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("resolves endpoint labels from current endpoint metadata instead of raw ids", () => {
+    render(
+      React.createElement(
+        LocaleProvider,
+        null,
+        React.createElement(RequestLogsTable, {
+          items: [buildRow({ endpoint_id: 12 })],
+          total: 1,
+          loading: false,
+          limit: 100,
+          offset: 0,
+          activeRequestId: null,
+          onSelectRequest: () => undefined,
+          onSetLimit: () => undefined,
+          onNextPage: () => undefined,
+          onPreviousPage: () => undefined,
+          formatTimestamp: () => "formatted:2026-03-16T00:00:00.000Z",
+          resolveModelLabel: createResolveModelLabel({ "claude-sonnet-4-5": "Claude Sonnet 4.5 Proxy" }),
+          resolveEndpointLabel: (endpointId) =>
+            endpointId === 12 ? "Primary endpoint" : endpointId === null ? "—" : `#${endpointId}`,
+        }),
+      ),
+    );
+
+    expect(screen.getByText("Primary endpoint")).toBeInTheDocument();
+    expect(screen.queryByText(/^#12$/)).not.toBeInTheDocument();
   });
 
   it("renders the archived successful request row fields and pagination controls", () => {
@@ -182,6 +221,7 @@ describe("formatCost", () => {
               model_id: "gpt-5.4",
               api_family: "openai",
               vendor_name: "OpenAI",
+              endpoint_id: 12,
               status_code: 200,
               response_time_ms: 1500,
               total_tokens: 38,
@@ -189,7 +229,6 @@ describe("formatCost", () => {
           ],
           total: 3,
           loading: false,
-          view: "all",
           limit: 100,
           offset: 0,
           activeRequestId: null,
@@ -199,15 +238,18 @@ describe("formatCost", () => {
           onPreviousPage: () => undefined,
           formatTimestamp: () => "formatted:2026-03-31T09:55:16.000Z",
           resolveModelLabel: createResolveModelLabel({ "gpt-5.4": "GPT-5.4" }),
+          resolveEndpointLabel: (endpointId) => (endpointId === null ? "—" : "Primary endpoint"),
         }),
       ),
     );
 
     expect(screen.getByText("formatted:2026-03-31T09:55:16.000Z")).toBeInTheDocument();
     expect(screen.getByText("GPT-5.4")).toBeInTheDocument();
+    expect(screen.getAllByText("OpenAI").length).toBeGreaterThan(0);
     expect(screen.getByText("200")).toBeInTheDocument();
-    expect(screen.getByText("1,500ms")).toBeInTheDocument();
     expect(screen.getByText("38")).toBeInTheDocument();
+    expect(screen.getByText("Primary endpoint")).toBeInTheDocument();
+    expect(screen.getByText("1,500ms")).toBeInTheDocument();
     expect(screen.getByText("1-3 of 3")).toBeInTheDocument();
     expect(screen.getByTestId("request-log-page-size-select")).toBeInTheDocument();
   });

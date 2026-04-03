@@ -42,13 +42,16 @@ export interface ColumnDef {
   render: (
     row: RequestLogListItem,
     formatTimestamp: (iso: string) => string,
-    resolveModelLabel: RequestLogModelResolver
+    resolveModelLabel: RequestLogModelResolver,
+    resolveEndpointLabel: RequestLogEndpointResolver,
   ) => React.ReactNode;
 }
 
 export type RequestLogModelResolver = ((modelId: string) => string) & {
   getModelMetadata?: (modelId: string) => ModelConfigListItem | undefined;
 };
+
+export type RequestLogEndpointResolver = (endpointId: number | null) => string;
 
 function getRequestModelMetadata(
   resolveModelLabel: RequestLogModelResolver,
@@ -71,13 +74,14 @@ export function isProxyOriginRequest(
   return getRequestModelMetadata(resolveModelLabel, row.model_id)?.model_type === "proxy";
 }
 
-export function getColumns(view: "all" | "compact"): ColumnDef[] {
-  const messages = getStaticMessages().requestLogs;
-  const base: ColumnDef[] = [
+export function getColumns(): ColumnDef[] {
+  const staticMessages = getStaticMessages();
+  const messages = staticMessages.requestLogs;
+  return [
     {
       key: "created_at",
       label: messages.time,
-      width: view === "all" ? 180 : 160,
+      width: 170,
       grow: 1,
       render: (row, fmt) => (
         <div className="flex items-center gap-2">
@@ -90,7 +94,7 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
     {
       key: "model_id",
       label: messages.model,
-      width: view === "all" ? 210 : 180,
+      width: 220,
       grow: 2,
       render: (row, _formatTimestamp, resolveModelLabel) => {
         const requestedModelLabel = resolveModelLabel(row.model_id);
@@ -117,27 +121,20 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       },
     },
     {
-      key: "api_family",
-      label: getStaticMessages().common.apiFamily,
-      width: 138,
+      key: "vendor_api_family",
+      label: `${staticMessages.common.vendor} / API`,
+      width: 168,
       grow: 1,
       render: (row) => (
-        <span className="flex items-center gap-2 overflow-hidden text-xs text-muted-foreground">
-          <ApiFamilyIcon apiFamily={row.api_family ?? ""} size={14} className="text-muted-foreground" />
-          <span className="truncate">{formatApiFamily(row.api_family ?? "")}</span>
-        </span>
-      ),
-    },
-    {
-      key: "vendor_name",
-      label: getStaticMessages().common.vendor,
-      width: 152,
-      grow: 1,
-      headerTestId: "request-log-vendor-column",
-      render: (row) => (
-        <span className="truncate text-xs text-muted-foreground">
-          {row.vendor_name ?? "—"}
-        </span>
+        <div className="min-w-0">
+          <span className="block truncate text-xs font-medium">
+            {row.vendor_name ?? "—"}
+          </span>
+            <span className="mt-0.5 flex items-center gap-1.5 overflow-hidden text-[11px] text-muted-foreground">
+            <ApiFamilyIcon apiFamily={row.api_family ?? ""} size={13} className="text-muted-foreground" />
+            <span className="truncate">{formatApiFamily(row.api_family ?? "")}</span>
+          </span>
+        </div>
       ),
     },
     {
@@ -146,18 +143,6 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
       width: 88,
       align: "center",
       render: (row) => <ValueBadge label={String(row.status_code)} intent={statusIntent(row.status_code)} className="px-1.5 py-0 font-mono" />,
-    },
-    {
-      key: "response_time_ms",
-      label: messages.latency,
-      width: 120,
-      grow: 1,
-      align: "right",
-      render: (row) => (
-          <span className={cn("text-xs font-mono", latencyColor(row.response_time_ms))}>
-            {new Intl.NumberFormat(getCurrentLocale()).format(row.response_time_ms)}ms
-          </span>
-        ),
     },
     {
       key: "total_tokens",
@@ -183,25 +168,47 @@ export function getColumns(view: "all" | "compact"): ColumnDef[] {
         </span>
       ),
     },
-  ];
-
-  if (view === "all") {
-      base.push({
-        key: "is_stream",
-        label: messages.stream,
-        width: 116,
-        grow: 1,
-        align: "center",
-        render: (row) =>
-          row.is_stream ? (
+    {
+      key: "is_stream",
+      label: messages.stream,
+      width: 104,
+      grow: 1,
+      align: "center",
+      render: (row) =>
+        row.is_stream ? (
           <TypeBadge label={messages.streaming} intent="blue" className="px-2 py-0.5" />
         ) : (
           <span className="text-[10px] text-muted-foreground">—</span>
         ),
-    });
-  }
+    },
+    {
+      key: "endpoint_id",
+      label: messages.endpoint,
+      width: 190,
+      grow: 1,
+      render: (row, _formatTimestamp, _resolveModelLabel, resolveEndpointLabel) => {
+        const endpointLabel = resolveEndpointLabel(row.endpoint_id);
 
-  return base;
+        return (
+          <div className="min-w-0">
+            <span className="block truncate text-xs font-medium">{endpointLabel}</span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "response_time_ms",
+      label: messages.latency,
+      width: 120,
+      grow: 1,
+      align: "right",
+      render: (row) => (
+        <span className={cn("text-xs font-mono", latencyColor(row.response_time_ms))}>
+          {new Intl.NumberFormat(getCurrentLocale()).format(row.response_time_ms)}ms
+        </span>
+      ),
+    },
+  ];
 }
 
 export { formatCost, formatTokens };

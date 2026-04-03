@@ -21,7 +21,6 @@ interface RequestLogDetailSheetProps {
   activeTab: DetailTab;
   onTabChange: (tab: DetailTab) => void;
   onClose: () => void;
-  onNavigateToConnection: (connectionId: number) => void;
   formatTimestamp: (iso: string) => string;
   resolveModelLabel: RequestLogModelResolver;
 }
@@ -32,7 +31,6 @@ export function RequestLogDetailSheet({
   activeTab,
   onTabChange,
   onClose,
-  onNavigateToConnection,
   formatTimestamp,
   resolveModelLabel,
 }: RequestLogDetailSheetProps) {
@@ -49,10 +47,10 @@ export function RequestLogDetailSheet({
   return (
     <Sheet open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <SheetContent
-        className="w-full overflow-y-auto border-l border-border/70 bg-background/98 px-0 sm:max-w-2xl xl:max-w-4xl"
+        className="w-full overflow-y-auto border-l border-border/70 bg-background/98 px-0 sm:max-w-3xl xl:max-w-[72rem]"
         data-testid="request-log-detail-sheet"
       >
-        <div className="space-y-5 px-5 pb-5 pt-4 sm:px-6">
+        <div className="space-y-4 px-5 pb-5 pt-4 sm:px-6">
           <SheetHeader className="space-y-2 pr-8 text-left">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Terminal className="h-3.5 w-3.5" />
@@ -83,7 +81,6 @@ export function RequestLogDetailSheet({
               <TabsContent value="overview" className="mt-0">
                 <RequestLogOverviewTab
                   request={request}
-                  onNavigateToConnection={onNavigateToConnection}
                   formatTimestamp={formatTimestamp}
                   resolveModelLabel={resolveModelLabel}
                 />

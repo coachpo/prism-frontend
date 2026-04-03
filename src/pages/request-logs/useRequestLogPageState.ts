@@ -11,8 +11,11 @@ import {
   type RequestLogPageState,
   type StreamFilter,
   type TimeRange,
-  type ViewMode,
 } from "./queryParams";
+
+function normalizeRequestId(value: string) {
+  return value.trim().replace(/^#/, "");
+}
 
 export function useRequestLogPageState() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,9 +36,9 @@ export function useRequestLogPageState() {
     [setSearchParams]
   );
 
+  const setIngressRequestId = useCallback((v: string) => update({ ingress_request_id: v }), [update]);
   const setModelId = useCallback((v: string) => update({ model_id: v }), [update]);
   const setApiFamily = useCallback((v: string) => update({ api_family: v }), [update]);
-  const setConnectionId = useCallback((v: string) => update({ connection_id: v }), [update]);
   const setEndpointId = useCallback((v: string) => update({ endpoint_id: v }), [update]);
   const setTimeRange = useCallback((v: TimeRange) => update({ time_range: v }), [update]);
   const setStatusFamily = useCallback((v: StatusFamilyFilter) => update({ status_family: v }), [update]);
@@ -45,10 +48,20 @@ export function useRequestLogPageState() {
   const setLatencyBucket = useCallback((v: LatencyBucket) => update({ latency_bucket: v }, false), [update]);
   const setTokenMin = useCallback((v: string) => update({ token_min: v }, false), [update]);
   const setTokenMax = useCallback((v: string) => update({ token_max: v }, false), [update]);
-  const setView = useCallback((v: ViewMode) => update({ view: v }, false), [update]);
   const setTriage = useCallback((v: boolean) => update({ triage: v }, false), [update]);
   const setLimit = useCallback((v: number) => update({ limit: v, offset: DEFAULTS.offset }), [update]);
   const setOffset = useCallback((v: number) => update({ offset: v }, false), [update]);
+  const setRequestId = useCallback(
+    (value: string) =>
+      update(
+        {
+          request_id: normalizeRequestId(value),
+          detail_tab: DEFAULTS.detail_tab,
+        },
+        false,
+      ),
+    [update],
+  );
 
   const selectRequest = useCallback(
     (id: number, tab: DetailTab = "overview") => update({ request_id: String(id), detail_tab: tab }, false),
@@ -90,7 +103,6 @@ export function useRequestLogPageState() {
     state.ingress_request_id ||
     state.model_id ||
     state.api_family ||
-    state.connection_id ||
     state.endpoint_id ||
     state.time_range !== DEFAULTS.time_range ||
     state.status_family !== DEFAULTS.status_family ||
@@ -107,9 +119,9 @@ export function useRequestLogPageState() {
     state,
     isExactMode,
     hasActiveFilters,
+    setIngressRequestId,
     setModelId,
     setApiFamily,
-    setConnectionId,
     setEndpointId,
     setTimeRange,
     setStatusFamily,
@@ -119,10 +131,10 @@ export function useRequestLogPageState() {
     setLatencyBucket,
     setTokenMin,
     setTokenMax,
-    setView,
     setTriage,
     setLimit,
     setOffset,
+    setRequestId,
     selectRequest,
     clearRequest,
     setDetailTab,

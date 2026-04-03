@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { ModelConfigListItem, RequestLogDetail } from "@/lib/types";
 import { RequestLogOverviewTab } from "../detail/RequestLogOverviewTab";
@@ -102,7 +102,6 @@ describe("RequestLogOverviewTab tracking fields", () => {
       <LocaleProvider>
         <RequestLogOverviewTab
           request={trackedRequest}
-          onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `formatted:${iso}`}
           resolveModelLabel={createResolveModelLabel(
             { "gpt-5.4": "Gateway proxy" },

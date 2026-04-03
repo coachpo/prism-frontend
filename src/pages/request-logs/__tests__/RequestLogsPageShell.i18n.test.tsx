@@ -68,6 +68,12 @@ describe("RequestLogsPage shell i18n", () => {
 
     mockUseRequestLogPageState.mockReturnValue({
       state: {
+        ingress_request_id: "",
+        model_id: "",
+        api_family: "",
+        endpoint_id: "",
+        time_range: "24h",
+        status_family: "all",
         search: "",
         outcome_filter: "all",
         stream_filter: "all",
@@ -77,7 +83,6 @@ describe("RequestLogsPage shell i18n", () => {
         triage: false,
         request_id: "404",
         detail_tab: "overview",
-        view: "all",
         limit: 25,
         offset: 0,
       },
@@ -94,7 +99,7 @@ describe("RequestLogsPage shell i18n", () => {
       total: 0,
       loading: false,
       error: null,
-      filterOptions: { models: [] },
+      filterOptions: { apiFamilies: [], endpoints: [], models: [] },
       filterOptionsLoaded: true,
       refresh: vi.fn(),
     });

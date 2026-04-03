@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search } from "lucide-react";
 import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,8 @@ import { getTimeLabel } from "./FiltersBar.constants";
 interface FiltersBarPrimaryFiltersProps {
   actions: Pick<
     RequestLogPageActions,
-    | "setConnectionId"
+    | "setIngressRequestId"
+    | "setRequestId"
     | "setEndpointId"
     | "setModelId"
     | "setApiFamily"
@@ -31,7 +33,7 @@ interface FiltersBarPrimaryFiltersProps {
   filterOptionsLoaded: boolean;
   state: Pick<
     RequestLogPageActions["state"],
-    | "connection_id"
+    | "ingress_request_id"
     | "endpoint_id"
     | "model_id"
     | "api_family"
@@ -56,9 +58,19 @@ export function FiltersBarPrimaryFilters({
   state,
 }: FiltersBarPrimaryFiltersProps) {
   const { messages } = useLocale();
+  const [requestLookupValue, setRequestLookupValue] = useState("");
+
+  const commitRequestLookup = () => {
+    const normalized = requestLookupValue.trim();
+    if (!normalized) {
+      return;
+    }
+
+    actions.setRequestId(normalized);
+  };
 
   return (
-    <div className="grid gap-3 xl:grid-cols-8">
+    <div className="grid gap-3 xl:grid-cols-10">
       <div className="min-w-0 xl:col-span-2">
         <ToolbarLabel>{messages.requestLogs.search}</ToolbarLabel>
         <div className="relative">
@@ -70,6 +82,32 @@ export function FiltersBarPrimaryFilters({
             onChange={(event) => actions.setSearch(event.target.value)}
           />
         </div>
+      </div>
+
+      <div className="min-w-0">
+        <ToolbarLabel>{messages.requestLogs.requestId}</ToolbarLabel>
+        <Input
+          className="h-9 rounded-lg border-border/70 bg-background/80 text-sm"
+          placeholder={messages.requestLogs.requestId}
+          value={requestLookupValue}
+          onChange={(event) => setRequestLookupValue(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commitRequestLookup();
+            }
+          }}
+        />
+      </div>
+
+      <div className="min-w-0 xl:col-span-2">
+        <ToolbarLabel>{messages.requestLogs.ingressRequestId}</ToolbarLabel>
+        <Input
+          className="h-9 rounded-lg border-border/70 bg-background/80 text-sm font-mono"
+          placeholder={messages.requestLogs.ingressRequestId}
+          value={state.ingress_request_id}
+          onChange={(event) => actions.setIngressRequestId(event.target.value)}
+        />
       </div>
 
       <div className="min-w-0">
@@ -157,27 +195,6 @@ export function FiltersBarPrimaryFilters({
                     : messages.requestLogs.fiveHundredsOnly}
               </SelectItem>
             ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="min-w-0">
-        <ToolbarLabel>{messages.requestLogs.connection}</ToolbarLabel>
-        <Select
-          value={state.connection_id || "__all__"}
-          onValueChange={(value) => actions.setConnectionId(value === "__all__" ? "" : value)}
-        >
-          <SelectTrigger className="h-9 w-full min-w-0 max-w-full rounded-lg border-border/70 bg-background/80 text-xs">
-            <SelectValue className="min-w-0" placeholder={messages.requestLogs.allConnections} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">{messages.requestLogs.allConnections}</SelectItem>
-            {filterOptionsLoaded &&
-              filterOptions.connections.map((connection) => (
-                <SelectItem key={connection.id} value={String(connection.id)}>
-                  {connection.label}
-                </SelectItem>
-              ))}
           </SelectContent>
         </Select>
       </div>

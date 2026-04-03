@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/PageHeader";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useProfileContext } from "@/context/ProfileContext";
@@ -9,7 +8,6 @@ import { useRequestLogPageState } from "./request-logs/useRequestLogPageState";
 import { useRequestLogDetail } from "./request-logs/useRequestLogDetail";
 import { useRequestLogsPageData } from "./request-logs/useRequestLogsPageData";
 import { applyClientFilters } from "./request-logs/clientFilters";
-import { createConnectionNavigator } from "./request-logs/connectionNavigation";
 import { RequestFocusBanner } from "./request-logs/RequestFocusBanner";
 import { FiltersBar } from "./request-logs/FiltersBar";
 import { RequestLogsTable } from "./request-logs/RequestLogsTable";
@@ -18,11 +16,13 @@ import { SearchX, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { RequestLogDetail } from "@/lib/types";
 import type { DetailTab } from "./request-logs/queryParams";
-import type { RequestLogModelResolver } from "./request-logs/columns";
+import type {
+  RequestLogEndpointResolver,
+  RequestLogModelResolver,
+} from "./request-logs/columns";
 
 export function RequestLogsPage() {
-  const navigate = useNavigate();
-  const { revision, selectedProfileId } = useProfileContext();
+  const { revision } = useProfileContext();
   const { format } = useTimezone();
   const { messages } = useLocale();
   const [tableSelectedRequestId, setTableSelectedRequestId] = useState<number | null>(null);
@@ -31,10 +31,6 @@ export function RequestLogsPage() {
   const [sheetActiveTab, setSheetActiveTab] = useState<DetailTab>("overview");
   const actions = useRequestLogPageState();
   const { state, isExactMode } = actions;
-  const navigateToConnection = useMemo(
-    () => createConnectionNavigator({ navigate, selectedProfileId }),
-    [navigate, selectedProfileId]
-  );
 
   const { items, total, loading, error, filterOptions, filterOptionsLoaded, refresh } =
     useRequestLogsPageData({ revision, state });
@@ -87,6 +83,10 @@ export function RequestLogsPage() {
     () => new Map(filterOptions.models.map((model) => [model.model_id, model])),
     [filterOptions.models],
   );
+  const endpointLabelById = useMemo(
+    () => new Map(filterOptions.endpoints.map((endpoint) => [endpoint.id, endpoint.name || endpoint.base_url])),
+    [filterOptions.endpoints],
+  );
 
   useEffect(() => {
     if (selectedRequest) {
@@ -103,6 +103,15 @@ export function RequestLogsPage() {
       },
     ) as RequestLogModelResolver;
   }, [modelLabelById, modelMetadataById]);
+  const resolveEndpointLabel = useMemo<RequestLogEndpointResolver>(() => {
+    return (endpointId) => {
+      if (endpointId === null) {
+        return "—";
+      }
+
+      return endpointLabelById.get(endpointId) ?? `#${endpointId}`;
+    };
+  }, [endpointLabelById]);
 
   const sheetOpen = selectedRequest !== null;
 
@@ -187,7 +196,6 @@ export function RequestLogsPage() {
             items={filteredItems}
             total={total}
             loading={loading}
-            view={state.view}
             limit={state.limit}
             offset={state.offset}
             activeRequestId={listVisibleRequestId ?? null}
@@ -197,6 +205,7 @@ export function RequestLogsPage() {
             onPreviousPage={actions.goToPreviousPage}
             formatTimestamp={format}
             resolveModelLabel={resolveModelLabel}
+            resolveEndpointLabel={resolveEndpointLabel}
           />
         )}
 
@@ -206,7 +215,6 @@ export function RequestLogsPage() {
           activeTab={sheetOpen ? currentActiveTab : sheetActiveTab}
           onTabChange={handleTabChange}
           onClose={handleCloseRequest}
-          onNavigateToConnection={navigateToConnection}
           formatTimestamp={format}
           resolveModelLabel={resolveModelLabel}
         />

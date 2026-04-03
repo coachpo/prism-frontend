@@ -5,7 +5,6 @@ import { useRequestLogsPageData } from "../useRequestLogsPageData";
 
 const api = vi.hoisted(() => ({
   endpoints: {
-    connections: vi.fn(),
     list: vi.fn(),
   },
   models: {
@@ -23,7 +22,6 @@ function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPa
     ingress_request_id: "",
     model_id: "",
     api_family: "",
-    connection_id: "",
     endpoint_id: "",
     time_range: DEFAULTS.time_range,
     status_family: DEFAULTS.status_family,
@@ -33,7 +31,6 @@ function createState(overrides: Partial<RequestLogPageState> = {}): RequestLogPa
     latency_bucket: DEFAULTS.latency_bucket,
     token_min: "",
     token_max: "",
-    view: DEFAULTS.view,
     triage: DEFAULTS.triage,
     limit: DEFAULTS.limit,
     offset: DEFAULTS.offset,
@@ -49,7 +46,6 @@ describe("useRequestLogsPageData", () => {
     vi.useFakeTimers();
     api.models.list.mockResolvedValue([]);
     api.endpoints.list.mockResolvedValue([]);
-    api.endpoints.connections.mockResolvedValue({ items: [] });
     api.stats.requests.mockResolvedValue({
       items: [],
       total: 0,
@@ -71,7 +67,6 @@ describe("useRequestLogsPageData", () => {
           ingress_request_id: "ingress_req_42",
           model_id: "gpt-5.4",
           api_family: "openai",
-          connection_id: "42",
           endpoint_id: "99",
           status_family: "5xx",
           request_id: "123",
@@ -96,7 +91,6 @@ describe("useRequestLogsPageData", () => {
       model_id: "gpt-5.4",
       api_family: "openai",
       status_family: "5xx",
-      connection_id: 42,
       endpoint_id: 99,
       from_time: expect.any(String),
       limit: 300,
@@ -112,7 +106,6 @@ describe("useRequestLogsPageData", () => {
           ingress_request_id: "ingress_req_42",
           model_id: "gpt-5.4",
           api_family: "openai",
-          connection_id: "42",
           endpoint_id: "99",
           status_family: "5xx",
           limit: 300,
@@ -136,7 +129,6 @@ describe("useRequestLogsPageData", () => {
       model_id: "gpt-5.4",
       api_family: "openai",
       status_family: "5xx",
-      connection_id: 42,
       endpoint_id: 99,
       from_time: expect.any(String),
       limit: 300,

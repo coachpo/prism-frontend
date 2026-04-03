@@ -79,6 +79,24 @@ describe("useRequestLogPageState", () => {
     });
 
     expect(result.current.state.offset).toBe(0);
+
+    act(() => {
+      result.current.setOffset(125);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.offset).toBe(125);
+    });
+
+    act(() => {
+      result.current.setIngressRequestId("ingress_req_42");
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.ingress_request_id).toBe("ingress_req_42");
+    });
+
+    expect(result.current.state.offset).toBe(0);
   });
 
   it("clears status-family filters while preserving exact-request mode state", async () => {
@@ -117,6 +135,25 @@ describe("useRequestLogPageState", () => {
 
     expect(result.current.state.ingress_request_id).toBe("ingress_req_42");
     expect(result.current.state.offset).toBe(0);
+  });
+
+  it("enters exact-request mode through request_id lookup state", async () => {
+    const { result } = renderHook(() => useRequestLogPageState(), {
+      wrapper: createWrapper("/request-logs"),
+    });
+
+    expect(result.current.isExactMode).toBe(false);
+
+    act(() => {
+      result.current.setRequestId("42");
+    });
+
+    await waitFor(() => {
+      expect(result.current.state.request_id).toBe("42");
+    });
+
+    expect(result.current.isExactMode).toBe(true);
+    expect(result.current.state.detail_tab).toBe("overview");
   });
 
   it("uses api_family query state for family filters", async () => {

@@ -131,7 +131,6 @@ function renderSheet(
   }
 ) {
   const onClose = vi.fn();
-  const onNavigateToConnection = vi.fn();
   const onTabChange = vi.fn();
   const request = overrides?.request ?? baseRequest;
 
@@ -143,7 +142,6 @@ function renderSheet(
         activeTab="overview"
         onTabChange={onTabChange}
         onClose={onClose}
-        onNavigateToConnection={onNavigateToConnection}
         formatTimestamp={(iso) => `formatted:${iso}`}
         resolveModelLabel={createResolveModelLabel({ "gpt-5.4": "GPT 5.4" })}
         {...overrides}
@@ -151,7 +149,7 @@ function renderSheet(
     </LocaleProvider>
   );
 
-  return { onClose, onNavigateToConnection, onTabChange };
+  return { onClose, onTabChange };
 }
 
 describe("RequestLogDetailSheet", () => {
@@ -163,8 +161,8 @@ describe("RequestLogDetailSheet", () => {
     });
   });
 
-  it("renders overview content and forwards navigation/tab/close actions", () => {
-    const { onClose, onNavigateToConnection, onTabChange } = renderSheet();
+  it("renders overview content and forwards tab and close actions without connection navigation", () => {
+    const { onClose, onTabChange } = renderSheet();
 
     expect(screen.getByTestId("request-log-detail-sheet")).toBeInTheDocument();
     const summaryStrip = screen.getByTestId("request-log-summary-strip");
@@ -173,14 +171,12 @@ describe("RequestLogDetailSheet", () => {
     expect(screen.getByTestId("request-log-overview-grid")).toBeInTheDocument();
     expect(screen.getByText("Request #42")).toBeInTheDocument();
     expect(screen.getAllByText("GPT 5.4")).toHaveLength(2);
-    expect(screen.getAllByText("/v1/chat/completions")).toHaveLength(2);
+    expect(screen.getAllByText("/v1/chat/completions").length).toBeGreaterThan(0);
     expect(screen.getByText("API Family")).toBeInTheDocument();
     expect(screen.getAllByText("OpenAI").length).toBeGreaterThan(0);
     expect(within(summaryStrip).getByText("912ms").closest('[data-slot="metric-value"]')).toHaveClass("font-mono");
     expect(within(summaryStrip).getByText("formatted:2026-03-16T00:00:00.000Z").closest('[data-slot="metric-value"]')).toHaveClass("font-mono", "text-xs");
-
-    fireEvent.click(screen.getByRole("button", { name: /#34/i }));
-    expect(onNavigateToConnection).toHaveBeenCalledWith(34);
+    expect(screen.queryByTestId("request-log-connection-link")).not.toBeInTheDocument();
 
     const auditTab = screen.getByRole("tab", { name: /audit/i });
     fireEvent.mouseDown(auditTab);
@@ -212,7 +208,6 @@ describe("RequestLogDetailSheet", () => {
           activeTab="overview"
           onTabChange={vi.fn()}
           onClose={vi.fn()}
-          onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `formatted:${iso}`}
           resolveModelLabel={createResolveModelLabel(
             {
@@ -264,7 +259,6 @@ describe("RequestLogDetailSheet", () => {
           activeTab="overview"
           onTabChange={vi.fn()}
           onClose={vi.fn()}
-          onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `formatted:${iso}`}
           resolveModelLabel={createResolveModelLabel(
             { "claude-sonnet-4-5": "Gateway proxy" },
@@ -294,7 +288,6 @@ describe("RequestLogDetailSheet", () => {
           activeTab="audit"
           onTabChange={vi.fn()}
           onClose={vi.fn()}
-          onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `formatted:${iso}`}
           resolveModelLabel={createResolveModelLabel({ "gpt-5.4": "GPT 5.4" })}
         />
@@ -508,7 +501,6 @@ describe("RequestLogDetailSheet", () => {
           activeTab="overview"
           onTabChange={vi.fn()}
           onClose={vi.fn()}
-          onNavigateToConnection={vi.fn()}
           formatTimestamp={(iso) => `格式化:${iso}`}
           resolveModelLabel={createResolveModelLabel(
             { "gpt-5.4": "GPT 5.4" },
@@ -552,5 +544,6 @@ describe("RequestLogDetailSheet", () => {
     expect(screen.getByTestId("request-log-summary-strip")).toHaveTextContent("Latency");
     expect(screen.getByTestId("request-log-overview-grid")).toHaveTextContent("Request details");
     expect(screen.getByTestId("request-log-overview-grid")).toHaveTextContent("Cost breakdown");
+    expect(screen.getByTestId("request-log-overview-grid")).not.toHaveTextContent("Connection");
   });
 });

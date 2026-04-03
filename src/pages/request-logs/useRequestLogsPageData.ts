@@ -16,16 +16,10 @@ function toApiFamily(value: string): ApiFamily | undefined {
   return API_FAMILIES.find((apiFamily) => apiFamily === value);
 }
 
-interface ConnectionOption {
-  id: number;
-  label: string;
-}
-
 export interface FilterOptions {
   apiFamilies: ApiFamily[];
   models: ModelConfigListItem[];
   endpoints: Endpoint[];
-  connections: ConnectionOption[];
 }
 
 interface UseRequestLogsPageDataParams {
@@ -43,7 +37,6 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     apiFamilies: API_FAMILIES,
     models: [],
     endpoints: [],
-    connections: [],
   });
   const [filterOptionsLoaded, setFilterOptionsLoaded] = useState(false);
 
@@ -51,27 +44,16 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const bootstrapFilterOptions = useCallback(async () => {
-    const [modelsResult, endpointsResult, connectionsResult] =
+    const [modelsResult, endpointsResult] =
       await Promise.allSettled([
         api.models.list(),
         api.endpoints.list(),
-        api.endpoints.connections(),
       ]);
 
     const models = modelsResult.status === "fulfilled" ? modelsResult.value : [];
     const endpoints = endpointsResult.status === "fulfilled" ? endpointsResult.value : [];
 
-    const connMap: ConnectionOption[] = [];
-    if (connectionsResult.status === "fulfilled") {
-      const data = connectionsResult.value;
-      for (const c of data.items) {
-        if (!connMap.some((x) => x.id === c.id)) {
-          connMap.push({ id: c.id, label: `#${c.id}${c.name ? ` — ${c.name}` : ""}` });
-        }
-      }
-    }
-
-    setFilterOptions({ apiFamilies: API_FAMILIES, models, endpoints, connections: connMap });
+    setFilterOptions({ apiFamilies: API_FAMILIES, models, endpoints });
     setFilterOptionsLoaded(true);
   }, []);
 
@@ -98,7 +80,6 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
       model_id: state.model_id || undefined,
       api_family: state.api_family ? toApiFamily(state.api_family) : undefined,
       status_family: state.status_family === "all" ? undefined : state.status_family,
-      connection_id: state.connection_id ? parseInt(state.connection_id, 10) : undefined,
       endpoint_id: state.endpoint_id ? parseInt(state.endpoint_id, 10) : undefined,
       from_time: fromTime,
       limit: state.limit,
@@ -127,7 +108,6 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     state.model_id,
     state.api_family,
     state.status_family,
-    state.connection_id,
     state.endpoint_id,
     state.time_range,
     state.limit,

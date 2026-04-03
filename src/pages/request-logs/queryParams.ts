@@ -13,9 +13,6 @@ export type StatusFamilyFilter = (typeof STATUS_FAMILY_OPTIONS)[number];
 export const LATENCY_BUCKET_OPTIONS = ["all", "fast", "normal", "slow", "very_slow"] as const;
 export type LatencyBucket = (typeof LATENCY_BUCKET_OPTIONS)[number];
 
-export const VIEW_OPTIONS = ["all", "compact"] as const;
-export type ViewMode = (typeof VIEW_OPTIONS)[number];
-
 export const DETAIL_TAB_OPTIONS = ["overview", "audit"] as const;
 export type DetailTab = (typeof DETAIL_TAB_OPTIONS)[number];
 
@@ -29,7 +26,6 @@ export const DEFAULTS = {
   outcome_filter: "all" as OutcomeFilter,
   stream_filter: "all" as StreamFilter,
   latency_bucket: "all" as LatencyBucket,
-  view: "all" as ViewMode,
   detail_tab: "overview" as DetailTab,
   triage: false,
 } as const;
@@ -39,7 +35,6 @@ export interface RequestLogPageState {
   ingress_request_id: string;
   model_id: string;
   api_family: string;
-  connection_id: string;
   endpoint_id: string;
   time_range: TimeRange;
   status_family: StatusFamilyFilter;
@@ -50,8 +45,6 @@ export interface RequestLogPageState {
   latency_bucket: LatencyBucket;
   token_min: string;
   token_max: string;
-  // Presentation
-  view: ViewMode;
   triage: boolean;
   // Pagination
   limit: number;
@@ -83,7 +76,6 @@ export function parsePageState(params: URLSearchParams): RequestLogPageState {
     ingress_request_id: params.get("ingress_request_id") ?? "",
     model_id: params.get("model_id") ?? "",
     api_family: params.get("api_family") ?? "",
-    connection_id: params.get("connection_id") ?? "",
     endpoint_id: params.get("endpoint_id") ?? "",
     time_range: parseEnum(params.get("time_range"), TIME_RANGE_OPTIONS, DEFAULTS.time_range),
     status_family: parseEnum(params.get("status_family"), STATUS_FAMILY_OPTIONS, DEFAULTS.status_family),
@@ -93,7 +85,6 @@ export function parsePageState(params: URLSearchParams): RequestLogPageState {
     latency_bucket: parseEnum(params.get("latency_bucket"), LATENCY_BUCKET_OPTIONS, DEFAULTS.latency_bucket),
     token_min: params.get("token_min") ?? "",
     token_max: params.get("token_max") ?? "",
-    view: parseEnum(params.get("view"), VIEW_OPTIONS, DEFAULTS.view),
     triage: params.get("triage") === "true",
     limit: parsePageSize(params.get("limit")),
     offset: parseIntParam(params.get("offset"), DEFAULTS.offset),
@@ -107,7 +98,6 @@ export function stateToParams(state: RequestLogPageState): URLSearchParams {
   if (state.ingress_request_id) p.set("ingress_request_id", state.ingress_request_id);
   if (state.model_id) p.set("model_id", state.model_id);
   if (state.api_family) p.set("api_family", state.api_family);
-  if (state.connection_id) p.set("connection_id", state.connection_id);
   if (state.endpoint_id) p.set("endpoint_id", state.endpoint_id);
   if (state.time_range !== DEFAULTS.time_range) p.set("time_range", state.time_range);
   if (state.status_family !== DEFAULTS.status_family) p.set("status_family", state.status_family);
@@ -117,7 +107,6 @@ export function stateToParams(state: RequestLogPageState): URLSearchParams {
   if (state.latency_bucket !== DEFAULTS.latency_bucket) p.set("latency_bucket", state.latency_bucket);
   if (state.token_min) p.set("token_min", state.token_min);
   if (state.token_max) p.set("token_max", state.token_max);
-  if (state.view !== DEFAULTS.view) p.set("view", state.view);
   if (state.triage) p.set("triage", "true");
   if (state.limit !== DEFAULTS.limit) p.set("limit", String(state.limit));
   if (state.offset !== DEFAULTS.offset) p.set("offset", String(state.offset));
