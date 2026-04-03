@@ -109,9 +109,6 @@ export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsPr
                                   <h3 className="text-sm font-semibold">
                                     {model.display_name ?? model.model_id}
                                   </h3>
-                                  {model.display_name ? (
-                                    <ValueBadge label={model.model_id} intent="default" />
-                                  ) : null}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                   {copy.connectionCount(formatNumber(model.connection_count))}
