@@ -13,6 +13,7 @@ frontend/
     ├── components/layout/app-layout/AGENTS.md
     ├── components/loadbalance/AGENTS.md
     ├── components/statistics/AGENTS.md
+    ├── components/ui/AGENTS.md
     ├── context/AGENTS.md
     ├── context/auth/AGENTS.md
     ├── context/profile/AGENTS.md
@@ -31,17 +32,20 @@ frontend/
 - Monitoring vendor/model drill-down page components stay page-owned under `src/pages/` but are not top-level mounted routes in `src/App.tsx`
 
 ## HIERARCHY
-- `src/App.tsx` owns the mounted route surface.
+- `src/App.tsx` owns the mounted route surface and stays the source of truth for route mounting and shell boundaries.
 - `src/pages/AGENTS.md` owns route-domain handoff plus page-owned monitoring drill-down surfaces that are not mounted at the app root.
-- `src/components/AGENTS.md` owns shared shell and widget work.
+- `src/components/AGENTS.md` owns shared shell and widget work, then points down to the layout shell cluster, feature renderers, and `ui/` primitives.
 - `src/components/loadbalance/AGENTS.md` and `src/components/statistics/AGENTS.md` own the shared cross-route renderers in those folders.
+- `src/components/layout/app-layout/AGENTS.md` owns the shell-navigation and profile-switcher seam, including the handoff from shell state into route-scoped navigation.
+- `src/components/ui/AGENTS.md` owns the shadcn/ui primitives and local wrappers checked into `src/components/ui/`.
 - `src/lib/websocket/AGENTS.md` owns the helper split beneath the singleton realtime client.
 
 ## WHERE TO LOOK
 - Mounted routes, auth/public split, and protected shell mounts: `src/App.tsx`
 - Page-owned but unmounted monitoring drill-down surfaces: `src/pages/AGENTS.md`, `src/pages/monitoring/AGENTS.md`
 - Shell chrome, sidebar entries, profile-prefixed navigation, visible version label, and profile-switcher dialog state: `src/components/AGENTS.md`, `src/components/layout/app-layout/AGENTS.md`
-- Selected-profile state, revision bumps, auth bootstrap, and `X-Profile-Id` management scoping: `src/context/AGENTS.md`, `src/context/auth/AGENTS.md`, `src/context/profile/AGENTS.md`
+- Shared widgets, shell-safe controls, and design-system wrappers: `src/components/AGENTS.md`, `src/components/ui/AGENTS.md`
+- Selected-profile state, revision bumps, auth bootstrap, and `X-Profile-Id` management scoping, distinct from active runtime routing: `src/context/AGENTS.md`, `src/context/auth/AGENTS.md`, `src/context/profile/AGENTS.md`
 - Typed API boundary and shared request plumbing: `src/lib/AGENTS.md`, `src/lib/api/AGENTS.md`, `src/lib/api.ts`
 - Realtime websocket ownership and consumers: `src/lib/websocket.ts`, `src/lib/websocket/AGENTS.md`, `src/hooks/useRealtimeData.ts`
 - Shared vendor cache and profile-revision keyed reference-data invalidation: `src/lib/referenceData.ts`
@@ -52,6 +56,7 @@ frontend/
 - Treat `src/App.tsx` as the source of truth for routes and shell boundaries.
 - Keep unmounted page-owned drill-down components out of the top-level route map even when they live beside mounted pages under `src/pages/`.
 - Keep selected profile separate from active runtime routing. `selectedProfile` scopes management APIs; it does not switch proxy traffic.
+- Keep `src/components/` focused on shared shell chrome, shared widgets, and design-system wrappers, and keep the leaf ownership documented below it.
 - Keep backend access on the typed `src/lib/api.ts` boundary and the modules it re-exports.
 - Keep realtime ownership in `src/lib/websocket.ts` and consume it through hooks instead of creating ad hoc clients.
 - Keep the websocket helper split documented in `src/lib/websocket/AGENTS.md` instead of repeating transport or subscription detail here.
