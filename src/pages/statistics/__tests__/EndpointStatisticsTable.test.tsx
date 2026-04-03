@@ -80,18 +80,20 @@ describe("EndpointStatisticsTable", () => {
     expect(triggers).toHaveLength(2);
     expect(triggers[0]).toHaveTextContent("Primary Endpoint");
     expect(triggers[1]).toHaveTextContent("Secondary Endpoint");
-    expect(triggers[0].querySelectorAll('[data-slot="metric-card"]')).toHaveLength(4);
-    expect(triggers[1].querySelectorAll('[data-slot="metric-card"]')).toHaveLength(4);
+    expect(triggers[0].querySelectorAll('[data-slot="metric-card"]')).toHaveLength(0);
+    expect(triggers[1].querySelectorAll('[data-slot="metric-card"]')).toHaveLength(0);
     expect(screen.queryByText("Claude Sonnet 4.6")).not.toBeInTheDocument();
 
     fireEvent.click(triggers[0]);
 
     const detail = screen.getByTestId("statistics-endpoint-details-10");
+    const summary = within(detail).getByTestId("statistics-endpoint-summary-10");
     const nestedTable = within(detail).getByTestId("statistics-endpoint-models-table-10");
+    expect(summary.querySelectorAll('[data-slot="endpoint-summary-item"]')).toHaveLength(4);
     expect(within(nestedTable).getByText("GPT-5.4")).toBeInTheDocument();
     expect(within(nestedTable).getByText("Claude Sonnet 4.6")).toBeInTheDocument();
-    expect(within(triggers[0]).getByText("85.7%")).toBeInTheDocument();
-    expect(within(triggers[0]).getByText(/^\$0\.0042(?:\s[A-Z]{3})?$/)).toBeInTheDocument();
+    expect(within(summary).getByText("85.7%")).toBeInTheDocument();
+    expect(within(summary).getByText(/^\$0\.0042(?:\s[A-Z]{3})?$/)).toBeInTheDocument();
 
     fireEvent.click(within(nestedTable).getByRole("button", { name: "Total Spend" }));
 

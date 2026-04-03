@@ -1,6 +1,5 @@
 import { ChevronDown } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
-import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Collapsible,
@@ -112,6 +111,35 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
               const modelRows = [...item.models].sort(
                 (left, right) => right.request_count - left.request_count,
               );
+              const summaryMetrics = [
+                {
+                  label: messages.statistics.requests,
+                  value: formatNumber(item.request_count),
+                },
+                {
+                  label: messages.statistics.successRate,
+                  value: `${formatNumber(item.success_rate, {
+                    maximumFractionDigits: 1,
+                    minimumFractionDigits: 1,
+                  })}%`,
+                  valueClassName: getSuccessRateClass(item.success_rate),
+                },
+                {
+                  label: messages.statistics.totalTokens,
+                  value: formatNumber(item.total_tokens),
+                },
+                {
+                  label: messages.statistics.totalSpend,
+                  value: formatMoneyMicros(
+                    item.total_cost_micros,
+                    currency.symbol,
+                    currency.code,
+                    2,
+                    6,
+                    locale,
+                  ),
+                },
+              ];
 
               return (
                 <Collapsible key={detailId}>
@@ -136,40 +164,6 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
                             {formatNumber(modelRows.length)} {messages.nav.models}
                           </p>
                         </div>
-
-                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                          <MetricCard
-                            className="border-border/60 bg-background/80 shadow-none [&_[data-slot=metric-label]]:text-[11px] [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em] [&_[data-slot=metric-value]]:text-sm"
-                            label={messages.statistics.requests}
-                            value={formatNumber(item.request_count)}
-                          />
-                          <MetricCard
-                            className="border-border/60 bg-background/80 shadow-none [&_[data-slot=metric-label]]:text-[11px] [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em] [&_[data-slot=metric-value]]:text-sm"
-                            label={messages.statistics.successRate}
-                            value={
-                              <span className={cn("tabular-nums", getSuccessRateClass(item.success_rate))}>
-                                {formatNumber(item.success_rate, { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%
-                              </span>
-                            }
-                          />
-                          <MetricCard
-                            className="border-border/60 bg-background/80 shadow-none [&_[data-slot=metric-label]]:text-[11px] [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em] [&_[data-slot=metric-value]]:text-sm"
-                            label={messages.statistics.totalTokens}
-                            value={formatNumber(item.total_tokens)}
-                          />
-                          <MetricCard
-                            className="border-border/60 bg-background/80 shadow-none [&_[data-slot=metric-label]]:text-[11px] [&_[data-slot=metric-label]]:uppercase [&_[data-slot=metric-label]]:tracking-[0.18em] [&_[data-slot=metric-value]]:text-sm"
-                            label={messages.statistics.totalSpend}
-                            value={formatMoneyMicros(
-                              item.total_cost_micros,
-                              currency.symbol,
-                              currency.code,
-                              2,
-                              6,
-                              locale,
-                            )}
-                          />
-                        </div>
                       </div>
 
                       <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
@@ -179,7 +173,33 @@ export function EndpointStatisticsTable({ currency, items }: EndpointStatisticsT
                       className="border-t border-border/60 bg-background/70"
                       data-testid={`statistics-endpoint-details-${detailId}`}
                     >
-                      <div className="px-4 py-4">
+                      <div className="space-y-4 px-4 py-4">
+                        <dl
+                          className="grid overflow-hidden rounded-xl border border-border/60 bg-muted/25 sm:grid-cols-2 xl:grid-cols-4"
+                          data-testid={`statistics-endpoint-summary-${detailId}`}
+                        >
+                          {summaryMetrics.map((metric, index) => (
+                            <div
+                              className={cn(
+                                "space-y-1 px-4 py-3",
+                                index > 0 && "border-t border-border/60 sm:border-t-0",
+                                index % 2 === 1 && "sm:border-l sm:border-border/60",
+                                index >= 2 && "xl:border-t-0",
+                                index >= 2 && "xl:border-l xl:border-border/60",
+                              )}
+                              data-slot="endpoint-summary-item"
+                              key={metric.label}
+                            >
+                              <dt className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                                {metric.label}
+                              </dt>
+                              <dd className={cn("text-sm font-semibold tabular-nums text-foreground", metric.valueClassName)}>
+                                {metric.value}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+
                         <DataTable
                           columns={modelColumns}
                           emptyState={
