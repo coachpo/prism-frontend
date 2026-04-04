@@ -87,11 +87,17 @@ describe("model dialogs i18n", () => {
       </LocaleProvider>,
     );
 
+    const modelIdInput = screen.getByLabelText("模型 ID");
+    const displayNameInput = screen.getByLabelText("显示名称");
+
     expect(screen.getByText("新建模型")).toBeInTheDocument();
     expect(screen.getByText("供应商")).toBeInTheDocument();
     expect(screen.getByText("API 家族")).toBeInTheDocument();
-    expect(screen.getByLabelText("模型 ID")).toHaveAttribute("name", "model_id");
-    expect(screen.getByLabelText("显示名称")).toHaveAttribute("name", "display_name");
+    expect(modelIdInput).toHaveAttribute("name", "model_id");
+    expect(modelIdInput).toHaveAttribute("autocomplete", "off");
+    expect(displayNameInput).toHaveAttribute("name", "display_name");
+    expect(displayNameInput).toHaveAttribute("autocomplete", "off");
+    expect(modelIdInput.closest("form")).toHaveAttribute("autocomplete", "off");
     expect(document.querySelector('input[type="hidden"][name="vendor_id"]')).toHaveValue("1");
     expect(document.querySelector('input[type="hidden"][name="api_family"]')).toHaveValue("openai");
     expect(document.querySelector('input[type="hidden"][name="model_type"]')).toHaveValue("native");

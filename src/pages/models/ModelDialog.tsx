@@ -102,7 +102,7 @@ export function ModelDialog({
           <DialogTitle>{editingModel ? copy.editModel : messages.modelsPage.newModel}</DialogTitle>
           <DialogDescription>{detailCopy.modelSettingsDescription}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4" autoComplete="off">
           <input type="hidden" name="vendor_id" value={String(formData.vendor_id ?? "")} />
           <input type="hidden" name="api_family" value={formData.api_family ?? ""} />
           <input type="hidden" name="model_type" value={formData.model_type} />
@@ -167,6 +167,7 @@ export function ModelDialog({
               <Input
                 id="model-id"
                 name="model_id"
+                autoComplete="off"
                 value={formData.model_id}
                 onChange={(e) => setFormData((prev) => setModelIdOnForm(prev, e.target.value))}
                 placeholder={copy.modelIdPlaceholder}
@@ -180,6 +181,7 @@ export function ModelDialog({
             <Input
               id="model-display-name"
               name="display_name"
+              autoComplete="off"
               value={formData.display_name ?? ""}
               onChange={(e) => setFormData((prev) => setDisplayNameOnForm(prev, e.target.value))}
               placeholder={copy.optionalFriendlyName}
