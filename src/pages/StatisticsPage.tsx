@@ -7,11 +7,9 @@ import { UsageErrorBanner } from "./statistics/sections/UsageErrorBanner";
 import { UsageOverviewSection } from "./statistics/sections/UsageOverviewSection";
 import { UsageModelLineSelectorSection } from "./statistics/sections/UsageModelLineSelectorSection";
 import { UsageServiceHealthSection } from "./statistics/sections/UsageServiceHealthSection";
+import { UsageTablesSection } from "./statistics/sections/UsageTablesSection";
 import { UsageTrendsSection } from "./statistics/sections/UsageTrendsSection";
 import { UsageBreakdownSection } from "./statistics/sections/UsageBreakdownSection";
-import { EndpointStatisticsTable } from "./statistics/tables/EndpointStatisticsTable";
-import { ModelStatisticsTable } from "./statistics/tables/ModelStatisticsTable";
-import { ProxyApiKeyStatisticsTable } from "./statistics/tables/ProxyApiKeyStatisticsTable";
 import { useUsageStatisticsPageData } from "./statistics/useUsageStatisticsPageData";
 import { useUsageStatisticsPageState } from "./statistics/useUsageStatisticsPageState";
 
@@ -107,14 +105,11 @@ export function StatisticsPage() {
             tokenTypeBreakdown={data.tokenTypeBreakdown}
           />
 
-          <div className="grid gap-6 2xl:grid-cols-2">
-            <EndpointStatisticsTable currency={snapshot.currency} items={snapshot.endpoint_statistics} />
-            <ModelStatisticsTable currency={snapshot.currency} items={snapshot.model_statistics} />
-          </div>
-
-          <ProxyApiKeyStatisticsTable
+          <UsageTablesSection
             currency={snapshot.currency}
-            items={snapshot.proxy_api_key_statistics}
+            endpointStatistics={snapshot.endpoint_statistics}
+            modelStatistics={snapshot.model_statistics}
+            proxyApiKeyStatistics={snapshot.proxy_api_key_statistics}
           />
         </div>
       ) : null}
