@@ -81,8 +81,8 @@ export function getColumns(): ColumnDef[] {
     {
       key: "created_at",
       label: messages.time,
-      width: 170,
-      grow: 1,
+      width: 168,
+      grow: 0,
       render: (row, fmt) => (
         <div className="flex items-center gap-2">
           {row.status_code >= 500 && <AlertCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
@@ -92,10 +92,30 @@ export function getColumns(): ColumnDef[] {
       ),
     },
     {
+      key: "status_code",
+      label: messages.status,
+      width: 84,
+      grow: 0,
+      align: "center",
+      render: (row) => <ValueBadge label={String(row.status_code)} intent={statusIntent(row.status_code)} className="px-1.5 py-0 font-mono" />,
+    },
+    {
+      key: "response_time_ms",
+      label: messages.latency,
+      width: 108,
+      grow: 0,
+      align: "right",
+      render: (row) => (
+        <span className={cn("text-xs font-mono", latencyColor(row.response_time_ms))}>
+          {new Intl.NumberFormat(getCurrentLocale()).format(row.response_time_ms)}ms
+        </span>
+      ),
+    },
+    {
       key: "model_id",
       label: messages.model,
-      width: 220,
-      grow: 2,
+      width: 240,
+      grow: 3,
       render: (row, _formatTimestamp, resolveModelLabel) => {
         const requestedModelLabel = resolveModelLabel(row.model_id);
         const resolvedTargetLabel = row.resolved_target_model_id
@@ -121,9 +141,24 @@ export function getColumns(): ColumnDef[] {
       },
     },
     {
+      key: "endpoint_id",
+      label: messages.endpoint,
+      width: 180,
+      grow: 2,
+      render: (row, _formatTimestamp, _resolveModelLabel, resolveEndpointLabel) => {
+        const endpointLabel = resolveEndpointLabel(row.endpoint_id);
+
+        return (
+          <div className="min-w-0">
+            <span className="block truncate text-xs font-medium">{endpointLabel}</span>
+          </div>
+        );
+      },
+    },
+    {
       key: "vendor_api_family",
       label: `${staticMessages.common.vendor} / API`,
-      width: 168,
+      width: 150,
       grow: 1,
       render: (row) => (
         <div className="min-w-0">
@@ -138,17 +173,10 @@ export function getColumns(): ColumnDef[] {
       ),
     },
     {
-      key: "status_code",
-      label: messages.status,
-      width: 88,
-      align: "center",
-      render: (row) => <ValueBadge label={String(row.status_code)} intent={statusIntent(row.status_code)} className="px-1.5 py-0 font-mono" />,
-    },
-    {
       key: "total_tokens",
       label: messages.tokens,
       width: 110,
-      grow: 1,
+      grow: 0,
       align: "right",
       render: (row) => (
         <span className="text-xs font-mono text-muted-foreground">
@@ -159,8 +187,8 @@ export function getColumns(): ColumnDef[] {
     {
       key: "total_cost",
       label: messages.spend,
-      width: 110,
-      grow: 1,
+      width: 104,
+      grow: 0,
       align: "right",
       render: (row) => (
         <span className={cn("text-xs font-mono", row.total_cost_user_currency_micros && row.total_cost_user_currency_micros > 0 ? "text-foreground font-medium" : "text-muted-foreground")}>
@@ -171,8 +199,8 @@ export function getColumns(): ColumnDef[] {
     {
       key: "is_stream",
       label: messages.stream,
-      width: 104,
-      grow: 1,
+      width: 92,
+      grow: 0,
       align: "center",
       render: (row) =>
         row.is_stream ? (
@@ -180,33 +208,6 @@ export function getColumns(): ColumnDef[] {
         ) : (
           <span className="text-[10px] text-muted-foreground">—</span>
         ),
-    },
-    {
-      key: "endpoint_id",
-      label: messages.endpoint,
-      width: 190,
-      grow: 1,
-      render: (row, _formatTimestamp, _resolveModelLabel, resolveEndpointLabel) => {
-        const endpointLabel = resolveEndpointLabel(row.endpoint_id);
-
-        return (
-          <div className="min-w-0">
-            <span className="block truncate text-xs font-medium">{endpointLabel}</span>
-          </div>
-        );
-      },
-    },
-    {
-      key: "response_time_ms",
-      label: messages.latency,
-      width: 120,
-      grow: 1,
-      align: "right",
-      render: (row) => (
-        <span className={cn("text-xs font-mono", latencyColor(row.response_time_ms))}>
-          {new Intl.NumberFormat(getCurrentLocale()).format(row.response_time_ms)}ms
-        </span>
-      ),
     },
   ];
 }

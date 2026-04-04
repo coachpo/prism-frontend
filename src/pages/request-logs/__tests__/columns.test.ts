@@ -137,17 +137,33 @@ describe("formatCost", () => {
   it("renders the fixed denser request-log column set and drops separate vendor or id columns", () => {
     const columns = getColumns();
     const columnKeys = columns.map((column) => column.key);
+    const columnLayout = columns.map(({ key, width, grow }) => ({
+      key,
+      width,
+      grow: grow ?? 0,
+    }));
 
     expect(columnKeys).toEqual([
       "created_at",
-      "model_id",
-      "vendor_api_family",
       "status_code",
+      "response_time_ms",
+      "model_id",
+      "endpoint_id",
+      "vendor_api_family",
       "total_tokens",
       "total_cost",
       "is_stream",
-      "endpoint_id",
-      "response_time_ms",
+    ]);
+    expect(columnLayout).toEqual([
+      { key: "created_at", width: 168, grow: 0 },
+      { key: "status_code", width: 84, grow: 0 },
+      { key: "response_time_ms", width: 108, grow: 0 },
+      { key: "model_id", width: 240, grow: 3 },
+      { key: "endpoint_id", width: 180, grow: 2 },
+      { key: "vendor_api_family", width: 150, grow: 1 },
+      { key: "total_tokens", width: 110, grow: 0 },
+      { key: "total_cost", width: 104, grow: 0 },
+      { key: "is_stream", width: 92, grow: 0 },
     ]);
     expect(columnKeys).not.toContain("vendor_name");
     expect(columnKeys).not.toContain("api_family");
