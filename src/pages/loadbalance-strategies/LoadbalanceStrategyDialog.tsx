@@ -112,6 +112,7 @@ export function LoadbalanceStrategyDialog({
             <Input
               id="loadbalance-strategy-name"
               name="name"
+              autoComplete="off"
               value={loadbalanceStrategyForm.name}
               onChange={(event) =>
                 setLoadbalanceStrategyForm((prev) => ({ ...prev, name: event.target.value }))
@@ -203,6 +204,7 @@ export function LoadbalanceStrategyDialog({
                       <Input
                         id="circuit-breaker-base-open-seconds"
                         type="number"
+                        autoComplete="off"
                         min={0}
                         step={1}
                         value={enabledAutoRecovery.cooldown.base_seconds}
@@ -235,6 +237,7 @@ export function LoadbalanceStrategyDialog({
                       <Input
                         id="circuit-breaker-failure-threshold"
                         type="number"
+                        autoComplete="off"
                         min={1}
                         max={50}
                         step={1}
@@ -268,6 +271,7 @@ export function LoadbalanceStrategyDialog({
                       <Input
                         id="circuit-breaker-backoff-multiplier"
                         type="number"
+                        autoComplete="off"
                         min={1}
                         max={10}
                         step={0.1}
@@ -301,6 +305,7 @@ export function LoadbalanceStrategyDialog({
                       <Input
                         id="circuit-breaker-max-open-seconds"
                         type="number"
+                        autoComplete="off"
                         min={1}
                         max={86400}
                         step={1}
@@ -334,6 +339,7 @@ export function LoadbalanceStrategyDialog({
                       <Input
                         id="circuit-breaker-jitter-ratio"
                         type="number"
+                        autoComplete="off"
                         min={0}
                         max={1}
                         step={0.05}
@@ -370,6 +376,7 @@ export function LoadbalanceStrategyDialog({
                         <Input
                           id="circuit-breaker-status-code-input"
                           inputMode="numeric"
+                          autoComplete="off"
                           value={enabledAutoRecovery.status_code_input}
                           onChange={(event) =>
                             setLoadbalanceStrategyForm((prev) =>
@@ -453,6 +460,7 @@ export function LoadbalanceStrategyDialog({
                           <Input
                             id="circuit-breaker-max-open-strikes-before-ban"
                             type="number"
+                            autoComplete="off"
                             min={1}
                             step={1}
                             value={enabledAutoRecovery.ban.max_cooldown_strikes_before_ban}
@@ -488,6 +496,7 @@ export function LoadbalanceStrategyDialog({
                             <Input
                               id="circuit-breaker-ban-duration-seconds"
                               type="number"
+                              autoComplete="off"
                               min={1}
                               step={1}
                               value={enabledAutoRecovery.ban.ban_duration_seconds}
