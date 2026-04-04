@@ -896,10 +896,14 @@ export const zhCNMessages: Messages = {
     noProfileEndpointsFound: "未找到当前配置档案的端点。",
     notCheckedYet: "尚未检查",
     orderedPriorityRouting: "按优先级顺序路由",
-    openaiProbeChatCompletions: "POST /v1/chat/completions",
-    openaiProbeEndpointVariant: "OpenAI 探测端点",
-    openaiProbeEndpointVariantHint: "选择后端托管监控在该连接上执行合成探测时使用的 OpenAI 端点。",
-    openaiProbeResponses: "POST /v1/responses",
+    openaiProbeChatCompletionsMinimal: "POST /v1/chat/completions（最小）",
+    openaiProbeChatCompletionsReasoningNone:
+      "POST /v1/chat/completions（reasoning_effort=none）",
+    openaiProbeEndpointVariant: "OpenAI 探测预设",
+    openaiProbeEndpointVariantHint: "选择后端托管监控在该连接上执行合成探测时使用的 OpenAI 预设。",
+    openaiProbeResponsesMinimal: "POST /v1/responses（最小）",
+    openaiProbeResponsesReasoningNone:
+      "POST /v1/responses（reasoning.effort=none）",
     pricingOff: "未启用定价",
     pricingOn: "已启用定价",
     pricingTemplate: "价格模板",
