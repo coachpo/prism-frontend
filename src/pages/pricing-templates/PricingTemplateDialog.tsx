@@ -79,6 +79,7 @@ export function PricingTemplateDialog({
               <Input
                 id="template-name"
                 name="name"
+                autoComplete="off"
                 value={pricingTemplateForm.name}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, name: event.target.value }))
@@ -91,6 +92,7 @@ export function PricingTemplateDialog({
               <Input
                 id="template-currency"
                 name="pricing_currency_code"
+                autoComplete="off"
                 value={pricingTemplateForm.pricing_currency_code}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({
@@ -109,6 +111,7 @@ export function PricingTemplateDialog({
             <Input
               id="template-description"
               name="description"
+              autoComplete="off"
               value={pricingTemplateForm.description}
               onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, description: event.target.value }))
@@ -123,6 +126,7 @@ export function PricingTemplateDialog({
               <Input
                 id="template-input-price"
                 name="input_price"
+                autoComplete="off"
                 value={pricingTemplateForm.input_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, input_price: event.target.value }))
@@ -135,6 +139,7 @@ export function PricingTemplateDialog({
               <Input
                 id="template-output-price"
                 name="output_price"
+                autoComplete="off"
                 value={pricingTemplateForm.output_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({ ...prev, output_price: event.target.value }))
@@ -150,6 +155,7 @@ export function PricingTemplateDialog({
               <Input
                 id="template-cached-input-price"
                 name="cached_input_price"
+                autoComplete="off"
                 value={pricingTemplateForm.cached_input_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({
@@ -165,6 +171,7 @@ export function PricingTemplateDialog({
               <Input
                 id="template-cache-creation-price"
                 name="cache_creation_price"
+                autoComplete="off"
                 value={pricingTemplateForm.cache_creation_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({
@@ -180,6 +187,7 @@ export function PricingTemplateDialog({
               <Input
                 id="template-reasoning-price"
                 name="reasoning_price"
+                autoComplete="off"
                 value={pricingTemplateForm.reasoning_price}
                 onChange={(event) =>
                   setPricingTemplateForm((prev) => ({
