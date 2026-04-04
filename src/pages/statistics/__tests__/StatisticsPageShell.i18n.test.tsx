@@ -42,7 +42,7 @@ const mockUsageState = {
       tokenUsageTrends: "hourly",
     },
     selectedModelLines: ["gpt-5.4"],
-    selectedTimeRange: "24h",
+    selectedTimeRange: "1h",
   },
   toggleSelectedModelLine: vi.fn(),
 };
@@ -233,8 +233,8 @@ function createSnapshot(): UsageSnapshotResponse {
     },
     time_range: {
       end_at: "2026-03-27T12:00:00Z",
-      preset: "24h",
-      start_at: "2026-03-26T12:00:00Z",
+      preset: "1h",
+      start_at: "2026-03-27T11:00:00Z",
     },
     token_type_breakdown: {
       daily: [
@@ -396,6 +396,13 @@ describe("StatisticsPage shell i18n", () => {
     );
 
     expect(screen.getByTestId("usage-controls-toolbar")).toBeInTheDocument();
+    expect(screen.getByText("时间范围")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "最近 1 小时" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "最近 6 小时" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "最近 24 小时" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "最近 7 天" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "最近 30 天" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "全部时间" })).toBeInTheDocument();
     expect(screen.getByTestId("usage-kpi-grid")).toBeInTheDocument();
     expect(screen.getByTestId("statistics-endpoint-table")).toBeInTheDocument();
     expect(screen.getByTestId("statistics-model-table")).toBeInTheDocument();

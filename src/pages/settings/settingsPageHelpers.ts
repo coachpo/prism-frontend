@@ -28,7 +28,7 @@ export const SETTINGS_SECTION_IDS = new Set<string>(SETTINGS_SECTIONS.map((secti
 
 export type CleanupType = "" | "requests" | "audits" | "loadbalance_events" | "statistics";
 export type DeleteCleanupType = Exclude<CleanupType, "">;
-export type RetentionPreset = "" | "7" | "30" | "90" | "all";
+export type RetentionPreset = "" | "1" | "7" | "30" | "90" | "all";
 
 export const DELETE_CONFIRM_KEYWORD = getStaticMessages().settingsDialogs.deleteConfirmKeyword;
 export const FX_RATE_MAX_DECIMALS = 6;

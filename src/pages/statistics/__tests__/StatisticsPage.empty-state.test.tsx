@@ -28,7 +28,7 @@ const mockUsageState = {
       tokenUsageTrends: "hourly",
     },
     selectedModelLines: [],
-    selectedTimeRange: "24h",
+    selectedTimeRange: "1h",
   },
   toggleSelectedModelLine: vi.fn(),
 };
@@ -100,8 +100,8 @@ function createEmptySnapshot(): UsageSnapshotResponse {
     },
     time_range: {
       end_at: "2026-03-27T12:00:00Z",
-      preset: "24h",
-      start_at: "2026-03-26T12:00:00Z",
+      preset: "1h",
+      start_at: "2026-03-27T11:00:00Z",
     },
     token_type_breakdown: { daily: [], hourly: [] },
     token_usage_trends: { daily: [], hourly: [] },
@@ -146,6 +146,8 @@ describe("StatisticsPage empty states", () => {
       "href",
       "/pricing-templates",
     );
+    expect(screen.getByText("Time Range")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Last 1 Hour" })).toBeInTheDocument();
     expect(screen.getByText("No proxy API key usage in this time range")).toBeInTheDocument();
     expect(screen.queryByTestId("statistics-no-request-events")).not.toBeInTheDocument();
     expect(screen.queryByText("No request events in this time range")).not.toBeInTheDocument();

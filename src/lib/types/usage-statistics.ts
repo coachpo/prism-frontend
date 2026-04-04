@@ -1,4 +1,4 @@
-export const USAGE_SNAPSHOT_PRESETS = ["all", "7h", "24h", "7d"] as const;
+export const USAGE_SNAPSHOT_PRESETS = ["1h", "6h", "24h", "7d", "30d", "all"] as const;
 export type UsageSnapshotPreset = (typeof USAGE_SNAPSHOT_PRESETS)[number];
 
 export const USAGE_CHART_GRANULARITIES = ["hourly", "daily"] as const;

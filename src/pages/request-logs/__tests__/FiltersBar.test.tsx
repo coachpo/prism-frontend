@@ -29,7 +29,7 @@ function createPrimaryState(overrides: Record<string, unknown> = {}) {
     api_family: "",
     search: "",
     status_family: "all" as const,
-    time_range: "24h" as const,
+    time_range: "1h" as const,
     ...overrides,
   };
 }

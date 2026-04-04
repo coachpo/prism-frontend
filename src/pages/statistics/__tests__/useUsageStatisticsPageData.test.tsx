@@ -37,7 +37,7 @@ function createState(
       tokenUsageTrends: "hourly",
     },
     selectedModelLines: [],
-    selectedTimeRange: "24h",
+    selectedTimeRange: "1h",
     ...overrides,
   };
 }
@@ -221,8 +221,8 @@ function createSnapshot(overrides?: Partial<UsageSnapshotResponse>): UsageSnapsh
     },
     time_range: {
       end_at: "2026-03-27T12:00:00Z",
-      preset: "7h",
-      start_at: "2026-03-27T05:00:00Z",
+      preset: "1h",
+      start_at: "2026-03-27T11:00:00Z",
       ...overrides?.time_range,
     },
     token_type_breakdown: {
@@ -337,7 +337,7 @@ describe("useUsageStatisticsPageData", () => {
               tokenUsageTrends: "hourly",
             },
             selectedModelLines: ["gpt-5.4"],
-            selectedTimeRange: "7h",
+            selectedTimeRange: "1h",
           }),
         }),
       { wrapper },
@@ -347,7 +347,7 @@ describe("useUsageStatisticsPageData", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(api.stats.usageSnapshot).toHaveBeenCalledWith({ preset: "7h" });
+    expect(api.stats.usageSnapshot).toHaveBeenCalledWith({ preset: "1h" });
     expect(result.current.snapshot?.overview.total_requests).toBe(2);
     expect(result.current.availableModelLineIds).toEqual(["claude-sonnet-4-6", "gpt-5.4"]);
     expect(result.current.requestTrendSeries.map((series) => series.key)).toEqual([
@@ -375,7 +375,7 @@ describe("useUsageStatisticsPageData", () => {
         useUsageStatisticsPageData({
           revision: 3,
           selectedProfileId: 1,
-          state: createState({ selectedTimeRange: "7h" }),
+          state: createState({ selectedTimeRange: "1h" }),
         }),
       { wrapper },
     );
@@ -404,7 +404,7 @@ describe("useUsageStatisticsPageData", () => {
     });
 
     expect(api.stats.endpointModelStatistics).toHaveBeenCalledWith(10, {
-      from_time: "2026-03-27T05:00:00Z",
+      from_time: "2026-03-27T11:00:00Z",
       to_time: "2026-03-27T12:00:00Z",
     });
 
@@ -428,7 +428,7 @@ describe("useUsageStatisticsPageData", () => {
 
     await waitFor(() => {
       expect(api.stats.endpointModelStatistics).toHaveBeenNthCalledWith(2, 10, {
-        from_time: "2026-03-27T05:00:00Z",
+        from_time: "2026-03-27T11:00:00Z",
         to_time: "2026-03-27T12:00:00Z",
       });
     });
@@ -443,7 +443,7 @@ describe("useUsageStatisticsPageData", () => {
           state,
         }),
       {
-        initialProps: { selectedProfileId: 1, state: createState({ selectedTimeRange: "24h" }) },
+        initialProps: { selectedProfileId: 1, state: createState({ selectedTimeRange: "1h" }) },
         wrapper,
       },
     );
@@ -458,7 +458,7 @@ describe("useUsageStatisticsPageData", () => {
 
     await waitFor(() => {
       expect(api.stats.endpointModelStatistics).toHaveBeenCalledWith(10, {
-        from_time: "2026-03-27T05:00:00Z",
+        from_time: "2026-03-27T11:00:00Z",
         to_time: "2026-03-27T12:00:00Z",
       });
     });
@@ -476,7 +476,7 @@ describe("useUsageStatisticsPageData", () => {
 
     await waitFor(() => {
       expect(api.stats.endpointModelStatistics).toHaveBeenLastCalledWith(10, {
-        from_time: "2026-03-27T05:00:00Z",
+        from_time: "2026-03-27T11:00:00Z",
         to_time: "2026-03-27T12:00:00Z",
       });
     });
@@ -488,7 +488,7 @@ describe("useUsageStatisticsPageData", () => {
         useUsageStatisticsPageData({
           revision: 3,
           selectedProfileId,
-          state: createState({ selectedTimeRange: "24h" }),
+          state: createState({ selectedTimeRange: "1h" }),
         }),
       {
         initialProps: { selectedProfileId: 1 },
@@ -529,7 +529,7 @@ describe("useUsageStatisticsPageData", () => {
           state,
         }),
       {
-        initialProps: { state: createState({ selectedTimeRange: "24h" }) },
+        initialProps: { state: createState({ selectedTimeRange: "1h" }) },
         wrapper,
       },
     );
@@ -584,7 +584,7 @@ describe("useUsageStatisticsPageData", () => {
         useUsageStatisticsPageData({
           revision: 3,
           selectedProfileId: 1,
-          state: createState({ selectedTimeRange: "7h" }),
+          state: createState({ selectedTimeRange: "1h" }),
         }),
       { wrapper },
     );
@@ -608,7 +608,7 @@ describe("useUsageStatisticsPageData", () => {
     });
 
     expect(api.stats.endpointModelStatistics).toHaveBeenCalledWith(10, {
-      from_time: "2026-03-27T05:00:00Z",
+      from_time: "2026-03-27T11:00:00Z",
       to_time: "2026-03-27T12:00:00Z",
     });
 
@@ -622,8 +622,8 @@ describe("useUsageStatisticsPageData", () => {
           },
           time_range: {
             end_at: "2026-03-27T12:05:00Z",
-            preset: "7h",
-            start_at: "2026-03-27T05:05:00Z",
+            preset: "1h",
+            start_at: "2026-03-27T11:05:00Z",
           },
         }),
       );
