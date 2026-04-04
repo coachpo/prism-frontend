@@ -50,13 +50,21 @@ export function ResetPasswordPage() {
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="otp-code">{messages.auth.resetCode}</Label>
-                <Input id="otp-code" value={otpCode} onChange={(event) => setOtpCode(event.target.value)} />
+                <Input
+                  id="otp-code"
+                  name="otp_code"
+                  autoComplete="one-time-code"
+                  value={otpCode}
+                  onChange={(event) => setOtpCode(event.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="new-password">{messages.auth.newPassword}</Label>
                 <Input
                   id="new-password"
+                  name="new_password"
                   type="password"
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                 />

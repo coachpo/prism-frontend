@@ -86,6 +86,47 @@ describe("LoginPage", () => {
     expect(screen.getByText(/or continue with/i)).toBeInTheDocument();
   });
 
+  it("renders explicit login field autocomplete semantics", () => {
+    render(
+      <LocaleProvider>
+        <MemoryRouter initialEntries={["/login"]}>
+          <LoginPage />
+        </MemoryRouter>
+      </LocaleProvider>,
+    );
+
+    const usernameInput = screen.getByLabelText("Username");
+    const passwordInput = screen.getByLabelText("Password");
+
+    expect(usernameInput).toHaveAttribute("name", "username");
+    expect(usernameInput).toHaveAttribute("autocomplete", "username");
+    expect(passwordInput).toHaveAttribute("name", "password");
+    expect(passwordInput).toHaveAttribute("autocomplete", "current-password");
+  });
+
+  it("renders explicit forgot-password field semantics on the public auth route", async () => {
+    const view = await renderAppRoute("/forgot-password");
+    const usernameOrEmailInput = await screen.findByLabelText(/username or email/i);
+
+    expect(usernameOrEmailInput).toHaveAttribute("name", "username_or_email");
+    expect(usernameOrEmailInput).toHaveAttribute("autocomplete", "username");
+
+    view.unmount();
+  });
+
+  it("renders explicit reset-password field semantics on the public auth route", async () => {
+    const view = await renderAppRoute("/reset-password");
+    const otpCodeInput = await screen.findByLabelText(/reset code/i);
+    const newPasswordInput = screen.getByLabelText(/new password/i);
+
+    expect(otpCodeInput).toHaveAttribute("name", "otp_code");
+    expect(otpCodeInput).toHaveAttribute("autocomplete", "one-time-code");
+    expect(newPasswordInput).toHaveAttribute("name", "new_password");
+    expect(newPasswordInput).toHaveAttribute("autocomplete", "new-password");
+
+    view.unmount();
+  });
+
   it("changes login copy when the locale changes and persists it", () => {
     render(
       <LocaleProvider>

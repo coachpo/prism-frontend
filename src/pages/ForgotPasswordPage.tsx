@@ -51,6 +51,8 @@ export function ForgotPasswordPage() {
                 <Label htmlFor="username-or-email">{messages.auth.usernameOrEmail}</Label>
                 <Input
                   id="username-or-email"
+                  name="username_or_email"
+                  autoComplete="username"
                   value={usernameOrEmail}
                   onChange={(event) => setUsernameOrEmail(event.target.value)}
                 />
