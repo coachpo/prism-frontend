@@ -107,10 +107,15 @@ export function normalizeProxyTargets(proxyTargets: ProxyTarget[] | null | undef
 }
 
 function getNormalizedRoutingState(formData: ModelFormData) {
+  if (formData.model_type === "native") {
+    return {
+      proxy_targets: [],
+      loadbalance_strategy_id: formData.loadbalance_strategy_id ?? null,
+    };
+  }
+
   return {
-    proxy_targets: formData.model_type === "proxy" ? normalizeProxyTargets(formData.proxy_targets) : [],
-    loadbalance_strategy_id:
-      formData.model_type === "native" ? formData.loadbalance_strategy_id ?? null : null,
+    loadbalance_strategy_id: null,
   };
 }
 
@@ -159,7 +164,7 @@ export function createEditModelFormData(model: ModelConfigListItem): ModelFormDa
     model_id: model.model_id,
     display_name: displayName,
     model_type: model.model_type,
-    proxy_targets: normalizeProxyTargets(model.proxy_targets),
+    proxy_targets: [],
     loadbalance_strategy_id: model.loadbalance_strategy_id,
     is_enabled: model.is_enabled,
     last_auto_display_name: displayName === model.model_id ? model.model_id : displayName,
@@ -215,7 +220,7 @@ export function setModelTypeOnForm(
   return {
     ...formData,
     model_type: modelType,
-    proxy_targets: modelType === "native" ? [] : normalizeProxyTargets(formData.proxy_targets),
+    proxy_targets: [],
     loadbalance_strategy_id:
       modelType === "native"
         ? formData.loadbalance_strategy_id ?? defaultLoadbalanceStrategyId

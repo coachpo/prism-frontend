@@ -331,10 +331,10 @@ describe("useModelsPageData", () => {
       model_id: "friendly-proxy",
       display_name: "Friendly Proxy",
       model_type: "proxy",
-      proxy_targets: [],
       loadbalance_strategy_id: null,
       is_enabled: true,
     });
+    expect(createPayload).not.toHaveProperty("proxy_targets");
     const createdModel = result.current.models.find((model) => model.id === 3);
 
     expect(createdModel).toBeDefined();
@@ -576,6 +576,67 @@ describe("useModelsPageData", () => {
 
     expect(api.models.delete).toHaveBeenCalledWith(1);
     expect(result.current.models).toHaveLength(0);
+  });
+
+  it("updates proxy models without submitting proxy targets from the models dialog", async () => {
+    api.models.update.mockResolvedValue(
+      buildModelConfig({
+        id: 1,
+        model_id: "gateway-proxy",
+        display_name: "Gateway Proxy",
+        model_type: "proxy",
+        proxy_targets: [{ target_model_id: "e2e-native-a", position: 0 }],
+        loadbalance_strategy_id: null,
+        loadbalance_strategy: null,
+      }),
+    );
+
+    const { result } = renderHook(() => useModelsPageData(1), { wrapper: StrictWrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    act(() => {
+      result.current.handleOpenDialog(
+        buildModelListItem({
+          id: 1,
+          model_id: "gateway-proxy",
+          display_name: "Gateway Proxy",
+          model_type: "proxy",
+          proxy_targets: [{ target_model_id: "e2e-native-a", position: 0 }],
+          loadbalance_strategy_id: null,
+          loadbalance_strategy: null,
+        }) as Parameters<typeof result.current.handleOpenDialog>[0],
+      );
+      result.current.setFormData((current) => ({
+        ...current,
+        vendor_id: 10,
+        api_family: "openai",
+        model_id: "gateway-proxy",
+        display_name: "Gateway Proxy",
+        model_type: "proxy",
+        proxy_targets: [{ target_model_id: "should-not-submit", position: 0 }],
+      }));
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit(createSubmitEvent());
+    });
+
+    expect(api.models.update).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        vendor_id: 10,
+        api_family: "openai",
+        model_id: "gateway-proxy",
+        display_name: "Gateway Proxy",
+        model_type: "proxy",
+        loadbalance_strategy_id: null,
+        is_enabled: true,
+      }),
+    );
+    expect(api.models.update.mock.calls.at(-1)?.[1]).not.toHaveProperty("proxy_targets");
   });
 
   it("emits localized validation and success toasts when the locale is Chinese", async () => {
