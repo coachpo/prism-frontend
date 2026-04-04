@@ -138,15 +138,6 @@ export interface UsageCostOverview {
   daily: UsageCostOverviewPoint[];
 }
 
-export interface UsageEndpointModelStatistic {
-  model_id: string;
-  model_label: string;
-  request_count: number;
-  success_rate: number;
-  total_tokens: number;
-  total_cost_micros: number;
-}
-
 export interface UsageEndpointStatistic {
   endpoint_id: number | null;
   endpoint_label: string;
@@ -154,7 +145,6 @@ export interface UsageEndpointStatistic {
   success_rate: number;
   total_tokens: number;
   total_cost_micros: number;
-  models: UsageEndpointModelStatistic[];
 }
 
 export interface UsageModelStatistic {

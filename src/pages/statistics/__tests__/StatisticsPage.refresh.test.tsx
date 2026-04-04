@@ -59,16 +59,6 @@ function createSnapshot(
       {
         endpoint_id: 10,
         endpoint_label: endpointLabel,
-        models: [
-          {
-            model_id: "gpt-5.4",
-            model_label: "GPT-5.4",
-            request_count: totalRequests,
-            success_rate: statusCode >= 400 ? 50 : 100,
-            total_cost_micros: totalRequests * 1000,
-            total_tokens: totalRequests * 100,
-          },
-        ],
         request_count: totalRequests,
         success_rate: statusCode >= 400 ? 50 : 100,
         total_cost_micros: totalRequests * 1000,

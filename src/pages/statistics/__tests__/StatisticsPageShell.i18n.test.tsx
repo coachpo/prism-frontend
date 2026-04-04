@@ -106,16 +106,6 @@ function createSnapshot(): UsageSnapshotResponse {
       {
         endpoint_id: 10,
         endpoint_label: "Primary Endpoint",
-        models: [
-          {
-            model_id: "gpt-5.4",
-            model_label: "GPT-5.4",
-            request_count: 4,
-            success_rate: 100,
-            total_cost_micros: 4200,
-            total_tokens: 185,
-          },
-        ],
         request_count: 4,
         success_rate: 100,
         total_cost_micros: 4200,
