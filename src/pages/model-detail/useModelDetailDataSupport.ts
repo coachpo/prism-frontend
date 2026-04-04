@@ -44,7 +44,7 @@ export const createDefaultConnectionForm = (): ConnectionCreate => ({
   custom_headers: null,
   pricing_template_id: null,
   monitoring_probe_interval_seconds: DEFAULT_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS,
-  openai_probe_endpoint_variant: "responses",
+  openai_probe_endpoint_variant: "responses_minimal",
   qps_limit: null,
   max_in_flight_non_stream: null,
   max_in_flight_stream: null,
@@ -147,10 +147,17 @@ export function resolveConnectionProbeEndpointVariant(
   variant: OpenAiProbeEndpointVariant | null | undefined,
 ): OpenAiProbeEndpointVariant {
   if (apiFamily !== "openai") {
-    return "responses";
+    return "responses_minimal";
   }
 
-  return variant === "chat_completions" ? "chat_completions" : "responses";
+  switch (variant) {
+    case "responses_reasoning_none":
+    case "chat_completions_minimal":
+    case "chat_completions_reasoning_none":
+      return variant;
+    default:
+      return "responses_minimal";
+  }
 }
 
 function normalizeLimiterField(value: number | null | undefined): number | null {
