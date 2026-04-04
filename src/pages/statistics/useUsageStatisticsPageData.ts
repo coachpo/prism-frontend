@@ -8,6 +8,7 @@ import {
 import { useLocale } from "@/i18n/useLocale";
 import type {
   UsageCostOverviewPoint,
+  UsageModelStatistic,
   UsageRequestTrendSeries,
   UsageSnapshotResponse,
   UsageStatisticsPageState,
@@ -69,12 +70,33 @@ export function useUsageStatisticsPageData({
   const [snapshot, setSnapshot] = useState<UsageSnapshotResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [endpointModelStatisticsByEndpointId, setEndpointModelStatisticsByEndpointId] =
+    useState<Record<number, UsageModelStatistic[]>>({});
+  const [endpointModelStatisticsErrors, setEndpointModelStatisticsErrors] = useState<
+    Record<number, string>
+  >({});
+  const [endpointModelStatisticsLoading, setEndpointModelStatisticsLoading] = useState<
+    Record<number, boolean>
+  >({});
+  const [endpointModelStatisticsScopeKey, setEndpointModelStatisticsScopeKey] = useState(0);
   const requestIdRef = useRef(0);
+  const endpointModelStatisticsLatestRequestIdRef = useRef<Record<number, number>>({});
+  const endpointModelStatisticsRequestSequenceRef = useRef(0);
+  const endpointModelStatisticsScopeVersionRef = useRef(0);
+
+  const clearEndpointModelStatistics = useCallback(() => {
+    endpointModelStatisticsScopeVersionRef.current += 1;
+    setEndpointModelStatisticsScopeKey(endpointModelStatisticsScopeVersionRef.current);
+    setEndpointModelStatisticsByEndpointId({});
+    setEndpointModelStatisticsErrors({});
+    setEndpointModelStatisticsLoading({});
+  }, []);
 
   const fetchSnapshot = useCallback(async () => {
     const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
+    clearEndpointModelStatistics();
 
     try {
       const nextSnapshot = await api.stats.usageSnapshot({ preset: state.selectedTimeRange });
@@ -83,6 +105,7 @@ export function useUsageStatisticsPageData({
         return;
       }
 
+      clearEndpointModelStatistics();
       setSnapshot(nextSnapshot);
     } catch (fetchError) {
       if (requestId !== requestIdRef.current) {
@@ -100,7 +123,82 @@ export function useUsageStatisticsPageData({
         setLoading(false);
       }
     }
-  }, [messages.statistics.failedToLoadUsageStatistics, state.selectedTimeRange]);
+  }, [clearEndpointModelStatistics, messages.statistics.failedToLoadUsageStatistics, state.selectedTimeRange]);
+
+  const loadEndpointModelStatistics = useCallback(
+    async (endpointId: number) => {
+      if (
+        endpointModelStatisticsByEndpointId[endpointId] ||
+        endpointModelStatisticsLoading[endpointId]
+      ) {
+        return;
+      }
+
+      if (!snapshot) {
+        return;
+      }
+
+      const requestScopeVersion = endpointModelStatisticsScopeVersionRef.current;
+      const requestId = ++endpointModelStatisticsRequestSequenceRef.current;
+      endpointModelStatisticsLatestRequestIdRef.current[endpointId] = requestId;
+      setEndpointModelStatisticsLoading((current) => ({ ...current, [endpointId]: true }));
+      setEndpointModelStatisticsErrors((current) => {
+        const next = { ...current };
+        delete next[endpointId];
+        return next;
+      });
+
+      try {
+        const items = await api.stats.endpointModelStatistics(endpointId, {
+          from_time: snapshot.time_range.start_at ?? undefined,
+          to_time: snapshot.time_range.end_at,
+        });
+
+        if (
+          endpointModelStatisticsScopeVersionRef.current !== requestScopeVersion ||
+          endpointModelStatisticsLatestRequestIdRef.current[endpointId] !== requestId
+        ) {
+          return;
+        }
+
+        setEndpointModelStatisticsByEndpointId((current) => ({
+          ...current,
+          [endpointId]: items,
+        }));
+      } catch (fetchError) {
+        if (
+          endpointModelStatisticsScopeVersionRef.current !== requestScopeVersion ||
+          endpointModelStatisticsLatestRequestIdRef.current[endpointId] !== requestId
+        ) {
+          return;
+        }
+
+        setEndpointModelStatisticsErrors((current) => ({
+          ...current,
+          [endpointId]:
+            fetchError instanceof Error
+              ? fetchError.message
+              : messages.statistics.failedToLoadEndpointModelStatistics,
+        }));
+      } finally {
+        if (
+          endpointModelStatisticsScopeVersionRef.current === requestScopeVersion &&
+          endpointModelStatisticsLatestRequestIdRef.current[endpointId] === requestId
+        ) {
+          setEndpointModelStatisticsLoading((current) => ({
+            ...current,
+            [endpointId]: false,
+          }));
+        }
+      }
+    },
+    [
+      endpointModelStatisticsByEndpointId,
+      endpointModelStatisticsLoading,
+      messages.statistics.failedToLoadEndpointModelStatistics,
+      snapshot,
+    ],
+  );
 
   const localizedSnapshot = useMemo<UsageSnapshotResponse | null>(() => {
     if (!snapshot) {
@@ -224,7 +322,12 @@ export function useUsageStatisticsPageData({
   return {
     availableModelLineIds,
     costOverviewSeries,
+    endpointModelStatisticsByEndpointId,
+    endpointModelStatisticsErrors,
+    endpointModelStatisticsLoading,
+    endpointModelStatisticsScopeKey,
     error,
+    loadEndpointModelStatistics,
     loading,
     refresh,
     requestTrendSeries,

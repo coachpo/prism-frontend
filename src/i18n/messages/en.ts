@@ -1511,6 +1511,7 @@ export interface Messages {
     reasoningCaptured: string;
     anySpecialCaptured: string;
     failedCount: (count: string) => string;
+    failedToLoadEndpointModelStatistics: string;
     failedToLoadUsageStatistics: string;
     healthStatusDegraded: string;
     healthStatusDown: string;
@@ -1519,6 +1520,7 @@ export interface Messages {
     heatmapLegendLessAvailability: string;
     heatmapLegendMoreAvailability: string;
     latest: string;
+    loadingEndpointModelStatistics: string;
     noTokenUsage: string;
     oldest: string;
     serviceHealthIntervalHours: (count: number) => string;
@@ -3125,6 +3127,7 @@ export const enMessages: Messages = {
     reasoningCaptured: "Reasoning captured",
     anySpecialCaptured: "Any special captured",
     failedCount: (count) => `${count} failed`,
+    failedToLoadEndpointModelStatistics: "Failed to load endpoint model statistics",
     failedToLoadUsageStatistics: "Failed to load usage statistics",
     healthStatusDegraded: "Degraded",
     healthStatusDown: "Down",
@@ -3133,6 +3136,7 @@ export const enMessages: Messages = {
     heatmapLegendLessAvailability: "Lower availability",
     heatmapLegendMoreAvailability: "Higher availability",
     latest: "Latest",
+    loadingEndpointModelStatistics: "Loading model usage…",
     noTokenUsage: "No token usage",
     oldest: "Oldest",
     serviceHealthIntervalHours: (count) => (count === 1 ? "1 hour" : `${count} hours`),

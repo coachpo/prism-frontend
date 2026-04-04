@@ -28,6 +28,7 @@ import type {
   StatsSummary,
   ModelMetricsBatchParams,
   ModelMetricsBatchResponse,
+  UsageModelStatistic,
   StatsSummaryParams,
   TimezonePreferenceResponse,
   TimezonePreferenceUpdate,
@@ -55,6 +56,13 @@ export const stats = {
   usageSnapshot: (params?: { preset?: UsageSnapshotPreset }) => {
     const query = buildQuery(params);
     return request<UsageSnapshotResponse>(`/api/stats/usage-snapshot${query ? `?${query}` : ""}`);
+  },
+  endpointModelStatistics: (
+    endpointId: number,
+    params?: { preset?: UsageSnapshotPreset; from_time?: string; to_time?: string },
+  ) => {
+    const query = buildQuery(params);
+    return request<UsageModelStatistic[]>(`/api/stats/endpoints/${endpointId}/models${query ? `?${query}` : ""}`);
   },
   summary: (params?: StatsSummaryParams) => {
     const query = buildQuery(params as Record<string, string | number | boolean | null | undefined> | undefined);
