@@ -3,7 +3,7 @@ import { z } from "zod";
 import { api } from "@/lib/api";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import { ConfigImportSchema } from "@/lib/configImportValidation";
-import type { ConfigImportRequest } from "@/lib/types";
+import type { ConfigImportPreviewResponse, ConfigImportRequest } from "@/lib/types";
 import { toast } from "sonner";
 
 interface UseConfigBackupDataInput {
@@ -16,22 +16,28 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
   const [exportSecretsAcknowledged, setExportSecretsAcknowledged] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [parsedConfig, setParsedConfig] = useState<ConfigImportRequest | null>(null);
+  const [previewResult, setPreviewResult] = useState<ConfigImportPreviewResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentSelectionTokenRef = useRef(0);
 
   const resetSelectedFile = () => {
     setSelectedFile(null);
     setParsedConfig(null);
+    setPreviewResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   const importSummary = useMemo(() => {
-    const endpointsCount = parsedConfig?.endpoints?.length ?? 0;
-    const strategiesCount = parsedConfig?.loadbalance_strategies?.length ?? 0;
-    const modelsCount = parsedConfig?.models?.length ?? 0;
+    const endpointsCount = previewResult?.endpoints_imported ?? parsedConfig?.endpoints?.length ?? 0;
+    const strategiesCount =
+      previewResult?.strategies_imported ?? parsedConfig?.loadbalance_strategies?.length ?? 0;
+    const modelsCount = previewResult?.models_imported ?? parsedConfig?.models?.length ?? 0;
     const connectionsCount =
-      parsedConfig?.models?.reduce((total, model) => total + (model.connections?.length ?? 0), 0) ?? 0;
+      previewResult?.connections_imported ??
+      parsedConfig?.models?.reduce((total, model) => total + (model.connections?.length ?? 0), 0) ??
+      0;
 
     return {
       endpointsCount,
@@ -39,14 +45,10 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
       modelsCount,
       connectionsCount,
     };
-  }, [parsedConfig]);
+  }, [parsedConfig, previewResult]);
 
   const handleExport = async () => {
     const messages = getStaticMessages();
-    if (!exportSecretsAcknowledged) {
-      toast.error(messages.settingsBackupData.acknowledgeSecretsBeforeExport);
-      return;
-    }
 
     setExporting(true);
     try {
@@ -76,10 +78,17 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
       return;
     }
 
+    const selectionToken = currentSelectionTokenRef.current + 1;
+    currentSelectionTokenRef.current = selectionToken;
     setSelectedFile(file);
+    setParsedConfig(null);
+    setPreviewResult(null);
 
     try {
       const text = await file.text();
+      if (currentSelectionTokenRef.current != selectionToken) {
+        return;
+      }
       const parsed = JSON.parse(text);
       const validation = ConfigImportSchema.safeParse(parsed);
 
@@ -90,8 +99,20 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
         throw new Error(messages.settingsBackupData.invalidConfigPayload(errors));
       }
 
-      setParsedConfig(validation.data as ConfigImportRequest);
+      const config = validation.data as ConfigImportRequest;
+      const preview = await api.config.previewImport(config);
+      if (currentSelectionTokenRef.current != selectionToken) {
+        return;
+      }
+      setParsedConfig(config);
+      setPreviewResult(preview);
+      if (!preview.ready && preview.blocking_errors.length > 0) {
+        toast.error(preview.blocking_errors[0]);
+      }
     } catch (error) {
+      if (currentSelectionTokenRef.current != selectionToken) {
+        return;
+      }
       toast.error(error instanceof Error ? error.message : messages.settingsBackupData.invalidJsonFile);
       resetSelectedFile();
     }
@@ -99,7 +120,10 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
 
   const handleImport = async () => {
     const messages = getStaticMessages();
-    if (!parsedConfig) {
+    if (!parsedConfig || !previewResult?.ready) {
+      if (previewResult && previewResult.blocking_errors.length > 0) {
+        toast.error(previewResult.blocking_errors[0]);
+      }
       return;
     }
 
@@ -131,6 +155,7 @@ export function useConfigBackupData({ bumpRevision }: UseConfigBackupDataInput) 
     importSummary,
     importing,
     parsedConfig,
+    previewResult,
     selectedFile,
     setExportSecretsAcknowledged,
   };

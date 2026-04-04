@@ -9,11 +9,16 @@ import type { OpenAiProbeEndpointVariant } from "./routing";
 export interface ConfigEndpointExport {
   name: string;
   base_url: string;
-  api_key: string;
+  api_key_secret_ref: string | null;
   position?: number | null;
 }
 
-export type ConfigEndpointImport = ConfigEndpointExport;
+export interface ConfigEndpointImport {
+  name: string;
+  base_url: string;
+  api_key_secret_ref?: string | null;
+  position?: number | null;
+}
 
 export interface ConfigPricingTemplateExport {
   name: string;
@@ -29,7 +34,19 @@ export interface ConfigPricingTemplateExport {
   version: number;
 }
 
-export type ConfigPricingTemplateImport = ConfigPricingTemplateExport;
+export interface ConfigPricingTemplateImport {
+  name: string;
+  description?: string | null;
+  pricing_unit?: "PER_1M";
+  pricing_currency_code: string;
+  input_price: string;
+  output_price: string;
+  cached_input_price?: string | null;
+  cache_creation_price?: string | null;
+  reasoning_price?: string | null;
+  missing_special_token_price_policy?: "MAP_TO_OUTPUT" | "ZERO_COST";
+  version?: number;
+}
 
 export type ConfigLoadbalanceStrategyExport = LoadbalanceStrategyCreate;
 
@@ -41,8 +58,9 @@ export interface ConfigConnectionExport {
   is_active: boolean;
   priority: number;
   name: string | null;
-  auth_type: string | null;
+  auth_type: ApiFamily | null;
   custom_headers: Record<string, string> | null;
+  openai_probe_endpoint_variant?: OpenAiProbeEndpointVariant;
   qps_limit: number | null;
   max_in_flight_non_stream: number | null;
   max_in_flight_stream: number | null;
@@ -51,11 +69,11 @@ export interface ConfigConnectionExport {
 export interface ConfigConnectionImport {
   endpoint_name: string;
   pricing_template_name?: string | null;
-  is_active: boolean;
-  priority: number;
-  name: string | null;
-  auth_type: string | null;
-  custom_headers: Record<string, string> | null;
+  is_active?: boolean;
+  priority?: number;
+  name?: string | null;
+  auth_type?: ApiFamily | null;
+  custom_headers?: Record<string, string> | null;
   openai_probe_endpoint_variant?: OpenAiProbeEndpointVariant;
   qps_limit?: number | null;
   max_in_flight_non_stream?: number | null;
@@ -78,12 +96,12 @@ export interface ConfigModelImport {
   vendor_key: string;
   api_family: ApiFamily;
   model_id: string;
-  display_name: string | null;
-  model_type: ModelType;
-  proxy_targets: ProxyTarget[];
-  loadbalance_strategy_name: string | null;
-  is_enabled: boolean;
-  connections: ConfigConnectionImport[];
+  display_name?: string | null;
+  model_type?: ModelType;
+  proxy_targets?: ProxyTarget[];
+  loadbalance_strategy_name?: string | null;
+  is_enabled?: boolean;
+  connections?: ConfigConnectionImport[];
 }
 
 export interface ConfigEndpointFxRateExport {
@@ -108,8 +126,27 @@ export interface ConfigUserSettingsExport {
 export interface ConfigUserSettingsImport {
   report_currency_code?: string;
   report_currency_symbol?: string;
-  endpoint_fx_mappings: ConfigEndpointFxRateImport[];
+  endpoint_fx_mappings?: ConfigEndpointFxRateImport[];
   timezone_preference?: string | null;
+}
+
+export interface ConfigVendorRef {
+  key: string;
+  name_hint?: string | null;
+  description_hint?: string | null;
+  icon_key_hint?: string | null;
+}
+
+export interface ConfigSecretPayloadEntry {
+  ref: string;
+  ciphertext: string;
+}
+
+export interface ConfigSecretPayload {
+  kind: "encrypted";
+  cipher: "fernet-v1";
+  key_id: string;
+  entries: ConfigSecretPayloadEntry[];
 }
 
 export interface ConfigVendorExport {
@@ -124,27 +161,31 @@ export interface ConfigVendorExport {
 export type ConfigVendorImport = ConfigVendorExport;
 
 export interface ConfigExportResponse {
-  version: 1;
+  version: 2;
+  bundle_kind: "profile_config";
   exported_at: string;
-  vendors: ConfigVendorExport[];
+  vendor_refs: ConfigVendorRef[];
   endpoints: ConfigEndpointExport[];
   pricing_templates: ConfigPricingTemplateExport[];
   loadbalance_strategies: ConfigLoadbalanceStrategyExport[];
   models: ConfigModelExport[];
-  user_settings?: ConfigUserSettingsExport | null;
+  profile_settings?: ConfigUserSettingsExport | null;
   header_blocklist_rules: HeaderBlocklistRuleExport[];
+  secret_payload: ConfigSecretPayload;
 }
 
 export interface ConfigImportRequest {
-  version: 1;
+  version: 2;
+  bundle_kind: "profile_config";
   exported_at?: string;
-  vendors: ConfigVendorImport[];
+  vendor_refs: ConfigVendorRef[];
   endpoints: ConfigEndpointImport[];
   pricing_templates: ConfigPricingTemplateImport[];
   loadbalance_strategies: ConfigLoadbalanceStrategyImport[];
   models: ConfigModelImport[];
-  user_settings?: ConfigUserSettingsImport | null;
+  profile_settings?: ConfigUserSettingsImport | null;
   header_blocklist_rules?: HeaderBlocklistRuleExport[];
+  secret_payload: ConfigSecretPayload;
 }
 
 export interface ConfigImportResponse {
@@ -153,6 +194,28 @@ export interface ConfigImportResponse {
   strategies_imported: number;
   models_imported: number;
   connections_imported: number;
+}
+
+export interface ConfigImportVendorResolution {
+  vendor_key: string;
+  resolution: "reuse" | "create";
+  warning?: string | null;
+}
+
+export interface ConfigImportPreviewResponse {
+  ready: boolean;
+  version: 2;
+  bundle_kind: "profile_config";
+  endpoints_imported: number;
+  pricing_templates_imported: number;
+  strategies_imported: number;
+  models_imported: number;
+  connections_imported: number;
+  vendor_resolutions: ConfigImportVendorResolution[];
+  secret_key_id: string;
+  decryptable_secret_refs: string[];
+  blocking_errors: string[];
+  warnings: string[];
 }
 
 export interface AuditLogListItem {

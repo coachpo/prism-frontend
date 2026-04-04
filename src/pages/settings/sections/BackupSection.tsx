@@ -4,18 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocale } from "@/i18n/useLocale";
 import { Input } from "@/components/ui/input";
-import type { ConfigImportRequest } from "@/lib/types";
+import type { ConfigImportPreviewResponse, ConfigImportRequest } from "@/lib/types";
 
 interface BackupSectionProps {
   selectedProfileLabel: string;
-  exportSecretsAcknowledged: boolean;
-  setExportSecretsAcknowledged: (checked: boolean) => void;
   exporting: boolean;
   handleExport: () => Promise<void>;
   fileInputRef: RefObject<HTMLInputElement | null>;
   handleFileSelect: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
   selectedFile: File | null;
   parsedConfig: ConfigImportRequest | null;
+  previewResult: ConfigImportPreviewResponse | null;
   importSummary: {
     endpointsCount: number;
     strategiesCount: number;
@@ -28,14 +27,13 @@ interface BackupSectionProps {
 
 export function BackupSection({
   selectedProfileLabel,
-  exportSecretsAcknowledged,
-  setExportSecretsAcknowledged,
   exporting,
   handleExport,
   fileInputRef,
   handleFileSelect,
   selectedFile,
   parsedConfig,
+  previewResult,
   importSummary,
   importing,
   handleImport,
@@ -68,21 +66,9 @@ export function BackupSection({
               <span>{copy.exportsContainApiKeys}</span>
             </div>
 
-            <label className="flex items-start gap-2 text-sm text-muted-foreground">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-input"
-                checked={exportSecretsAcknowledged}
-                onChange={(event) =>
-                  setExportSecretsAcknowledged(event.currentTarget.checked)
-                }
-              />
-              <span>{copy.acknowledgement}</span>
-            </label>
-
             <Button
               onClick={() => void handleExport()}
-              disabled={!exportSecretsAcknowledged || exporting}
+              disabled={exporting}
               className="w-full"
             >
               {exporting ? copy.exportInProgress : copy.exportConfiguration}
@@ -111,20 +97,48 @@ export function BackupSection({
             />
 
             {selectedFile && parsedConfig && (
-              <p className="text-sm text-muted-foreground">
-                {copy.loadedSummary(
-                  selectedFile.name,
-                  formatNumber(importSummary.endpointsCount),
-                  formatNumber(importSummary.strategiesCount),
-                  formatNumber(importSummary.modelsCount),
-                  formatNumber(importSummary.connectionsCount),
-                )}
-              </p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  {copy.loadedSummary(
+                    selectedFile.name,
+                    formatNumber(importSummary.endpointsCount),
+                    formatNumber(importSummary.strategiesCount),
+                    formatNumber(importSummary.modelsCount),
+                    formatNumber(importSummary.connectionsCount),
+                  )}
+                </p>
+
+                {previewResult?.ready ? (
+                  <p className="text-emerald-700 dark:text-emerald-400">{copy.previewReady}</p>
+                ) : null}
+
+                {previewResult?.warnings.length ? (
+                  <div className="space-y-1 text-amber-700 dark:text-amber-400">
+                    <p className="font-medium">{copy.previewWarnings}</p>
+                    <ul className="list-disc pl-5">
+                      {previewResult.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {previewResult?.blocking_errors.length ? (
+                  <div className="space-y-1 text-destructive">
+                    <p className="font-medium">{copy.previewBlockingErrors}</p>
+                    <ul className="list-disc pl-5">
+                      {previewResult.blocking_errors.map((error) => (
+                        <li key={error}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
             )}
 
             <Button
               onClick={() => void handleImport()}
-              disabled={!parsedConfig || importing}
+              disabled={!parsedConfig || !previewResult?.ready || importing}
               variant="destructive"
               className="w-full"
             >

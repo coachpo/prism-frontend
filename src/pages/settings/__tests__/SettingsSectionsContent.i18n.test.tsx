@@ -17,14 +17,13 @@ describe("settings sections content i18n", () => {
       <LocaleProvider>
         <BackupSection
           selectedProfileLabel="Default (#1)"
-          exportSecretsAcknowledged={false}
-          setExportSecretsAcknowledged={vi.fn()}
           exporting={false}
           handleExport={vi.fn()}
           fileInputRef={{ current: null }}
           handleFileSelect={vi.fn()}
           selectedFile={null}
           parsedConfig={null}
+          previewResult={null}
           importSummary={{ endpointsCount: 0, strategiesCount: 0, modelsCount: 0, connectionsCount: 0 }}
           importing={false}
           handleImport={vi.fn()}

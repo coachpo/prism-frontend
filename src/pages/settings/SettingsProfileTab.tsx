@@ -53,14 +53,13 @@ export function SettingsProfileTab({
         <div className="space-y-6">
           <BackupSection
             selectedProfileLabel={data.selectedProfileLabel}
-            exportSecretsAcknowledged={data.exportSecretsAcknowledged}
-            setExportSecretsAcknowledged={data.setExportSecretsAcknowledged}
             exporting={data.exporting}
             handleExport={data.handleExport}
             fileInputRef={data.fileInputRef}
             handleFileSelect={data.handleFileSelect}
             selectedFile={data.selectedFile}
             parsedConfig={data.parsedConfig}
+            previewResult={data.previewResult}
             importSummary={data.importSummary}
             importing={data.importing}
             handleImport={data.handleImport}

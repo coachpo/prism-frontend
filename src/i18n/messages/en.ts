@@ -610,6 +610,9 @@ export interface Messages {
     importDescription: string;
     importInProgress: string;
     loadedSummary: (fileName: string, endpoints: string, strategies: string, models: string, connections: string) => string;
+    previewBlockingErrors: string;
+    previewReady: string;
+    previewWarnings: string;
     title: string;
   };
   settingsBackupData: {
@@ -2197,16 +2200,19 @@ export const enMessages: Messages = {
     acknowledgement: "I understand this export includes endpoint API keys.",
     export: "Export",
     exportConfiguration: "Export Configuration",
-    exportDescription: "Download models, endpoints, blocklist rules, and reporting settings.",
+    exportDescription: "Download a profile bundle with encrypted endpoint secrets and profile-scoped configuration.",
     exportInProgress: "Exporting...",
     exportRestoreSnapshots: (profileLabel) => `Export or restore configuration snapshots for ${profileLabel}.`,
-    exportsContainApiKeys: "Exports include decrypted endpoint API keys. Handle backup files as sensitive credentials.",
+    exportsContainApiKeys: "Exports include encrypted endpoint secrets and can be imported only on instances that use the matching bundle key.",
     import: "Import",
     importConfiguration: "Import Configuration",
-    importDescription: "Upload a configuration JSON backup file and restore this profile's configuration.",
+    importDescription: "Upload a version 2 profile bundle, review the preview result, and then restore this profile's configuration.",
     importInProgress: "Importing...",
     loadedSummary: (fileName, endpoints, strategies, models, connections) =>
       `Loaded ${fileName}: ${endpoints} endpoints, ${strategies} strategies, ${models} models, ${connections} connections.`,
+    previewBlockingErrors: "Preview blocking errors",
+    previewReady: "Preview ready for import",
+    previewWarnings: "Preview warnings",
     title: "Backup",
   },
   settingsBackupData: {

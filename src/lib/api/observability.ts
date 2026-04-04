@@ -5,6 +5,7 @@ import type {
   AuditLogParams,
   BatchDeleteResponse,
   ConfigExportResponse,
+  ConfigImportPreviewResponse,
   ConfigImportRequest,
   ConfigImportResponse,
   ConnectionSuccessRate,
@@ -126,9 +127,14 @@ export const settingsMonitoring = {
 };
 
 export const config = {
-  export: () => request<ConfigExportResponse>("/api/config/export"),
+  export: () => request<ConfigExportResponse>("/api/config/profile/export"),
+  previewImport: (data: ConfigImportRequest) =>
+    request<ConfigImportPreviewResponse>("/api/config/profile/import/preview", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   import: (data: ConfigImportRequest) =>
-    request<ConfigImportResponse>("/api/config/import", {
+    request<ConfigImportResponse>("/api/config/profile/import", {
       method: "POST",
       body: JSON.stringify(data),
     }),
