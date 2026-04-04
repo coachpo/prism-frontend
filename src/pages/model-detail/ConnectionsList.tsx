@@ -162,6 +162,7 @@ export function ConnectionsList({
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
+                name="connections_search"
                 placeholder={copy.filterConnections}
                 value={connectionSearch}
                 onChange={(event) => setConnectionSearch(event.target.value)}

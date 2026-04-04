@@ -40,6 +40,7 @@ export function EndpointsPage() {
           <div className="relative w-full xl:max-w-sm">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              name="endpoints_search"
               type="search"
               placeholder={copy.searchEndpoints}
               value={data.searchQuery}
