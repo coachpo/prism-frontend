@@ -33,7 +33,8 @@ export function UsageTablesSection({
 }: UsageTablesSectionProps) {
   return (
     <>
-      <div className="grid gap-6 2xl:grid-cols-2">
+      <div className="space-y-6">
+        <ModelStatisticsTable currency={currency} items={modelStatistics} />
         <EndpointStatisticsTable
           currency={currency}
           endpointModelStatisticsByEndpointId={endpointModelStatisticsByEndpointId}
@@ -43,7 +44,6 @@ export function UsageTablesSection({
           key={tableResetKey}
           onLoadEndpointModelStatistics={onLoadEndpointModelStatistics}
         />
-        <ModelStatisticsTable currency={currency} items={modelStatistics} />
       </div>
 
       <ProxyApiKeyStatisticsTable currency={currency} items={proxyApiKeyStatistics} />
