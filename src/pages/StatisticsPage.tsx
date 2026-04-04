@@ -107,9 +107,14 @@ export function StatisticsPage() {
 
           <UsageTablesSection
             currency={snapshot.currency}
+            endpointModelStatisticsByEndpointId={data.endpointModelStatisticsByEndpointId}
+            endpointModelStatisticsErrors={data.endpointModelStatisticsErrors}
+            endpointModelStatisticsLoading={data.endpointModelStatisticsLoading}
             endpointStatistics={snapshot.endpoint_statistics}
             modelStatistics={snapshot.model_statistics}
+            onLoadEndpointModelStatistics={data.loadEndpointModelStatistics}
             proxyApiKeyStatistics={snapshot.proxy_api_key_statistics}
+            tableResetKey={String(data.endpointModelStatisticsScopeKey)}
           />
         </div>
       ) : null}

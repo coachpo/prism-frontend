@@ -6,6 +6,14 @@ import type { UsageSnapshotResponse } from "@/lib/types";
 import { StatisticsPage } from "@/pages/StatisticsPage";
 import { installLocalStorageMock } from "./storage";
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
 vi.mock("recharts", async () => {
   const actual = await vi.importActual<typeof import("recharts")>("recharts");
   return {
@@ -21,6 +29,7 @@ const api = vi.hoisted(() => ({
     },
   },
   stats: {
+    endpointModelStatistics: vi.fn(),
     usageSnapshot: vi.fn(),
   },
 }));
@@ -45,6 +54,7 @@ function createSnapshot(
   endpointLabel: string,
   proxyLabel: string,
   statusCode: number,
+  generatedAt = "2026-03-27T12:00:00Z",
 ): UsageSnapshotResponse {
   return {
     cost_overview: {
@@ -65,7 +75,7 @@ function createSnapshot(
         total_tokens: totalRequests * 100,
       },
     ],
-    generated_at: "2026-03-27T12:00:00Z",
+    generated_at: generatedAt,
     model_statistics: [
       {
         model_id: "gpt-5.4",
@@ -207,6 +217,16 @@ describe("StatisticsPage refresh flow", () => {
     localStorage.clear();
     vi.clearAllMocks();
     api.settings.timezone.get.mockResolvedValue({ timezone_preference: "UTC" });
+    api.stats.endpointModelStatistics.mockResolvedValue([
+      {
+        model_id: "gpt-5.4",
+        model_label: "GPT-5.4",
+        request_count: 2,
+        success_rate: 100,
+        total_cost_micros: 2000,
+        total_tokens: 200,
+      },
+    ]);
     Object.defineProperty(globalThis, "ResizeObserver", {
       configurable: true,
       value: ResizeObserverMock,
@@ -214,7 +234,7 @@ describe("StatisticsPage refresh flow", () => {
     });
   });
 
-  it("re-fetches the usage snapshot and updates the surviving table surfaces when refreshed", async () => {
+  it("re-fetches the usage snapshot and collapses lazy endpoint details when refreshed", async () => {
     api.stats.usageSnapshot
       .mockResolvedValueOnce(createSnapshot(2, "Primary Endpoint", "Primary runtime key", 200))
       .mockResolvedValueOnce(createSnapshot(9, "Fallback Endpoint", "Fallback runtime key", 503));
@@ -227,12 +247,26 @@ describe("StatisticsPage refresh flow", () => {
       </MemoryRouter>,
     );
 
-    const endpointTable = await screen.findByTestId("statistics-endpoint-table");
+    await screen.findByTestId("statistics-endpoint-table");
     const proxyKeyTable = await screen.findByTestId("statistics-proxy-key-table");
 
     await waitFor(() => {
-      expect(within(endpointTable).getByText("Primary Endpoint")).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId("statistics-endpoint-table")).getByRole("button", {
+          name: /Primary Endpoint/i,
+        }),
+      ).toBeInTheDocument();
       expect(within(proxyKeyTable).getByText("Primary runtime key")).toBeInTheDocument();
+    });
+
+    fireEvent.click(within(screen.getByTestId("statistics-endpoint-table")).getAllByRole("button")[0]!);
+
+    await waitFor(() => {
+      expect(api.stats.endpointModelStatistics).toHaveBeenCalledWith(10, {
+        from_time: "2026-03-26T12:00:00Z",
+        to_time: "2026-03-27T12:00:00Z",
+      });
+      expect(within(screen.getByTestId("statistics-endpoint-table")).getByText("GPT-5.4")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh usage statistics" }));
@@ -242,11 +276,69 @@ describe("StatisticsPage refresh flow", () => {
     });
 
     await waitFor(() => {
-      expect(within(endpointTable).getByText("Fallback Endpoint")).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId("statistics-endpoint-table")).getByRole("button", {
+          name: /Fallback Endpoint/i,
+        }),
+      ).toBeInTheDocument();
       expect(within(proxyKeyTable).getByText("Fallback runtime key")).toBeInTheDocument();
     });
 
-    expect(within(endpointTable).queryByText("Primary Endpoint")).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("statistics-endpoint-table")).queryByRole("button", {
+        name: /Primary Endpoint/i,
+      }),
+    ).not.toBeInTheDocument();
+    expect(within(screen.getByTestId("statistics-endpoint-table")).queryByText("GPT-5.4")).not.toBeInTheDocument();
     expect(within(proxyKeyTable).queryByText("Primary runtime key")).not.toBeInTheDocument();
+  });
+
+  it("collapses open endpoint details immediately when refreshing the same endpoint row", async () => {
+    const deferredSnapshot = createDeferred<UsageSnapshotResponse>();
+
+    api.stats.usageSnapshot
+      .mockResolvedValueOnce(createSnapshot(2, "Primary Endpoint", "Primary runtime key", 200))
+      .mockImplementationOnce(() => deferredSnapshot.promise);
+
+    render(
+      <MemoryRouter>
+        <LocaleProvider>
+          <StatisticsPage />
+        </LocaleProvider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(
+        within(screen.getByTestId("statistics-endpoint-table")).getByRole("button", {
+          name: /Primary Endpoint/i,
+        }),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(within(screen.getByTestId("statistics-endpoint-table")).getAllByRole("button")[0]!);
+
+    await waitFor(() => {
+      expect(within(screen.getByTestId("statistics-endpoint-table")).getByText("GPT-5.4")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh usage statistics" }));
+
+    await waitFor(() => {
+      expect(within(screen.getByTestId("statistics-endpoint-table")).queryByText("GPT-5.4")).not.toBeInTheDocument();
+    });
+
+    deferredSnapshot.resolve(
+      createSnapshot(5, "Primary Endpoint", "Primary runtime key", 200, "2026-03-27T12:05:00Z"),
+    );
+
+    await waitFor(() => {
+      expect(
+        within(screen.getByTestId("statistics-endpoint-table")).getByRole("button", {
+          name: /Primary Endpoint/i,
+        }),
+      ).toBeInTheDocument();
+      expect(within(screen.getByTestId("statistics-endpoint-table")).queryByText("GPT-5.4")).not.toBeInTheDocument();
+    });
   });
 });

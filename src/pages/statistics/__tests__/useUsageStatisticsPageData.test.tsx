@@ -1,15 +1,25 @@
 import type { ReactNode } from "react";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type {
+  UsageModelStatistic,
   UsageSnapshotResponse,
   UsageStatisticsPageState,
 } from "@/lib/types";
 import { useUsageStatisticsPageData } from "../useUsageStatisticsPageData";
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
 const api = vi.hoisted(() => ({
   stats: {
+    endpointModelStatistics: vi.fn(),
     usageSnapshot: vi.fn(),
   },
 }));
@@ -32,7 +42,7 @@ function createState(
   };
 }
 
-function createSnapshot(): UsageSnapshotResponse {
+function createSnapshot(overrides?: Partial<UsageSnapshotResponse>): UsageSnapshotResponse {
   return {
     cost_overview: {
       daily: [{ bucket_start: "2026-03-27T00:00:00Z", total_cost_micros: 4200 }],
@@ -213,6 +223,7 @@ function createSnapshot(): UsageSnapshotResponse {
       end_at: "2026-03-27T12:00:00Z",
       preset: "7h",
       start_at: "2026-03-27T05:00:00Z",
+      ...overrides?.time_range,
     },
     token_type_breakdown: {
       daily: [
@@ -288,6 +299,7 @@ function createSnapshot(): UsageSnapshotResponse {
         },
       ],
     },
+    ...overrides,
   };
 }
 
@@ -295,6 +307,16 @@ describe("useUsageStatisticsPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.stats.usageSnapshot.mockResolvedValue(createSnapshot());
+    api.stats.endpointModelStatistics.mockResolvedValue([
+      {
+        model_id: "claude-sonnet-4-6",
+        model_label: "Claude Sonnet 4.6",
+        request_count: 1,
+        success_rate: 100,
+        total_cost_micros: 1200,
+        total_tokens: 60,
+      },
+    ]);
   });
 
   function wrapper({ children }: { children: ReactNode }) {
@@ -345,5 +367,291 @@ describe("useUsageStatisticsPageData", () => {
     );
     expect(result.current).not.toHaveProperty("requestEvents");
     expect(result.current).not.toHaveProperty("requestEventsTotal");
+  });
+
+  it("lazy-loads endpoint model statistics against the current snapshot window and clears the cache on refresh", async () => {
+    const { result } = renderHook(
+      () =>
+        useUsageStatisticsPageData({
+          revision: 3,
+          selectedProfileId: 1,
+          state: createState({ selectedTimeRange: "7h" }),
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(api.stats.endpointModelStatistics).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.loadEndpointModelStatistics(10);
+    });
+
+    await waitFor(() => {
+      expect(result.current.endpointModelStatisticsByEndpointId[10]).toEqual([
+        {
+          model_id: "claude-sonnet-4-6",
+          model_label: "Claude Sonnet 4.6",
+          request_count: 1,
+          success_rate: 100,
+          total_cost_micros: 1200,
+          total_tokens: 60,
+        },
+      ]);
+    });
+
+    expect(api.stats.endpointModelStatistics).toHaveBeenCalledWith(10, {
+      from_time: "2026-03-27T05:00:00Z",
+      to_time: "2026-03-27T12:00:00Z",
+    });
+
+    await act(async () => {
+      await result.current.loadEndpointModelStatistics(10);
+    });
+    expect(api.stats.endpointModelStatistics).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    await waitFor(() => {
+      expect(api.stats.usageSnapshot).toHaveBeenCalledTimes(2);
+      expect(result.current.endpointModelStatisticsByEndpointId).toEqual({});
+    });
+
+    await act(async () => {
+      await result.current.loadEndpointModelStatistics(10);
+    });
+
+    await waitFor(() => {
+      expect(api.stats.endpointModelStatistics).toHaveBeenNthCalledWith(2, 10, {
+        from_time: "2026-03-27T05:00:00Z",
+        to_time: "2026-03-27T12:00:00Z",
+      });
+    });
+  });
+
+  it("clears endpoint model detail cache when the selected time range changes", async () => {
+    const { result, rerender } = renderHook(
+      ({ selectedProfileId, state }) =>
+        useUsageStatisticsPageData({
+          revision: 3,
+          selectedProfileId,
+          state,
+        }),
+      {
+        initialProps: { selectedProfileId: 1, state: createState({ selectedTimeRange: "24h" }) },
+        wrapper,
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.loadEndpointModelStatistics(10);
+    });
+
+    await waitFor(() => {
+      expect(api.stats.endpointModelStatistics).toHaveBeenCalledWith(10, {
+        from_time: "2026-03-27T05:00:00Z",
+        to_time: "2026-03-27T12:00:00Z",
+      });
+    });
+
+    rerender({ selectedProfileId: 1, state: createState({ selectedTimeRange: "7d" }) });
+
+    await waitFor(() => {
+      expect(api.stats.usageSnapshot).toHaveBeenLastCalledWith({ preset: "7d" });
+      expect(result.current.endpointModelStatisticsByEndpointId).toEqual({});
+    });
+
+    await act(async () => {
+      await result.current.loadEndpointModelStatistics(10);
+    });
+
+    await waitFor(() => {
+      expect(api.stats.endpointModelStatistics).toHaveBeenLastCalledWith(10, {
+        from_time: "2026-03-27T05:00:00Z",
+        to_time: "2026-03-27T12:00:00Z",
+      });
+    });
+  });
+
+  it("clears endpoint model detail cache when the selected profile changes", async () => {
+    const { result, rerender } = renderHook(
+      ({ selectedProfileId }) =>
+        useUsageStatisticsPageData({
+          revision: 3,
+          selectedProfileId,
+          state: createState({ selectedTimeRange: "24h" }),
+        }),
+      {
+        initialProps: { selectedProfileId: 1 },
+        wrapper,
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.loadEndpointModelStatistics(10);
+    });
+
+    await waitFor(() => {
+      expect(result.current.endpointModelStatisticsByEndpointId[10]).toBeDefined();
+    });
+
+    rerender({ selectedProfileId: 2 });
+
+    await waitFor(() => {
+      expect(api.stats.usageSnapshot).toHaveBeenCalledTimes(2);
+      expect(result.current.endpointModelStatisticsByEndpointId).toEqual({});
+    });
+  });
+
+  it("ignores stale endpoint model detail responses after the scope changes", async () => {
+    const deferred = createDeferred<UsageModelStatistic[]>();
+    api.stats.endpointModelStatistics.mockReset();
+    api.stats.endpointModelStatistics.mockImplementationOnce(() => deferred.promise);
+
+    const { result, rerender } = renderHook(
+      ({ state }) =>
+        useUsageStatisticsPageData({
+          revision: 3,
+          selectedProfileId: 1,
+          state,
+        }),
+      {
+        initialProps: { state: createState({ selectedTimeRange: "24h" }) },
+        wrapper,
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      void result.current.loadEndpointModelStatistics(10);
+      await Promise.resolve();
+    });
+
+    rerender({ state: createState({ selectedTimeRange: "7d" }) });
+
+    await waitFor(() => {
+      expect(result.current.endpointModelStatisticsByEndpointId).toEqual({});
+    });
+
+    await act(async () => {
+      deferred.resolve([
+        {
+          model_id: "stale-model",
+          model_label: "Stale Model",
+          request_count: 99,
+          success_rate: 100,
+          total_cost_micros: 9999,
+          total_tokens: 999,
+        },
+      ]);
+      await deferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.endpointModelStatisticsByEndpointId).toEqual({});
+    });
+  });
+
+  it("ignores endpoint detail responses that started during refresh after the new snapshot is accepted", async () => {
+    const deferredSnapshot = createDeferred<UsageSnapshotResponse>();
+    const deferredDetails = createDeferred<UsageModelStatistic[]>();
+
+    api.stats.usageSnapshot.mockReset();
+    api.stats.usageSnapshot
+      .mockResolvedValueOnce(createSnapshot())
+      .mockImplementationOnce(() => deferredSnapshot.promise);
+    api.stats.endpointModelStatistics.mockReset();
+    api.stats.endpointModelStatistics.mockImplementationOnce(() => deferredDetails.promise);
+
+    const { result } = renderHook(
+      () =>
+        useUsageStatisticsPageData({
+          revision: 3,
+          selectedProfileId: 1,
+          state: createState({ selectedTimeRange: "7h" }),
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      void result.current.refresh();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(true);
+    });
+
+    await act(async () => {
+      void result.current.loadEndpointModelStatistics(10);
+      await Promise.resolve();
+    });
+
+    expect(api.stats.endpointModelStatistics).toHaveBeenCalledWith(10, {
+      from_time: "2026-03-27T05:00:00Z",
+      to_time: "2026-03-27T12:00:00Z",
+    });
+
+    await act(async () => {
+      deferredSnapshot.resolve(
+        createSnapshot({
+          generated_at: "2026-03-27T12:05:00Z",
+          overview: {
+            ...createSnapshot().overview,
+            total_requests: 9,
+          },
+          time_range: {
+            end_at: "2026-03-27T12:05:00Z",
+            preset: "7h",
+            start_at: "2026-03-27T05:05:00Z",
+          },
+        }),
+      );
+      await deferredSnapshot.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.snapshot?.generated_at).toBe("2026-03-27T12:05:00Z");
+      expect(result.current.endpointModelStatisticsByEndpointId).toEqual({});
+    });
+
+    await act(async () => {
+      deferredDetails.resolve([
+        {
+          model_id: "stale-model",
+          model_label: "Stale Model",
+          request_count: 99,
+          success_rate: 100,
+          total_cost_micros: 9999,
+          total_tokens: 999,
+        },
+      ]);
+      await deferredDetails.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.snapshot?.generated_at).toBe("2026-03-27T12:05:00Z");
+      expect(result.current.endpointModelStatisticsByEndpointId).toEqual({});
+    });
   });
 });
