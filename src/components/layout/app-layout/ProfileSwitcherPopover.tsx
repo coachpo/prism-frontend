@@ -93,6 +93,7 @@ export function ProfileSwitcherPopover({
           <p className="text-sm font-semibold">{messages.profiles.selectProfile}</p>
           <Input
             ref={profileSearchInputRef}
+            name="profile_query"
             className="mt-2"
             value={profileQuery}
             onChange={(event) => setProfileQuery(event.target.value)}
