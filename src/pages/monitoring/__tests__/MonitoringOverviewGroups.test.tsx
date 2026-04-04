@@ -43,8 +43,12 @@ describe("MonitoringOverviewGroups", () => {
     expect(vendorLink).toHaveAttribute("href", "/monitoring/vendors/1");
     expect(within(vendorLink).getByText("OpenAI")).toBeInTheDocument();
     expect(within(vendorLink).getByText("1 models · 1 connections")).toBeInTheDocument();
-    expect(within(vendorLink).getByText("0 healthy")).toBeInTheDocument();
-    expect(within(vendorLink).getByText("1 degraded")).toBeInTheDocument();
+
+    const summaryTiles = within(vendorLink).getAllByTestId("monitoring-connection-summary-tile");
+    expect(within(summaryTiles[2]).getByText("Healthy")).toBeInTheDocument();
+    expect(within(summaryTiles[2]).getByText("0")).toBeInTheDocument();
+    expect(within(summaryTiles[3]).getByText("Degraded")).toBeInTheDocument();
+    expect(within(summaryTiles[3]).getByText("1")).toBeInTheDocument();
 
     const vendorIcon = within(vendorLink).getByRole("img", { name: "Vendor icon OpenAI" });
     expect(vendorIcon).toBeInTheDocument();

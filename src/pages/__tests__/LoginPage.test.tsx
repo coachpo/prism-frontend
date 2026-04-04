@@ -86,7 +86,7 @@ describe("LoginPage", () => {
     expect(screen.getByText(/or continue with/i)).toBeInTheDocument();
   });
 
-  it("renders explicit login field autocomplete semantics", () => {
+  it("renders login field autocomplete with autofill disabled", () => {
     render(
       <LocaleProvider>
         <MemoryRouter initialEntries={["/login"]}>
@@ -99,17 +99,17 @@ describe("LoginPage", () => {
     const passwordInput = screen.getByLabelText("Password");
 
     expect(usernameInput).toHaveAttribute("name", "username");
-    expect(usernameInput).toHaveAttribute("autocomplete", "username");
+    expect(usernameInput).toHaveAttribute("autocomplete", "off");
     expect(passwordInput).toHaveAttribute("name", "password");
-    expect(passwordInput).toHaveAttribute("autocomplete", "current-password");
+    expect(passwordInput).toHaveAttribute("autocomplete", "off");
   });
 
-  it("renders explicit forgot-password field semantics on the public auth route", async () => {
+  it("renders forgot-password field autocomplete with autofill disabled", async () => {
     const view = await renderAppRoute("/forgot-password");
     const usernameOrEmailInput = await screen.findByLabelText(/username or email/i);
 
     expect(usernameOrEmailInput).toHaveAttribute("name", "username_or_email");
-    expect(usernameOrEmailInput).toHaveAttribute("autocomplete", "username");
+    expect(usernameOrEmailInput).toHaveAttribute("autocomplete", "off");
 
     view.unmount();
   });
@@ -120,9 +120,9 @@ describe("LoginPage", () => {
     const newPasswordInput = screen.getByLabelText(/new password/i);
 
     expect(otpCodeInput).toHaveAttribute("name", "otp_code");
-    expect(otpCodeInput).toHaveAttribute("autocomplete", "one-time-code");
+    expect(otpCodeInput).toHaveAttribute("autocomplete", "off");
     expect(newPasswordInput).toHaveAttribute("name", "new_password");
-    expect(newPasswordInput).toHaveAttribute("autocomplete", "new-password");
+    expect(newPasswordInput).toHaveAttribute("autocomplete", "off");
 
     view.unmount();
   });

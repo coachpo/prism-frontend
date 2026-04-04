@@ -26,7 +26,7 @@ describe("EndpointDialog i18n", () => {
     expect(screen.getByText("基础 URL")).toBeInTheDocument();
     expect(screen.getByText("API 密钥")).toBeInTheDocument();
     expect(screen.getByLabelText("名称")).toHaveAttribute("autocomplete", "off");
-    expect(screen.getByLabelText("基础 URL")).toHaveAttribute("autocomplete", "url");
+    expect(screen.getByLabelText("基础 URL")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("API 密钥")).toHaveAttribute("autocomplete", "off");
   });
 });

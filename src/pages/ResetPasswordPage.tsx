@@ -53,7 +53,7 @@ export function ResetPasswordPage() {
                 <Input
                   id="otp-code"
                   name="otp_code"
-                  autoComplete="one-time-code"
+                  autoComplete="off"
                   value={otpCode}
                   onChange={(event) => setOtpCode(event.target.value)}
                 />
@@ -64,7 +64,7 @@ export function ResetPasswordPage() {
                   id="new-password"
                   name="new_password"
                   type="password"
-                  autoComplete="new-password"
+                  autoComplete="off"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                 />
@@ -82,3 +82,4 @@ export function ResetPasswordPage() {
     </div>
   );
 }
+

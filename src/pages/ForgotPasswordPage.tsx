@@ -52,7 +52,7 @@ export function ForgotPasswordPage() {
                 <Input
                   id="username-or-email"
                   name="username_or_email"
-                  autoComplete="username"
+                  autoComplete="off"
                   value={usernameOrEmail}
                   onChange={(event) => setUsernameOrEmail(event.target.value)}
                 />

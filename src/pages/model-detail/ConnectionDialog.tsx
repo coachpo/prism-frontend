@@ -223,7 +223,7 @@ export function ConnectionDialog({
                       <Input
                         id="endpoint-base-url"
                         name="endpoint_base_url"
-                        autoComplete="url"
+                        autoComplete="off"
                         placeholder={copy.endpointBaseUrlPlaceholder}
                         value={newEndpointForm.base_url}
                         onChange={(e) => setNewEndpointForm({ ...newEndpointForm, base_url: e.target.value })}
