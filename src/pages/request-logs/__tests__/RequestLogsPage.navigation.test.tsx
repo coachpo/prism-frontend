@@ -56,7 +56,7 @@ vi.mock("../useRequestLogPageState", () => ({
 }));
 
 vi.mock("../useRequestLogsPageData", () => ({
-  useRequestLogsPageData: () => mockUseRequestLogsPageData(),
+  useRequestLogsPageData: (params: unknown) => mockUseRequestLogsPageData(params),
 }));
 
 vi.mock("../useRequestLogDetail", () => ({
@@ -65,7 +65,9 @@ vi.mock("../useRequestLogDetail", () => ({
 }));
 
 vi.mock("../clientFilters", () => ({
-  applyClientFilters: (items: RequestLogListItem[]) => items,
+  applyClientFilters: () => {
+    throw new Error("RequestLogsPage should not import clientFilters");
+  },
 }));
 
 vi.mock("../RequestFocusBanner", () => ({
@@ -316,6 +318,11 @@ describe("RequestLogsPage request detail loading", () => {
 
     render(<RequestLogsPage />);
 
+    expect(mockUseRequestLogsPageData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enabled: false,
+      }),
+    );
     expect(mockUseRequestLogDetail).toHaveBeenCalledWith({
       requestId: 42,
       enabled: true,

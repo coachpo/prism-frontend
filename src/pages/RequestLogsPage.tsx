@@ -7,7 +7,6 @@ import { useLocale } from "@/i18n/useLocale";
 import { useRequestLogPageState } from "./request-logs/useRequestLogPageState";
 import { useRequestLogDetail } from "./request-logs/useRequestLogDetail";
 import { useRequestLogsPageData } from "./request-logs/useRequestLogsPageData";
-import { applyClientFilters } from "./request-logs/clientFilters";
 import { RequestFocusBanner } from "./request-logs/RequestFocusBanner";
 import { FiltersBar } from "./request-logs/FiltersBar";
 import { RequestLogsTable } from "./request-logs/RequestLogsTable";
@@ -33,21 +32,7 @@ export function RequestLogsPage() {
   const { state, isExactMode } = actions;
 
   const { items, total, loading, error, filterOptions, filterOptionsLoaded, refresh } =
-    useRequestLogsPageData({ revision, state });
-
-  const filteredItems = useMemo(
-    () =>
-      applyClientFilters(items, {
-        search: state.search,
-        outcome_filter: state.outcome_filter,
-        stream_filter: state.stream_filter,
-        latency_bucket: state.latency_bucket,
-        token_min: state.token_min,
-        token_max: state.token_max,
-        triage: state.triage,
-      }),
-    [items, state.search, state.outcome_filter, state.stream_filter, state.latency_bucket, state.token_min, state.token_max, state.triage]
-  );
+    useRequestLogsPageData({ revision, state, enabled: !isExactMode });
 
   const selectedRequestId = useMemo(() => {
     if (isExactMode) {
@@ -193,7 +178,7 @@ export function RequestLogsPage() {
           </div>
         ) : (
           <RequestLogsTable
-            items={filteredItems}
+            items={items}
             total={total}
             loading={loading}
             limit={state.limit}
