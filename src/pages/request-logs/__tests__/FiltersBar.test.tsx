@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { FiltersBar } from "../FiltersBar";
 import { FiltersBarPrimaryFilters } from "../FiltersBarPrimaryFilters";
-import type { RequestLogPageActions } from "../useRequestLogPageState";
 
 function renderWithLocale(ui: React.ReactElement) {
   return render(<LocaleProvider>{ui}</LocaleProvider>);
@@ -22,16 +21,32 @@ function createPrimaryActions() {
   };
 }
 
-function createFiltersBarActions(): RequestLogPageActions {
+function createPrimaryState(overrides: Record<string, unknown> = {}) {
+  return {
+    ingress_request_id: "",
+    endpoint_id: "",
+    model_id: "",
+    api_family: "",
+    search: "",
+    status_family: "all" as const,
+    time_range: "24h" as const,
+    ...overrides,
+  };
+}
+
+function createFilterOptions(overrides: Record<string, unknown> = {}) {
+  return {
+    apiFamilies: [],
+    endpoints: [],
+    models: [],
+    ...overrides,
+  };
+}
+
+function createFiltersBarActions() {
   return {
     state: {
-      ingress_request_id: "",
-      model_id: "",
-      api_family: "",
-      endpoint_id: "",
-      time_range: "24h" as const,
-      status_family: "all" as const,
-      search: "",
+      ...createPrimaryState(),
       outcome_filter: "all" as const,
       stream_filter: "all" as const,
       latency_bucket: "all" as const,
@@ -75,29 +90,19 @@ describe("request log filters", () => {
     localStorage.clear();
   });
 
-  it("renders request lookup and ingress filtering in the primary controls", () => {
+  it("renders only request lookup and retained browse filters in the primary controls", () => {
     const actions = createPrimaryActions();
+    const filterOptions = createFilterOptions();
+    const state = createPrimaryState();
 
     renderWithLocale(
       <FiltersBarPrimaryFilters
-        filterOptions={{ apiFamilies: [], endpoints: [], models: [] }}
+        filterOptions={filterOptions}
         filterOptionsLoaded={true}
-        state={{
-          ingress_request_id: "",
-          endpoint_id: "",
-          model_id: "",
-          api_family: "",
-          search: "",
-          status_family: "all",
-          time_range: "24h",
-        }}
+        state={state}
         actions={actions}
       />,
     );
-
-    fireEvent.change(screen.getByPlaceholderText(/model, vendor, path, or error/i), {
-      target: { value: "gateway error" },
-    });
 
     const requestIdInput = screen.getByPlaceholderText("Request ID");
     fireEvent.change(requestIdInput, { target: { value: "42" } });
@@ -107,111 +112,102 @@ describe("request log filters", () => {
       target: { value: "ingress_req_42" },
     });
 
-    expect(screen.getByText("Search")).toBeInTheDocument();
+    expect(screen.queryByText("Search")).not.toBeInTheDocument();
+    expect(screen.queryByText("API Family")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/model, vendor, path, or error/i)).not.toBeInTheDocument();
     expect(screen.getByText("Request ID")).toBeInTheDocument();
     expect(screen.getByText("Ingress request ID")).toBeInTheDocument();
+    expect(screen.getByText("Model")).toBeInTheDocument();
+    expect(screen.getByText("Endpoint")).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
+    expect(screen.getByText(/time range/i)).toBeInTheDocument();
     expect(screen.queryByText("Connection")).not.toBeInTheDocument();
-    expect(actions.setSearch).toHaveBeenCalledWith("gateway error");
     expect(actions.setRequestId).toHaveBeenCalledWith("42");
     expect(actions.setIngressRequestId).toHaveBeenCalledWith("ingress_req_42");
   });
 
-  it("renders a single dense filter surface without local refinement or view controls", () => {
+  it("renders a single simplified filter surface without removed local refinements", () => {
     const actions = createFiltersBarActions();
 
     renderWithLocale(
       <FiltersBar
         actions={actions}
-        filterOptions={{ apiFamilies: [], endpoints: [], models: [] }}
+        filterOptions={createFilterOptions()}
         filterOptionsLoaded={true}
         onRefresh={vi.fn()}
         isRefreshing={false}
       />,
     );
 
-    expect(screen.getByText("Outcome")).toBeInTheDocument();
-    expect(screen.getByText("Stream")).toBeInTheDocument();
-    expect(screen.getByText("Latency")).toBeInTheDocument();
-    expect(screen.getByText("Token range")).toBeInTheDocument();
-    expect(screen.getByText("Triage")).toBeInTheDocument();
+    expect(screen.queryByText("Outcome")).not.toBeInTheDocument();
+    expect(screen.queryByText("Stream")).not.toBeInTheDocument();
+    expect(screen.queryByText("Latency")).not.toBeInTheDocument();
+    expect(screen.queryByText("Token range")).not.toBeInTheDocument();
+    expect(screen.queryByText("Triage")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /refresh request logs/i })).toBeInTheDocument();
     expect(screen.queryByText("Local refinement")).not.toBeInTheDocument();
     expect(screen.queryByText("View")).not.toBeInTheDocument();
     expect(screen.queryByText("Connection")).not.toBeInTheDocument();
   });
 
-  it("renders localized request-log filter copy when the saved locale is Chinese", () => {
+  it("renders localized retained request-log filter copy when the saved locale is Chinese", () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
     renderWithLocale(
       <FiltersBarPrimaryFilters
-        filterOptions={{ apiFamilies: [], endpoints: [], models: [] }}
+        filterOptions={createFilterOptions()}
         filterOptionsLoaded={true}
-        state={{
-          ingress_request_id: "",
-          endpoint_id: "",
-          model_id: "",
-          api_family: "",
-          search: "",
-          status_family: "all",
-          time_range: "24h",
-        }}
+        state={createPrimaryState()}
         actions={createPrimaryActions()}
       />,
     );
 
-    expect(screen.getByText("搜索")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("模型、供应商、路径或错误")).toBeInTheDocument();
+    expect(screen.queryByText("搜索")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("模型、供应商、路径或错误")).not.toBeInTheDocument();
     expect(screen.getByText("请求 ID")).toBeInTheDocument();
     expect(screen.getByText("入口请求 ID")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("入口请求 ID")).toBeInTheDocument();
   });
 
   it("renders the selected model display name while preserving the model_id value", () => {
+    const filterOptions = createFilterOptions({
+      apiFamilies: ["openai"],
+      models: [
+        {
+          active_connection_count: 1,
+          connection_count: 1,
+          created_at: "2026-01-01T00:00:00Z",
+          display_name: "GPT-4o Mini",
+          health_success_rate: null,
+          health_total_requests: 0,
+          id: 1,
+          is_enabled: true,
+          loadbalance_strategy: null,
+          loadbalance_strategy_id: null,
+          model_id: "gpt-4o-mini",
+          model_type: "native",
+          vendor: {
+            id: 1,
+            key: "openai",
+            name: "OpenAI",
+            description: null,
+            icon_key: null,
+            audit_enabled: false,
+            audit_capture_bodies: false,
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z",
+          },
+          proxy_targets: [],
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+
     renderWithLocale(
       <FiltersBarPrimaryFilters
-        filterOptions={{
-          apiFamilies: ["openai"],
-          endpoints: [],
-          models: [
-            {
-              active_connection_count: 1,
-              connection_count: 1,
-              created_at: "2026-01-01T00:00:00Z",
-              display_name: "GPT-4o Mini",
-              health_success_rate: null,
-              health_total_requests: 0,
-              id: 1,
-              is_enabled: true,
-              loadbalance_strategy: null,
-              loadbalance_strategy_id: null,
-              model_id: "gpt-4o-mini",
-              model_type: "native",
-              vendor: {
-                id: 1,
-                key: "openai",
-                name: "OpenAI",
-                description: null,
-                icon_key: null,
-                audit_enabled: false,
-                audit_capture_bodies: false,
-                created_at: "2026-01-01T00:00:00Z",
-                updated_at: "2026-01-01T00:00:00Z",
-              },
-              proxy_targets: [],
-              updated_at: "2026-01-01T00:00:00Z",
-            },
-          ],
-        }}
+        filterOptions={filterOptions}
         filterOptionsLoaded={true}
-        state={{
-          ingress_request_id: "",
-          endpoint_id: "",
-          model_id: "gpt-4o-mini",
-          api_family: "",
-          search: "",
-          status_family: "all",
-          time_range: "24h",
-        }}
+        state={createPrimaryState({ model_id: "gpt-4o-mini" })}
         actions={createPrimaryActions()}
       />,
     );
@@ -224,34 +220,27 @@ describe("request log filters", () => {
     const longEndpointLabel =
       "CodexPool primary endpoint with an intentionally long descriptive label for request-log coverage";
 
+    const filterOptions = createFilterOptions({
+      apiFamilies: ["openai"],
+      endpoints: [
+        {
+          id: 7,
+          name: longEndpointLabel,
+          base_url: "https://example.com/v1",
+          has_api_key: true,
+          masked_api_key: "sk-••••",
+          position: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          updated_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+
     renderWithLocale(
       <FiltersBarPrimaryFilters
-        filterOptions={{
-          apiFamilies: ["openai"],
-          endpoints: [
-            {
-              id: 7,
-              name: longEndpointLabel,
-              base_url: "https://example.com/v1",
-              has_api_key: true,
-              masked_api_key: "sk-••••",
-              position: 0,
-              created_at: "2026-01-01T00:00:00Z",
-              updated_at: "2026-01-01T00:00:00Z",
-            },
-          ],
-          models: [],
-        }}
+        filterOptions={filterOptions}
         filterOptionsLoaded={true}
-        state={{
-          ingress_request_id: "",
-          endpoint_id: "7",
-          model_id: "",
-          api_family: "openai",
-          search: "",
-          status_family: "all",
-          time_range: "24h",
-        }}
+        state={createPrimaryState({ endpoint_id: "7", api_family: "openai" })}
         actions={createPrimaryActions()}
       />,
     );

@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
-import { ApiFamilyIcon } from "@/components/ApiFamilyIcon";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocale } from "@/i18n/useLocale";
@@ -11,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatApiFamily } from "@/lib/utils";
 import type { FilterOptions } from "./useRequestLogsPageData";
 import type { RequestLogPageActions } from "./useRequestLogPageState";
 import { STATUS_FAMILY_OPTIONS, TIME_RANGE_OPTIONS } from "./queryParams";
@@ -24,8 +21,6 @@ interface FiltersBarPrimaryFiltersProps {
     | "setRequestId"
     | "setEndpointId"
     | "setModelId"
-    | "setApiFamily"
-    | "setSearch"
     | "setStatusFamily"
     | "setTimeRange"
   >;
@@ -36,8 +31,6 @@ interface FiltersBarPrimaryFiltersProps {
     | "ingress_request_id"
     | "endpoint_id"
     | "model_id"
-    | "api_family"
-    | "search"
     | "status_family"
     | "time_range"
   >;
@@ -70,20 +63,7 @@ export function FiltersBarPrimaryFilters({
   };
 
   return (
-    <div className="grid gap-3 xl:grid-cols-10">
-      <div className="min-w-0 xl:col-span-2">
-        <ToolbarLabel>{messages.requestLogs.search}</ToolbarLabel>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="h-9 rounded-lg border-border/70 bg-background/80 pl-9 text-sm"
-            placeholder={messages.requestLogs.searchPlaceholder}
-            value={state.search}
-            onChange={(event) => actions.setSearch(event.target.value)}
-          />
-        </div>
-      </div>
-
+    <div className="grid gap-3 xl:grid-cols-6">
       <div className="min-w-0">
         <ToolbarLabel>{messages.requestLogs.requestId}</ToolbarLabel>
         <Input
@@ -125,30 +105,6 @@ export function FiltersBarPrimaryFilters({
               filterOptions.models.map((model) => (
                 <SelectItem key={model.model_id} value={model.model_id}>
                   {model.display_name || model.model_id}
-                </SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="min-w-0">
-        <ToolbarLabel>{messages.common.apiFamily}</ToolbarLabel>
-        <Select
-          value={state.api_family || "__all__"}
-          onValueChange={(value) => actions.setApiFamily(value === "__all__" ? "" : value)}
-        >
-          <SelectTrigger className="h-9 w-full min-w-0 max-w-full rounded-lg border-border/70 bg-background/80 text-xs">
-            <SelectValue className="min-w-0" placeholder={`${messages.statistics.all} ${messages.common.apiFamily}`} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">{`${messages.statistics.all} ${messages.common.apiFamily}`}</SelectItem>
-            {filterOptionsLoaded &&
-              filterOptions.apiFamilies.map((apiFamily) => (
-                <SelectItem key={apiFamily} value={apiFamily}>
-                  <span className="flex items-center gap-2">
-                    <ApiFamilyIcon apiFamily={apiFamily} size={14} />
-                    {formatApiFamily(apiFamily)}
-                  </span>
                 </SelectItem>
               ))}
           </SelectContent>
@@ -210,9 +166,9 @@ export function FiltersBarPrimaryFilters({
           </SelectTrigger>
           <SelectContent>
             {TIME_RANGE_OPTIONS.map((timeRange) => (
-                <SelectItem key={timeRange} value={timeRange}>
-                  {getTimeLabel(timeRange)}
-                </SelectItem>
+              <SelectItem key={timeRange} value={timeRange}>
+                {getTimeLabel(timeRange)}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
