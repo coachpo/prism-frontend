@@ -3,6 +3,7 @@ import { useProfileContext } from "@/context/ProfileContext";
 import { useLocale } from "@/i18n/useLocale";
 import { UsageStatisticsPageSkeleton } from "./statistics/UsageStatisticsPageSkeleton";
 import { UsageControlsBar } from "./statistics/sections/UsageControlsBar";
+import { UsageErrorBanner } from "./statistics/sections/UsageErrorBanner";
 import { UsageOverviewSection } from "./statistics/sections/UsageOverviewSection";
 import { UsageModelLineSelectorSection } from "./statistics/sections/UsageModelLineSelectorSection";
 import { UsageServiceHealthSection } from "./statistics/sections/UsageServiceHealthSection";
@@ -63,11 +64,7 @@ export function StatisticsPage() {
 
       {data.loading && snapshot === null ? <UsageStatisticsPageSkeleton /> : null}
 
-      {data.error ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {data.error}
-        </div>
-      ) : null}
+      {data.error ? <UsageErrorBanner error={data.error} /> : null}
 
       {snapshot ? (
         <div className="space-y-6">

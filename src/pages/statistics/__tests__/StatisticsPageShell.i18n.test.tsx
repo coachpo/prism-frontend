@@ -403,4 +403,16 @@ describe("StatisticsPage shell i18n", () => {
     expect(screen.queryByTestId("statistics-no-request-events")).not.toBeInTheDocument();
     expect(screen.queryByText("请求事件")).not.toBeInTheDocument();
   });
+
+  it("renders the shell error banner when usage data returns an error", () => {
+    mockUsageData = {
+      ...mockUsageData,
+      error: "Unable to load usage snapshot",
+      loading: false,
+    };
+
+    renderPage();
+
+    expect(screen.getByText("Unable to load usage snapshot")).toBeInTheDocument();
+  });
 });
