@@ -95,6 +95,7 @@ export function FxMappingForm({
         <Label htmlFor="mapping-fx-rate">{copy.fxRate}</Label>
         <Input
           id="mapping-fx-rate"
+          name="mapping_fx_rate"
           value={mappingFxRate}
           onChange={(event) => setMappingFxRate(event.target.value)}
           placeholder={copy.fxRatePlaceholder}

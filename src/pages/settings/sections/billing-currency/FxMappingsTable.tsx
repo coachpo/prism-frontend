@@ -77,6 +77,7 @@ export function FxMappingsTable({
                   {isEditing ? (
                     <div className="space-y-1">
                       <Input
+                        name="editing_mapping_fx_rate"
                         value={editingMappingFxRate}
                         onChange={(event) => setEditingMappingFxRate(event.target.value)}
                         className={cn("h-8 w-32", editMappingFxError && "border-destructive")}

@@ -26,6 +26,7 @@ export function ReportingCurrencyCard({
               <Label htmlFor="report-currency-code" className="text-xs text-muted-foreground">{copy.code}</Label>
             <Input
               id="report-currency-code"
+              name="report_currency_code"
               maxLength={3}
               value={costingForm.report_currency_code}
               onChange={(event) =>
@@ -42,6 +43,7 @@ export function ReportingCurrencyCard({
               <Label htmlFor="report-currency-symbol" className="text-xs text-muted-foreground">{copy.symbol}</Label>
             <Input
               id="report-currency-symbol"
+              name="report_currency_symbol"
               maxLength={5}
               value={costingForm.report_currency_symbol}
               onChange={(event) =>

@@ -72,6 +72,7 @@ export function MonitoringSection({
                 <Label htmlFor="monitoring-probe-interval-seconds">{copy.intervalLabel}</Label>
                 <Input
                   id="monitoring-probe-interval-seconds"
+                  name="monitoring_probe_interval_seconds"
                   type="number"
                   min={30}
                   max={3600}
