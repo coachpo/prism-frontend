@@ -96,6 +96,7 @@ export function FxMappingForm({
         <Input
           id="mapping-fx-rate"
           name="mapping_fx_rate"
+          autoComplete="off"
           value={mappingFxRate}
           onChange={(event) => setMappingFxRate(event.target.value)}
           placeholder={copy.fxRatePlaceholder}

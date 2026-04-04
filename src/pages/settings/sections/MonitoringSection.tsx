@@ -74,6 +74,7 @@ export function MonitoringSection({
                   id="monitoring-probe-interval-seconds"
                   name="monitoring_probe_interval_seconds"
                   type="number"
+                  autoComplete="off"
                   min={30}
                   max={3600}
                   step={1}

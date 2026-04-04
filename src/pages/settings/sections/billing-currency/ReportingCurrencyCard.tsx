@@ -27,6 +27,7 @@ export function ReportingCurrencyCard({
             <Input
               id="report-currency-code"
               name="report_currency_code"
+              autoComplete="off"
               maxLength={3}
               value={costingForm.report_currency_code}
               onChange={(event) =>
@@ -44,6 +45,7 @@ export function ReportingCurrencyCard({
             <Input
               id="report-currency-symbol"
               name="report_currency_symbol"
+              autoComplete="off"
               maxLength={5}
               value={costingForm.report_currency_symbol}
               onChange={(event) =>

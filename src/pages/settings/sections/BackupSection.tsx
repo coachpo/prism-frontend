@@ -103,7 +103,9 @@ export function BackupSection({
           <CardContent className="space-y-4">
             <Input
               ref={fileInputRef}
+              name="config_import_file"
               type="file"
+              autoComplete="off"
               accept=".json"
               onChange={handleFileSelect}
             />
