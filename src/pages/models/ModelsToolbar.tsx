@@ -13,6 +13,7 @@ export function ModelsToolbar({ search, setSearch }: Props) {
     <div className="relative w-full xl:max-w-sm">
       <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
+        name="models_search"
         placeholder={messages.modelsPage.searchModels}
         value={search}
         onChange={(event) => setSearch(event.target.value)}

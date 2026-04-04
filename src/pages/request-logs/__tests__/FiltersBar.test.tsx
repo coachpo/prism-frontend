@@ -105,10 +105,15 @@ describe("request log filters", () => {
     );
 
     const requestIdInput = screen.getByPlaceholderText("Request ID");
+    expect(requestIdInput).toHaveAttribute("name", "request_id_lookup");
+    expect(requestIdInput).toHaveAttribute("autocomplete", "off");
     fireEvent.change(requestIdInput, { target: { value: "42" } });
     fireEvent.keyDown(requestIdInput, { key: "Enter", code: "Enter", charCode: 13 });
 
-    fireEvent.change(screen.getByPlaceholderText("Ingress request ID"), {
+    const ingressRequestIdInput = screen.getByPlaceholderText("Ingress request ID");
+    expect(ingressRequestIdInput).toHaveAttribute("name", "ingress_request_id");
+    expect(ingressRequestIdInput).toHaveAttribute("autocomplete", "off");
+    fireEvent.change(ingressRequestIdInput, {
       target: { value: "ingress_req_42" },
     });
 

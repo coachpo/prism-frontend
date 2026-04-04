@@ -64,5 +64,7 @@ describe("ModelsPage shell i18n", () => {
     expect(screen.getByText("1 个模型配置")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "新建模型" }).length).toBeGreaterThan(0);
     expect(screen.getByPlaceholderText("搜索模型...")) .toBeInTheDocument();
+    expect(screen.getByPlaceholderText("搜索模型...")).toHaveAttribute("name", "models_search");
+    expect(screen.getByPlaceholderText("搜索模型...")).toHaveAttribute("autocomplete", "off");
   });
 });
