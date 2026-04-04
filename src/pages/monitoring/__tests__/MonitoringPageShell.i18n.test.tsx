@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import type { MonitoringOverviewVendor } from "@/lib/types";
@@ -27,64 +28,6 @@ vi.mock("../useMonitoringOverviewData", () => ({
           connection_count: 2,
           healthy_connection_count: 1,
           degraded_connection_count: 1,
-          models: [
-            {
-              model_config_id: 11,
-              model_id: "gpt-4.1",
-              display_name: "GPT-4.1",
-              fused_status: "degraded",
-              connection_count: 2,
-              connections: [
-                {
-                  connection_id: 91,
-                  connection_name: "Primary",
-                  endpoint_id: 5,
-                  endpoint_name: "Primary endpoint",
-                  monitoring_probe_interval_seconds: 45,
-                  last_probe_at: "2026-03-30T09:59:00Z",
-                  endpoint_ping_status: "healthy",
-                  endpoint_ping_ms: 82,
-                  conversation_status: "degraded",
-                  conversation_delay_ms: 310,
-                  fused_status: "degraded",
-                  recent_history: [
-                    {
-                      checked_at: "2026-03-30T09:54:00Z",
-                      endpoint_ping_status: "healthy",
-                      endpoint_ping_ms: 88,
-                      conversation_status: "healthy",
-                      conversation_delay_ms: 250,
-                      failure_kind: null,
-                    },
-                    {
-                      checked_at: "2026-03-30T09:55:00Z",
-                      endpoint_ping_status: "degraded",
-                      endpoint_ping_ms: 150,
-                      conversation_status: "degraded",
-                      conversation_delay_ms: 390,
-                      failure_kind: null,
-                    },
-                    {
-                      checked_at: "2026-03-30T09:56:00Z",
-                      endpoint_ping_status: "failed",
-                      endpoint_ping_ms: null,
-                      conversation_status: "failed",
-                      conversation_delay_ms: null,
-                      failure_kind: "connect_error",
-                    },
-                    {
-                      checked_at: "2026-03-30T09:57:00Z",
-                      endpoint_ping_status: "healthy",
-                      endpoint_ping_ms: 95,
-                      conversation_status: "healthy",
-                      conversation_delay_ms: 240,
-                      failure_kind: null,
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
         },
       ],
     },
@@ -103,9 +46,11 @@ describe("MonitoringPage", () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
     render(
-      <LocaleProvider>
-        <MonitoringPage />
-      </LocaleProvider>,
+      <MemoryRouter>
+        <LocaleProvider>
+          <MonitoringPage />
+        </LocaleProvider>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText("监控")).toBeInTheDocument();
@@ -118,9 +63,11 @@ describe("MonitoringPage", () => {
 
   it("reloads the monitoring overview when the refresh icon button is clicked", () => {
     render(
-      <LocaleProvider>
-        <MonitoringPage />
-      </LocaleProvider>,
+      <MemoryRouter>
+        <LocaleProvider>
+          <MonitoringPage />
+        </LocaleProvider>
+      </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh monitoring" }));
@@ -128,51 +75,37 @@ describe("MonitoringPage", () => {
     expect(overviewRefreshSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("starts vendors collapsed on the single monitoring page and reveals details after expansion", () => {
+  it("renders summary-first vendor drill-down links with no inline detail", () => {
     render(
-      <LocaleProvider>
-        <MonitoringPage />
-      </LocaleProvider>,
+      <MemoryRouter>
+        <LocaleProvider>
+          <MonitoringPage />
+        </LocaleProvider>
+      </MemoryRouter>,
     );
 
-    const trigger = screen.getByRole("button", { name: /OpenAI/i });
+    const vendorLink = screen.getByRole("link", { name: /OpenAI/i });
 
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
-    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(vendorLink).toHaveAttribute("href", "/monitoring/vendors/1");
+    expect(screen.getByText("Vendor groups")).toBeInTheDocument();
+    expect(screen.getByText(/Select a vendor to inspect model summaries/i)).toBeInTheDocument();
+    expect(screen.getByText("1 models · 2 connections")).toBeInTheDocument();
+    expect(screen.getByText("1 healthy")).toBeInTheDocument();
+    expect(screen.getByText("1 degraded")).toBeInTheDocument();
     expect(screen.queryByText("GPT-4.1")).not.toBeInTheDocument();
     expect(screen.queryByText("Primary")).not.toBeInTheDocument();
     expect(screen.queryByText("Past 60 probes")).not.toBeInTheDocument();
-
-    fireEvent.click(trigger);
-
-    expect(screen.getByText("GPT-4.1")).toBeInTheDocument();
-    expect(screen.getByText("Primary")).toBeInTheDocument();
-    expect(screen.getByText("Primary endpoint")).toBeInTheDocument();
-    expect(screen.getByText("82 ms")).toBeInTheDocument();
-    expect(screen.getByText("310 ms")).toBeInTheDocument();
     const vendorIcon = screen.getByRole("img", { name: "Vendor icon OpenAI" });
 
     expect(vendorIcon.querySelector("svg")).not.toBeNull();
     expect(vendorIcon).not.toHaveTextContent("O");
-    expect(screen.queryByText(/Last success/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Last failure/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Failure kind$/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("45s cadence")).not.toBeInTheDocument();
-    expect(screen.getByText("Past 60 probes")).toBeInTheDocument();
-    expect(screen.getByTestId("monitoring-probe-strip")).toBeInTheDocument();
-    expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(60);
-    expect(screen.getAllByTestId("monitoring-probe-cell-ok")).toHaveLength(2);
-    expect(screen.getByTestId("monitoring-probe-cell-degraded")).toBeInTheDocument();
-    expect(screen.getByTestId("monitoring-probe-cell-down")).toBeInTheDocument();
-    expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(56);
-    expect(screen.queryByText("24h availability")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /OpenAI/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Latest probe/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Recent history")).not.toBeInTheDocument();
-    expect(screen.queryByText("Recent windows")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "OpenAI" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "GPT-4.1" })).not.toBeInTheDocument();
   });
 
-  it("keeps vendors collapsed on first data load and preserves manual expansion after rerendered monitoring data", async () => {
+  it("rerenders updated vendor summaries without preserving removed expansion state", async () => {
     const vendors: MonitoringOverviewVendor[] = [
       {
         vendor_id: 1,
@@ -183,78 +116,46 @@ describe("MonitoringPage", () => {
         connection_count: 1,
         healthy_connection_count: 1,
         degraded_connection_count: 0,
-        models: [
-          {
-            model_config_id: 11,
-            model_id: "gpt-4.1",
-            display_name: "GPT-4.1",
-            fused_status: "healthy",
-            connection_count: 1,
-            connections: [
-              {
-                  connection_id: 91,
-                  connection_name: "Primary",
-                  endpoint_id: 5,
-                  endpoint_name: "Primary endpoint",
-                  monitoring_probe_interval_seconds: 45,
-                  last_probe_at: "2026-03-30T09:59:00Z",
-                  endpoint_ping_status: "healthy",
-                  endpoint_ping_ms: 82,
-                conversation_status: "healthy",
-                conversation_delay_ms: 210,
-                fused_status: "healthy",
-                recent_history: [
-                  {
-                    checked_at: "2026-03-30T00:00:00Z",
-                    endpoint_ping_status: "healthy",
-                    endpoint_ping_ms: 80,
-                    conversation_status: "healthy",
-                    conversation_delay_ms: 180,
-                    failure_kind: null,
-                  },
-                ],
-              },
-            ],
-          },
-        ],
       },
     ];
 
     const { rerender } = render(
-      <LocaleProvider>
-        <MonitoringOverviewGroups vendors={[]} />
-      </LocaleProvider>,
+      <MemoryRouter>
+        <LocaleProvider>
+          <MonitoringOverviewGroups vendors={[]} />
+        </LocaleProvider>
+      </MemoryRouter>,
     );
 
     rerender(
-      <LocaleProvider>
-        <MonitoringOverviewGroups vendors={vendors} />
-      </LocaleProvider>,
+      <MemoryRouter>
+        <LocaleProvider>
+          <MonitoringOverviewGroups vendors={vendors} />
+        </LocaleProvider>
+      </MemoryRouter>,
     );
 
-    const trigger = screen.getByRole("button", { name: /OpenAI/i });
-    expect(trigger).toHaveAttribute("aria-expanded", "false");
-
-    fireEvent.click(trigger);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /OpenAI/i })).toHaveAttribute("aria-expanded", "true");
-    });
+    expect(screen.getByRole("link", { name: /OpenAI/i })).toHaveAttribute("href", "/monitoring/vendors/1");
+    expect(screen.getByText("1 healthy")).toBeInTheDocument();
 
     rerender(
-      <LocaleProvider>
-        <MonitoringOverviewGroups
-          vendors={vendors.map((vendor) => ({
-            ...vendor,
-            healthy_connection_count: 0,
-            degraded_connection_count: 1,
-          }))}
-        />
-      </LocaleProvider>,
+      <MemoryRouter>
+        <LocaleProvider>
+          <MonitoringOverviewGroups
+            vendors={vendors.map((vendor) => ({
+              ...vendor,
+              healthy_connection_count: 0,
+              degraded_connection_count: 1,
+            }))}
+          />
+        </LocaleProvider>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /OpenAI/i })).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByText("0 healthy")).toBeInTheDocument();
     });
+
+    expect(screen.getByText("1 degraded")).toBeInTheDocument();
   });
 });

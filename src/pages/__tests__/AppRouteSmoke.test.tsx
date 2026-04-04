@@ -73,6 +73,14 @@ vi.mock("@/pages/MonitoringPage", () => ({
   MonitoringPage: () => <div>monitoring-landmark</div>,
 }));
 
+vi.mock("@/pages/MonitoringVendorPage", () => ({
+  MonitoringVendorPage: () => <div>monitoring-vendor-landmark</div>,
+}));
+
+vi.mock("@/pages/MonitoringModelPage", () => ({
+  MonitoringModelPage: () => <div>monitoring-model-landmark</div>,
+}));
+
 vi.mock("@/pages/SettingsPage", () => ({
   SettingsPage: () => <div>settings-landmark</div>,
 }));
@@ -141,6 +149,8 @@ describe("App protected route smoke", () => {
     ["/loadbalance-strategies", "loadbalance-strategies-landmark"],
     ["/statistics", "statistics-landmark"],
     ["/monitoring", "monitoring-landmark"],
+    ["/monitoring/vendors/7", "monitoring-vendor-landmark"],
+    ["/monitoring/models/11", "monitoring-model-landmark"],
     ["/settings", "settings-landmark"],
     ["/proxy-api-keys", "proxy-api-keys-landmark"],
     ["/pricing-templates", "pricing-templates-landmark"],
@@ -165,6 +175,8 @@ describe("App protected route smoke", () => {
       "/loadbalance-strategies",
       "/statistics",
       "/monitoring",
+      "/monitoring/vendors/:vendorId",
+      "/monitoring/models/:modelConfigId",
       "/settings",
       "/proxy-api-keys",
       "/pricing-templates",

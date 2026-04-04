@@ -16,7 +16,6 @@ export interface MonitoringOverviewVendor {
   connection_count: number;
   healthy_connection_count: number;
   degraded_connection_count: number;
-  models: MonitoringOverviewModel[];
 }
 
 export interface MonitoringOverviewResponse {
@@ -30,11 +29,6 @@ export interface MonitoringVendorModel {
   display_name: string | null;
   fused_status: string;
   connection_count: number;
-  connections?: MonitoringOverviewConnection[];
-}
-
-export interface MonitoringOverviewModel extends MonitoringVendorModel {
-  connections: MonitoringOverviewConnection[];
 }
 
 export interface MonitoringVendorResponse {
@@ -67,12 +61,7 @@ interface MonitoringConnectionBase {
   recent_history: MonitoringConnectionHistoryPoint[];
 }
 
-export interface MonitoringOverviewConnection extends MonitoringConnectionBase {
-  monitoring_probe_interval_seconds: number;
-  last_probe_at: string | null;
-}
-
-export interface MonitoringModelConnection extends MonitoringConnectionBase {}
+export type MonitoringModelConnection = MonitoringConnectionBase;
 
 export interface MonitoringModelResponse {
   generated_at: string;
