@@ -94,6 +94,7 @@ export function DeleteConfirmDialog({
             <Label htmlFor="delete-confirm-phrase">{copy.typeDeleteToProceed(copy.deleteConfirmKeyword)}</Label>
             <Input
               id="delete-confirm-phrase"
+              name="delete_confirm_phrase"
               value={deleteConfirmPhrase}
               onChange={(event) => setDeleteConfirmPhrase(event.target.value)}
               placeholder={copy.deleteConfirmKeyword}

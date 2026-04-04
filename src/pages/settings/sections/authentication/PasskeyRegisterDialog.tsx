@@ -43,6 +43,7 @@ export function PasskeyRegisterDialog({
             <Label htmlFor="device-name">{copy.deviceName}</Label>
             <Input
               id="device-name"
+              name="device_name"
               placeholder={copy.deviceNamePlaceholder}
               value={deviceName}
               onChange={(event) => setDeviceName(event.target.value)}
