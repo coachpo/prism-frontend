@@ -117,7 +117,7 @@ export function EndpointDialog({
                 <FormItem>
                   <FormLabel>{copy.baseUrl}</FormLabel>
                   <FormControl>
-                    <Input placeholder={copy.baseUrlPlaceholder} {...field} />
+                    <Input autoComplete="url" placeholder={copy.baseUrlPlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -132,6 +132,7 @@ export function EndpointDialog({
                   <FormControl>
                     <Input
                       type="password"
+                      autoComplete="off"
                       placeholder={initialValues?.masked_api_key || messages.modelDetail.endpointApiKeyPlaceholder}
                       {...field}
                     />
