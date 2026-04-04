@@ -149,13 +149,17 @@ function ModelSettingsForm({
     return `${strategy.name} (${getStrategyDetailLabel(strategy)})`;
   };
 
+  const selectedLoadbalanceStrategy = loadbalanceStrategies.find(
+    (strategy) => String(strategy.id) === editLoadbalanceStrategyId,
+  );
+
   return (
     <>
       <DialogHeader>
         <DialogTitle>{copy.modelSettingsTitle}</DialogTitle>
         <DialogDescription>{copy.modelSettingsDescription}</DialogDescription>
       </DialogHeader>
-      <form onSubmit={handleEditModelSubmit} className="space-y-4">
+      <form onSubmit={handleEditModelSubmit} className="min-w-0 space-y-4">
         <input type="hidden" name="vendor_id" value={selectedVendorId} />
         <input type="hidden" name="api_family" value={selectedApiFamily} />
 
@@ -173,8 +177,8 @@ function ModelSettingsForm({
           <Label htmlFor="edit-model-id">{copy.modelIdLabel}</Label>
           <Input id="edit-model-id" name="model_id" autoComplete="off" defaultValue={model.model_id} required />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+          <div className="min-w-0 space-y-2">
             <Label>{fieldCopy.vendor}</Label>
             <VendorSelect
               value={selectedVendorId}
@@ -185,7 +189,7 @@ function ModelSettingsForm({
               placeholder={copy.selectVendor}
             />
           </div>
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label>{fieldCopy.apiFamily}</Label>
             <ApiFamilySelect
               value={selectedApiFamily}
@@ -202,22 +206,31 @@ function ModelSettingsForm({
           </div>
         )}
         {model.model_type === "native" && (
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label htmlFor="edit-loadbalance-strategy">{copy.loadbalanceStrategyLabel}</Label>
             {loadbalanceStrategies.length === 0 ? (
               <p className="text-sm text-muted-foreground">{copy.noLoadbalanceStrategiesAvailable}</p>
             ) : (
-              <Select
-                value={editLoadbalanceStrategyId || undefined}
-                onValueChange={setEditLoadbalanceStrategyId}
-              >
-                <SelectTrigger id="edit-loadbalance-strategy">
-                  <SelectValue placeholder={copy.selectStrategy} />
-                </SelectTrigger>
-                <SelectContent>
-                  {loadbalanceStrategies.map((strategy) => (
-                    <SelectItem key={strategy.id} value={String(strategy.id)}>
-                      {getStrategyOptionText(strategy)}
+                <Select
+                  value={editLoadbalanceStrategyId || undefined}
+                  onValueChange={setEditLoadbalanceStrategyId}
+                >
+                  <SelectTrigger id="edit-loadbalance-strategy" className="w-full min-w-0 max-w-full">
+                    <SelectValue placeholder={copy.selectStrategy}>
+                      {selectedLoadbalanceStrategy ? (
+                        <span className="block min-w-0 max-w-full truncate">
+                          {getStrategyOptionText(selectedLoadbalanceStrategy)}
+                        </span>
+                      ) : null}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    className="min-w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)]"
+                  >
+                    {loadbalanceStrategies.map((strategy) => (
+                      <SelectItem key={strategy.id} value={String(strategy.id)}>
+                        {getStrategyOptionText(strategy)}
                     </SelectItem>
                   ))}
                 </SelectContent>

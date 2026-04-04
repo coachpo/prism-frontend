@@ -221,4 +221,77 @@ describe("ModelSettingsDialog", () => {
     expect(screen.getAllByText("round-robin-primary (Legacy strategy • Round robin)").length).toBeGreaterThan(0);
     expect(screen.getByText("adaptive-availability (Adaptive strategy • Minimize latency)")).toBeInTheDocument();
   });
+
+  it("keeps the selected strategy trigger bounded and single-line for long labels", () => {
+    const vendor: Vendor = {
+      id: 7,
+      key: "openai",
+      name: "OpenAI",
+      description: null,
+      icon_key: null,
+      audit_enabled: false,
+      audit_capture_bodies: false,
+      created_at: "",
+      updated_at: "",
+    };
+    const model: ModelConfig = {
+      id: 11,
+      vendor_id: 7,
+      vendor,
+      api_family: "openai",
+      model_id: "gpt-5.4",
+      display_name: "GPT-5.4",
+      model_type: "native",
+      proxy_targets: [],
+      loadbalance_strategy_id: 102,
+      loadbalance_strategy: {
+        id: 102,
+        name: "adaptive-availability-with-an-extremely-long-name-that-should-not-push-neighboring-controls-out-of-place",
+        strategy_type: "adaptive",
+        routing_policy: buildAdaptiveRoutingPolicy(),
+      },
+      is_enabled: true,
+      connections: [],
+      created_at: "",
+      updated_at: "",
+    };
+    const strategies: LoadbalanceStrategy[] = [
+      {
+        id: 102,
+        profile_id: 1,
+        name: "adaptive-availability-with-an-extremely-long-name-that-should-not-push-neighboring-controls-out-of-place",
+        strategy_type: "adaptive",
+        routing_policy: buildAdaptiveRoutingPolicy(),
+        attached_model_count: 2,
+        created_at: "",
+        updated_at: "",
+      },
+    ];
+
+    render(
+      <LocaleProvider>
+        <ModelSettingsDialog
+          editLoadbalanceStrategyId="102"
+          isOpen={true}
+          loadbalanceStrategies={strategies}
+          onOpenChange={vi.fn()}
+          vendors={[vendor]}
+          setEditLoadbalanceStrategyId={vi.fn()}
+          handleEditModelSubmit={vi.fn()}
+          model={model}
+        />
+      </LocaleProvider>,
+    );
+
+    const strategyTrigger = screen.getByLabelText("Loadbalance Strategy");
+    const strategyValue = strategyTrigger.querySelector('[data-slot="select-value"]');
+    const strategyLabel = strategyValue?.firstElementChild;
+
+    expect(strategyTrigger).toHaveClass("w-full", "min-w-0", "max-w-full");
+    expect(strategyValue).not.toBeNull();
+    expect(strategyLabel).toHaveTextContent(
+      "adaptive-availability-with-an-extremely-long-name-that-should-not-push-neighboring-controls-out-of-place (Adaptive strategy • Minimize latency)",
+    );
+    expect(strategyLabel).toHaveClass("block", "min-w-0", "truncate");
+  });
 });

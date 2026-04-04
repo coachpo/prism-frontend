@@ -52,8 +52,13 @@ describe("VendorSelect", () => {
 
     const combobox = screen.getByRole("combobox");
     const selectValue = combobox.querySelector('[data-slot="select-value"]');
+    const selectedContent = selectValue?.firstElementChild;
+    const selectedLabel = selectedContent?.querySelector("span:last-child");
 
     expect(selectValue).not.toBeNull();
+    expect(combobox).toHaveClass("w-full", "min-w-0", "max-w-full");
     expect(selectValue).toHaveTextContent("Z.ai");
+    expect(selectedContent).toHaveClass("min-w-0", "max-w-full", "flex", "items-center", "gap-2");
+    expect(selectedLabel).toHaveClass("truncate");
   });
 });

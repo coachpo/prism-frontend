@@ -38,9 +38,9 @@ export function VendorSelect({
   const selectedVendor = vendors.find((vendor) => itemValue(vendor) === value);
   const isAllSelected = showAll && value === "all";
   const selectedContent = selectedVendor ? (
-    <span className="flex items-center gap-2">
+    <span className="flex min-w-0 max-w-full items-center gap-2">
       <VendorIcon vendor={selectedVendor} size={16} />
-      <span>{selectedVendor.name}</span>
+      <span className="truncate">{selectedVendor.name}</span>
     </span>
   ) : isAllSelected ? (
     <span>{resolvedAllLabel}</span>
