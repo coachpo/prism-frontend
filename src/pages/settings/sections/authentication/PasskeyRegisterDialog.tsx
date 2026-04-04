@@ -44,6 +44,7 @@ export function PasskeyRegisterDialog({
             <Input
               id="device-name"
               name="device_name"
+              autoComplete="off"
               placeholder={copy.deviceNamePlaceholder}
               value={deviceName}
               onChange={(event) => setDeviceName(event.target.value)}

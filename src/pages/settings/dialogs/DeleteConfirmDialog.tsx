@@ -95,6 +95,7 @@ export function DeleteConfirmDialog({
             <Input
               id="delete-confirm-phrase"
               name="delete_confirm_phrase"
+              autoComplete="off"
               value={deleteConfirmPhrase}
               onChange={(event) => setDeleteConfirmPhrase(event.target.value)}
               placeholder={copy.deleteConfirmKeyword}
