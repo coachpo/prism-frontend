@@ -42,6 +42,7 @@ export function EndpointsPage() {
             <Input
               name="endpoints_search"
               type="search"
+              autoComplete="off"
               placeholder={copy.searchEndpoints}
               value={data.searchQuery}
               onChange={(event) => data.setSearchQuery(event.target.value)}

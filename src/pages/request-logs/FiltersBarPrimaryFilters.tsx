@@ -68,6 +68,7 @@ export function FiltersBarPrimaryFilters({
         <ToolbarLabel>{messages.requestLogs.requestId}</ToolbarLabel>
         <Input
           name="request_id_lookup"
+          autoComplete="off"
           className="h-9 rounded-lg border-border/70 bg-background/80 text-sm"
           placeholder={messages.requestLogs.requestId}
           value={requestLookupValue}
@@ -85,6 +86,7 @@ export function FiltersBarPrimaryFilters({
         <ToolbarLabel>{messages.requestLogs.ingressRequestId}</ToolbarLabel>
         <Input
           name="ingress_request_id"
+          autoComplete="off"
           className="h-9 rounded-lg border-border/70 bg-background/80 text-sm font-mono"
           placeholder={messages.requestLogs.ingressRequestId}
           value={state.ingress_request_id}
