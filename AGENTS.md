@@ -27,13 +27,13 @@ frontend/
 
 ## ROUTE MAP
 - Public auth routes: `/login`, `/forgot-password`, `/reset-password`
-- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/models/:id/proxy`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/monitoring`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
+- Protected shell routes: `/dashboard`, `/models`, `/models/:id`, `/models/:id/proxy`, `/endpoints`, `/loadbalance-strategies`, `/statistics`, `/monitoring`, `/monitoring/vendors/:vendorId`, `/monitoring/models/:modelConfigId`, `/settings`, `/proxy-api-keys`, `/pricing-templates`, `/request-logs`
 - `/` redirects to `/dashboard`
-- Monitoring vendor/model drill-down page components stay page-owned under `src/pages/` but are not top-level mounted routes in `src/App.tsx`
+- Monitoring vendor/model drill-down page components stay page-owned under `src/pages/` and are mounted by `src/App.tsx`
 
 ## HIERARCHY
 - `src/App.tsx` owns the mounted route surface and stays the source of truth for route mounting and shell boundaries.
-- `src/pages/AGENTS.md` owns route-domain handoff plus page-owned monitoring drill-down surfaces that are not mounted at the app root.
+- `src/pages/AGENTS.md` owns route-domain handoff plus page-owned monitoring drill-down surfaces mounted at the app root.
 - `src/components/AGENTS.md` owns shared shell and widget work, then points down to the layout shell cluster, feature renderers, and `ui/` primitives.
 - `src/components/loadbalance/AGENTS.md` and `src/components/statistics/AGENTS.md` own the shared cross-route renderers in those folders.
 - `src/components/layout/app-layout/AGENTS.md` owns the shell-navigation and profile-switcher seam, including the handoff from shell state into route-scoped navigation.
@@ -41,8 +41,8 @@ frontend/
 - `src/lib/websocket/AGENTS.md` owns the helper split beneath the singleton realtime client.
 
 ## WHERE TO LOOK
-- Mounted routes, auth/public split, and protected shell mounts: `src/App.tsx`
-- Page-owned but unmounted monitoring drill-down surfaces: `src/pages/AGENTS.md`, `src/pages/monitoring/AGENTS.md`
+- Mounted routes, auth/public split, protected shell mounts, and monitoring drill-down route ownership: `src/App.tsx`
+- Page-owned monitoring drill-down surfaces mounted by the app root: `src/pages/AGENTS.md`, `src/pages/monitoring/AGENTS.md`
 - Shell chrome, sidebar entries, profile-prefixed navigation, visible version label, and profile-switcher dialog state: `src/components/AGENTS.md`, `src/components/layout/app-layout/AGENTS.md`
 - Shared widgets, shell-safe controls, and design-system wrappers: `src/components/AGENTS.md`, `src/components/ui/AGENTS.md`
 - Selected-profile state, revision bumps, auth bootstrap, and `X-Profile-Id` management scoping, distinct from active runtime routing: `src/context/AGENTS.md`, `src/context/auth/AGENTS.md`, `src/context/profile/AGENTS.md`
@@ -54,7 +54,7 @@ frontend/
 
 ## CONVENTIONS
 - Treat `src/App.tsx` as the source of truth for routes and shell boundaries.
-- Keep unmounted page-owned drill-down components out of the top-level route map even when they live beside mounted pages under `src/pages/`.
+- Keep page-owned drill-down components in the top-level route map when `src/App.tsx` mounts them, even when they live beside other pages under `src/pages/`.
 - Keep selected profile separate from active runtime routing. `selectedProfile` scopes management APIs; it does not switch proxy traffic.
 - Keep `src/components/` focused on shared shell chrome, shared widgets, and design-system wrappers, and keep the leaf ownership documented below it.
 - Keep backend access on the typed `src/lib/api.ts` boundary and the modules it re-exports.
