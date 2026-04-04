@@ -255,6 +255,7 @@ describe("ModelDialog proxy target editing", () => {
     }
 
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
+    HTMLElement.prototype.scrollIntoView = vi.fn();
     Object.defineProperty(window, "localStorage", {
       configurable: true,
       value: localStorageMock,
@@ -278,7 +279,7 @@ describe("ModelDialog proxy target editing", () => {
     });
   });
 
-  it("keeps native loadbalance strategy selection full-width", () => {
+  it("keeps native loadbalance strategy selection full-width with local wrapping affordances", () => {
     render(
       <LocaleProvider>
         <ModelDialog
@@ -306,9 +307,17 @@ describe("ModelDialog proxy target editing", () => {
       </LocaleProvider>,
     );
 
-    screen.getAllByRole("combobox").forEach((combobox) => {
-      expect(combobox).toHaveClass("w-full");
-    });
+    const strategyTrigger = document.getElementById("model-loadbalance-strategy");
+    const strategyValueContent = strategyTrigger?.querySelector('[data-slot="select-value"] > span');
+
+    expect(strategyTrigger).toHaveClass("w-full");
+    expect(strategyTrigger).toHaveClass("min-w-0");
+    expect(strategyTrigger).toHaveClass("items-start");
+    expect(strategyTrigger).toHaveClass("text-left");
+    expect(strategyTrigger).toHaveClass("whitespace-normal");
+    expect(strategyValueContent).toHaveClass("min-w-0");
+    expect(strategyValueContent).toHaveClass("whitespace-normal");
+    expect(strategyValueContent).toHaveClass("break-words");
   });
 
   it("keeps the native loadbalance strategy select controlled when a strategy is chosen", () => {
@@ -404,54 +413,29 @@ describe("ModelDialog proxy target editing", () => {
       </LocaleProvider>,
     );
 
+    fireEvent.click(document.getElementById("model-loadbalance-strategy") as HTMLElement);
+
     expect(screen.getAllByText("single-primary (Single)").length).toBeGreaterThan(0);
-    expect(screen.getByText("adaptive-availability (Adaptive strategy • Minimize latency)")).toBeInTheDocument();
+    expect(screen.getAllByText("adaptive-availability (Adaptive strategy • Minimize latency)").length).toBeGreaterThan(0);
+
+    const adaptiveOption = screen
+      .getAllByText("adaptive-availability (Adaptive strategy • Minimize latency)")
+      .find((node) => node.closest('[data-slot="select-content"]'));
+
+    expect(adaptiveOption).toHaveClass("whitespace-normal");
+    expect(adaptiveOption).toHaveClass("break-words");
   });
 
-  it("keeps proxy target rows and add-target controls contained on narrow widths", () => {
+  it("removes proxy target assignment controls and hidden proxy target inputs from the dialog", () => {
     render(<Harness />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Target" }));
-
-    const proxyTargetRow = screen
-      .getByText("GPT-4o Mini (gpt-4o-mini)")
-      .closest('div[class*="rounded-md"][class*="border"]');
-    expect(proxyTargetRow).toHaveClass("flex-col", "sm:flex-row");
-
-    const proxyTargetActions = screen.getByRole("button", { name: "Remove target gpt-4o-mini" }).parentElement;
-    expect(proxyTargetActions).toHaveClass("shrink-0", "flex-wrap", "justify-end");
-
-    const addTargetButton = screen.getByRole("button", { name: "Add Target" });
-    expect(addTargetButton).toHaveClass("w-full", "sm:w-auto");
-    expect(addTargetButton.parentElement).toHaveClass("flex-col", "sm:flex-row");
-  });
-
-  it("adds, reorders, and removes ordered proxy targets", () => {
-    render(<Harness />);
-
+    expect(screen.queryByRole("button", { name: "Add Target" })).not.toBeInTheDocument();
+    expect(screen.queryByText("GPT-4o Mini (gpt-4o-mini)")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move target gpt-4o-mini up" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove target gpt-4o-mini" })).not.toBeInTheDocument();
+    expect(document.querySelector('input[name^="proxy_targets."]')).not.toBeInTheDocument();
     expect(screen.getByTestId("proxy-targets-state")).toHaveTextContent(
       JSON.stringify([{ target_model_id: "gpt-4o-mini", position: 0 }]),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Add Target" }));
-    expect(screen.getByTestId("proxy-targets-state")).toHaveTextContent(
-      JSON.stringify([
-        { target_model_id: "gpt-4o-mini", position: 0 },
-        { target_model_id: "gpt-4.1-mini", position: 1 },
-      ]),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Move target gpt-4.1-mini up" }));
-    expect(screen.getByTestId("proxy-targets-state")).toHaveTextContent(
-      JSON.stringify([
-        { target_model_id: "gpt-4.1-mini", position: 0 },
-        { target_model_id: "gpt-4o-mini", position: 1 },
-      ]),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Remove target gpt-4o-mini" }));
-    expect(screen.getByTestId("proxy-targets-state")).toHaveTextContent(
-      JSON.stringify([{ target_model_id: "gpt-4.1-mini", position: 0 }]),
     );
   });
 
@@ -520,7 +504,7 @@ describe("ModelDialog proxy target editing", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getAllByRole("combobox")[3]).toHaveTextContent(
+    expect(document.getElementById("model-loadbalance-strategy")).toHaveTextContent(
       "round-robin-availability (Round robin)",
     );
   });
