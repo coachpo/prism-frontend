@@ -4,6 +4,7 @@ import type {
 } from "./model-stats";
 import type { LoadbalanceStrategyCreate } from "./loadbalance";
 import type { ApiFamily } from "./vendor";
+import type { OpenAiProbeEndpointVariant } from "./routing";
 
 export interface ConfigEndpointExport {
   name: string;
@@ -55,6 +56,7 @@ export interface ConfigConnectionImport {
   name: string | null;
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
+  openai_probe_endpoint_variant?: OpenAiProbeEndpointVariant;
   qps_limit?: number | null;
   max_in_flight_non_stream?: number | null;
   max_in_flight_stream?: number | null;

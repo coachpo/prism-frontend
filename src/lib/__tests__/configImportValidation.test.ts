@@ -104,6 +104,7 @@ function buildImportPayload() {
             name: "Primary",
             auth_type: "openai",
             custom_headers: { "X-Org": "my-org" },
+            openai_probe_endpoint_variant: "responses_minimal",
           },
         ],
       },
@@ -230,6 +231,30 @@ describe("ConfigImportSchema", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("accepts non-default OpenAI probe presets in imported connections", () => {
+    const result = ConfigImportSchema.safeParse({
+      ...buildImportPayload(),
+      models: [
+        {
+          ...buildImportPayload().models[0],
+          connections: [
+            {
+              ...buildImportPayload().models[0].connections[0],
+              openai_probe_endpoint_variant: "chat_completions_reasoning_none",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.models[0]?.connections[0]?.openai_probe_endpoint_variant).toBe(
+        "chat_completions_reasoning_none",
+      );
+    }
   });
 
   it("normalizes reference names through the extracted helper module", async () => {

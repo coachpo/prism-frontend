@@ -196,6 +196,14 @@ const ConnectionImportSchema = z.strictObject({
   name: z.string().nullable(),
   auth_type: z.string().nullable(),
   custom_headers: z.record(z.string(), z.string()).nullable(),
+  openai_probe_endpoint_variant: z
+    .enum([
+      "responses_minimal",
+      "responses_reasoning_none",
+      "chat_completions_minimal",
+      "chat_completions_reasoning_none",
+    ])
+    .optional(),
   qps_limit: z.number().int().min(1).nullable().optional(),
   max_in_flight_non_stream: z.number().int().min(1).nullable().optional(),
   max_in_flight_stream: z.number().int().min(1).nullable().optional(),

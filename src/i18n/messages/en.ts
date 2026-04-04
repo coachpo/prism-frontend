@@ -933,10 +933,12 @@ export interface Messages {
     noProfileEndpointsFound: string;
     notCheckedYet: string;
     orderedPriorityRouting: string;
-    openaiProbeChatCompletions: string;
+    openaiProbeChatCompletionsMinimal: string;
+    openaiProbeChatCompletionsReasoningNone: string;
     openaiProbeEndpointVariant: string;
     openaiProbeEndpointVariantHint: string;
-    openaiProbeResponses: string;
+    openaiProbeResponsesMinimal: string;
+    openaiProbeResponsesReasoningNone: string;
     pricingOff: string;
     pricingOn: string;
     pricingTemplate: string;
@@ -2493,11 +2495,15 @@ export const enMessages: Messages = {
     noProfileEndpointsFound: "No profile endpoints found.",
     notCheckedYet: "Not checked yet",
     orderedPriorityRouting: "Ordered priority routing",
-    openaiProbeChatCompletions: "POST /v1/chat/completions",
+    openaiProbeChatCompletionsMinimal: "POST /v1/chat/completions (minimal)",
+    openaiProbeChatCompletionsReasoningNone:
+      "POST /v1/chat/completions (reasoning_effort=none)",
     openaiProbeEndpointVariant: "OpenAI probe endpoint",
     openaiProbeEndpointVariantHint:
-      "Choose which OpenAI endpoint backend-managed monitoring should use for synthetic probes on this connection.",
-    openaiProbeResponses: "POST /v1/responses",
+      "Choose which OpenAI preset backend-managed monitoring should use for synthetic probes on this connection.",
+    openaiProbeResponsesMinimal: "POST /v1/responses (minimal)",
+    openaiProbeResponsesReasoningNone:
+      "POST /v1/responses (reasoning.effort=none)",
     pricingOff: "Pricing Off",
     pricingOn: "Pricing On",
     pricingTemplate: "Pricing Template",
