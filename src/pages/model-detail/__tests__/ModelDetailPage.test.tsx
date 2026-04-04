@@ -163,7 +163,7 @@ function buildModelDetailData(modelType: "native" | "proxy" = "native"): ModelDe
       custom_headers: null,
       pricing_template_id: null,
       monitoring_probe_interval_seconds: 300,
-      openai_probe_endpoint_variant: "responses",
+      openai_probe_endpoint_variant: "responses_minimal",
       qps_limit: null,
       max_in_flight_non_stream: null,
       max_in_flight_stream: null,
