@@ -26,6 +26,15 @@ function LocationProbe({ onLocationChange }: { onLocationChange?: (value: string
 }
 
 describe("useRequestLogPageState", () => {
+  it("defaults to the approved 1h time range when the URL is unset", () => {
+    const { result } = renderHook(() => useRequestLogPageState(), {
+      wrapper: createWrapper("/request-logs"),
+    });
+
+    expect(result.current.state.time_range).toBe("1h");
+    expect(result.current.hasActiveFilters).toBe(false);
+  });
+
   it("ignores removed filter query keys and actions", async () => {
     let currentLocation = "";
 
@@ -122,6 +131,7 @@ describe("useRequestLogPageState", () => {
     });
 
     expect(result.current.state.model_id).toBe("");
+    expect(result.current.state.time_range).toBe("1h");
     expect(result.current.state.request_id).toBe("123");
     expect(result.current.state.detail_tab).toBe("audit");
     expect("search" in result.current.state).toBe(false);

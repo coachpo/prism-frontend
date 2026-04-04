@@ -13,7 +13,7 @@ describe("useUsageStatisticsPageState", () => {
   it("persists the local usage statistics presentation state", async () => {
     const { result, unmount } = renderHook(() => useUsageStatisticsPageState());
 
-    expect(result.current.state.selectedTimeRange).toBe("24h");
+    expect(result.current.state.selectedTimeRange).toBe("1h");
     expect(result.current.state.selectedModelLines).toEqual([]);
     expect(result.current.state.chartGranularity).toEqual({
       costOverview: "hourly",
@@ -78,7 +78,7 @@ describe("useUsageStatisticsPageState", () => {
 
     const { result } = renderHook(() => useUsageStatisticsPageState());
 
-    expect(result.current.state.selectedTimeRange).toBe("24h");
+    expect(result.current.state.selectedTimeRange).toBe("1h");
     expect(result.current.state.selectedModelLines).toEqual([]);
     expect(result.current.state.chartGranularity).toEqual({
       costOverview: "hourly",

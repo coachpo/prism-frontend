@@ -1452,7 +1452,8 @@ export interface Messages {
     refreshUsageStatistics: string;
     reset: string;
     customRange: string;
-    last7Hours: string;
+    lastHour: string;
+    last6Hours: string;
     last24Hours: string;
     last7Days: string;
     last30Days: string;
@@ -3075,7 +3076,8 @@ export const enMessages: Messages = {
     refreshUsageStatistics: "Refresh usage statistics",
     reset: "Reset",
     customRange: "Custom Range",
-    last7Hours: "Last 7 Hours",
+    lastHour: "Last 1 Hour",
+    last6Hours: "Last 6 Hours",
     last24Hours: "Last 24 Hours",
     last7Days: "Last 7 Days",
     last30Days: "Last 30 Days",
@@ -3160,7 +3162,7 @@ export const enMessages: Messages = {
     tokenTypeBreakdownTitle: "Token Type Breakdown",
     tokenUsageTrendsTitle: "Token Usage Trends",
     topHttpErrors: "Top HTTP Errors",
-    timeWindow: "Time Window",
+    timeWindow: "Time Range",
     timeWindowTotal: (seconds) => `${seconds}s total`,
     to: "To",
     totalSpend: "Total Spend",

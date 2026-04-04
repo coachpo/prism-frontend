@@ -83,6 +83,7 @@ export function RetentionDeletionSection({
                   <SelectValue placeholder={copy.selectRetention} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="1">{copy.retentionDays(1)}</SelectItem>
                   <SelectItem value="7">{copy.retentionDays(7)}</SelectItem>
                   <SelectItem value="30">{copy.retentionDays(30)}</SelectItem>
                   <SelectItem value="90">{copy.retentionDays(90)}</SelectItem>

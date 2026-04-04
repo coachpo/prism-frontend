@@ -163,8 +163,8 @@ function createSnapshot(
     },
     time_range: {
       end_at: "2026-03-27T12:00:00Z",
-      preset: "24h",
-      start_at: "2026-03-26T12:00:00Z",
+      preset: "1h",
+      start_at: "2026-03-27T11:00:00Z",
     },
     token_type_breakdown: {
       daily: [{ bucket_start: "2026-03-27T00:00:00Z", cached_tokens: 0, input_tokens: totalRequests * 60, output_tokens: totalRequests * 40, reasoning_tokens: 0 }],
@@ -250,6 +250,8 @@ describe("StatisticsPage refresh flow", () => {
     await screen.findByTestId("statistics-endpoint-table");
     const proxyKeyTable = await screen.findByTestId("statistics-proxy-key-table");
 
+    expect(api.stats.usageSnapshot).toHaveBeenCalledWith({ preset: "1h" });
+
     await waitFor(() => {
       expect(
         within(screen.getByTestId("statistics-endpoint-table")).getByRole("button", {
@@ -263,7 +265,7 @@ describe("StatisticsPage refresh flow", () => {
 
     await waitFor(() => {
       expect(api.stats.endpointModelStatistics).toHaveBeenCalledWith(10, {
-        from_time: "2026-03-26T12:00:00Z",
+        from_time: "2026-03-27T11:00:00Z",
         to_time: "2026-03-27T12:00:00Z",
       });
       expect(within(screen.getByTestId("statistics-endpoint-table")).getByText("GPT-5.4")).toBeInTheDocument();

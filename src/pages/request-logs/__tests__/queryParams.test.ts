@@ -4,6 +4,7 @@ import {
   PAGE_SIZE_OPTIONS,
   parsePageState,
   stateToParams,
+  TIME_RANGE_OPTIONS,
   timeRangeToFromTime,
 } from "../queryParams";
 
@@ -51,6 +52,12 @@ describe("request log query params", () => {
     const params = stateToParams(parsePageState(new URLSearchParams()));
 
     expect(params.toString()).toBe("");
+    expect(parsePageState(new URLSearchParams()).time_range).toBe("1h");
+  });
+
+  it("keeps the approved request-log time range options and default", () => {
+    expect(TIME_RANGE_OPTIONS).toEqual(["1h", "6h", "24h", "7d", "30d", "all"]);
+    expect(DEFAULTS.time_range).toBe("1h");
   });
 
   it("enforces the request-log page-size contract", () => {
@@ -63,6 +70,6 @@ describe("request log query params", () => {
 
   it("returns undefined for the all-time range", () => {
     expect(timeRangeToFromTime("all")).toBeUndefined();
-    expect(timeRangeToFromTime("24h")).toMatch(/T/);
+    expect(timeRangeToFromTime("1h")).toMatch(/T/);
   });
 });

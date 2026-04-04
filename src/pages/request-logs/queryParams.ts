@@ -12,7 +12,7 @@ export const PAGE_SIZE_OPTIONS = [100, 300, 500] as const;
 export const DEFAULTS = {
   limit: 100,
   offset: 0,
-  time_range: "24h" as TimeRange,
+  time_range: "1h" as TimeRange,
   status_family: "all" as StatusFamilyFilter,
   detail_tab: "overview" as DetailTab,
 } as const;

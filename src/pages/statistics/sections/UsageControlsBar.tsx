@@ -11,10 +11,12 @@ const TIME_RANGE_LABELS: Record<
   UsageSnapshotPreset,
   (messages: { statistics: StatisticsMessages }) => string
 > = {
-  all: (messages) => messages.statistics.allTime,
-  "7d": (messages) => messages.statistics.last7Days,
+  "1h": (messages) => messages.statistics.lastHour,
+  "6h": (messages) => messages.statistics.last6Hours,
   "24h": (messages) => messages.statistics.last24Hours,
-  "7h": (messages) => messages.statistics.last7Hours,
+  "7d": (messages) => messages.statistics.last7Days,
+  "30d": (messages) => messages.statistics.last30Days,
+  all: (messages) => messages.statistics.allTime,
 };
 
 interface UsageControlsBarProps {
@@ -48,7 +50,7 @@ export function UsageControlsBar({
           </span>
 
           <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border/70 bg-muted/35 p-1">
-            {(["all", "7h", "24h", "7d"] as const).map((preset) => (
+            {(["1h", "6h", "24h", "7d", "30d", "all"] as const).map((preset) => (
               <Button
                 key={preset}
                 onClick={() => onSelectTimeRange(preset)}
