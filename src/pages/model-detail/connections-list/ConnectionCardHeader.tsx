@@ -28,12 +28,12 @@ export function ConnectionCardHeader({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <StatusDot intent={healthIntent} animated={healthAnimated} aria-hidden="true" />
-      <span className="truncate text-sm font-medium">{connectionName}</span>
       <ValueBadge
         label={`P${connection.priority}`}
         intent="default"
         className={cn("tabular-nums", getPriorityBadgeClasses(connection.priority))}
       />
+      <span className="truncate text-sm font-medium">{connectionName}</span>
       <StatusBadge
         label={connection.pricing_template ? copy.pricingOn : copy.pricingOff}
         intent={connection.pricing_template ? "success" : "muted"}
