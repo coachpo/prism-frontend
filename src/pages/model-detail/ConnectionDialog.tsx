@@ -149,7 +149,7 @@ export function ConnectionDialog({
           <input
             type="hidden"
             name="openai_probe_endpoint_variant"
-            value={connectionForm.openai_probe_endpoint_variant ?? "responses"}
+            value={connectionForm.openai_probe_endpoint_variant ?? "responses_minimal"}
           />
           <ScrollArea className="min-h-0 flex-1">
             <div className="grid gap-6 px-6 py-5 sm:px-7" data-testid="connection-dialog-scroll-body">
@@ -332,12 +332,16 @@ export function ConnectionDialog({
                     <div className="space-y-2">
                       <Label htmlFor="conn-openai-probe-endpoint-variant">{copy.openaiProbeEndpointVariant}</Label>
                       <Select
-                        value={connectionForm.openai_probe_endpoint_variant ?? "responses"}
+                        value={connectionForm.openai_probe_endpoint_variant ?? "responses_minimal"}
                         onValueChange={(value) => {
                           setConnectionForm({
                             ...connectionForm,
                             openai_probe_endpoint_variant:
-                              value === "chat_completions" ? "chat_completions" : "responses",
+                              value === "responses_reasoning_none" ||
+                              value === "chat_completions_minimal" ||
+                              value === "chat_completions_reasoning_none"
+                                ? value
+                                : "responses_minimal",
                           });
                         }}
                       >
@@ -348,8 +352,18 @@ export function ConnectionDialog({
                           <SelectValue placeholder={copy.openaiProbeEndpointVariant} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="responses">{copy.openaiProbeResponses}</SelectItem>
-                          <SelectItem value="chat_completions">{copy.openaiProbeChatCompletions}</SelectItem>
+                          <SelectItem value="responses_minimal">
+                            {copy.openaiProbeResponsesMinimal}
+                          </SelectItem>
+                          <SelectItem value="responses_reasoning_none">
+                            {copy.openaiProbeResponsesReasoningNone}
+                          </SelectItem>
+                          <SelectItem value="chat_completions_minimal">
+                            {copy.openaiProbeChatCompletionsMinimal}
+                          </SelectItem>
+                          <SelectItem value="chat_completions_reasoning_none">
+                            {copy.openaiProbeChatCompletionsReasoningNone}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-[11px] text-muted-foreground">

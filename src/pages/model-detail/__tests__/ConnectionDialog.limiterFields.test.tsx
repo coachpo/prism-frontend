@@ -72,7 +72,7 @@ function buildConnection(overrides: Partial<Connection> = {}): Connection {
     auth_type: null,
     custom_headers: null,
     pricing_template_id: null,
-    openai_probe_endpoint_variant: "responses",
+    openai_probe_endpoint_variant: "responses_minimal",
     qps_limit: null,
     max_in_flight_non_stream: null,
     max_in_flight_stream: null,
@@ -301,7 +301,7 @@ describe("ConnectionDialog limiter fields", () => {
       custom_headers: null,
       pricing_template_id: null,
       monitoring_probe_interval_seconds: 300,
-      openai_probe_endpoint_variant: "responses",
+      openai_probe_endpoint_variant: "responses_minimal",
       qps_limit: null,
       max_in_flight_non_stream: null,
       max_in_flight_stream: null,
@@ -487,8 +487,25 @@ describe("ConnectionDialog limiter fields", () => {
     expect(document.querySelector('input[type="hidden"][name="create_mode"]')).toHaveValue("new");
     expect(document.querySelector('input[type="hidden"][name="pricing_template_id"]')).toHaveValue("9");
     expect(document.querySelector('input[type="hidden"][name="openai_probe_endpoint_variant"]')).toHaveValue(
-      "responses",
+      "responses_minimal",
     );
+  });
+
+  it("shows all four OpenAI probe preset options in the connection dialog", async () => {
+    renderWithLocale(<ConnectionDialogHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    fireEvent.click(await screen.findByRole("combobox", { name: "OpenAI probe endpoint" }));
+
+    expect(screen.getByRole("option", { name: "POST /v1/responses (minimal)" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "POST /v1/responses (reasoning.effort=none)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "POST /v1/chat/completions (minimal)" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "POST /v1/chat/completions (reasoning_effort=none)" }),
+    ).toBeInTheDocument();
   });
 
   it.each([
@@ -537,7 +554,7 @@ describe("ConnectionDialog limiter fields", () => {
     }
   });
 
-  it("includes limiter fields in the create submit payload when present", async () => {
+  it("includes limiter fields and a selected non-default probe preset in the create submit payload", async () => {
     renderWithLocale(<ConnectionDialogHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
@@ -561,7 +578,9 @@ describe("ConnectionDialog limiter fields", () => {
       target: { value: "2" },
     });
     fireEvent.click(screen.getByRole("combobox", { name: "OpenAI probe endpoint" }));
-    fireEvent.click(screen.getByRole("option", { name: "POST /v1/chat/completions" }));
+    fireEvent.click(
+      screen.getByRole("option", { name: "POST /v1/chat/completions (reasoning_effort=none)" }),
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
 
@@ -569,7 +588,7 @@ describe("ConnectionDialog limiter fields", () => {
       expect(api.connections.create).toHaveBeenCalledWith(
         5,
         expect.objectContaining({
-          openai_probe_endpoint_variant: "chat_completions",
+          openai_probe_endpoint_variant: "chat_completions_reasoning_none",
           qps_limit: 9,
           max_in_flight_non_stream: 5,
           max_in_flight_stream: 2,
@@ -578,7 +597,7 @@ describe("ConnectionDialog limiter fields", () => {
     });
   });
 
-  it("uses the unsaved add-dialog draft when running a preview probe", async () => {
+  it("uses the unsaved add-dialog draft and preserves a selected non-default probe preset when running a preview probe", async () => {
     renderWithLocale(<ConnectionDialogHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
@@ -598,6 +617,10 @@ describe("ConnectionDialog limiter fields", () => {
     fireEvent.change(screen.getByLabelText("Probe interval (seconds)"), {
       target: { value: "45" },
     });
+    fireEvent.click(screen.getByRole("combobox", { name: "OpenAI probe endpoint" }));
+    fireEvent.click(
+      screen.getByRole("option", { name: "POST /v1/responses (reasoning.effort=none)" }),
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Test Connection" }));
 
@@ -612,6 +635,7 @@ describe("ConnectionDialog limiter fields", () => {
           }),
           name: "Preview connection",
           monitoring_probe_interval_seconds: 45,
+          openai_probe_endpoint_variant: "responses_reasoning_none",
         }),
       );
     });
@@ -678,7 +702,7 @@ describe("ConnectionDialog limiter fields", () => {
     renderWithLocale(
         <ConnectionDialogHarness
           editingConnection={buildConnection({
-            openai_probe_endpoint_variant: "chat_completions",
+            openai_probe_endpoint_variant: "chat_completions_reasoning_none",
             qps_limit: 20,
             max_in_flight_non_stream: 7,
             max_in_flight_stream: 3,
@@ -704,7 +728,7 @@ describe("ConnectionDialog limiter fields", () => {
       expect(api.connections.update).toHaveBeenCalledWith(
         11,
         expect.objectContaining({
-          openai_probe_endpoint_variant: "chat_completions",
+          openai_probe_endpoint_variant: "chat_completions_reasoning_none",
           qps_limit: null,
           max_in_flight_non_stream: null,
           max_in_flight_stream: null,
