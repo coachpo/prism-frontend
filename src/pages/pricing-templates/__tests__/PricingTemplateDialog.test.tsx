@@ -73,10 +73,15 @@ describe("PricingTemplateDialog i18n", () => {
     );
 
     expect(screen.getByLabelText("名称")).toHaveAttribute("name", "name");
+    expect(screen.getByLabelText("名称")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("货币代码")).toHaveAttribute("name", "pricing_currency_code");
+    expect(screen.getByLabelText("货币代码")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("描述（可选）")).toHaveAttribute("name", "description");
+    expect(screen.getByLabelText("描述（可选）")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("输入价格（每 100 万令牌）")).toHaveAttribute("name", "input_price");
+    expect(screen.getByLabelText("输入价格（每 100 万令牌）")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("输出价格（每 100 万令牌）")).toHaveAttribute("name", "output_price");
+    expect(screen.getByLabelText("输出价格（每 100 万令牌）")).toHaveAttribute("autocomplete", "off");
     expect(document.querySelector('input[type="hidden"][name="missing_special_token_price_policy"]')).toHaveValue(
       "MAP_TO_OUTPUT",
     );

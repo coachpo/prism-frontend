@@ -126,8 +126,11 @@ describe("VendorDialog", () => {
     );
 
     expect(screen.getByLabelText("Vendor Name")).toHaveAttribute("name", "name");
+    expect(screen.getByLabelText("Vendor Name")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("Vendor Key")).toHaveAttribute("name", "key");
+    expect(screen.getByLabelText("Vendor Key")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("Description (Optional)")).toHaveAttribute("name", "description");
+    expect(screen.getByLabelText("Description (Optional)")).toHaveAttribute("autocomplete", "off");
     expect(document.querySelector('input[type="hidden"][name="icon_key"]')).toHaveValue("zhipu");
 
     const form = screen.getByRole("button", { name: "Create Vendor" }).closest("form");

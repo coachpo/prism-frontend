@@ -35,7 +35,9 @@ describe("RuleDialog", () => {
     );
 
     expect(screen.getByLabelText("Name")).toHaveAttribute("name", "name");
+    expect(screen.getByLabelText("Name")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("Pattern")).toHaveAttribute("name", "pattern");
+    expect(screen.getByLabelText("Pattern")).toHaveAttribute("autocomplete", "off");
     expect(document.querySelector('input[type="hidden"][name="match_type"]')).toHaveValue("exact");
 
     const form = screen.getByRole("button", { name: "Save Rule" }).closest("form");
