@@ -470,7 +470,7 @@ describe("ConnectionDialog limiter fields", () => {
     expect(await screen.findByText("Add Connection")).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toHaveAttribute("name", "endpoint_name");
     expect(screen.getByLabelText("Base URL")).toHaveAttribute("name", "endpoint_base_url");
-    expect(screen.getByLabelText("Base URL")).toHaveAttribute("autocomplete", "url");
+    expect(screen.getByLabelText("Base URL")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("API Key")).toHaveAttribute("name", "endpoint_api_key");
     expect(screen.getByLabelText("API Key")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("Name (Optional)")).toHaveAttribute("name", "name");

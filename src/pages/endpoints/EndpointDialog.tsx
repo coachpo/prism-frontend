@@ -117,7 +117,7 @@ export function EndpointDialog({
                 <FormItem>
                   <FormLabel>{copy.baseUrl}</FormLabel>
                   <FormControl>
-                    <Input autoComplete="url" placeholder={copy.baseUrlPlaceholder} {...field} />
+                    <Input autoComplete="off" placeholder={copy.baseUrlPlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

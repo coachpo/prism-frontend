@@ -140,7 +140,7 @@ export function LoginPage() {
                     <Input
                       id="username"
                       name="username"
-                      autoComplete="username"
+                      autoComplete="off"
                       value={username}
                       onChange={(event) => setUsername(event.target.value)}
                       className="bg-background/80"
@@ -153,7 +153,7 @@ export function LoginPage() {
                       id="password"
                       name="password"
                       type="password"
-                      autoComplete="current-password"
+                      autoComplete="off"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       className="bg-background/80"

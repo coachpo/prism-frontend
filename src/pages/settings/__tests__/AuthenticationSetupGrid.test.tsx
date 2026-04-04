@@ -40,11 +40,11 @@ describe("authentication setup cards", () => {
 
     expect(screen.getByText("Operator account")).toBeInTheDocument();
     expect(usernameInput).toHaveAttribute("name", "username");
-    expect(usernameInput).toHaveAttribute("autocomplete", "username");
+    expect(usernameInput).toHaveAttribute("autocomplete", "off");
     expect(passwordInput).toHaveAttribute("name", "password");
-    expect(passwordInput).toHaveAttribute("autocomplete", "new-password");
+    expect(passwordInput).toHaveAttribute("autocomplete", "off");
     expect(confirmPasswordInput).toHaveAttribute("name", "password-confirm");
-    expect(confirmPasswordInput).toHaveAttribute("autocomplete", "new-password");
+    expect(confirmPasswordInput).toHaveAttribute("autocomplete", "off");
     expect(screen.getByRole("button", { name: "Save account changes" })).toBeInTheDocument();
   });
 
@@ -79,10 +79,10 @@ describe("authentication setup cards", () => {
 
     expect(screen.getByText("Recovery email")).toBeInTheDocument();
     expect(recoveryEmailInput).toHaveAttribute("name", "email");
-    expect(recoveryEmailInput).toHaveAttribute("autocomplete", "email");
+    expect(recoveryEmailInput).toHaveAttribute("autocomplete", "off");
     expect(verificationCodeInput).toHaveAttribute("id", "auth-email-otp");
     expect(verificationCodeInput).toHaveAttribute("name", "otp-code");
-    expect(verificationCodeInput).toHaveAttribute("autocomplete", "one-time-code");
+    expect(verificationCodeInput).toHaveAttribute("autocomplete", "off");
     expect(screen.getByRole("button", { name: "Send verification code" })).toBeInTheDocument();
   });
 

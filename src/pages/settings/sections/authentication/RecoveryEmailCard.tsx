@@ -89,7 +89,7 @@ export function RecoveryEmailCard({
               <Input
                 id="auth-email"
                 name="email"
-                autoComplete="email"
+                autoComplete="off"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder={copy.recoveryEmailPlaceholder}
@@ -125,7 +125,7 @@ export function RecoveryEmailCard({
                     <Input
                       id="auth-email-otp"
                       name="otp-code"
-                      autoComplete="one-time-code"
+                      autoComplete="off"
                       value={emailVerificationOtp}
                       onChange={(event) => setEmailVerificationOtp(event.target.value)}
                       placeholder={copy.verificationOtpPlaceholder}
