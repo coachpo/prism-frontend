@@ -82,9 +82,9 @@ export function TimezoneSection({
               <div className="h-9 animate-pulse rounded bg-muted" />
             </div>
           ) : (
-            <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
+            <div className="min-w-0 space-y-3">
+              <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                <div className="min-w-0 space-y-2">
                   <Label>{copy.timezonePreference}</Label>
                   <Select
                     value={costingForm.timezone_preference || "auto"}
@@ -95,10 +95,13 @@ export function TimezoneSection({
                       }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full min-w-0 max-w-full">
                       <SelectValue placeholder={copy.selectTimezone} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent
+                      position="popper"
+                      className="min-w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)]"
+                    >
                       <SelectItem value="auto">
                         {copy.timezoneAuto(Intl.DateTimeFormat().resolvedOptions().timeZone)}
                       </SelectItem>
