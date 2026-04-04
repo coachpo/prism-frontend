@@ -97,6 +97,10 @@ export const stats = {
     const query = buildQuery(params);
     return request<BatchDeleteResponse>(`/api/stats/requests?${query}`, { method: "DELETE" });
   },
+  deleteStatistics: (params: { older_than_days?: number; delete_all?: boolean }) => {
+    const query = buildQuery(params);
+    return request<BatchDeleteResponse>(`/api/stats/statistics?${query}`, { method: "DELETE" });
+  },
 };
 
 export const settingsCosting = {

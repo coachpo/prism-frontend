@@ -428,6 +428,7 @@ export const zhCNMessages: Messages = {
     cleanupTypeAudits: "审计日志",
     cleanupTypeLoadbalanceEvents: "负载均衡事件",
     cleanupTypeRequests: "请求日志",
+    cleanupTypeStatistics: "统计数据",
     dataType: "数据类型",
     delete: "删除",
     deleteConfirmKeyword: "删除",

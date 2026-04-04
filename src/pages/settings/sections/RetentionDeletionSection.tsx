@@ -64,6 +64,7 @@ export function RetentionDeletionSection({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="requests">{dialogCopy.cleanupTypeRequests}</SelectItem>
+                  <SelectItem value="statistics">{dialogCopy.cleanupTypeStatistics}</SelectItem>
                   <SelectItem value="audits">{dialogCopy.cleanupTypeAudits}</SelectItem>
                   <SelectItem value="loadbalance_events">{dialogCopy.cleanupTypeLoadbalanceEvents}</SelectItem>
                 </SelectContent>

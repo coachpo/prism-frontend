@@ -67,6 +67,12 @@ export function useRetentionDeletionData() {
         } else {
           await api.stats.delete({ older_than_days: days! });
         }
+      } else if (type === "statistics") {
+        if (deleteAll) {
+          await api.stats.deleteStatistics({ delete_all: true });
+        } else {
+          await api.stats.deleteStatistics({ older_than_days: days! });
+        }
       } else if (type === "audits") {
         if (deleteAll) {
           await api.audit.delete({ delete_all: true });

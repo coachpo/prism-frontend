@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type DeleteCleanupType } from "../settingsPageHelpers";
+import {
+  getCleanupTypeLabel,
+  type DeleteCleanupType,
+} from "../settingsPageHelpers";
 
 interface DeleteConfirmDialogProps {
   deleteConfirm: {
@@ -53,13 +56,7 @@ export function DeleteConfirmDialog({
   const copy = messages.settingsDialogs;
   const dialogConfirm = displayedDeleteConfirm ?? deleteConfirm;
   const dialogOpen = open ?? Boolean(deleteConfirm);
-  const cleanupTypeLabel = dialogConfirm
-    ? dialogConfirm.type === "requests"
-      ? copy.cleanupTypeRequests
-      : dialogConfirm.type === "audits"
-        ? copy.cleanupTypeAudits
-        : copy.cleanupTypeLoadbalanceEvents
-    : "-";
+  const cleanupTypeLabel = dialogConfirm ? getCleanupTypeLabel(dialogConfirm.type) : "-";
 
   return (
     <Dialog
