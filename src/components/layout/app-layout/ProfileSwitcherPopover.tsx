@@ -94,6 +94,7 @@ export function ProfileSwitcherPopover({
           <Input
             ref={profileSearchInputRef}
             name="profile_query"
+            autoComplete="off"
             className="mt-2"
             value={profileQuery}
             onChange={(event) => setProfileQuery(event.target.value)}

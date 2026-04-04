@@ -117,6 +117,7 @@ export function ProfileDialogs({
               <Input
                 id="profile-create-name"
                 name="profile_name"
+                autoComplete="off"
                 value={nameInput}
                 onChange={(event) => setNameInput(event.target.value)}
                 placeholder={messages.profiles.profileNamePlaceholder}
@@ -127,6 +128,7 @@ export function ProfileDialogs({
               <Input
                 id="profile-create-description"
                 name="profile_description"
+                autoComplete="off"
                 value={descriptionInput}
                 onChange={(event) => setDescriptionInput(event.target.value)}
                 placeholder={messages.profiles.optionalPlaceholder}
@@ -156,6 +158,7 @@ export function ProfileDialogs({
               <Input
                 id="profile-edit-name"
                 name="profile_name"
+                autoComplete="off"
                 value={nameInput}
                 onChange={(event) => setNameInput(event.target.value)}
                 placeholder={messages.profiles.profileNamePlaceholder}
@@ -166,6 +169,7 @@ export function ProfileDialogs({
               <Input
                 id="profile-edit-description"
                 name="profile_description"
+                autoComplete="off"
                 value={descriptionInput}
                 onChange={(event) => setDescriptionInput(event.target.value)}
                 placeholder={messages.profiles.optionalPlaceholder}
@@ -201,6 +205,7 @@ export function ProfileDialogs({
             <Input
               id="profile-delete-confirm"
               name="profile_delete_confirm"
+              autoComplete="off"
               value={deleteConfirmInput}
               onChange={(event) => {
                 setDeleteConfirmInput(event.target.value);
