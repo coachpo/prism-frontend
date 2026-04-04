@@ -104,7 +104,7 @@ export function EndpointDialog({
                 <FormItem>
                   <FormLabel>{copy.name}</FormLabel>
                   <FormControl>
-                    <Input placeholder={copy.namePlaceholder} {...field} />
+                    <Input autoComplete="off" placeholder={copy.namePlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
