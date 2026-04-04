@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import type {
-  ApiFamily,
   Endpoint,
   ModelConfigListItem,
   RequestLogListItem,
@@ -10,31 +9,24 @@ import type {
 import type { RequestLogPageState } from "./queryParams";
 import { timeRangeToFromTime } from "./queryParams";
 
-const API_FAMILIES: ApiFamily[] = ["openai", "anthropic", "gemini"];
-
-function toApiFamily(value: string): ApiFamily | undefined {
-  return API_FAMILIES.find((apiFamily) => apiFamily === value);
-}
-
 export interface FilterOptions {
-  apiFamilies: ApiFamily[];
   models: ModelConfigListItem[];
   endpoints: Endpoint[];
 }
 
 interface UseRequestLogsPageDataParams {
+  enabled?: boolean;
   revision: number;
   state: RequestLogPageState;
 }
 
-export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDataParams) {
+export function useRequestLogsPageData({ revision, state, enabled = true }: UseRequestLogsPageDataParams) {
   const messages = getStaticMessages();
   const [items, setItems] = useState<RequestLogListItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    apiFamilies: API_FAMILIES,
     models: [],
     endpoints: [],
   });
@@ -53,11 +45,15 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     const models = modelsResult.status === "fulfilled" ? modelsResult.value : [];
     const endpoints = endpointsResult.status === "fulfilled" ? endpointsResult.value : [];
 
-    setFilterOptions({ apiFamilies: API_FAMILIES, models, endpoints });
+    setFilterOptions({ models, endpoints });
     setFilterOptionsLoaded(true);
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     void revision;
     const bootstrapId = setTimeout(() => {
       void bootstrapFilterOptions();
@@ -66,7 +62,7 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     return () => {
       clearTimeout(bootstrapId);
     };
-  }, [bootstrapFilterOptions, revision]);
+  }, [bootstrapFilterOptions, enabled, revision]);
 
   const fetchData = useCallback(() => {
     const id = ++fetchIdRef.current;
@@ -78,7 +74,6 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
     const params = {
       ingress_request_id: state.ingress_request_id || undefined,
       model_id: state.model_id || undefined,
-      api_family: state.api_family ? toApiFamily(state.api_family) : undefined,
       status_family: state.status_family === "all" ? undefined : state.status_family,
       endpoint_id: state.endpoint_id ? parseInt(state.endpoint_id, 10) : undefined,
       from_time: fromTime,
@@ -106,7 +101,6 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
   }, [
     state.ingress_request_id,
     state.model_id,
-    state.api_family,
     state.status_family,
     state.endpoint_id,
     state.time_range,
@@ -116,17 +110,44 @@ export function useRequestLogsPageData({ revision, state }: UseRequestLogsPageDa
   ]);
 
   useEffect(() => {
+    if (enabled) {
+      return;
+    }
+
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    fetchIdRef.current += 1;
+    setItems([]);
+    setTotal(0);
+    setError(null);
+    setLoading(false);
+    setFilterOptions({ models: [], endpoints: [] });
+    setFilterOptionsLoaded(false);
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     void revision;
     if (debounceRef.current !== null) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(fetchData, 300);
     return () => {
       if (debounceRef.current !== null) clearTimeout(debounceRef.current);
     };
-  }, [fetchData, revision]);
+  }, [enabled, fetchData, revision]);
 
   const refresh = useCallback(() => {
+    if (!enabled) {
+      return;
+    }
+
     fetchData();
-  }, [fetchData]);
+  }, [enabled, fetchData]);
 
   return {
     items,

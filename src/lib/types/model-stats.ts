@@ -261,17 +261,11 @@ export interface StatsSummary {
 export type RequestStatusFamily = "4xx" | "5xx";
 
 export interface StatsRequestParams {
-  request_id?: number;
   ingress_request_id?: string;
   model_id?: string;
-  api_family?: ApiFamily;
   status_family?: RequestStatusFamily;
-  status_code?: number;
-  success?: boolean;
   from_time?: string;
-  to_time?: string;
   endpoint_id?: number;
-  connection_id?: number;
   limit?: number;
   offset?: number;
 }
