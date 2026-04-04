@@ -56,6 +56,7 @@ export function EditProxyKeyDialog({
             <Input
               id="proxy-key-edit-name"
               name="proxy-key-name"
+              autoComplete="off"
               value={proxyKeyName}
               onChange={(event) => setProxyKeyName(event.target.value)}
               placeholder={copy.namePlaceholder}
@@ -68,6 +69,7 @@ export function EditProxyKeyDialog({
             <Input
               id="proxy-key-edit-note"
               name="proxy-key-notes"
+              autoComplete="off"
               value={proxyKeyNotes}
               onChange={(event) => setProxyKeyNotes(event.target.value)}
               placeholder={copy.notesPlaceholder}

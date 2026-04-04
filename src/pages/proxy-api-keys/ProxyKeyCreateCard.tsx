@@ -83,6 +83,7 @@ export function ProxyKeyCreateCard({
               <Input
                 id="proxy-key-name"
                 name="proxy-key-name"
+                autoComplete="off"
                 value={proxyKeyName}
                 onChange={(event) => setProxyKeyName(event.target.value)}
                 placeholder={copy.namePlaceholder}
@@ -98,6 +99,7 @@ export function ProxyKeyCreateCard({
               <Input
                 id="proxy-key-notes"
                 name="proxy-key-notes"
+                autoComplete="off"
                 value={proxyKeyNotes}
                 onChange={(event) => setProxyKeyNotes(event.target.value)}
                 placeholder={copy.notesPlaceholder}
