@@ -3,17 +3,9 @@ import { useLocale } from "@/i18n/useLocale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { buildPasskeyMetadata, getPasskeyStateBadge } from "./passkeyMetadata";
+import { PasskeyRegisterDialog } from "./PasskeyRegisterDialog";
+import { PasskeyRemoveDialog } from "./PasskeyRemoveDialog";
 import { usePasskeyManagement } from "./usePasskeyManagement";
 
 export function PasskeysCard({ authEnabled }: { authEnabled: boolean }) {
@@ -155,65 +147,22 @@ export function PasskeysCard({ authEnabled }: { authEnabled: boolean }) {
         </CardContent>
       </Card>
 
-      <Dialog open={registerDialogOpen} onOpenChange={setRegisterDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{copy.registerPasskey}</DialogTitle>
-            <DialogDescription>
-              {copy.registerPasskeyDescription}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="device-name">{copy.deviceName}</Label>
-              <Input
-                id="device-name"
-                placeholder={copy.deviceNamePlaceholder}
-                value={deviceName}
-                onChange={(event) => setDeviceName(event.target.value)}
-                autoFocus
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRegisterDialogOpen(false)}
-              disabled={registering}
-            >
-              {messages.settingsDialogs.cancel}
-            </Button>
-            <Button onClick={handleRegisterSubmit} disabled={registering || !deviceName.trim()}>
-              {registering ? copy.registering : copy.continue}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PasskeyRegisterDialog
+        open={registerDialogOpen}
+        onOpenChange={setRegisterDialogOpen}
+        deviceName={deviceName}
+        setDeviceName={setDeviceName}
+        onSubmit={handleRegisterSubmit}
+        registering={registering}
+      />
 
-      <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{copy.removePasskey}</DialogTitle>
-            <DialogDescription>
-              {copy.removePasskeyConfirmation(
-                passkeyToRemove?.device_name || copy.passkeyFallbackName(passkeyToRemove?.id ?? ""),
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRemoveDialogOpen(false)}
-              disabled={removing}
-            >
-              {messages.settingsDialogs.cancel}
-            </Button>
-            <Button variant="destructive" onClick={handleRemoveConfirm} disabled={removing}>
-              {removing ? copy.removing : copy.removePasskey}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PasskeyRemoveDialog
+        open={removeDialogOpen}
+        onOpenChange={setRemoveDialogOpen}
+        passkeyToRemove={passkeyToRemove}
+        onConfirmRemove={handleRemoveConfirm}
+        removing={removing}
+      />
     </>
   );
 }
