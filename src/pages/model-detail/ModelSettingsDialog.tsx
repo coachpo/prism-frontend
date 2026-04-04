@@ -164,13 +164,14 @@ function ModelSettingsForm({
           <Input
             id="edit-display-name"
             name="display_name"
+            autoComplete="off"
             defaultValue={model.display_name || ""}
             placeholder={copy.displayNamePlaceholder}
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="edit-model-id">{copy.modelIdLabel}</Label>
-          <Input id="edit-model-id" name="model_id" defaultValue={model.model_id} required />
+          <Input id="edit-model-id" name="model_id" autoComplete="off" defaultValue={model.model_id} required />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">

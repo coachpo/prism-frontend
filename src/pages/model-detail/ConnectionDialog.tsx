@@ -211,6 +211,7 @@ export function ConnectionDialog({
                       <Input
                         id="endpoint-name"
                         name="endpoint_name"
+                        autoComplete="off"
                         placeholder={copy.endpointNamePlaceholder}
                         value={newEndpointForm.name}
                         onChange={(e) => setNewEndpointForm({ ...newEndpointForm, name: e.target.value })}
@@ -256,6 +257,7 @@ export function ConnectionDialog({
                     <Input
                       id="conn-name"
                       name="name"
+                      autoComplete="off"
                       placeholder={copy.connectionDisplayNamePlaceholder}
                       value={connectionForm.name || ""}
                       onChange={(e) => setConnectionForm({ ...connectionForm, name: e.target.value })}
@@ -309,6 +311,7 @@ export function ConnectionDialog({
                       id="conn-monitoring-probe-interval-seconds"
                       name="monitoring_probe_interval_seconds"
                       type="number"
+                      autoComplete="off"
                       min="30"
                       max="3600"
                       step="1"
@@ -386,6 +389,7 @@ export function ConnectionDialog({
                             id={field.id}
                             name={field.field}
                             type="number"
+                            autoComplete="off"
                             min="0"
                             value={field.value ?? ""}
                             onChange={(e) => handleLimiterChange(field.field, e.target.value)}
@@ -430,6 +434,7 @@ export function ConnectionDialog({
                               <Input
                                 id={`connection-header-key-${index}`}
                                 name={`custom_headers.${index}.key`}
+                                autoComplete="off"
                                 aria-label={copy.headerKey}
                                 placeholder={copy.headerKey}
                                 value={row.key}
@@ -443,6 +448,7 @@ export function ConnectionDialog({
                               <Input
                                 id={`connection-header-value-${index}`}
                                 name={`custom_headers.${index}.value`}
+                                autoComplete="off"
                                 aria-label={copy.headerValue}
                                 placeholder={copy.headerValue}
                                 value={row.value}
