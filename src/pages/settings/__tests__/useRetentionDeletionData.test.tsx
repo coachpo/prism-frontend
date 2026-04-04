@@ -11,6 +11,7 @@ const api = vi.hoisted(() => ({
   },
   stats: {
     delete: vi.fn(),
+    deleteStatistics: vi.fn(),
   },
 }));
 
@@ -56,5 +57,33 @@ describe("useRetentionDeletionData", () => {
     });
     expect(result.current.deleteConfirmPhrase).toBe("DELETE");
     expect(result.current.retentionPreset).toBe("7");
+  });
+
+  it("routes statistics cleanup through the dedicated statistics delete client", async () => {
+    api.stats.deleteStatistics.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useRetentionDeletionData());
+
+    act(() => {
+      result.current.setCleanupType("statistics");
+      result.current.setRetentionPreset("all");
+    });
+
+    act(() => {
+      result.current.handleOpenDeleteConfirm();
+      result.current.setDeleteConfirmPhrase("DELETE");
+    });
+
+    await act(async () => {
+      await result.current.handleBatchDelete();
+    });
+
+    expect(api.stats.deleteStatistics).toHaveBeenCalledWith({ delete_all: true });
+    expect(api.stats.delete).not.toHaveBeenCalled();
+    expect(result.current.displayedDeleteConfirm).toEqual({
+      type: "statistics",
+      days: null,
+      deleteAll: true,
+    });
   });
 });

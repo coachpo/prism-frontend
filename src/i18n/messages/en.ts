@@ -422,6 +422,7 @@ export interface Messages {
     cleanupTypeAudits: string;
     cleanupTypeLoadbalanceEvents: string;
     cleanupTypeRequests: string;
+    cleanupTypeStatistics: string;
     dataType: string;
     delete: string;
     deleteConfirmKeyword: string;
@@ -2014,6 +2015,7 @@ export const enMessages: Messages = {
     cleanupTypeAudits: "Audit Logs",
     cleanupTypeLoadbalanceEvents: "Loadbalance Events",
     cleanupTypeRequests: "Request Logs",
+    cleanupTypeStatistics: "Statistics Data",
     dataType: "Data type",
     delete: "Delete",
     deleteConfirmKeyword: "DELETE",
