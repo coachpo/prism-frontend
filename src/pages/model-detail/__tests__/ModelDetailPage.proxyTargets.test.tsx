@@ -115,8 +115,6 @@ function buildHookValue(modelType: "native" | "proxy"): ModelDetailDataResult {
     setIsEditModelDialogOpen: vi.fn(),
     editLoadbalanceStrategyId: "",
     setEditLoadbalanceStrategyId: vi.fn(),
-    editProxyTargets: [],
-    setEditProxyTargets: vi.fn(),
     proxyTargetOptions: [],
     handleSaveProxyTargets: vi.fn(),
     spending: null,

@@ -12,13 +12,11 @@ import { normalizeProxyTargets } from "../models/modelFormState";
 
 interface UseModelDetailModelFormInput {
   editLoadbalanceStrategyId: string;
-  editProxyTargets: ProxyTarget[];
   model: ModelConfig | null;
   allModels: ModelConfigListItem[];
   isEditModelDialogOpen: boolean;
   revision: number;
   setEditLoadbalanceStrategyId: (value: string) => void;
-  setEditProxyTargets: React.Dispatch<React.SetStateAction<ProxyTarget[]>>;
   setIsEditModelDialogOpen: (open: boolean) => void;
   setAllModels: React.Dispatch<React.SetStateAction<ModelConfigListItem[]>>;
   setModel: React.Dispatch<React.SetStateAction<ModelConfig | null>>;
@@ -26,13 +24,11 @@ interface UseModelDetailModelFormInput {
 
 export function useModelDetailModelForm({
   editLoadbalanceStrategyId,
-  editProxyTargets,
   model,
   allModels,
   isEditModelDialogOpen,
   revision,
   setEditLoadbalanceStrategyId,
-  setEditProxyTargets,
   setIsEditModelDialogOpen,
   setAllModels,
   setModel,
@@ -42,17 +38,11 @@ export function useModelDetailModelForm({
       return;
     }
 
-    if (model.model_type === "proxy") {
-      setEditProxyTargets(normalizeProxyTargets(model.proxy_targets));
-      return;
-    }
-
     setEditLoadbalanceStrategyId(model.loadbalance_strategy_id ? String(model.loadbalance_strategy_id) : "");
   }, [
     isEditModelDialogOpen,
     model,
     setEditLoadbalanceStrategyId,
-    setEditProxyTargets,
   ]);
 
   const proxyTargetOptions = useMemo(
@@ -66,9 +56,8 @@ export function useModelDetailModelForm({
       setModel(updatedModel);
       setAllModels((currentModels) => patchModelListItemFromDetail(currentModels, updatedModel));
       setEditLoadbalanceStrategyId(updatedModel.loadbalance_strategy_id ? String(updatedModel.loadbalance_strategy_id) : "");
-      setEditProxyTargets(normalizeProxyTargets(updatedModel.proxy_targets));
     },
-    [revision, setAllModels, setEditLoadbalanceStrategyId, setEditProxyTargets, setModel],
+    [revision, setAllModels, setEditLoadbalanceStrategyId, setModel],
   );
 
   const handleEditModelSubmit = useCallback(
@@ -102,7 +91,6 @@ export function useModelDetailModelForm({
         api_family: apiFamily as ModelConfigUpdate["api_family"],
         display_name: (formData.get("display_name") as string) || null,
         model_id: formData.get("model_id") as string,
-        proxy_targets: model.model_type === "proxy" ? normalizeProxyTargets(editProxyTargets) : [],
         loadbalance_strategy_id:
           model.model_type === "native"
             ? Number.parseInt(editLoadbalanceStrategyId, 10) || null
@@ -121,7 +109,6 @@ export function useModelDetailModelForm({
     [
       applyUpdatedModel,
       editLoadbalanceStrategyId,
-      editProxyTargets,
       model,
       setIsEditModelDialogOpen,
     ],

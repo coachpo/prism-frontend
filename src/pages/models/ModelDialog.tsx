@@ -3,7 +3,6 @@ import { SwitchController } from "@/components/SwitchController";
 import { VendorSelect } from "@/components/VendorSelect";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/i18n/useLocale";
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,10 +22,6 @@ import type {
 import { getAdaptiveRoutingObjectiveLabel } from "@/lib/loadbalanceRoutingPolicy";
 import type { ModelFormData, SubmitEventLike } from "./modelFormState";
 import {
-  appendProxyTarget,
-  moveProxyTarget,
-  normalizeProxyTargets,
-  removeProxyTarget,
   setDisplayNameOnForm,
   setModelIdOnForm,
 } from "./modelFormState";
@@ -58,16 +53,11 @@ export function ModelDialog({
   setModelType,
   onSubmit,
 }: Props) {
-  const { formatNumber, messages } = useLocale();
+  const { messages } = useLocale();
   const strategyCopy = messages.loadbalanceStrategyCopy;
   const fieldCopy = messages.common;
   const copy = messages.modelsUi;
   const detailCopy = messages.modelDetail;
-  const normalizedProxyTargets = normalizeProxyTargets(formData.proxy_targets);
-  const selectedProxyTargetIds = new Set(normalizedProxyTargets.map((target) => target.target_model_id));
-  const remainingProxyTargets = nativeModelsForApiFamily.filter(
-    (model) => !selectedProxyTargetIds.has(model.model_id),
-  );
 
   const getStrategyTypeLabel = (strategy: LoadbalanceStrategy) =>
     strategy.strategy_type === "adaptive"
@@ -78,22 +68,14 @@ export function ModelDialog({
           ? strategyCopy.fillFirstLabel
           : strategyCopy.roundRobinLabel;
 
-  const resolveTargetLabel = (targetModelId: string) => {
-    const matchedModel = nativeModelsForApiFamily.find((model) => model.model_id === targetModelId);
-    if (!matchedModel) {
-      return targetModelId;
-    }
-
-    return matchedModel.display_name
-      ? `${matchedModel.display_name} (${matchedModel.model_id})`
-      : matchedModel.model_id;
-  };
-
   const getStrategyOptionText = (strategy: LoadbalanceStrategy) => {
     return `${strategy.name} (${getStrategyTypeLabel(strategy)})`;
   };
 
   const loadbalanceStrategyValue = String(formData.loadbalance_strategy_id ?? "");
+  const selectedLoadbalanceStrategy = [...loadbalanceStrategies]
+    .reverse()
+    .find((strategy) => strategy.id === formData.loadbalance_strategy_id);
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -112,14 +94,6 @@ export function ModelDialog({
             value={loadbalanceStrategyValue}
           />
           <input type="hidden" name="is_enabled" value={String(formData.is_enabled)} />
-          {normalizedProxyTargets.map((target, index) => (
-            <input
-              key={`proxy-target-${target.target_model_id}`}
-              type="hidden"
-              name={`proxy_targets.${index}.target_model_id`}
-              value={target.target_model_id}
-            />
-          ))}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>{fieldCopy.vendor}</Label>
@@ -148,10 +122,6 @@ export function ModelDialog({
                   setFormData((prev) => ({
                     ...prev,
                     api_family: value as typeof prev.api_family,
-                    proxy_targets:
-                      prev.model_type === "proxy" && value !== prev.api_family
-                        ? []
-                        : normalizeProxyTargets(prev.proxy_targets),
                   }))
                 }
                 showAll={false}
@@ -204,7 +174,7 @@ export function ModelDialog({
           {formData.model_type === "proxy" && (
             <div className="space-y-2">
               <Label>{detailCopy.proxyTargets}</Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 <span className="block">
                   {copy.proxyTargetsDescriptionPrimary}
                 </span>
@@ -212,112 +182,14 @@ export function ModelDialog({
                   {copy.proxyTargetsDescriptionSecondary}
                 </span>
               </p>
-              <div className="space-y-2">
-                {normalizedProxyTargets.length === 0 ? (
-                  <p className="rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
-                    {copy.noProxyTargetsSelected}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {normalizedProxyTargets.map((target, index) => (
-                      <div
-                        key={target.target_model_id}
-                        className="flex flex-col gap-3 rounded-md border px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{resolveTargetLabel(target.target_model_id)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {copy.priority(formatNumber(index + 1))}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            aria-label={copy.targetMoveUp(target.target_model_id)}
-                            disabled={index === 0}
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                proxy_targets: moveProxyTarget(normalizedProxyTargets, index, index - 1),
-                              })
-                            }
-                          >
-                            <ArrowUp className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            aria-label={copy.targetMoveDown(target.target_model_id)}
-                            disabled={index === normalizedProxyTargets.length - 1}
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                proxy_targets: moveProxyTarget(normalizedProxyTargets, index, index + 1),
-                              })
-                            }
-                          >
-                            <ArrowDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            aria-label={copy.targetRemove(target.target_model_id)}
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                proxy_targets: removeProxyTarget(normalizedProxyTargets, target.target_model_id),
-                              })
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {nativeModelsForApiFamily.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                      {copy.noNativeModelsForFamily(formData.api_family || messages.common.apiFamily)}
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="min-w-0 text-xs text-muted-foreground">
-                      {remainingProxyTargets.length === 0
-                        ? copy.allNativeModelsIncluded
-                        : copy.remainingNativeTargets(formatNumber(remainingProxyTargets.length))}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full sm:w-auto"
-                      disabled={remainingProxyTargets.length === 0}
-                      onClick={() => {
-                        const nextTarget = remainingProxyTargets[0];
-                        if (!nextTarget) {
-                          return;
-                        }
-
-                        setFormData({
-                          ...formData,
-                          proxy_targets: appendProxyTarget(normalizedProxyTargets, nextTarget.model_id),
-                        });
-                      }}
-                    >
-                      {copy.addTarget}
-                    </Button>
-                  </div>
-                )}
-              </div>
+              <p className="rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
+                {copy.noProxyTargetsSelected}
+              </p>
+              {nativeModelsForApiFamily.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {copy.noNativeModelsForFamily(formData.api_family || messages.common.apiFamily)}
+                </p>
+              ) : null}
             </div>
           )}
 
@@ -333,17 +205,28 @@ export function ModelDialog({
                   value={loadbalanceStrategyValue}
                   onValueChange={(value) => setLoadbalanceStrategyId(Number.parseInt(value, 10))}
                 >
-                    <SelectTrigger id="model-loadbalance-strategy" className="w-full">
-                        <SelectValue placeholder={detailCopy.selectStrategy} />
-                     </SelectTrigger>
-                    <SelectContent>
-                      {loadbalanceStrategies.map((strategy) => (
-                        <SelectItem key={strategy.id} value={String(strategy.id)}>
+                  <SelectTrigger
+                    id="model-loadbalance-strategy"
+                    className="h-auto w-full min-w-0 items-start py-2 text-left whitespace-normal [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:line-clamp-none [&_[data-slot=select-value]]:whitespace-normal [&_[data-slot=select-value]]:break-words [&_[data-slot=select-value]]:leading-5"
+                  >
+                    <SelectValue placeholder={detailCopy.selectStrategy}>
+                      {selectedLoadbalanceStrategy ? (
+                        <span className="min-w-0 whitespace-normal break-words leading-5">
+                          {getStrategyOptionText(selectedLoadbalanceStrategy)}
+                        </span>
+                      ) : null}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="min-w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)]">
+                    {loadbalanceStrategies.map((strategy) => (
+                      <SelectItem key={strategy.id} value={String(strategy.id)}>
+                        <span className="block whitespace-normal break-words pr-4 leading-5">
                           {getStrategyOptionText(strategy)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
             </div>
           )}

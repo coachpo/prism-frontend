@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Route, Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocale } from "@/i18n/useLocale";
 import type { ProxyTarget } from "@/lib/types";
 import { appendProxyTarget, moveProxyTarget, normalizeProxyTargets, removeProxyTarget } from "../models/modelFormState";
@@ -23,6 +24,7 @@ export function ProxyTargetsCard({
   const copy = messages.modelsUi;
   const detailCopy = messages.modelDetail;
   const [draftTargets, setDraftTargets] = useState<ProxyTarget[]>(() => normalizeProxyTargets(proxyTargets));
+  const [pendingTargetId, setPendingTargetId] = useState("");
 
   useEffect(() => {
     setDraftTargets(normalizeProxyTargets(proxyTargets));
@@ -36,6 +38,17 @@ export function ProxyTargetsCard({
   const resolveTargetLabel = (targetModelId: string) => {
     return availableTargets.find((target) => target.modelId === targetModelId)?.label ?? targetModelId;
   };
+
+  useEffect(() => {
+    if (!pendingTargetId) {
+      return;
+    }
+
+    const hasPendingTarget = remainingTargets.some((target) => target.modelId === pendingTargetId);
+    if (!hasPendingTarget) {
+      setPendingTargetId("");
+    }
+  }, [pendingTargetId, remainingTargets]);
 
   return (
     <Card>
@@ -103,29 +116,46 @@ export function ProxyTargetsCard({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <p className="text-xs text-muted-foreground">
             {remainingTargets.length === 0
               ? copy.allNativeModelsIncluded
               : copy.remainingNativeTargets(formatNumber(remainingTargets.length))}
           </p>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={remainingTargets.length === 0}
-              onClick={() => {
-                const nextTarget = remainingTargets[0];
-                if (!nextTarget) {
-                  return;
-                }
-
-                setDraftTargets((current) => appendProxyTarget(current, nextTarget.modelId));
-              }}
-            >
-              {copy.addTarget}
-            </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 sm:min-w-72 sm:flex-none">
+              <Select
+                value={pendingTargetId}
+                onValueChange={setPendingTargetId}
+                disabled={remainingTargets.length === 0}
+              >
+                <SelectTrigger className="h-9 w-full min-w-0 rounded-r-none">
+                  <SelectValue className="min-w-0" placeholder={detailCopy.modelIdLabel} />
+                </SelectTrigger>
+                <SelectContent className="min-w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)]">
+                  {remainingTargets.map((target) => (
+                    <SelectItem key={target.modelId} value={target.modelId}>
+                      <span className="block whitespace-normal break-words pr-4 leading-5">
+                        {target.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-l-none border-l-0"
+                disabled={!pendingTargetId}
+                onClick={() => {
+                  setDraftTargets((current) => appendProxyTarget(current, pendingTargetId));
+                  setPendingTargetId("");
+                }}
+              >
+                {copy.addTarget}
+              </Button>
+            </div>
             <Button
               type="button"
               size="sm"

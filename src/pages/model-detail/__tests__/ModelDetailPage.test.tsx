@@ -129,8 +129,6 @@ function buildModelDetailData(modelType: "native" | "proxy" = "native"): ModelDe
     setIsEditModelDialogOpen: mockSetIsEditModelDialogOpen,
     editLoadbalanceStrategyId: "",
     setEditLoadbalanceStrategyId: vi.fn(),
-    editProxyTargets: modelType === "proxy" ? [{ target_model_id: "gpt-4o", position: 0 }] : [],
-    setEditProxyTargets: vi.fn(),
     spending: null,
     spendingLoading: false,
     spendingCurrencySymbol: "$",
