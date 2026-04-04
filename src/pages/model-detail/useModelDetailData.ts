@@ -8,7 +8,6 @@ import type {
   Endpoint,
   LoadbalanceStrategy,
   Vendor,
-  ProxyTarget,
   SpendingSummary,
   PricingTemplate,
 } from "@/lib/types";
@@ -38,7 +37,6 @@ export function useModelDetailData(id: string | undefined) {
   const [spendingCurrencySymbol, setSpendingCurrencySymbol] = useState("$");
   const [spendingCurrencyCode, setSpendingCurrencyCode] = useState("USD");
   const [editLoadbalanceStrategyId, setEditLoadbalanceStrategyId] = useState("");
-  const [editProxyTargets, setEditProxyTargets] = useState<ProxyTarget[]>([]);
 
   const [connections, setConnections] = useState<Connection[]>([]);
   const [connectionSearch, setConnectionSearch] = useState("");
@@ -159,13 +157,11 @@ export function useModelDetailData(id: string | undefined) {
 
   const { proxyTargetOptions, handleEditModelSubmit, handleSaveProxyTargets } = useModelDetailModelForm({
     editLoadbalanceStrategyId,
-    editProxyTargets,
     model,
     allModels,
     isEditModelDialogOpen,
     revision,
     setEditLoadbalanceStrategyId,
-    setEditProxyTargets,
     setIsEditModelDialogOpen,
     setAllModels,
     setModel,
@@ -214,8 +210,6 @@ export function useModelDetailData(id: string | undefined) {
     setIsEditModelDialogOpen,
     editLoadbalanceStrategyId,
     setEditLoadbalanceStrategyId,
-    editProxyTargets,
-    setEditProxyTargets,
     spending,
     spendingLoading,
     spendingCurrencySymbol,
