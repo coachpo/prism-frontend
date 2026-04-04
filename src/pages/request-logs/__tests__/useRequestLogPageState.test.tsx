@@ -1,50 +1,57 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { MemoryRouter } from "react-router-dom";
+import { useEffect, type ReactNode } from "react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { useRequestLogPageState } from "../useRequestLogPageState";
 
-function createWrapper(initialEntry: string) {
+function createWrapper(initialEntry: string, onLocationChange?: (value: string) => void) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return <MemoryRouter initialEntries={[initialEntry]}>{children}</MemoryRouter>;
+    return (
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <LocationProbe onLocationChange={onLocationChange} />
+        {children}
+      </MemoryRouter>
+    );
   };
 }
 
+function LocationProbe({ onLocationChange }: { onLocationChange?: (value: string) => void }) {
+  const location = useLocation();
+
+  useEffect(() => {
+    onLocationChange?.(`${location.pathname}${location.search}`);
+  }, [location, onLocationChange]);
+
+  return null;
+}
+
 describe("useRequestLogPageState", () => {
-  it("keeps pagination offset when applying local-only refinements", async () => {
+  it("ignores removed filter query keys and actions", async () => {
+    let currentLocation = "";
+
     const { result } = renderHook(() => useRequestLogPageState(), {
-      wrapper: createWrapper("/request-logs?offset=50"),
-    });
-
-    act(() => {
-      result.current.setSearch("timeout");
-    });
-
-    await waitFor(() => {
-      expect(result.current.state.search).toBe("timeout");
-    });
-
-    expect(result.current.state.offset).toBe(50);
-
-    act(() => {
-      result.current.setOutcomeFilter("error");
+      wrapper: createWrapper(
+        "/request-logs?offset=50&search=timeout&api_family=anthropic&outcome_filter=error&triage=true",
+        (value) => {
+          currentLocation = value;
+        },
+      ),
     });
 
     await waitFor(() => {
-      expect(result.current.state.outcome_filter).toBe("error");
+      expect(currentLocation).toBe("/request-logs?offset=50");
     });
 
+    expect(result.current.hasActiveFilters).toBe(false);
     expect(result.current.state.offset).toBe(50);
-
-    act(() => {
-      result.current.setTriage(true);
-    });
-
-    await waitFor(() => {
-      expect(result.current.state.triage).toBe(true);
-    });
-
-    expect(result.current.state.offset).toBe(50);
+    expect("search" in result.current.state).toBe(false);
+    expect("api_family" in result.current.state).toBe(false);
+    expect("outcome_filter" in result.current.state).toBe(false);
+    expect("triage" in result.current.state).toBe(false);
+    expect("setSearch" in result.current).toBe(false);
+    expect("setApiFamily" in result.current).toBe(false);
+    expect("setOutcomeFilter" in result.current).toBe(false);
+    expect("setTriage" in result.current).toBe(false);
   });
 
   it("resets pagination offset when a server-backed filter changes", async () => {
@@ -101,7 +108,9 @@ describe("useRequestLogPageState", () => {
 
   it("clears status-family filters while preserving exact-request mode state", async () => {
     const { result } = renderHook(() => useRequestLogPageState(), {
-      wrapper: createWrapper("/request-logs?status_family=5xx&model_id=gpt-5.4&request_id=123&detail_tab=audit"),
+      wrapper: createWrapper(
+        "/request-logs?status_family=5xx&model_id=gpt-5.4&search=timeout&request_id=123&detail_tab=audit",
+      ),
     });
 
     act(() => {
@@ -115,6 +124,7 @@ describe("useRequestLogPageState", () => {
     expect(result.current.state.model_id).toBe("");
     expect(result.current.state.request_id).toBe("123");
     expect(result.current.state.detail_tab).toBe("audit");
+    expect("search" in result.current.state).toBe(false);
   });
 
   it("parses ingress_request_id from the URL and preserves it across state serialization", async () => {
@@ -156,21 +166,20 @@ describe("useRequestLogPageState", () => {
     expect(result.current.state.detail_tab).toBe("overview");
   });
 
-  it("uses api_family query state for family filters", async () => {
+  it("keeps only retained browse filters active after serialization updates", async () => {
     const { result } = renderHook(() => useRequestLogPageState(), {
-      wrapper: createWrapper("/request-logs?api_family=anthropic&offset=50"),
+      wrapper: createWrapper("/request-logs?offset=50&model_id=gpt-5.4&status_family=4xx"),
     });
 
-    expect(result.current.state.api_family).toBe("anthropic");
-
     act(() => {
-      result.current.setApiFamily("gemini");
+      result.current.setTimeRange("7d");
     });
 
     await waitFor(() => {
-      expect(result.current.state.api_family).toBe("gemini");
+      expect(result.current.state.time_range).toBe("7d");
     });
 
-    expect(result.current.state.offset).toBe(0);
+    expect(result.current.hasActiveFilters).toBe(true);
+    expect("search" in result.current.state).toBe(false);
   });
 });

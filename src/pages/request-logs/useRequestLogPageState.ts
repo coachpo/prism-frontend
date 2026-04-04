@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   DEFAULTS,
@@ -6,10 +6,7 @@ import {
   type StatusFamilyFilter,
   stateToParams,
   type DetailTab,
-  type LatencyBucket,
-  type OutcomeFilter,
   type RequestLogPageState,
-  type StreamFilter,
   type TimeRange,
 } from "./queryParams";
 
@@ -20,6 +17,13 @@ function normalizeRequestId(value: string) {
 export function useRequestLogPageState() {
   const [searchParams, setSearchParams] = useSearchParams();
   const state = useMemo(() => parsePageState(searchParams), [searchParams]);
+
+  useEffect(() => {
+    const canonicalParams = stateToParams(state);
+    if (canonicalParams.toString() !== searchParams.toString()) {
+      setSearchParams(canonicalParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, state]);
 
   const update = useCallback(
     (patch: Partial<RequestLogPageState>, resetOffset = true) => {
@@ -38,17 +42,9 @@ export function useRequestLogPageState() {
 
   const setIngressRequestId = useCallback((v: string) => update({ ingress_request_id: v }), [update]);
   const setModelId = useCallback((v: string) => update({ model_id: v }), [update]);
-  const setApiFamily = useCallback((v: string) => update({ api_family: v }), [update]);
   const setEndpointId = useCallback((v: string) => update({ endpoint_id: v }), [update]);
   const setTimeRange = useCallback((v: TimeRange) => update({ time_range: v }), [update]);
   const setStatusFamily = useCallback((v: StatusFamilyFilter) => update({ status_family: v }), [update]);
-  const setSearch = useCallback((v: string) => update({ search: v }, false), [update]);
-  const setOutcomeFilter = useCallback((v: OutcomeFilter) => update({ outcome_filter: v }, false), [update]);
-  const setStreamFilter = useCallback((v: StreamFilter) => update({ stream_filter: v }, false), [update]);
-  const setLatencyBucket = useCallback((v: LatencyBucket) => update({ latency_bucket: v }, false), [update]);
-  const setTokenMin = useCallback((v: string) => update({ token_min: v }, false), [update]);
-  const setTokenMax = useCallback((v: string) => update({ token_max: v }, false), [update]);
-  const setTriage = useCallback((v: boolean) => update({ triage: v }, false), [update]);
   const setLimit = useCallback((v: number) => update({ limit: v, offset: DEFAULTS.offset }), [update]);
   const setOffset = useCallback((v: number) => update({ offset: v }, false), [update]);
   const setRequestId = useCallback(
@@ -102,17 +98,9 @@ export function useRequestLogPageState() {
   const hasActiveFilters = !!(
     state.ingress_request_id ||
     state.model_id ||
-    state.api_family ||
     state.endpoint_id ||
     state.time_range !== DEFAULTS.time_range ||
-    state.status_family !== DEFAULTS.status_family ||
-    state.search ||
-    state.outcome_filter !== DEFAULTS.outcome_filter ||
-    state.stream_filter !== DEFAULTS.stream_filter ||
-    state.latency_bucket !== DEFAULTS.latency_bucket ||
-    state.token_min ||
-    state.token_max ||
-    state.triage
+    state.status_family !== DEFAULTS.status_family
   );
 
   return {
@@ -121,17 +109,9 @@ export function useRequestLogPageState() {
     hasActiveFilters,
     setIngressRequestId,
     setModelId,
-    setApiFamily,
     setEndpointId,
     setTimeRange,
     setStatusFamily,
-    setSearch,
-    setOutcomeFilter,
-    setStreamFilter,
-    setLatencyBucket,
-    setTokenMin,
-    setTokenMax,
-    setTriage,
     setLimit,
     setOffset,
     setRequestId,
