@@ -74,6 +74,7 @@ export function VendorDialog({
             <Input
               id="vendor-name"
               name="name"
+              autoComplete="off"
               value={vendorForm.name}
               onChange={(event) =>
                 setVendorForm((current) => ({ ...current, name: event.target.value }))
@@ -87,6 +88,7 @@ export function VendorDialog({
             <Input
               id="vendor-key"
               name="key"
+              autoComplete="off"
               value={vendorForm.key}
               onChange={(event) =>
                 setVendorForm((current) => ({ ...current, key: event.target.value }))
@@ -100,6 +102,7 @@ export function VendorDialog({
             <Input
               id="vendor-description"
               name="description"
+              autoComplete="off"
               value={vendorForm.description}
               onChange={(event) =>
                 setVendorForm((current) => ({ ...current, description: event.target.value }))

@@ -86,6 +86,7 @@ export function RuleDialog({
               <Input
                 id="rule-name"
                 name="name"
+                autoComplete="off"
                 value={ruleForm.name}
                 onChange={(event) =>
                   setRuleForm((prev) => ({ ...prev, name: event.target.value }))
@@ -126,6 +127,7 @@ export function RuleDialog({
                 <Input
                   id="rule-pattern"
                   name="pattern"
+                  autoComplete="off"
                   value={ruleForm.pattern}
                   onChange={(event) =>
                     setRuleForm((prev) => ({ ...prev, pattern: event.target.value }))
