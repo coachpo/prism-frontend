@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
@@ -85,14 +85,17 @@ describe("MonitoringPage", () => {
     );
 
     const vendorLink = screen.getByRole("link", { name: /OpenAI/i });
+    const summaryTiles = within(vendorLink).getAllByTestId("monitoring-connection-summary-tile");
 
     expect(screen.getByText("OpenAI")).toBeInTheDocument();
     expect(vendorLink).toHaveAttribute("href", "/monitoring/vendors/1");
     expect(screen.getByText("Vendor groups")).toBeInTheDocument();
     expect(screen.getByText(/Select a vendor to inspect model summaries/i)).toBeInTheDocument();
     expect(screen.getByText("1 models · 2 connections")).toBeInTheDocument();
-    expect(screen.getByText("1 healthy")).toBeInTheDocument();
-    expect(screen.getByText("1 degraded")).toBeInTheDocument();
+    expect(within(summaryTiles[2]).getByText("Healthy")).toBeInTheDocument();
+    expect(within(summaryTiles[2]).getByText("1")).toBeInTheDocument();
+    expect(within(summaryTiles[3]).getByText("Degraded")).toBeInTheDocument();
+    expect(within(summaryTiles[3]).getByText("1")).toBeInTheDocument();
     expect(screen.queryByText("GPT-4.1")).not.toBeInTheDocument();
     expect(screen.queryByText("Primary")).not.toBeInTheDocument();
     expect(screen.queryByText("Past 60 probes")).not.toBeInTheDocument();
@@ -135,8 +138,11 @@ describe("MonitoringPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("link", { name: /OpenAI/i })).toHaveAttribute("href", "/monitoring/vendors/1");
-    expect(screen.getByText("1 healthy")).toBeInTheDocument();
+    const vendorLink = screen.getByRole("link", { name: /OpenAI/i });
+    expect(vendorLink).toHaveAttribute("href", "/monitoring/vendors/1");
+    let summaryTiles = within(vendorLink).getAllByTestId("monitoring-connection-summary-tile");
+    expect(within(summaryTiles[2]).getByText("Healthy")).toBeInTheDocument();
+    expect(within(summaryTiles[2]).getByText("1")).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
@@ -153,9 +159,12 @@ describe("MonitoringPage", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("0 healthy")).toBeInTheDocument();
+      summaryTiles = within(screen.getByRole("link", { name: /OpenAI/i })).getAllByTestId("monitoring-connection-summary-tile");
+      expect(within(summaryTiles[2]).getByText("Healthy")).toBeInTheDocument();
+      expect(within(summaryTiles[2]).getByText("0")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("1 degraded")).toBeInTheDocument();
+    expect(within(summaryTiles[3]).getByText("Degraded")).toBeInTheDocument();
+    expect(within(summaryTiles[3]).getByText("1")).toBeInTheDocument();
   });
 });

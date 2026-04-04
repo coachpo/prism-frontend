@@ -56,8 +56,8 @@ export function MonitoringOverviewGroups({ vendors }: MonitoringOverviewGroupsPr
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <SummaryTile label={messages.nav.models} value={formatNumber(vendor.model_count)} />
                 <SummaryTile label={copy.connections} value={formatNumber(vendor.connection_count)} />
-                <SummaryTile label={copy.healthyCount(formatNumber(vendor.healthy_connection_count))} value={formatNumber(vendor.healthy_connection_count)} />
-                <SummaryTile label={copy.degradedCount(formatNumber(vendor.degraded_connection_count))} value={formatNumber(vendor.degraded_connection_count)} />
+                <SummaryTile label={messages.dashboard.routingLegendHealthy} value={formatNumber(vendor.healthy_connection_count)} />
+                <SummaryTile label={messages.dashboard.routingLegendDegraded} value={formatNumber(vendor.degraded_connection_count)} />
               </div>
             </div>
           </Link>
