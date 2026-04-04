@@ -1,6 +1,10 @@
 export type NonEmptyArray<T> = [T, ...T[]];
 
-export type OpenAiProbeEndpointVariant = "responses" | "chat_completions";
+export type OpenAiProbeEndpointVariant =
+  | "responses_minimal"
+  | "responses_reasoning_none"
+  | "chat_completions_minimal"
+  | "chat_completions_reasoning_none";
 
 export interface Endpoint {
   id: number;
