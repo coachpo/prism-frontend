@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { Input } from "../input";
 
 describe("Input", () => {
-  it("defaults autocomplete to off for internal fields", () => {
+  it("does not inject autocomplete by default", () => {
     render(<Input aria-label="Internal field" />);
 
-    expect(screen.getByLabelText("Internal field")).toHaveAttribute("autocomplete", "off");
+    expect(screen.getByLabelText("Internal field")).not.toHaveAttribute("autocomplete");
   });
 
   it("preserves explicit autocomplete overrides", () => {
