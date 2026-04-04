@@ -11,24 +11,6 @@ function createEndpointStatistic(
   return {
     endpoint_id: 10,
     endpoint_label: "Primary Endpoint",
-    models: [
-      {
-        model_id: "gpt-5.4",
-        model_label: "GPT-5.4",
-        request_count: 5,
-        success_rate: 100,
-        total_cost_micros: 4200,
-        total_tokens: 320,
-      },
-      {
-        model_id: "claude-sonnet-4-6",
-        model_label: "Claude Sonnet 4.6",
-        request_count: 2,
-        success_rate: 50,
-        total_cost_micros: 0,
-        total_tokens: 90,
-      },
-    ],
     request_count: 7,
     success_rate: 85.7,
     total_cost_micros: 4200,
@@ -43,7 +25,7 @@ describe("EndpointStatisticsTable", () => {
     localStorage.clear();
   });
 
-  it("renders endpoint statistics as collapsibles with a sortable nested model table", () => {
+  it("renders endpoint statistics as a flat sortable table without nested model details", () => {
     render(
       <LocaleProvider>
         <EndpointStatisticsTable
@@ -53,16 +35,6 @@ describe("EndpointStatisticsTable", () => {
             createEndpointStatistic({
               endpoint_id: 11,
               endpoint_label: "Secondary Endpoint",
-              models: [
-                {
-                  model_id: "gpt-4.1-mini",
-                  model_label: "GPT-4.1 mini",
-                  request_count: 1,
-                  success_rate: 100,
-                  total_cost_micros: 1200,
-                  total_tokens: 80,
-                },
-              ],
               request_count: 1,
               success_rate: 100,
               total_cost_micros: 1200,
@@ -73,42 +45,32 @@ describe("EndpointStatisticsTable", () => {
       </LocaleProvider>,
     );
 
-    expect(screen.getByTestId("statistics-endpoint-table")).toBeInTheDocument();
+    const table = screen.getByTestId("statistics-endpoint-table");
     expect(screen.getByText("Top Endpoints by Requests")).toBeInTheDocument();
-
-    const triggers = screen.getAllByTestId("statistics-endpoint-collapsible");
-    expect(triggers).toHaveLength(2);
-    expect(triggers[0]).toHaveTextContent("Primary Endpoint");
-    expect(triggers[1]).toHaveTextContent("Secondary Endpoint");
-    expect(triggers[0].querySelectorAll('[data-slot="metric-card"]')).toHaveLength(0);
-    expect(triggers[1].querySelectorAll('[data-slot="metric-card"]')).toHaveLength(0);
+    expect(screen.queryByTestId("statistics-endpoint-collapsible")).not.toBeInTheDocument();
     expect(screen.queryByText("Claude Sonnet 4.6")).not.toBeInTheDocument();
 
-    fireEvent.click(triggers[0]);
-
-    const detail = screen.getByTestId("statistics-endpoint-details-10");
-    const summary = within(detail).getByTestId("statistics-endpoint-summary-10");
-    const nestedTable = within(detail).getByTestId("statistics-endpoint-models-table-10");
-    expect(summary.querySelectorAll('[data-slot="endpoint-summary-item"]')).toHaveLength(4);
-    expect(within(nestedTable).getByText("GPT-5.4")).toBeInTheDocument();
-    expect(within(nestedTable).getByText("Claude Sonnet 4.6")).toBeInTheDocument();
-    expect(within(summary).getByText("85.7%")).toBeInTheDocument();
-    expect(within(summary).getByText(/^\$0\.0042(?:\s[A-Z]{3})?$/)).toBeInTheDocument();
-
-    fireEvent.click(within(nestedTable).getByRole("button", { name: "Total Spend" }));
-
-    const rows = within(nestedTable)
+    const rows = within(table)
       .getAllByRole("row")
       .slice(1)
       .map((row) => row.textContent ?? "");
-    expect(rows[0]).toContain("Claude Sonnet 4.6");
+    expect(rows[0]).toContain("Primary Endpoint");
+    expect(rows[1]).toContain("Secondary Endpoint");
 
-    fireEvent.click(within(nestedTable).getByRole("button", { name: "Total Spend" }));
+    fireEvent.click(within(table).getByRole("button", { name: "Total Spend" }));
 
-    const resortedRows = within(nestedTable)
+    const ascendingRows = within(table)
       .getAllByRole("row")
       .slice(1)
       .map((row) => row.textContent ?? "");
-    expect(resortedRows[0]).toContain("GPT-5.4");
+    expect(ascendingRows[0]).toContain("Secondary Endpoint");
+
+    fireEvent.click(within(table).getByRole("button", { name: "Total Spend" }));
+
+    const descendingRows = within(table)
+      .getAllByRole("row")
+      .slice(1)
+      .map((row) => row.textContent ?? "");
+    expect(descendingRows[0]).toContain("Primary Endpoint");
   });
 });
