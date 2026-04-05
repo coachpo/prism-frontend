@@ -23,10 +23,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useLocale } from "@/i18n/useLocale";
 import { Loader2, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { normalizeConnectionProbeIntervalSeconds } from "./useModelDetailDataSupport";
 import { createHeaderRow } from "./useModelDetailDialogState";
 import type {
-  ApiFamily,
   Connection,
   ConnectionCreate,
   Endpoint,
@@ -55,7 +53,6 @@ interface ConnectionDialogProps {
   dialogTestResult: { status: string; detail: string } | null;
   handleDialogTestConnection: () => Promise<void>;
   endpointSourceDefaultName: string | null;
-  modelApiFamily: ApiFamily | undefined;
   pricingTemplates: PricingTemplate[];
 }
 
@@ -79,7 +76,6 @@ export function ConnectionDialog({
   dialogTestResult,
   handleDialogTestConnection,
   endpointSourceDefaultName,
-  modelApiFamily,
   pricingTemplates,
 }: ConnectionDialogProps) {
   const selectedEndpoint = globalEndpoints.find(
@@ -87,7 +83,6 @@ export function ConnectionDialog({
   );
   const { messages } = useLocale();
   const copy = messages.modelDetail;
-  const showOpenAiProbeEndpointVariant = modelApiFamily === "openai";
 
   const limiterFields: Array<{
     field: "qps_limit" | "max_in_flight_non_stream" | "max_in_flight_stream";
@@ -145,11 +140,6 @@ export function ConnectionDialog({
             type="hidden"
             name="pricing_template_id"
             value={connectionForm.pricing_template_id === null ? "" : String(connectionForm.pricing_template_id)}
-          />
-          <input
-            type="hidden"
-            name="openai_probe_endpoint_variant"
-            value={connectionForm.openai_probe_endpoint_variant ?? "responses_minimal"}
           />
           <ScrollArea className="min-h-0 flex-1">
             <div className="grid gap-6 px-6 py-5 sm:px-7" data-testid="connection-dialog-scroll-body">
@@ -302,78 +292,6 @@ export function ConnectionDialog({
                     </Select>
                     <p className="text-[11px] text-muted-foreground">{copy.pricingTemplateHint}</p>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="conn-monitoring-probe-interval-seconds">
-                      {copy.monitoringProbeIntervalSeconds}
-                    </Label>
-                    <Input
-                      id="conn-monitoring-probe-interval-seconds"
-                      name="monitoring_probe_interval_seconds"
-                      type="number"
-                      autoComplete="off"
-                      min="30"
-                      max="3600"
-                      step="1"
-                      value={connectionForm.monitoring_probe_interval_seconds ?? 300}
-                      onChange={(e) => {
-                        const rawValue = e.target.value;
-                        const parsedValue = Number.parseInt(rawValue, 10);
-                        setConnectionForm({
-                          ...connectionForm,
-                          monitoring_probe_interval_seconds:
-                            rawValue === "" || Number.isNaN(parsedValue)
-                              ? 300
-                              : normalizeConnectionProbeIntervalSeconds(parsedValue),
-                        });
-                      }}
-                    />
-                    <p className="text-[11px] text-muted-foreground">{copy.monitoringProbeIntervalHint}</p>
-                  </div>
-
-                  {showOpenAiProbeEndpointVariant ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="conn-openai-probe-endpoint-variant">{copy.openaiProbeEndpointVariant}</Label>
-                      <Select
-                        value={connectionForm.openai_probe_endpoint_variant ?? "responses_minimal"}
-                        onValueChange={(value) => {
-                          setConnectionForm({
-                            ...connectionForm,
-                            openai_probe_endpoint_variant:
-                              value === "responses_reasoning_none" ||
-                              value === "chat_completions_minimal" ||
-                              value === "chat_completions_reasoning_none"
-                                ? value
-                                : "responses_minimal",
-                          });
-                        }}
-                      >
-                        <SelectTrigger
-                          id="conn-openai-probe-endpoint-variant"
-                          aria-label={copy.openaiProbeEndpointVariant}
-                        >
-                          <SelectValue placeholder={copy.openaiProbeEndpointVariant} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="responses_minimal">
-                            {copy.openaiProbeResponsesMinimal}
-                          </SelectItem>
-                          <SelectItem value="responses_reasoning_none">
-                            {copy.openaiProbeResponsesReasoningNone}
-                          </SelectItem>
-                          <SelectItem value="chat_completions_minimal">
-                            {copy.openaiProbeChatCompletionsMinimal}
-                          </SelectItem>
-                          <SelectItem value="chat_completions_reasoning_none">
-                            {copy.openaiProbeChatCompletionsReasoningNone}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[11px] text-muted-foreground">
-                        {copy.openaiProbeEndpointVariantHint}
-                      </p>
-                    </div>
-                  ) : null}
                 </div>
 
                 <div className="flex min-h-0 flex-col gap-4" data-testid="connection-dialog-right-column">

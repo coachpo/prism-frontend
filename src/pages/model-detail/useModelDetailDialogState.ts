@@ -1,11 +1,6 @@
 import { useMemo, useState } from "react";
-import type { ApiFamily, Connection, ConnectionCreate, Endpoint, EndpointCreate } from "@/lib/types";
-import {
-  createDefaultConnectionForm,
-  createDefaultEndpointForm,
-  getSelectedEndpoint,
-  resolveConnectionProbeEndpointVariant,
-} from "./useModelDetailDataSupport";
+import type { Connection, ConnectionCreate, Endpoint, EndpointCreate } from "@/lib/types";
+import { createDefaultConnectionForm, createDefaultEndpointForm, getSelectedEndpoint } from "./useModelDetailDataSupport";
 
 export interface HeaderRow {
   id: string;
@@ -26,14 +21,10 @@ export function createHeaderRow(overrides?: Partial<Pick<HeaderRow, "key" | "val
 }
 
 interface UseModelDetailDialogStateInput {
-  modelApiFamily: ApiFamily | undefined;
   globalEndpoints: Endpoint[];
 }
 
-export function useModelDetailDialogState({
-  modelApiFamily,
-  globalEndpoints,
-}: UseModelDetailDialogStateInput) {
+export function useModelDetailDialogState({ globalEndpoints }: UseModelDetailDialogStateInput) {
   const [isEditModelDialogOpen, setIsEditModelDialogOpen] = useState(false);
   const [editRedirectTo, setEditRedirectTo] = useState("");
 
@@ -83,11 +74,6 @@ export function useModelDetailDialogState({
         is_active: connection.is_active,
         custom_headers: connection.custom_headers,
         pricing_template_id: connection.pricing_template_id,
-        monitoring_probe_interval_seconds: connection.monitoring_probe_interval_seconds ?? 300,
-        openai_probe_endpoint_variant: resolveConnectionProbeEndpointVariant(
-          modelApiFamily,
-          connection.openai_probe_endpoint_variant,
-        ),
         qps_limit: connection.qps_limit,
         max_in_flight_non_stream: connection.max_in_flight_non_stream,
         max_in_flight_stream: connection.max_in_flight_stream,
@@ -98,10 +84,7 @@ export function useModelDetailDialogState({
     } else {
       setEditingConnection(null);
       setHeaderRows([]);
-      setConnectionForm({
-        ...createDefaultConnectionForm(),
-        openai_probe_endpoint_variant: resolveConnectionProbeEndpointVariant(modelApiFamily, undefined),
-      });
+      setConnectionForm({ ...createDefaultConnectionForm() });
       setNewEndpointForm({ ...createDefaultEndpointForm() });
       setCreateMode("select");
       setSelectedEndpointId("");
