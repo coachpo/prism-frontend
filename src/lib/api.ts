@@ -1,15 +1,6 @@
 import { ApiError, getApiProfileId, setApiProfileId } from "./api/core";
 import { auth, settings } from "./api/authSettings";
-import {
-  audit,
-  config,
-  loadbalance,
-  monitoring,
-  settingsMonitoring,
-  settingsCosting,
-  settingsTimezone,
-  stats,
-} from "./api/observability";
+import { audit, config, loadbalance, settingsCosting, settingsTimezone, stats } from "./api/observability";
 import {
   connections,
   endpoints,
@@ -37,10 +28,8 @@ export const api = {
   vendors,
   settings: {
     ...settings,
-     costing: settingsCosting,
-     monitoring: settingsMonitoring,
-     timezone: settingsTimezone,
-   },
-   monitoring,
-   stats,
+    costing: settingsCosting,
+    timezone: settingsTimezone,
+  },
+  stats,
 };

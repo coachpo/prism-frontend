@@ -10,7 +10,6 @@ const {
   mockUseConfigBackupData,
   mockUseAuthenticationSettingsData,
   mockUseCostingSettingsData,
-  mockUseMonitoringSettingsData,
   mockUseAuditConfigurationData,
   mockUseRetentionDeletionData,
   mockUseVendorManagementData,
@@ -22,7 +21,6 @@ const {
   mockUseConfigBackupData: vi.fn(),
   mockUseAuthenticationSettingsData: vi.fn(),
   mockUseCostingSettingsData: vi.fn(),
-  mockUseMonitoringSettingsData: vi.fn(),
   mockUseAuditConfigurationData: vi.fn(),
   mockUseRetentionDeletionData: vi.fn(),
   mockUseVendorManagementData: vi.fn(),
@@ -55,10 +53,6 @@ vi.mock("../useAuthenticationSettingsData", () => ({
 
 vi.mock("../useCostingSettingsData", () => ({
   useCostingSettingsData: mockUseCostingSettingsData,
-}));
-
-vi.mock("../useMonitoringSettingsData", () => ({
-  useMonitoringSettingsData: mockUseMonitoringSettingsData,
 }));
 
 vi.mock("../useAuditConfigurationData", () => ({
@@ -128,7 +122,6 @@ describe("useSettingsPageData", () => {
     expect(result.current.selectedProfileLabel).toBe("Primary (#7)");
     expect(result.current.auditVendors).toEqual(auditVendors);
     expect(result.current.vendors).toEqual(vendorManagementVendors);
-    expect(mockUseMonitoringSettingsData).not.toHaveBeenCalled();
     expect(result.current.toggleAudit).toBe(toggleAudit);
   });
 });
