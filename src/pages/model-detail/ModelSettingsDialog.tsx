@@ -174,7 +174,7 @@ function ModelSettingsForm({
           <Input id="edit-model-id" name="model_id" autoComplete="off" defaultValue={model.model_id} required />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label>{fieldCopy.vendor}</Label>
             <VendorSelect
               value={selectedVendorId}
@@ -182,15 +182,17 @@ function ModelSettingsForm({
               valueType="vendor_id"
               vendors={vendors}
               showAll={false}
+              className="w-full"
               placeholder={copy.selectVendor}
             />
           </div>
-          <div className="space-y-2">
+          <div className="min-w-0 space-y-2">
             <Label>{fieldCopy.apiFamily}</Label>
             <ApiFamilySelect
               value={selectedApiFamily}
               onValueChange={handleApiFamilyChange}
               showAll={false}
+              className="w-full"
               placeholder={copy.selectApiFamily}
             />
           </div>
@@ -211,7 +213,7 @@ function ModelSettingsForm({
                 value={editLoadbalanceStrategyId || undefined}
                 onValueChange={setEditLoadbalanceStrategyId}
               >
-                <SelectTrigger id="edit-loadbalance-strategy">
+                <SelectTrigger id="edit-loadbalance-strategy" className="w-full">
                   <SelectValue placeholder={copy.selectStrategy} />
                 </SelectTrigger>
                 <SelectContent>

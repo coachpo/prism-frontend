@@ -91,6 +91,8 @@ describe("ModelSettingsDialog", () => {
     expect(screen.getByText("Vendor")).toBeInTheDocument();
     expect(screen.getByText("API Family")).toBeInTheDocument();
     expect(screen.getByDisplayValue("friendly-proxy")).toBeInTheDocument();
+    expect(screen.getByText("Vendor").parentElement).toHaveClass("min-w-0");
+    expect(screen.getByText("API Family").parentElement).toHaveClass("min-w-0");
   });
 
   it("renders model settings copy from the Chinese locale catalog", () => {
@@ -220,5 +222,8 @@ describe("ModelSettingsDialog", () => {
 
     expect(screen.getAllByText("round-robin-primary (Legacy strategy • Round robin)").length).toBeGreaterThan(0);
     expect(screen.getByText("adaptive-availability (Adaptive strategy • Minimize latency)")).toBeInTheDocument();
+    screen.getAllByRole("combobox").forEach((combobox) => {
+      expect(combobox).toHaveClass("w-full", "min-w-0", "max-w-full");
+    });
   });
 });
