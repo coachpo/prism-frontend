@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity,
   BarChart3,
   Coins,
   FileText,
@@ -24,7 +23,6 @@ export type ShellSidebarItemId =
   | "endpoints"
   | "loadbalance-strategies"
   | "statistics"
-  | "monitoring"
   | "settings"
   | "proxy-api-keys"
   | "pricing-templates"
@@ -33,9 +31,7 @@ export type ShellSidebarItemId =
 export type ShellRouteId =
   | ShellSidebarItemId
   | "model-detail"
-  | "proxy-model-detail"
-  | "monitoring-vendor-detail"
-  | "monitoring-model-detail";
+  | "proxy-model-detail";
 
 export interface ShellSidebarItemDefinition {
   groupId: ShellSidebarGroupId;
@@ -138,34 +134,6 @@ export const SHELL_ROUTE_METADATA: readonly ShellRouteMetadata[] = [
       to: "/statistics",
     },
     sidebarItemId: "statistics",
-  },
-  {
-    canonicalPath: "/monitoring",
-    id: "monitoring",
-    pathPattern: "/monitoring",
-    profileScoped: true,
-    sidebarItem: {
-      groupId: "observability",
-      icon: Activity,
-      id: "monitoring",
-      labelKey: "monitoring",
-      to: "/monitoring",
-    },
-    sidebarItemId: "monitoring",
-  },
-  {
-    canonicalPath: "/monitoring/vendors/:vendorId",
-    id: "monitoring-vendor-detail",
-    pathPattern: "/monitoring/vendors/:vendorId",
-    profileScoped: true,
-    sidebarItemId: "monitoring",
-  },
-  {
-    canonicalPath: "/monitoring/models/:modelConfigId",
-    id: "monitoring-model-detail",
-    pathPattern: "/monitoring/models/:modelConfigId",
-    profileScoped: true,
-    sidebarItemId: "monitoring",
   },
   {
     canonicalPath: "/settings",

@@ -1,1 +1,1 @@
-export type SettingsSaveSection = "billing" | "timezone" | "monitoring";
+export type SettingsSaveSection = "billing" | "timezone";

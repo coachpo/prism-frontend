@@ -38,8 +38,6 @@ export function ModelDetailPage() {
     dialogTestingConnection,
     dialogTestResult,
     currentStateByConnectionId,
-    monitoringByConnectionId,
-    monitoringLoading,
     resettingConnectionIds,
     focusedConnectionId,
     connectionCardRefs,
@@ -118,8 +116,6 @@ export function ModelDetailPage() {
         handleToggleActive={handleToggleActive}
         handleReorderConnections={handleReorderConnections}
         currentStateByConnectionId={currentStateByConnectionId}
-        monitoringByConnectionId={monitoringByConnectionId}
-        monitoringLoading={monitoringLoading}
         resettingConnectionIds={resettingConnectionIds}
         healthCheckingIds={healthCheckingIds}
         focusedConnectionId={focusedConnectionId}
@@ -148,7 +144,6 @@ export function ModelDetailPage() {
         dialogTestResult={dialogTestResult}
         handleDialogTestConnection={handleDialogTestConnection}
         endpointSourceDefaultName={endpointSourceDefaultName}
-        modelApiFamily={model.api_family}
         pricingTemplates={pricingTemplates}
       />
 

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type { Connection, ModelConfig, MonitoringModelConnection, Vendor } from "@/lib/types";
+import type { Connection, ModelConfig, Vendor } from "@/lib/types";
 import { ConnectionsList } from "../ConnectionsList";
 
 const sortableCardProps: Record<string, unknown>[] = [];
@@ -106,8 +106,6 @@ function buildConnection(id: number, name: string): Connection {
     custom_headers: null,
     pricing_template_id: null,
     pricing_template: null,
-    monitoring_probe_interval_seconds: 300,
-    openai_probe_endpoint_variant: "responses_minimal",
     qps_limit: null,
     max_in_flight_non_stream: null,
     max_in_flight_stream: null,
@@ -116,21 +114,6 @@ function buildConnection(id: number, name: string): Connection {
     last_health_check: null,
     created_at: "2026-03-20T10:00:00Z",
     updated_at: "2026-03-20T10:00:00Z",
-  };
-}
-
-function buildMonitoringConnection(connectionId: number, endpointName: string): MonitoringModelConnection {
-  return {
-    connection_id: connectionId,
-    connection_name: `monitoring-${connectionId}`,
-    endpoint_id: connectionId + 100,
-    endpoint_name: endpointName,
-    endpoint_ping_status: "healthy",
-    endpoint_ping_ms: 32,
-    conversation_status: "healthy",
-    conversation_delay_ms: 148,
-    fused_status: "healthy",
-    recent_history: [],
   };
 }
 
@@ -161,18 +144,13 @@ function renderSubject() {
         connectionCardRefs={new Map<number, HTMLDivElement>()}
         reorderInFlight={false}
         handleResetCooldown={vi.fn()}
-        monitoringByConnectionId={new Map<number, MonitoringModelConnection>([
-          [11, buildMonitoringConnection(11, "Primary endpoint")],
-          [12, buildMonitoringConnection(12, "Secondary endpoint")],
-        ])}
-        monitoringLoading
       />
     </LocaleProvider>,
   );
 }
 
 describe("ConnectionsList", () => {
-  it("removes lazy-load metrics controls and passes monitoring props to live and overlay cards", () => {
+  it("keeps the simplified connection list shell and drag overlay without monitoring props", () => {
     sortableCardProps.length = 0;
     overlayCardProps.length = 0;
 
@@ -186,22 +164,16 @@ describe("ConnectionsList", () => {
     expect(screen.getByPlaceholderText("Filter connections...")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add Connection" })).toBeInTheDocument();
 
-    expect(sortableCardProps[0]).toMatchObject({
-      monitoringConnection: expect.objectContaining({ connection_id: 11, endpoint_name: "Primary endpoint" }),
-      monitoringLoading: true,
-    });
+    expect(sortableCardProps[0]).toMatchObject({ connection: expect.objectContaining({ id: 11 }) });
     expect(sortableCardProps[0]).not.toHaveProperty("metrics24h");
-    expect(sortableCardProps[2]).toMatchObject({
-      monitoringConnection: undefined,
-      monitoringLoading: true,
-    });
+    expect(sortableCardProps[0]).not.toHaveProperty("monitoringConnection");
+    expect(sortableCardProps[0]).not.toHaveProperty("monitoringLoading");
 
     fireEvent.click(screen.getByRole("button", { name: "start-drag" }));
 
-    expect(overlayCardProps.at(-1)).toMatchObject({
-      monitoringConnection: expect.objectContaining({ connection_id: 11, endpoint_name: "Primary endpoint" }),
-      monitoringLoading: true,
-    });
+    expect(overlayCardProps.at(-1)).toMatchObject({ connection: expect.objectContaining({ id: 11 }) });
+    expect(overlayCardProps.at(-1)).not.toHaveProperty("monitoringConnection");
+    expect(overlayCardProps.at(-1)).not.toHaveProperty("monitoringLoading");
     expect(overlayCardProps.at(-1)).not.toHaveProperty("metrics24h");
   });
 });

@@ -108,12 +108,6 @@ describe("AppSidebar", () => {
     expect(screen.getByRole("link", { name: "Loadbalance Strategies" })).toBeInTheDocument();
   });
 
-  it("includes the monitoring navigation entry", async () => {
-    await renderSidebar();
-
-    expect(screen.getByRole("link", { name: "Monitoring" })).toBeInTheDocument();
-  });
-
   it("keeps the current route visible inside the sidebar shell", async () => {
     await renderSidebar({ path: "/request-logs" });
 

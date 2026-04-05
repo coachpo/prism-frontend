@@ -74,13 +74,6 @@ export function createDefaultAdaptiveRoutingPolicy(
       respect_qps_limit: true,
       respect_in_flight_limits: true,
     },
-    monitoring: {
-      enabled: true,
-      stale_after_seconds: 300,
-      endpoint_ping_weight: 1,
-      conversation_delay_weight: 1,
-      failure_penalty_weight: 2,
-    },
   };
 }
 

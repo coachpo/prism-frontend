@@ -161,11 +161,6 @@ function normalizeRoutingPolicy(value: unknown): LoadbalanceRoutingPolicy {
     unsupportedLoadbalanceStrategy("routing_policy.admission");
   }
 
-  const monitoring = value.monitoring;
-  if (!isRecord(monitoring)) {
-    unsupportedLoadbalanceStrategy("routing_policy.monitoring");
-  }
-
   const banMode = circuitBreaker.ban_mode;
   if (banMode !== "off" && banMode !== "temporary" && banMode !== "manual") {
     unsupportedLoadbalanceStrategy("routing_policy.circuit_breaker.ban_mode");
@@ -223,25 +218,6 @@ function normalizeRoutingPolicy(value: unknown): LoadbalanceRoutingPolicy {
       respect_in_flight_limits: normalizeBoolean(
         admission.respect_in_flight_limits,
         "routing_policy.admission.respect_in_flight_limits",
-      ),
-    },
-    monitoring: {
-      enabled: normalizeBoolean(monitoring.enabled, "routing_policy.monitoring.enabled"),
-      stale_after_seconds: normalizeInteger(
-        monitoring.stale_after_seconds,
-        "routing_policy.monitoring.stale_after_seconds",
-      ),
-      endpoint_ping_weight: normalizeNumber(
-        monitoring.endpoint_ping_weight,
-        "routing_policy.monitoring.endpoint_ping_weight",
-      ),
-      conversation_delay_weight: normalizeNumber(
-        monitoring.conversation_delay_weight,
-        "routing_policy.monitoring.conversation_delay_weight",
-      ),
-      failure_penalty_weight: normalizeNumber(
-        monitoring.failure_penalty_weight,
-        "routing_policy.monitoring.failure_penalty_weight",
       ),
     },
   };

@@ -157,28 +157,6 @@ function buildBreadcrumbs(
       return [{ current: true, href: null, id: "settings", label: messages.nav.settings }];
     }
 
-    case "monitoring-vendor-detail":
-      return [
-        { current: false, href: "/monitoring", id: "monitoring", label: messages.nav.monitoring },
-        {
-          current: true,
-          href: null,
-          id: "monitoring-vendor-detail",
-          label: messages.monitoring.vendorMonitoringTitle,
-        },
-      ];
-
-    case "monitoring-model-detail":
-      return [
-        { current: false, href: "/monitoring", id: "monitoring", label: messages.nav.monitoring },
-        {
-          current: true,
-          href: null,
-          id: "monitoring-model-detail",
-          label: messages.monitoring.modelMonitoringTitle,
-        },
-      ];
-
     case "request-logs": {
       const requestId = new URLSearchParams(search).get("request_id")?.trim() ?? "";
       if (requestId) {

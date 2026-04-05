@@ -1,11 +1,5 @@
 export type NonEmptyArray<T> = [T, ...T[]];
 
-export type OpenAiProbeEndpointVariant =
-  | "responses_minimal"
-  | "responses_reasoning_none"
-  | "chat_completions_minimal"
-  | "chat_completions_reasoning_none";
-
 export interface Endpoint {
   id: number;
   profile_id?: number;
@@ -123,8 +117,6 @@ export interface Connection {
   auth_type: string | null;
   custom_headers: Record<string, string> | null;
   pricing_template_id: number | null;
-  monitoring_probe_interval_seconds?: number | null;
-  openai_probe_endpoint_variant: OpenAiProbeEndpointVariant;
   qps_limit: number | null;
   max_in_flight_non_stream: number | null;
   max_in_flight_stream: number | null;
@@ -144,8 +136,6 @@ export interface ConnectionCreate {
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_template_id?: number | null;
-  monitoring_probe_interval_seconds?: number | null;
-  openai_probe_endpoint_variant?: OpenAiProbeEndpointVariant;
   qps_limit?: number | null;
   max_in_flight_non_stream?: number | null;
   max_in_flight_stream?: number | null;
@@ -159,8 +149,6 @@ export interface ConnectionUpdate {
   auth_type?: string | null;
   custom_headers?: Record<string, string> | null;
   pricing_template_id?: number | null;
-  monitoring_probe_interval_seconds?: number | null;
-  openai_probe_endpoint_variant?: OpenAiProbeEndpointVariant | null;
   qps_limit?: number | null;
   max_in_flight_non_stream?: number | null;
   max_in_flight_stream?: number | null;

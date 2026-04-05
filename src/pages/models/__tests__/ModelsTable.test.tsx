@@ -108,13 +108,6 @@ function buildAdaptiveModel(overrides: Partial<ModelConfigListItem> = {}): Model
           respect_qps_limit: true,
           respect_in_flight_limits: true,
         },
-        monitoring: {
-          enabled: true,
-          stale_after_seconds: 30,
-          endpoint_ping_weight: 0.4,
-          conversation_delay_weight: 0.35,
-          failure_penalty_weight: 0.25,
-        },
       },
     },
     ...overrides,

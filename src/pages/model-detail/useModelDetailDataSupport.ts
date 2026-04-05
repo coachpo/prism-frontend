@@ -8,16 +8,11 @@ import type {
   HealthCheckResponse,
   ModelConfig,
   ModelConfigListItem,
-  OpenAiProbeEndpointVariant,
   PricingTemplate,
 } from "@/lib/types";
 import { getStaticMessages } from "@/i18n/staticMessages";
 import { normalizeProxyTargets } from "../models/modelFormState";
 import type { HeaderRow } from "./useModelDetailDialogState";
-
-export const DEFAULT_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS = 300;
-export const MIN_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS = 30;
-export const MAX_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS = 3600;
 
 function resolveApiFamily(
   model: Pick<ModelConfig, "api_family"> | Pick<ModelConfigListItem, "api_family">,
@@ -43,15 +38,12 @@ export const createDefaultConnectionForm = (): ConnectionCreate => ({
   is_active: true,
   custom_headers: null,
   pricing_template_id: null,
-  monitoring_probe_interval_seconds: DEFAULT_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS,
-  openai_probe_endpoint_variant: "responses_minimal",
   qps_limit: null,
   max_in_flight_non_stream: null,
   max_in_flight_stream: null,
 });
 
 interface BuildConnectionDraftPayloadInput {
-  modelApiFamily: ApiFamily | undefined;
   createMode: "select" | "new";
   selectedEndpointId: string;
   newEndpointForm: EndpointCreate;
@@ -61,19 +53,7 @@ interface BuildConnectionDraftPayloadInput {
   endpointSourceDefaultName: string | null;
 }
 
-export function normalizeConnectionProbeIntervalSeconds(value: number | null | undefined): number {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return DEFAULT_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS;
-  }
-
-  return Math.min(
-    MAX_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS,
-    Math.max(MIN_CONNECTION_MONITORING_PROBE_INTERVAL_SECONDS, Math.trunc(value)),
-  );
-}
-
 export function buildConnectionDraftPayload({
-  modelApiFamily,
   createMode,
   selectedEndpointId,
   newEndpointForm,
@@ -104,14 +84,7 @@ export function buildConnectionDraftPayload({
     ...connectionForm,
     name: resolvedConnectionName,
     custom_headers: customHeaders,
-    openai_probe_endpoint_variant: resolveConnectionProbeEndpointVariant(
-      modelApiFamily,
-      connectionForm.openai_probe_endpoint_variant,
-    ),
     pricing_template_id: connectionForm.pricing_template_id,
-    monitoring_probe_interval_seconds: normalizeConnectionProbeIntervalSeconds(
-      connectionForm.monitoring_probe_interval_seconds,
-    ),
     qps_limit: normalizeLimiterField(connectionForm.qps_limit),
     max_in_flight_non_stream: normalizeLimiterField(connectionForm.max_in_flight_non_stream),
     max_in_flight_stream: normalizeLimiterField(connectionForm.max_in_flight_stream),
@@ -140,24 +113,6 @@ export function buildConnectionDraftPayload({
   payload.endpoint_create = newEndpointForm;
   delete payload.endpoint_id;
   return { errorMessage: null, payload };
-}
-
-export function resolveConnectionProbeEndpointVariant(
-  apiFamily: ApiFamily | undefined,
-  variant: OpenAiProbeEndpointVariant | null | undefined,
-): OpenAiProbeEndpointVariant {
-  if (apiFamily !== "openai") {
-    return "responses_minimal";
-  }
-
-  switch (variant) {
-    case "responses_reasoning_none":
-    case "chat_completions_minimal":
-    case "chat_completions_reasoning_none":
-      return variant;
-    default:
-      return "responses_minimal";
-  }
 }
 
 function normalizeLimiterField(value: number | null | undefined): number | null {

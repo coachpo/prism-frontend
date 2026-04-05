@@ -41,13 +41,6 @@ export interface LoadbalanceRoutingPolicy {
     respect_qps_limit: boolean;
     respect_in_flight_limits: boolean;
   };
-  monitoring: {
-    enabled: boolean;
-    stale_after_seconds: number;
-    endpoint_ping_weight: number;
-    conversation_delay_weight: number;
-    failure_penalty_weight: number;
-  };
 }
 
 export type LoadbalanceCurrentStateValue =

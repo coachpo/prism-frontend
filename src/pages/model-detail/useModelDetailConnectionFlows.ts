@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { getStaticMessages } from "@/i18n/staticMessages";
-import type { ApiFamily, Connection, ConnectionCreate, EndpointCreate, ModelConfig } from "@/lib/types";
+import type { Connection, ConnectionCreate, EndpointCreate, ModelConfig } from "@/lib/types";
 import type { HeaderRow } from "./useModelDetailDialogState";
 import { buildConnectionDraftPayload, moveConnectionInList } from "./useModelDetailDataSupport";
 import { useConnectionHealthChecks } from "./useConnectionHealthChecks";
@@ -12,7 +12,6 @@ interface UseModelDetailConnectionFlowsInput {
   connections: Connection[];
   setConnections: Dispatch<SetStateAction<Connection[]>>;
   model: ModelConfig | null;
-  modelApiFamily: ApiFamily | undefined;
   modelConfigId: number | undefined;
   setModel: Dispatch<SetStateAction<ModelConfig | null>>;
   createMode: "select" | "new";
@@ -31,7 +30,6 @@ export function useModelDetailConnectionFlows({
   connections,
   setConnections,
   model,
-  modelApiFamily,
   modelConfigId,
   setModel,
   createMode,
@@ -116,7 +114,6 @@ export function useModelDetailConnectionFlows({
     }
 
     const { errorMessage, payload } = buildConnectionDraftPayload({
-      modelApiFamily,
       createMode,
       selectedEndpointId,
       newEndpointForm,
@@ -148,11 +145,10 @@ export function useModelDetailConnectionFlows({
     connectionForm,
     createMode,
     editingConnection,
-    endpointSourceDefaultName,
-    headerRows,
-    modelApiFamily,
-    modelConfigId,
-    newEndpointForm,
+      endpointSourceDefaultName,
+      headerRows,
+      modelConfigId,
+      newEndpointForm,
     refreshCurrentState,
     selectedEndpointId,
     setDialogTestResult,

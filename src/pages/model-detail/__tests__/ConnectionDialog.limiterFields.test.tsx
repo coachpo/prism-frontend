@@ -2,14 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type {
-  ApiFamily,
-  Connection,
-  Endpoint,
-  ModelConfig,
-  ModelConfigListItem,
-  PricingTemplate,
-} from "@/lib/types";
+import type { Connection, Endpoint, ModelConfig, ModelConfigListItem, PricingTemplate } from "@/lib/types";
 import { ConnectionDialog } from "../ConnectionDialog";
 import { ConnectionCardHeader } from "../connections-list/ConnectionCardHeader";
 import { createDefaultConnectionForm } from "../useModelDetailDataSupport";
@@ -72,7 +65,6 @@ function buildConnection(overrides: Partial<Connection> = {}): Connection {
     auth_type: null,
     custom_headers: null,
     pricing_template_id: null,
-    openai_probe_endpoint_variant: "responses_minimal",
     qps_limit: null,
     max_in_flight_non_stream: null,
     max_in_flight_stream: null,
@@ -109,12 +101,10 @@ function buildPricingTemplate(overrides: Partial<PricingTemplate> = {}): Pricing
 
 function ConnectionDialogHarness({
   editingConnection,
-  modelApiFamily = "openai",
   pricingTemplates = [],
   pricingTemplateIdOnOpen,
 }: {
   editingConnection?: Connection;
-  modelApiFamily?: ApiFamily;
   pricingTemplates?: PricingTemplate[];
   pricingTemplateIdOnOpen?: number | null;
 }) {
@@ -135,7 +125,7 @@ function ConnectionDialogHarness({
       created_at: "2026-03-25T10:00:00Z",
       updated_at: "2026-03-25T10:00:00Z",
     },
-    api_family: modelApiFamily,
+    api_family: "openai",
     model_id: "gpt-5.4",
     display_name: "GPT-5.4",
     model_type: "native",
@@ -168,12 +158,11 @@ function ConnectionDialogHarness({
     setHeaderRows,
     endpointSourceDefaultName,
     openConnectionDialog,
-  } = useModelDetailDialogState({ globalEndpoints, modelApiFamily });
+  } = useModelDetailDialogState({ globalEndpoints });
 
   const { handleConnectionSubmit } = useModelDetailConnectionMutations({
     id: "5",
     revision: 1,
-    modelApiFamily,
     createMode,
     selectedEndpointId,
     newEndpointForm,
@@ -194,7 +183,6 @@ function ConnectionDialogHarness({
     connections,
     setConnections,
     model,
-    modelApiFamily,
     modelConfigId: 5,
     setModel,
     createMode,
@@ -214,33 +202,33 @@ function ConnectionDialogHarness({
 
   return (
     <>
-        <button
-          type="button"
-          onClick={() => {
-            openConnectionDialog(editingConnection);
-            if (pricingTemplateIdOnOpen !== undefined) {
-              setConnectionForm((current) => ({
-                ...current,
-                pricing_template_id: pricingTemplateIdOnOpen,
-              }));
-            }
-            if (!editingConnection) {
-              setCreateMode("new");
-            }
-          }}
-        >
-          Open Connection Dialog
-        </button>
-        {committedConnection ? (
-          <ConnectionCardHeader
-            connection={committedConnection}
-            connectionName={committedConnectionName}
-            isChecking={false}
-          />
-        ) : null}
-        <ConnectionDialog
-          isOpen={isConnectionDialogOpen}
-          onOpenChange={setIsConnectionDialogOpen}
+      <button
+        type="button"
+        onClick={() => {
+          openConnectionDialog(editingConnection);
+          if (pricingTemplateIdOnOpen !== undefined) {
+            setConnectionForm((current) => ({
+              ...current,
+              pricing_template_id: pricingTemplateIdOnOpen,
+            }));
+          }
+          if (!editingConnection) {
+            setCreateMode("new");
+          }
+        }}
+      >
+        Open Connection Dialog
+      </button>
+      {committedConnection ? (
+        <ConnectionCardHeader
+          connection={committedConnection}
+          connectionName={committedConnectionName}
+          isChecking={false}
+        />
+      ) : null}
+      <ConnectionDialog
+        isOpen={isConnectionDialogOpen}
+        onOpenChange={setIsConnectionDialogOpen}
         editingConnection={activeEditingConnection}
         connectionForm={connectionForm}
         setConnectionForm={setConnectionForm}
@@ -253,15 +241,14 @@ function ConnectionDialogHarness({
         globalEndpoints={globalEndpoints}
         headerRows={headerRows}
         setHeaderRows={setHeaderRows}
-          handleConnectionSubmit={handleConnectionSubmit}
-          dialogTestingConnection={dialogTestingConnection}
-          dialogTestResult={dialogTestResult}
-          handleDialogTestConnection={handleDialogTestConnection}
-          endpointSourceDefaultName={endpointSourceDefaultName}
-          modelApiFamily={modelApiFamily}
-          pricingTemplates={pricingTemplates}
-        />
-      </>
+        handleConnectionSubmit={handleConnectionSubmit}
+        dialogTestingConnection={dialogTestingConnection}
+        dialogTestResult={dialogTestResult}
+        handleDialogTestConnection={handleDialogTestConnection}
+        endpointSourceDefaultName={endpointSourceDefaultName}
+        pricingTemplates={pricingTemplates}
+      />
+    </>
   );
 }
 
@@ -300,15 +287,13 @@ describe("ConnectionDialog limiter fields", () => {
       is_active: true,
       custom_headers: null,
       pricing_template_id: null,
-      monitoring_probe_interval_seconds: 300,
-      openai_probe_endpoint_variant: "responses_minimal",
       qps_limit: null,
       max_in_flight_non_stream: null,
       max_in_flight_stream: null,
     });
   });
 
-  it("renders localized add-dialog copy in English", async () => {
+  it("renders localized add-dialog copy in English without monitoring-only fields", async () => {
     renderWithLocale(<ConnectionDialogHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
@@ -317,14 +302,14 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByText("Endpoint Source")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Select Existing" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Create New" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Probe interval (seconds)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Probe interval (seconds)")).not.toBeInTheDocument();
+    expect(screen.queryByText("OpenAI probe endpoint")).not.toBeInTheDocument();
     expect(screen.getByLabelText("QPS Limit")).toBeInTheDocument();
-    expect(screen.getByText("OpenAI probe endpoint")).toBeInTheDocument();
     expect(screen.getAllByText("Leave blank for unlimited.")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "Save Connection" })).toBeInTheDocument();
   });
 
-  it("renders localized edit-dialog copy in Chinese", async () => {
+  it("renders localized edit-dialog copy in Chinese while keeping Test Connection", async () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
     renderWithLocale(<ConnectionDialogHarness editingConnection={buildConnection()} />);
@@ -335,7 +320,7 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByText("端点来源")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "选择现有端点" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "新建端点" })).toBeInTheDocument();
-    expect(screen.getByLabelText("探测间隔（秒）")).toBeInTheDocument();
+    expect(screen.queryByLabelText("探测间隔（秒）")).not.toBeInTheDocument();
     expect(screen.getByLabelText("QPS 限流")).toBeInTheDocument();
     expect(screen.getByLabelText("最大并发（非流式）")).toBeInTheDocument();
     expect(screen.getByLabelText("最大并发（流式）")).toBeInTheDocument();
@@ -343,7 +328,7 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByRole("button", { name: "保存连接" })).toBeInTheDocument();
   });
 
-  it("keeps the approved connection dialog layout anchors while tightening section density", async () => {
+  it("keeps the approved connection dialog layout anchors while removing monitoring-only controls", async () => {
     renderWithLocale(<ConnectionDialogHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
@@ -357,106 +342,16 @@ describe("ConnectionDialog limiter fields", () => {
 
     expect(dialogContent).toHaveClass("max-w-5xl", "overflow-hidden");
     expect(dialogContent).toHaveClass("h-[min(94vh,64rem)]");
-    expect(dialogContent).not.toHaveClass("overflow-y-auto");
-    expect(scrollArea).toBeInTheDocument();
     expect(scrollArea).toHaveClass("min-h-0", "flex-1");
     expect(scrollBody).toHaveClass("grid", "gap-6", "px-6", "py-5", "sm:px-7");
     expect(endpointSourceSection).toHaveClass("space-y-4", "bg-muted/20", "p-4", "sm:p-5");
 
-    const mainGrid = screen.getByTestId("connection-dialog-main-grid");
     const leftColumn = screen.getByTestId("connection-dialog-left-column");
-    const rightColumn = screen.getByTestId("connection-dialog-right-column");
-    const limiterCard = screen.getByTestId("connection-dialog-limiter-card");
-    const headersCard = screen.getByTestId("connection-dialog-custom-headers-card");
-    const headersScrollArea = screen.getByTestId("connection-dialog-custom-headers-scroll-area");
-
-    expect(mainGrid).toHaveClass("items-start", "gap-6", "xl:grid-cols-[minmax(0,1.6fr)_minmax(19rem,0.9fr)]");
-    expect(leftColumn).toHaveClass("space-y-5");
-    expect(rightColumn).toHaveClass("flex", "min-h-0", "flex-col", "gap-4");
-    expect(limiterCard).toHaveClass("rounded-2xl", "bg-muted/15", "p-4");
-    expect(headersCard).toHaveClass("flex", "min-h-0", "flex-col", "bg-muted/10", "p-4");
-    expect(headersScrollArea).toHaveClass("max-h-[min(32vh,22rem)]", "w-full");
-    expect(headersCard).not.toHaveClass("mb-2");
-    expect(leftColumn.compareDocumentPosition(rightColumn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(limiterCard.compareDocumentPosition(headersCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(leftColumn).getByLabelText("Name (Optional)")).toBeInTheDocument();
     expect(within(leftColumn).getByText("Active")).toBeInTheDocument();
     expect(within(leftColumn).getByLabelText("Pricing Template")).toBeInTheDocument();
-    expect(within(leftColumn).getByLabelText("Probe interval (seconds)")).toBeInTheDocument();
-    expect(within(leftColumn).getByLabelText("OpenAI probe endpoint")).toBeInTheDocument();
-  });
-
-  it("groups create-new endpoint fields into a two-up row with api key below", async () => {
-    renderWithLocale(<ConnectionDialogHarness />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
-
-    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
-
-    const createNewTab = screen.getByRole("tab", { name: "Create New" });
-    fireEvent.click(createNewTab);
-
-    const createNewGrid = screen.getByTestId("connection-dialog-create-new-grid");
-    const endpointName = screen.getByLabelText("Name").closest("div");
-    const endpointBaseUrl = screen.getByLabelText("Base URL").closest("div");
-    const endpointApiKey = screen.getByLabelText("API Key").closest("div");
-
-    expect(createNewGrid).toHaveClass("md:grid-cols-2");
-    expect(endpointApiKey).toHaveClass("md:col-span-2");
-    expect(endpointName).not.toBeNull();
-    expect(endpointBaseUrl).not.toBeNull();
-    expect(endpointApiKey).not.toBeNull();
-    expect(endpointName!.compareDocumentPosition(endpointBaseUrl!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(endpointBaseUrl!.compareDocumentPosition(endpointApiKey!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("keeps the footer shell unchanged while giving custom headers more breathing room above it", async () => {
-    renderWithLocale(<ConnectionDialogHarness />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
-
-    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
-
-    const scrollArea = document.querySelector('[data-slot="scroll-area"]');
-    const footerShell = document.querySelector('[data-slot="dialog-footer"]')?.parentElement;
-    const headersCard = screen.getByTestId("connection-dialog-custom-headers-card");
-    const headersScrollArea = screen.getByTestId("connection-dialog-custom-headers-scroll-area");
-    const scrollBody = screen.getByTestId("connection-dialog-scroll-body");
-
-    expect(scrollArea).toBeInTheDocument();
-    expect(scrollBody).toHaveClass("grid", "gap-6");
-    expect(footerShell).toHaveClass("shrink-0", "border-t", "bg-background", "px-6", "py-4", "sm:px-7");
-    expect(headersCard).not.toHaveClass("mb-2");
-    expect(headersScrollArea).toHaveClass("max-h-[min(32vh,22rem)]");
-  });
-
-  it("shows the OpenAI probe variant selector only for OpenAI models", async () => {
-    renderWithLocale(<ConnectionDialogHarness modelApiFamily="anthropic" />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
-
-    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
-    expect(screen.queryByText("OpenAI probe endpoint")).not.toBeInTheDocument();
-  });
-
-  it("hydrates existing limiter values when editing a connection", async () => {
-    renderWithLocale(
-        <ConnectionDialogHarness
-          editingConnection={buildConnection({
-            monitoring_probe_interval_seconds: 45,
-            qps_limit: 30,
-            max_in_flight_non_stream: 12,
-            max_in_flight_stream: 4,
-        })}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
-
-    expect(await screen.findByDisplayValue("30")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("45")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("12")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("4")).toBeInTheDocument();
+    expect(within(leftColumn).queryByLabelText("Probe interval (seconds)")).not.toBeInTheDocument();
+    expect(within(leftColumn).queryByText("OpenAI probe endpoint")).not.toBeInTheDocument();
   });
 
   it("adds stable names and autocomplete metadata for connection form fields", async () => {
@@ -474,77 +369,30 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByLabelText("API Key")).toHaveAttribute("name", "endpoint_api_key");
     expect(screen.getByLabelText("API Key")).toHaveAttribute("autocomplete", "off");
     expect(screen.getByLabelText("Name (Optional)")).toHaveAttribute("name", "name");
-    expect(screen.getByLabelText("Probe interval (seconds)")).toHaveAttribute("name", "monitoring_probe_interval_seconds");
     expect(screen.getByLabelText("QPS Limit")).toHaveAttribute("name", "qps_limit");
-    expect(screen.getByLabelText("Max In-Flight (Non-Stream)")).toHaveAttribute(
-      "name",
-      "max_in_flight_non_stream",
-    );
-    expect(screen.getByLabelText("Max In-Flight (Stream)")).toHaveAttribute(
-      "name",
-      "max_in_flight_stream",
-    );
+    expect(screen.getByLabelText("Max In-Flight (Non-Stream)")).toHaveAttribute("name", "max_in_flight_non_stream");
+    expect(screen.getByLabelText("Max In-Flight (Stream)")).toHaveAttribute("name", "max_in_flight_stream");
     expect(document.querySelector('input[type="hidden"][name="create_mode"]')).toHaveValue("new");
     expect(document.querySelector('input[type="hidden"][name="pricing_template_id"]')).toHaveValue("9");
-    expect(document.querySelector('input[type="hidden"][name="openai_probe_endpoint_variant"]')).toHaveValue(
-      "responses_minimal",
-    );
+    expect(document.querySelector('input[type="hidden"][name="openai_probe_endpoint_variant"]')).toBeNull();
   });
 
-  it("shows all four OpenAI probe preset options in the connection dialog", async () => {
-    renderWithLocale(<ConnectionDialogHarness />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
-
-    fireEvent.click(await screen.findByRole("combobox", { name: "OpenAI probe endpoint" }));
-
-    expect(screen.getByRole("option", { name: "POST /v1/responses (minimal)" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: "POST /v1/responses (reasoning.effort=none)" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "POST /v1/chat/completions (minimal)" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: "POST /v1/chat/completions (reasoning_effort=none)" }),
-    ).toBeInTheDocument();
-  });
-
-  it.each([
-    {
-      name: "add mode",
-      harnessProps: {},
-      expectedInitialRows: 0,
-    },
-    {
-      name: "edit mode",
-      harnessProps: {
-        editingConnection: buildConnection({
-          custom_headers: {
-            Authorization: "Bearer token",
-          },
-        }),
-      },
-      expectedInitialRows: 1,
-    },
-  ])("renders each newly added custom-header row in $name", async ({ harnessProps, expectedInitialRows }) => {
+  it("renders each newly added custom-header row with stable keys", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     try {
-      renderWithLocale(<ConnectionDialogHarness {...harnessProps} />);
+      renderWithLocale(<ConnectionDialogHarness />);
 
       fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
 
       expect(await screen.findByRole("button", { name: "Add Header" })).toBeInTheDocument();
-      expect(getHeaderKeyInputs()).toHaveLength(expectedInitialRows);
+      expect(getHeaderKeyInputs()).toHaveLength(0);
 
       fireEvent.click(screen.getByRole("button", { name: "Add Header" }));
-      await waitFor(() => {
-        expect(getHeaderKeyInputs()).toHaveLength(expectedInitialRows + 1);
-      });
+      await waitFor(() => expect(getHeaderKeyInputs()).toHaveLength(1));
 
       fireEvent.click(screen.getByRole("button", { name: "Add Header" }));
-      await waitFor(() => {
-        expect(getHeaderKeyInputs()).toHaveLength(expectedInitialRows + 2);
-      });
+      await waitFor(() => expect(getHeaderKeyInputs()).toHaveLength(2));
 
       expect(
         consoleErrorSpy.mock.calls.some((call) => call.join(" ").includes("Encountered two children with the same key")),
@@ -554,7 +402,7 @@ describe("ConnectionDialog limiter fields", () => {
     }
   });
 
-  it("includes limiter fields and a selected non-default probe preset in the create submit payload", async () => {
+  it("includes limiter fields in the create submit payload", async () => {
     renderWithLocale(<ConnectionDialogHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
@@ -568,19 +416,9 @@ describe("ConnectionDialog limiter fields", () => {
     fireEvent.change(screen.getByPlaceholderText("sk-..."), {
       target: { value: "sk-test" },
     });
-    fireEvent.change(screen.getByLabelText("QPS Limit"), {
-      target: { value: "9" },
-    });
-    fireEvent.change(screen.getByLabelText("Max In-Flight (Non-Stream)"), {
-      target: { value: "5" },
-    });
-    fireEvent.change(screen.getByLabelText("Max In-Flight (Stream)"), {
-      target: { value: "2" },
-    });
-    fireEvent.click(screen.getByRole("combobox", { name: "OpenAI probe endpoint" }));
-    fireEvent.click(
-      screen.getByRole("option", { name: "POST /v1/chat/completions (reasoning_effort=none)" }),
-    );
+    fireEvent.change(screen.getByLabelText("QPS Limit"), { target: { value: "9" } });
+    fireEvent.change(screen.getByLabelText("Max In-Flight (Non-Stream)"), { target: { value: "5" } });
+    fireEvent.change(screen.getByLabelText("Max In-Flight (Stream)"), { target: { value: "2" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
 
@@ -588,7 +426,6 @@ describe("ConnectionDialog limiter fields", () => {
       expect(api.connections.create).toHaveBeenCalledWith(
         5,
         expect.objectContaining({
-          openai_probe_endpoint_variant: "chat_completions_reasoning_none",
           qps_limit: 9,
           max_in_flight_non_stream: 5,
           max_in_flight_stream: 2,
@@ -597,7 +434,7 @@ describe("ConnectionDialog limiter fields", () => {
     });
   });
 
-  it("uses the unsaved add-dialog draft and preserves a selected non-default probe preset when running a preview probe", async () => {
+  it("uses the unsaved add-dialog draft when running Test Connection", async () => {
     renderWithLocale(<ConnectionDialogHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
@@ -614,13 +451,6 @@ describe("ConnectionDialog limiter fields", () => {
     fireEvent.change(screen.getByLabelText("Name (Optional)"), {
       target: { value: "Preview connection" },
     });
-    fireEvent.change(screen.getByLabelText("Probe interval (seconds)"), {
-      target: { value: "45" },
-    });
-    fireEvent.click(screen.getByRole("combobox", { name: "OpenAI probe endpoint" }));
-    fireEvent.click(
-      screen.getByRole("option", { name: "POST /v1/responses (reasoning.effort=none)" }),
-    );
 
     fireEvent.click(screen.getByRole("button", { name: "Test Connection" }));
 
@@ -634,93 +464,30 @@ describe("ConnectionDialog limiter fields", () => {
             api_key: "sk-preview",
           }),
           name: "Preview connection",
-          monitoring_probe_interval_seconds: 45,
-          openai_probe_endpoint_variant: "responses_reasoning_none",
         }),
       );
     });
     expect(api.connections.healthCheck).not.toHaveBeenCalled();
-  });
-
-  it("clamps probe interval values below the backend minimum before submit", async () => {
-    renderWithLocale(<ConnectionDialogHarness />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
-
-    fireEvent.change(screen.getByPlaceholderText("e.g. OpenAI Primary"), {
-      target: { value: "Inline endpoint" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("https://api.openai.com"), {
-      target: { value: "https://api.example.com/v1" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("sk-..."), {
-      target: { value: "sk-test" },
-    });
-    fireEvent.change(screen.getByLabelText("Probe interval (seconds)"), {
-      target: { value: "12" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
-
-    await waitFor(() => {
-      expect(api.connections.create).toHaveBeenCalledWith(
-        5,
-        expect.objectContaining({ monitoring_probe_interval_seconds: 30 }),
-      );
-    });
-  });
-
-  it("clamps probe interval values above the backend maximum before submit", async () => {
-    renderWithLocale(<ConnectionDialogHarness />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
-
-    fireEvent.change(screen.getByPlaceholderText("e.g. OpenAI Primary"), {
-      target: { value: "Inline endpoint" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("https://api.openai.com"), {
-      target: { value: "https://api.example.com/v1" },
-    });
-    fireEvent.change(screen.getByPlaceholderText("sk-..."), {
-      target: { value: "sk-test" },
-    });
-    fireEvent.change(screen.getByLabelText("Probe interval (seconds)"), {
-      target: { value: "7200" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
-
-    await waitFor(() => {
-      expect(api.connections.create).toHaveBeenCalledWith(
-        5,
-        expect.objectContaining({ monitoring_probe_interval_seconds: 3600 }),
-      );
-    });
+    expect(await screen.findByText("Connection Healthy")).toBeInTheDocument();
+    expect(screen.getByText("preview ok")).toBeInTheDocument();
   });
 
   it("submits null limiter values after clearing existing inputs", async () => {
     renderWithLocale(
-        <ConnectionDialogHarness
-          editingConnection={buildConnection({
-            openai_probe_endpoint_variant: "chat_completions_reasoning_none",
-            qps_limit: 20,
-            max_in_flight_non_stream: 7,
-            max_in_flight_stream: 3,
+      <ConnectionDialogHarness
+        editingConnection={buildConnection({
+          qps_limit: 20,
+          max_in_flight_non_stream: 7,
+          max_in_flight_stream: 3,
         })}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
 
-    fireEvent.change(screen.getByLabelText("QPS Limit"), {
-      target: { value: "" },
-    });
-    fireEvent.change(screen.getByLabelText("Max In-Flight (Non-Stream)"), {
-      target: { value: "" },
-    });
-    fireEvent.change(screen.getByLabelText("Max In-Flight (Stream)"), {
-      target: { value: "" },
-    });
+    fireEvent.change(screen.getByLabelText("QPS Limit"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Max In-Flight (Non-Stream)"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Max In-Flight (Stream)"), { target: { value: "" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Save Connection" }));
 
@@ -728,7 +495,6 @@ describe("ConnectionDialog limiter fields", () => {
       expect(api.connections.update).toHaveBeenCalledWith(
         11,
         expect.objectContaining({
-          openai_probe_endpoint_variant: "chat_completions_reasoning_none",
           qps_limit: null,
           max_in_flight_non_stream: null,
           max_in_flight_stream: null,
