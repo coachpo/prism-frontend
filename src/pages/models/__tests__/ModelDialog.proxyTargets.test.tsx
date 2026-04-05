@@ -274,8 +274,10 @@ describe("ModelDialog proxy target editing", () => {
 
     expect(screen.getByRole("dialog")).toHaveClass("max-h-[90vh]", "max-w-2xl", "overflow-y-auto");
     screen.getAllByRole("combobox").forEach((combobox) => {
-      expect(combobox).toHaveClass("w-full");
+      expect(combobox).toHaveClass("w-full", "min-w-0", "max-w-full");
     });
+    expect(screen.getByText("Vendor").parentElement).toHaveClass("min-w-0");
+    expect(screen.getByText("API Family").parentElement).toHaveClass("min-w-0");
   });
 
   it("keeps native loadbalance strategy selection full-width", () => {
@@ -307,7 +309,7 @@ describe("ModelDialog proxy target editing", () => {
     );
 
     screen.getAllByRole("combobox").forEach((combobox) => {
-      expect(combobox).toHaveClass("w-full");
+      expect(combobox).toHaveClass("w-full", "min-w-0", "max-w-full");
     });
   });
 

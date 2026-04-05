@@ -121,7 +121,7 @@ export function ModelDialog({
             />
           ))}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label>{fieldCopy.vendor}</Label>
               <VendorSelect
                 value={String(formData.vendor_id ?? "")}
@@ -140,7 +140,7 @@ export function ModelDialog({
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label>{fieldCopy.apiFamily}</Label>
               <ApiFamilySelect
                 value={formData.api_family ?? ""}
