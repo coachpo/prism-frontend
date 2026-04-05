@@ -79,13 +79,6 @@ const AdaptiveRoutingPolicyImportSchema = z.strictObject({
     respect_qps_limit: z.boolean(),
     respect_in_flight_limits: z.boolean(),
   }),
-  monitoring: z.strictObject({
-    enabled: z.boolean(),
-    stale_after_seconds: z.number().int().min(1),
-    endpoint_ping_weight: z.number().min(0),
-    conversation_delay_weight: z.number().min(0),
-    failure_penalty_weight: z.number().min(0),
-  }),
 });
 
 const LoadbalanceStrategyImportSchema = z.discriminatedUnion("strategy_type", [
@@ -113,14 +106,6 @@ const ConnectionImportSchema = z.strictObject({
   name: z.string().nullable().optional(),
   auth_type: z.enum(["openai", "anthropic", "gemini"]).nullable().optional(),
   custom_headers: z.record(z.string(), z.string()).nullable().optional(),
-  openai_probe_endpoint_variant: z
-    .enum([
-      "responses_minimal",
-      "responses_reasoning_none",
-      "chat_completions_minimal",
-      "chat_completions_reasoning_none",
-    ])
-    .optional(),
   qps_limit: z.number().int().min(1).nullable().optional(),
   max_in_flight_non_stream: z.number().int().min(1).nullable().optional(),
   max_in_flight_stream: z.number().int().min(1).nullable().optional(),

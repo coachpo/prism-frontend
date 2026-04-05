@@ -33,13 +33,6 @@ function buildAdaptiveRoutingPolicy() {
       respect_qps_limit: true,
       respect_in_flight_limits: true,
     },
-    monitoring: {
-      enabled: true,
-      stale_after_seconds: 30,
-      endpoint_ping_weight: 0.4,
-      conversation_delay_weight: 0.35,
-      failure_penalty_weight: 0.25,
-    },
   };
 }
 
@@ -92,7 +85,6 @@ function buildV2ProfileBundle() {
             name: "Primary",
             auth_type: "openai",
             custom_headers: { "X-Org": "my-org" },
-            openai_probe_endpoint_variant: "responses_minimal",
           },
         ],
       },
@@ -239,25 +231,6 @@ describe("ConfigImportSchema", () => {
           loadbalance_strategy_name: null,
           is_enabled: true,
           connections: [],
-        },
-      ],
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it("accepts non-default OpenAI probe presets in imported connections", () => {
-    const result = ConfigImportSchema.safeParse({
-      ...buildV2ProfileBundle(),
-      models: [
-        {
-          ...buildV2ProfileBundle().models[0],
-          connections: [
-            {
-              ...buildV2ProfileBundle().models[0].connections[0],
-              openai_probe_endpoint_variant: "chat_completions_reasoning_none",
-            },
-          ],
         },
       ],
     });
