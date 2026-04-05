@@ -155,6 +155,54 @@ describe("request log filters", () => {
     expect(screen.queryByText("Connection")).not.toBeInTheDocument();
   });
 
+  it.fails("clears the request lookup draft when browse filters are cleared", () => {
+    const actions = createFiltersBarActions();
+    actions.hasActiveFilters = true;
+    actions.state = {
+      ...actions.state,
+      ingress_request_id: "ingress_req_42",
+    };
+
+    const view = renderWithLocale(
+      <FiltersBar
+        actions={actions}
+        filterOptions={createFilterOptions()}
+        filterOptionsLoaded={true}
+        onRefresh={vi.fn()}
+        isRefreshing={false}
+      />,
+    );
+
+    const requestIdInput = screen.getByPlaceholderText("Request ID");
+    fireEvent.change(requestIdInput, { target: { value: "42" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /clear filters/i }));
+    expect(actions.clearFilters).toHaveBeenCalledTimes(1);
+
+    const clearedActions = {
+      ...actions,
+      hasActiveFilters: false,
+      state: {
+        ...actions.state,
+        ingress_request_id: "",
+      },
+    };
+
+    view.rerender(
+      <LocaleProvider>
+        <FiltersBar
+          actions={clearedActions}
+          filterOptions={createFilterOptions()}
+          filterOptionsLoaded={true}
+          onRefresh={vi.fn()}
+          isRefreshing={false}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByPlaceholderText("Request ID")).toHaveValue("");
+  });
+
   it("renders localized retained request-log filter copy when the saved locale is Chinese", () => {
     localStorage.setItem("prism.locale", "zh-CN");
 
