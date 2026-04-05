@@ -90,6 +90,7 @@ describe("LoadbalanceStrategyDialog", () => {
 
     const familySelect = screen.getByRole("combobox", { name: "Strategy Family" });
     expect(familySelect).toHaveTextContent("Legacy strategy");
+    expect(familySelect).toHaveClass("w-full", "min-w-0", "max-w-full");
   });
 
   it("renders localized dual-strategy dialog copy when the saved locale is Chinese", () => {

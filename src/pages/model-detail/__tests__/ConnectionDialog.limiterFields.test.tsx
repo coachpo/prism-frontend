@@ -309,6 +309,27 @@ describe("ConnectionDialog limiter fields", () => {
     expect(screen.getByRole("button", { name: "Save Connection" })).toBeInTheDocument();
   });
 
+  it("keeps dialog select triggers shrink-safe for long selected labels", async () => {
+      renderWithLocale(
+        <ConnectionDialogHarness
+          pricingTemplates={[
+            buildPricingTemplate({
+              name: "Premium Pricing Template With A Very Long Label For Overflow Coverage",
+            }),
+          ]}
+          pricingTemplateIdOnOpen={3}
+        />,
+      );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Connection Dialog" }));
+
+    expect(await screen.findByText("Add Connection")).toBeInTheDocument();
+
+    screen.getAllByRole("combobox").forEach((combobox) => {
+      expect(combobox).toHaveClass("w-full", "min-w-0", "max-w-full");
+    });
+  });
+
   it("renders localized edit-dialog copy in Chinese while keeping Test Connection", async () => {
     localStorage.setItem("prism.locale", "zh-CN");
 

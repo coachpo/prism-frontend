@@ -186,6 +186,7 @@ function ModelSettingsForm({
               valueType="vendor_id"
               vendors={vendors}
               showAll={false}
+              className="w-full"
               placeholder={copy.selectVendor}
             />
           </div>
@@ -195,6 +196,7 @@ function ModelSettingsForm({
               value={selectedApiFamily}
               onValueChange={handleApiFamilyChange}
               showAll={false}
+              className="w-full"
               placeholder={copy.selectApiFamily}
             />
           </div>
