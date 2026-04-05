@@ -17,13 +17,12 @@ import { useModelDetailBootstrap } from "./useModelDetailBootstrap";
 import { useModelDetailConnectionFlows } from "./useModelDetailConnectionFlows";
 import { useModelDetailConnectionMutations } from "./useModelDetailConnectionMutations";
 import { useModelDetailDialogState } from "./useModelDetailDialogState";
-import { useModelDetailMonitoring } from "./useModelDetailMonitoring";
 import { useModelDetailModelForm } from "./useModelDetailModelForm";
 import { useModelLoadbalanceCurrentState } from "./useModelLoadbalanceCurrentState";
 
 export function useModelDetailData(id: string | undefined) {
   const navigate = useNavigate();
-  const { revision, selectedProfileId } = useProfileContext();
+  const { revision } = useProfileContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const modelConfigId = id ? Number.parseInt(id, 10) : undefined;
 
@@ -68,7 +67,6 @@ export function useModelDetailData(id: string | undefined) {
     endpointSourceDefaultName,
     openConnectionDialog,
   } = useModelDetailDialogState({
-    modelApiFamily: model?.api_family,
     globalEndpoints,
   });
 
@@ -100,12 +98,6 @@ export function useModelDetailData(id: string | undefined) {
     enabled: model?.model_type === "native",
   });
 
-  const { monitoringByConnectionId, monitoringLoading } = useModelDetailMonitoring({
-    modelConfigId,
-    revision,
-    selectedProfileId,
-  });
-
   const {
     healthCheckingIds,
     reorderInFlight,
@@ -116,7 +108,6 @@ export function useModelDetailData(id: string | undefined) {
     connections,
     setConnections,
     model,
-    modelApiFamily: model?.api_family,
     modelConfigId,
     setModel,
     createMode,
@@ -138,7 +129,6 @@ export function useModelDetailData(id: string | undefined) {
   } = useModelDetailConnectionMutations({
     id,
     revision,
-    modelApiFamily: model?.api_family,
     createMode,
     selectedEndpointId,
     newEndpointForm,
@@ -224,8 +214,6 @@ export function useModelDetailData(id: string | undefined) {
     dialogTestingConnection,
     dialogTestResult,
     currentStateByConnectionId,
-    monitoringByConnectionId,
-    monitoringLoading,
     resettingConnectionIds,
     focusedConnectionId,
     connectionCardRefs,

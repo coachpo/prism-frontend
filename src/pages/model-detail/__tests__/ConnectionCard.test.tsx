@@ -1,18 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
-import type {
-  Connection,
-  LoadbalanceCurrentStateItem,
-  MonitoringConnectionHistoryPoint,
-  MonitoringModelConnection,
-  ModelConfig,
-  Vendor,
-} from "@/lib/types";
+import type { Connection, LoadbalanceCurrentStateItem, ModelConfig, Vendor } from "@/lib/types";
 import { ConnectionCard } from "../connections-list/ConnectionCard";
 import { ConnectionCardActions } from "../connections-list/ConnectionCardActions";
 import { ConnectionCardHeader } from "../connections-list/ConnectionCardHeader";
-import { ConnectionCardMetrics } from "../connections-list/ConnectionCardMetrics";
 
 function buildVendor(): Vendor {
   return {
@@ -89,8 +81,6 @@ function buildConnection(): Connection {
     auth_type: null,
     custom_headers: null,
     pricing_template_id: null,
-    monitoring_probe_interval_seconds: 45,
-    openai_probe_endpoint_variant: "responses_minimal",
     qps_limit: null,
     max_in_flight_non_stream: null,
     max_in_flight_stream: null,
@@ -105,7 +95,7 @@ function buildConnection(): Connection {
 
 function buildCurrentState(
   state: LoadbalanceCurrentStateItem["state"],
-  overrides: Partial<LoadbalanceCurrentStateItem> = {}
+  overrides: Partial<LoadbalanceCurrentStateItem> = {},
 ): LoadbalanceCurrentStateItem {
   return {
     connection_id: 11,
@@ -121,54 +111,6 @@ function buildCurrentState(
     updated_at: "2026-03-23T10:01:00Z",
     ...overrides,
   } as LoadbalanceCurrentStateItem;
-}
-
-function buildMonitoringHistoryPoint(
-  overrides: Partial<MonitoringConnectionHistoryPoint> = {}
-): MonitoringConnectionHistoryPoint {
-  return {
-    checked_at: "2026-03-23T10:00:00Z",
-    endpoint_ping_status: "healthy",
-    endpoint_ping_ms: 82,
-    conversation_status: "healthy",
-    conversation_delay_ms: 310,
-    failure_kind: null,
-    ...overrides,
-  };
-}
-
-function buildMonitoringConnection(
-  overrides: Partial<MonitoringModelConnection> = {}
-): MonitoringModelConnection {
-  return {
-    connection_id: 11,
-    connection_name: "Primary",
-    endpoint_id: 7,
-    endpoint_name: "Primary endpoint",
-    endpoint_ping_status: "healthy",
-    endpoint_ping_ms: 82,
-    conversation_status: "degraded",
-    conversation_delay_ms: 310,
-    fused_status: "degraded",
-    recent_history: [
-      buildMonitoringHistoryPoint(),
-      buildMonitoringHistoryPoint({
-        checked_at: "2026-03-23T10:01:00Z",
-        endpoint_ping_status: "degraded",
-        conversation_status: "degraded",
-        conversation_delay_ms: 360,
-      }),
-      buildMonitoringHistoryPoint({
-        checked_at: "2026-03-23T10:02:00Z",
-        endpoint_ping_status: "failed",
-        endpoint_ping_ms: null,
-        conversation_status: "failed",
-        conversation_delay_ms: null,
-        failure_kind: "timeout",
-      }),
-    ],
-    ...overrides,
-  };
 }
 
 function renderWithLocale(ui: React.ReactElement) {
@@ -193,8 +135,6 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        monitoringConnection={undefined}
-        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState(state)}
         isChecking={false}
         isResettingCooldown={false}
@@ -206,7 +146,7 @@ describe("ConnectionCard cooldown state", () => {
         onHealthCheck={vi.fn()}
         onResetCooldown={vi.fn()}
         onToggleActive={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText(badgeLabel)).toBeInTheDocument();
@@ -218,8 +158,6 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        monitoringConnection={undefined}
-        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("counting", {
           consecutive_failures: 0,
           last_failure_kind: null,
@@ -239,9 +177,6 @@ describe("ConnectionCard cooldown state", () => {
 
     expect(screen.queryByText("Recovery Counting")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reset Recovery State" })).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/Tracking 0 consecutive failures after an unknown failure/i),
-    ).not.toBeInTheDocument();
   });
 
   it("renders temporary ban copy with the ban expiry time", () => {
@@ -249,8 +184,6 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        monitoringConnection={undefined}
-        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("banned", {
           ban_mode: "temporary" as LoadbalanceCurrentStateItem["ban_mode"],
           banned_until_at: "2026-03-23T10:10:00Z",
@@ -266,12 +199,10 @@ describe("ConnectionCard cooldown state", () => {
         onHealthCheck={vi.fn()}
         onResetCooldown={vi.fn()}
         onToggleActive={vi.fn()}
-      />
+      />,
     );
 
-    expect(
-      screen.getByText(/This connection is banned until formatted:2026-03-23T10:10:00Z/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/This connection is banned until formatted:2026-03-23T10:10:00Z/i)).toBeInTheDocument();
   });
 
   it("renders manual ban copy with dismiss wording", () => {
@@ -279,8 +210,6 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        monitoringConnection={undefined}
-        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("banned", {
           ban_mode: "manual" as LoadbalanceCurrentStateItem["ban_mode"],
           banned_until_at: null,
@@ -296,12 +225,10 @@ describe("ConnectionCard cooldown state", () => {
         onHealthCheck={vi.fn()}
         onResetCooldown={vi.fn()}
         onToggleActive={vi.fn()}
-      />
+      />,
     );
 
-    expect(
-      screen.getByText(/This connection is banned until the operator dismisses it/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/This connection is banned until the operator dismisses it/i)).toBeInTheDocument();
   });
 
   it("calls reset and shows loading state without affecting the rest of the card", () => {
@@ -311,8 +238,6 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        monitoringConnection={undefined}
-        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("blocked")}
         isChecking={false}
         isResettingCooldown={false}
@@ -324,7 +249,7 @@ describe("ConnectionCard cooldown state", () => {
         onHealthCheck={vi.fn()}
         onResetCooldown={handleResetCooldown}
         onToggleActive={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Reset Recovery State" }));
@@ -337,8 +262,6 @@ describe("ConnectionCard cooldown state", () => {
         <ConnectionCard
           connection={buildConnection()}
           model={buildModel()}
-          monitoringConnection={undefined}
-          monitoringLoading={false}
           loadbalanceCurrentState={buildCurrentState("blocked")}
           isChecking={false}
           isResettingCooldown
@@ -351,7 +274,7 @@ describe("ConnectionCard cooldown state", () => {
           onResetCooldown={handleResetCooldown}
           onToggleActive={vi.fn()}
         />
-      </LocaleProvider>
+      </LocaleProvider>,
     );
 
     expect(screen.getByRole("button", { name: "Reset Recovery State" })).toBeDisabled();
@@ -363,8 +286,6 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        monitoringConnection={undefined}
-        monitoringLoading={false}
         loadbalanceCurrentState={undefined}
         isChecking={false}
         isResettingCooldown={false}
@@ -376,7 +297,7 @@ describe("ConnectionCard cooldown state", () => {
         onHealthCheck={vi.fn()}
         onResetCooldown={vi.fn()}
         onToggleActive={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.queryByRole("button", { name: "Reset Recovery State" })).not.toBeInTheDocument();
@@ -399,13 +320,11 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByText("Inactive")).toBeInTheDocument();
   });
 
-  it("hides adaptive monitoring evidence from load-balance current state", () => {
+  it("keeps monitoring-derived evidence out of the card body", () => {
     renderWithLocale(
       <ConnectionCard
         connection={buildConnection()}
         model={buildModel()}
-        monitoringConnection={buildMonitoringConnection()}
-        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("blocked")}
         isChecking={false}
         isResettingCooldown={false}
@@ -423,14 +342,8 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.queryByText("45s cadence")).not.toBeInTheDocument();
     expect(screen.queryByText("Endpoint 82 ms")).not.toBeInTheDocument();
     expect(screen.queryByText("Conversation 310 ms")).not.toBeInTheDocument();
-    expect(screen.queryByText("P95 420 ms")).not.toBeInTheDocument();
-    expect(screen.queryByText("Last success formatted:2026-03-23T09:58:00Z")).not.toBeInTheDocument();
-    expect(screen.queryByText("Failure Timeout")).not.toBeInTheDocument();
-    expect(screen.queryByText("Half Open")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("monitoring-probe-strip")).not.toBeInTheDocument();
     expect(screen.getByText("Recovery Blocked")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reset Recovery State" })).toBeEnabled();
-    expect(screen.queryByText("Degraded")).not.toBeInTheDocument();
-    expect(screen.queryByText("Last probe formatted:2026-03-23T10:02:00Z")).not.toBeInTheDocument();
   });
 
   it("applies muted shell styling to inactive cards while keeping actions available", () => {
@@ -438,8 +351,6 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={{ ...buildConnection(), is_active: false }}
         model={buildModel()}
-        monitoringConnection={undefined}
-        monitoringLoading={false}
         loadbalanceCurrentState={undefined}
         isChecking={false}
         isResettingCooldown={false}
@@ -461,65 +372,6 @@ describe("ConnectionCard cooldown state", () => {
     expect(card).toHaveClass("border-border/60", "bg-muted/20");
     expect(contentColumn).toHaveClass("opacity-75");
     expect(screen.getByRole("switch")).toBeEnabled();
-  });
-
-  it("renders compact monitoring summary and shared probe history strip without retired 24h copy", () => {
-    vi.useFakeTimers();
-
-    try {
-      vi.setSystemTime(new Date("2026-03-23T10:01:45Z"));
-
-      renderWithLocale(
-        <ConnectionCardMetrics
-          monitoringConnection={buildMonitoringConnection()}
-          monitoringLoading={false}
-        />,
-      );
-
-      expect(screen.queryByText(/Next Update/i)).not.toBeInTheDocument();
-      expect(screen.queryByText("Healthy")).not.toBeInTheDocument();
-      expect(screen.queryByText("Degraded")).not.toBeInTheDocument();
-      expect(screen.queryByText("Latest Probe Degraded")).not.toBeInTheDocument();
-      expect(screen.queryByText("Last probe formatted:2026-03-23T10:02:00Z")).not.toBeInTheDocument();
-      expect(screen.getByTestId("monitoring-probe-strip")).toBeInTheDocument();
-      expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(60);
-      expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(57);
-      expect(screen.queryByText("Past 60 probes")).not.toBeInTheDocument();
-      expect(screen.queryByText("Success rate (24h)")).not.toBeInTheDocument();
-      expect(screen.queryByText(/5xx rate \(sampled\)/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/P95 latency \(24h\)/i)).not.toBeInTheDocument();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("renders a compact placeholder while monitoring is still loading without a row", () => {
-    renderWithLocale(
-      <ConnectionCardMetrics
-        monitoringConnection={undefined}
-        monitoringLoading
-      />,
-    );
-
-    expect(screen.getByTestId("connection-monitoring-placeholder")).toBeInTheDocument();
-    expect(screen.queryByText("No probe history is available yet.")).not.toBeInTheDocument();
-    expect(screen.queryByText("Success rate (24h)")).not.toBeInTheDocument();
-  });
-
-  it("renders a 60-cell no-data strip once monitoring finishes without a row", () => {
-    renderWithLocale(
-      <ConnectionCardMetrics
-        monitoringConnection={undefined}
-        monitoringLoading={false}
-      />,
-    );
-
-    expect(screen.getByTestId("monitoring-probe-strip")).toBeInTheDocument();
-    expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(60);
-    expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(60);
-    expect(screen.queryByText("Past 60 probes")).not.toBeInTheDocument();
-    expect(screen.queryByText("No probe history is available yet.")).not.toBeInTheDocument();
-    expect(screen.queryByText("Success rate (24h)")).not.toBeInTheDocument();
   });
 
   it("wires action callbacks through the extracted actions component", async () => {
@@ -566,8 +418,6 @@ describe("ConnectionCard cooldown state", () => {
       <ConnectionCard
         connection={{ ...buildConnection(), is_active: false }}
         model={buildModel()}
-        monitoringConnection={buildMonitoringConnection({ recent_history: [] })}
-        monitoringLoading={false}
         loadbalanceCurrentState={buildCurrentState("blocked")}
         isChecking={false}
         isResettingCooldown={false}
@@ -587,9 +437,5 @@ describe("ConnectionCard cooldown state", () => {
     expect(screen.getByText("未激活")).toBeInTheDocument();
     expect(screen.getByText("恢复阻止中")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重置恢复状态" })).toBeInTheDocument();
-    expect(screen.getAllByTestId(/monitoring-probe-cell-/)).toHaveLength(60);
-    expect(screen.getAllByTestId("monitoring-probe-cell-no-data")).toHaveLength(60);
-    expect(screen.queryByText("暂无探测历史。")).not.toBeInTheDocument();
-    expect(screen.queryByText("成功率（24 小时）")).not.toBeInTheDocument();
   });
 });

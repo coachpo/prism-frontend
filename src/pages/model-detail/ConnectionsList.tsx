@@ -23,7 +23,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useLocale } from "@/i18n/useLocale";
 import { Plus, Search, Shield } from "lucide-react";
 import { useTimezone } from "@/hooks/useTimezone";
-import type { LoadbalanceCurrentStateItem, MonitoringModelConnection } from "@/lib/types";
+import type { LoadbalanceCurrentStateItem } from "@/lib/types";
 import { ConnectionCard } from "./connections-list/ConnectionCard";
 import { SortableConnectionCard } from "./connections-list/SortableConnectionCard";
 import type {
@@ -46,8 +46,6 @@ interface ConnectionsListProps {
   handleHealthCheck: (id: number) => void;
   handleToggleActive: (connection: Connection) => void;
   handleReorderConnections: (connectionId: number, toIndex: number) => Promise<void>;
-  monitoringByConnectionId: Map<number, MonitoringModelConnection>;
-  monitoringLoading: boolean;
   currentStateByConnectionId: Map<number, LoadbalanceCurrentStateItem>;
   resettingConnectionIds: Set<number>;
   healthCheckingIds: Set<number>;
@@ -67,8 +65,6 @@ export function ConnectionsList({
   handleHealthCheck,
   handleToggleActive,
   handleReorderConnections,
-  monitoringByConnectionId,
-  monitoringLoading,
   currentStateByConnectionId,
   resettingConnectionIds,
   healthCheckingIds,
@@ -211,7 +207,6 @@ export function ConnectionsList({
           <SortableContext items={connectionIds} strategy={verticalListSortingStrategy}>
             <div className="space-y-3">
               {filteredConnections.map((connection) => {
-                const monitoringConnection = monitoringByConnectionId.get(connection.id);
                 const loadbalanceCurrentState = currentStateByConnectionId.get(connection.id);
                 const isChecking = healthCheckingIds.has(connection.id);
                 const isFocused = focusedConnectionId === connection.id;
@@ -219,8 +214,6 @@ export function ConnectionsList({
                 const sortableCardProps: SortableConnectionCardProps = {
                   connection,
                   model,
-                  monitoringConnection,
-                  monitoringLoading,
                   loadbalanceCurrentState,
                   isChecking,
                   isResettingCooldown,
@@ -255,8 +248,6 @@ export function ConnectionsList({
                   {...({
                     connection: activeDragConnection,
                     model,
-                    monitoringConnection: monitoringByConnectionId.get(activeDragConnection.id),
-                    monitoringLoading,
                     loadbalanceCurrentState: currentStateByConnectionId.get(activeDragConnection.id),
                     isChecking: healthCheckingIds.has(activeDragConnection.id),
                     isResettingCooldown: resettingConnectionIds.has(activeDragConnection.id),

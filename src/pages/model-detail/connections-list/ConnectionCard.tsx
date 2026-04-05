@@ -6,13 +6,10 @@ import { ConnectionCardActions } from "./ConnectionCardActions";
 import { ConnectionCardCooldownState } from "./ConnectionCardCooldownState";
 import { ConnectionCardDetails } from "./ConnectionCardDetails";
 import { ConnectionCardHeader } from "./ConnectionCardHeader";
-import { ConnectionCardMetrics } from "./ConnectionCardMetrics";
 import type { ConnectionCardProps } from "./connectionCardTypes";
 
 export function ConnectionCard({
   connection,
-  monitoringConnection,
-  monitoringLoading,
   loadbalanceCurrentState,
   isChecking,
   isResettingCooldown,
@@ -85,11 +82,6 @@ export function ConnectionCard({
               formatTime={formatTime}
               isResetting={isResettingCooldown}
               onResetCooldown={onResetCooldown}
-            />
-
-            <ConnectionCardMetrics
-              monitoringConnection={monitoringConnection}
-              monitoringLoading={monitoringLoading}
             />
           </div>
         </div>

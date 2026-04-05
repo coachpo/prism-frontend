@@ -1,10 +1,5 @@
 import type { ButtonHTMLAttributes } from "react";
-import type {
-  Connection,
-  LoadbalanceCurrentStateItem,
-  MonitoringModelConnection,
-  ModelConfig,
-} from "@/lib/types";
+import type { Connection, LoadbalanceCurrentStateItem, ModelConfig } from "@/lib/types";
 
 export type FormatTime = (
   isoString: string,
@@ -14,8 +9,6 @@ export type FormatTime = (
 export interface ConnectionCardProps {
   connection: Connection;
   model: ModelConfig;
-  monitoringConnection: MonitoringModelConnection | undefined;
-  monitoringLoading: boolean;
   loadbalanceCurrentState: LoadbalanceCurrentStateItem | undefined;
   isChecking: boolean;
   isResettingCooldown: boolean;
